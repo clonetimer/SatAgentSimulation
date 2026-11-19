@@ -369,6 +369,10 @@
             </section>
             <details id="wizardQoiAdvancedPanel" class="wizard-advanced-output"><summary>查看完整摘要指标目录</summary><p class="wizard-panel-help">完整注册指标目录，包含高级或低频使用的结果摘要项。</p><div id="wizardQoiHost"></div></details>
             <details id="wizardAdvancedCurvePanel" class="wizard-advanced-output"><summary>查看完整遥测字段目录（高级）</summary><p class="wizard-panel-help">完整展示当前能力注册的具体遥测字段，可查看技术字段名和单位。</p><div id="wizardPlotHost"></div></details>
+            <section class="wizard-fmea-output" aria-label="FMEA 输出">
+              <label class="advanced-toggle"><input id="wizardFmeaEnabled" type="checkbox"><span>生成 FMEA 表</span></label>
+              <p class="wizard-panel-help">将本次事件与遥测证据整理为 FMEA 表；只有显式提供严重度、发生度和可检测度时才计算 RPN。</p>
+            </section>
           </details>
         </section>
         <details id="wizardAdditionalTools" class="wizard-additional-tools">

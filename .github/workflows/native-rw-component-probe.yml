@@ -21,6 +21,9 @@ on:
       - "tests/test_native_eps_comm_data_effects_bundle.py"
       - "tests/test_p9o2_eps_comm_data_guided_event_catalog.py"
       - "tests/test_p9o3_whole_spacecraft_guided_event_catalog.py"
+      - "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml"
+      - "tests/test_native_whole_spacecraft_event_bundles.py"
+      - "tests/test_native_rw_momentum.py"
       - "tests/test_multi_rate_fmea_unified_subsystems.py"
       - "src/sat_sim/capabilities/subsystem.adcs_unified_native.v1.yaml"
       - "tests/test_unified_native_migration.py"
@@ -161,10 +164,15 @@ jobs:
           python -m pytest -q -s --junitxml=reports/native_adcs/adcs_fault_effects.xml tests/test_native_adcs_fault_effects.py
           python -m pytest -q -s tests/test_formal_effect_evidence_contracts.py -k unified_effect_contracts_are_declared_and_registered
           python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/formal_effects.xml \
-            tests/test_formal_effect_evidence_contracts.py -k test_each_unified_effect_has_formal_runtime_pass
+            tests/test_formal_effect_evidence_contracts.py -k "test_unified_effect_contracts_are_declared_and_registered or test_each_unified_effect_has_formal_runtime_pass or test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect"
+          mkdir -p reports/native_whole_spacecraft_events
+          python -m pytest -q -s --junitxml=reports/native_whole_spacecraft_events/effect_ab.xml \
+            tests/test_native_whole_spacecraft_event_bundles.py
           python -m pytest -q -s tests/test_p9n5_adcs_guided_event_catalog.py
           python -m pytest -q -s tests/test_p9o2_eps_comm_data_guided_event_catalog.py
           python -m pytest -q -s tests/test_p9o3_whole_spacecraft_guided_event_catalog.py
+          python -m pytest -q -s --junitxml=reports/native_whole_spacecraft_events/rw4_initial_speed_guard.xml \
+            tests/test_native_rw_momentum.py -k test_three_wheel_runtime_rejects_ghost_rw4_initial_speed
       - name: Determine whether the browser surface changed
         id: browser_scope
         env:
@@ -223,6 +231,18 @@ jobs:
           printf '%s\n' "$selected"
           count="$(printf '%s\n' "$selected" | grep -Fc '::test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events')"
           test "$count" -eq 1
+      - name: Confirm all whole-spacecraft event Run journeys are selected
+        if: steps.browser_scope.outputs.run == 'true'
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          selected="$(python -m pytest --collect-only -q tests/test_guided_task_workspace_browser.py -k guided_whole_spacecraft_event_run_bundle)"
+          printf '%s\n' "$selected"
+          count="$(printf '%s\n' "$selected" | grep -Fc '::test_guided_whole_spacecraft_event_run_bundle[')"
+          test "$count" -eq 9
+          for case_id in nominal adcs_rw_jamming adcs_rw_motor_failure gyro_bias_step gyro_noise_increase rw_friction_degradation adcs_reaction_wheel_speed_limit propulsion_thruster_ignition_failure propulsion_burn_impulse_loss; do
+            printf '%s\n' "$selected" | grep -Fq "::test_guided_whole_spacecraft_event_run_bundle[$case_id]"
+          done
 
       - name: Verify guided native component and subsystem selection and real Runs
         if: steps.browser_scope.outputs.run == 'true'
@@ -233,7 +253,7 @@ jobs:
           python -m pytest -q -s \
             --junitxml=reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml \
             tests/test_guided_task_workspace_browser.py \
-            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench or guided_native_adcs_wizard_runs_verified_torque_authority_degradation or guided_whole_spacecraft_verified_event_catalog"
+            -k "guided_component_reaction_wheel or guided_single_component_shortcut or guided_native_rw_preflight or guided_native_sensor_workbench or guided_native_subsystem_workbench or guided_native_adcs_wizard_runs_verified_torque_authority_degradation or guided_whole_spacecraft_verified_event_catalog or guided_whole_spacecraft_event_run_bundle"
           python - <<'PY'
           import xml.etree.ElementTree as ET
           root = ET.parse("reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml").getroot()
@@ -243,12 +263,90 @@ jobs:
           )]
           adcs = [case for case in cases if case.attrib.get("name") == "test_guided_native_adcs_wizard_runs_verified_torque_authority_degradation"]
           whole = [case for case in cases if case.attrib.get("name") == "test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events"]
+          whole_runs = [case for case in cases if case.attrib.get("name", "").startswith("test_guided_whole_spacecraft_event_run_bundle[")]
+          expected_whole_run_ids = {
+              "nominal", "adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step",
+              "gyro_noise_increase", "rw_friction_degradation", "adcs_reaction_wheel_speed_limit",
+              "propulsion_thruster_ignition_failure", "propulsion_burn_impulse_loss",
+          }
+          actual_whole_run_ids = {
+              case.attrib["name"].split("[", 1)[1].rsplit("]", 1)[0]
+              for case in whole_runs
+          }
           assert len(eps_comm) == 6, [case.attrib for case in eps_comm]
           assert len(adcs) == 1, [case.attrib for case in adcs]
           assert len(whole) == 1, [case.attrib for case in whole]
-          for case in [*eps_comm, *adcs, *whole]:
+          assert len(whole_runs) == 9, [case.attrib for case in whole_runs]
+          assert actual_whole_run_ids == expected_whole_run_ids, actual_whole_run_ids
+          for case in [*eps_comm, *adcs, *whole, *whole_runs]:
               assert not case.findall("failure") and not case.findall("skipped"), case.attrib
-          print("O3-A_WHOLESPACE_BROWSER", {"eps_comm": len(eps_comm), "adcs": len(adcs), "whole_spacecraft_catalog": len(whole), "passed": True})
+          print("O3-C_WHOLESPACE_BROWSER", {
+              "eps_comm": len(eps_comm), "adcs": len(adcs), "whole_spacecraft_catalog": len(whole),
+              "whole_spacecraft_runs": len(whole_runs), "passed": True,
+          })
+          PY
+
+      - name: Verify and summarize archived whole-spacecraft Run Bundles
+        if: steps.browser_scope.outputs.run == 'true'
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import zipfile
+          from pathlib import Path
+          from sat_sim.run_bundle import verify_run_bundle
+
+          root = Path("reports/native_whole_spacecraft_events")
+          report = json.loads((root / "effect_ab.json").read_text(encoding="utf-8"))
+          assert len(report["cases"]) == 8, len(report["cases"])
+          physical_paths = set()
+          for case in report["cases"]:
+              physical_paths.add(case["nominal_bundle_archive"])
+              physical_paths.add(case["injected_bundle_archive"])
+          assert len(physical_paths) == 10, sorted(physical_paths)
+          for raw_path in sorted(physical_paths):
+              bundle_path = Path(raw_path)
+              assert (bundle_path / "SEALED.json").is_file(), bundle_path
+              assert (bundle_path / "bundle_manifest.json").is_file(), bundle_path
+              integrity = verify_run_bundle(bundle_path)
+              assert integrity["ok"] is True, (bundle_path, integrity)
+
+          browser_dir = root / "browser_run_bundles"
+          archives = sorted(browser_dir.glob("*.zip"))
+          sidecars = sorted(browser_dir.glob("*.json"))
+          assert len(archives) == 9, [path.name for path in archives]
+          assert len(sidecars) == 9, [path.name for path in sidecars]
+          for archive_path in archives:
+              metadata_path = archive_path.with_suffix(".json")
+              metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+              archive_sha256 = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+              assert archive_sha256 == metadata["bundle_zip_sha256"], archive_path
+              assert metadata["sealed"] is True and metadata["integrity_ok"] is True, metadata
+              run_id = metadata["run_id"]
+              with zipfile.ZipFile(archive_path) as archive:
+                  prefix = f"{run_id}/"
+                  manifest_bytes = archive.read(f"{prefix}bundle_manifest.json")
+                  manifest = json.loads(manifest_bytes)
+                  seal = json.loads(archive.read(f"{prefix}SEALED.json"))
+                  assert seal["run_id"] == run_id
+                  manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+                  assert manifest_sha256 == seal["bundle_manifest_sha256"]
+                  assert manifest_sha256 == metadata["bundle_manifest_sha256"]
+                  expected = {f"{prefix}{relative}" for relative in manifest["files"]}
+                  assert set(archive.namelist()) == expected | {
+                      f"{prefix}bundle_manifest.json", f"{prefix}SEALED.json"
+                  }
+                  for relative, entry in manifest["files"].items():
+                      actual = hashlib.sha256(archive.read(f"{prefix}{relative}")).hexdigest()
+                      assert actual == entry["sha256"], (archive_path, relative)
+          print("O3-D_ARCHIVE", {
+              "physical_sealed_run_bundles": len(physical_paths),
+              "chromium_downloaded_run_bundles": len(archives),
+              "sidecar_sha256_checks": len(sidecars),
+              "passed": True,
+          })
           PY
 
       - name: Archive Basilisk-native component physical and test evidence
@@ -267,6 +365,11 @@ jobs:
             reports/native_subsystem_eps_comm_data/effect_ab.xml
             reports/native_subsystem_eps_comm_data/effect_ab.json
             reports/native_subsystem_eps_comm_data/formal_effects.xml
+            reports/native_whole_spacecraft_events/effect_ab.xml
+            reports/native_whole_spacecraft_events/effect_ab.json
+            reports/native_whole_spacecraft_events/run_bundles/**
+            reports/native_whole_spacecraft_events/browser_run_bundles/**
+            reports/native_whole_spacecraft_events/rw4_initial_speed_guard.xml
             reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json

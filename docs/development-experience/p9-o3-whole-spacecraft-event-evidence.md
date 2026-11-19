@@ -15,3 +15,155 @@
 - 服务端 form schema 是普通 guided event catalog 的权威来源；前端 add-event 再做同一 allowlist 防御。
 - O3-A 只限制普通向导展示范围，不谎称直接 TaskSpec/advanced path 已拒绝未验证事件；该执行边界单独审计。
 - 当前可开放的整星事件为 fault 3、degradation 2、constraint 1；未验证的 8 个事件保持隐藏，直到整星级证据通过。
+
+
+## O3-B 实施经验（2026-11-19，CI 待验）
+
+1. 整星证据必须使用 whole_spacecraft.unified_native.v1 自己的 recorder 和 Run Bundle。ADCS subsystem 的 7 个 profile 不能直接复制成整星 profile，必须通过 whole graph 的 nominal/injected 对照。
+2. 反作用轮参数证据必须使用 {wheel_index} 模板，而不是固定 wheel 0；formal helper 将模板替换为 wildcard QoI，runtime assertion 按事件参数绑定实际轮号。
+3. 推进点火与冲量退化是一次性定时命令，不是持续的 actuator degradation。点火失败验证零推力/零推进剂消耗；冲量退化验证缩短的官方 thruster on-time、推进剂消耗减少及轨道响应变化。
+4. 新增逐样本 propulsion.propellant_used_kg，由 FuelTank recorder 当前质量减去首个 recorder 样本计算；summary 仍保留累计 propellant_used_kg。逐样本字段用于 profile，summary 用于 paired A/B。
+5. propulsion_burn_on_time_s 在 unified runtime config 中是标量，内部再包装为 on-time 序列；不要因为 PropulsionBurnController 构造函数接受 Sequence 就把 TaskSpec 参数写成数组。
+6. 轮速约束的保护动作会在首次越限样本立即施加，数秒后轮速可能已降至阈值以下。验证制动时应在整个 active window 查找“越限且有制动命令”的样本，不要只检查窗口中点。
+7. O3-A 只限制 guided catalog 不等于 direct TaskSpec 已拒绝未声明事件。新增 planning-level 测试用一个 runtime-known、capability-undeclared 的 IMU event 检查高级 TaskSpec 边界；必须以 planner 结果为准。
+8. 当前所有新增断言均待官方 Basilisk 2.11.0 CI 验证；不得把 profile JSON 注册、direct adapter PASS 或 test collection 当作 sealed A/B PASS。
+
+
+## O3-B：whole-spacecraft evidence-field parity 回归（2026-11-19）
+
+- 14 个 whole-spacecraft VERIFIED_NATIVE_EFFECT profile 与 operator effect contract 做精确字段集比较时，唯一差异是 `solar_panel_efficiency_loss`：operator 与 capability observability 声明了 `eps.battery_soc`，profile 未声明。
+- `eps.battery_soc` 是整星运行图中直接从官方 SimpleBattery recorder 计算并输出的逐采样字段，可作为太阳阵效率退化的系统上下文证据；它不是本事件的独立效果判据。核心断言仍是太阳阵效率比和太阳阵输出功率变化。
+- 已把 `eps.battery_soc` 补入该 profile 的 evidence_fields，保持 operator、observability 与 profile 三方精确一致；不通过放宽集合断言或删减已有 operator 字段来让测试通过。
+- 首轮失败发生在 formal contract parity test；该轮 native component、EPS/Comm-Data 物理 A/B 等先前步骤通过。字段修复后的完整 CI 结果尚待验证。
+
+
+## O3-A 收尾经验（2026-11-19）
+
+- 整星普通向导目录收敛为 fault 3、degradation 2、constraint 1；底层 14 个运行时声明保留，未验证的八项只在普通向导隐藏。不能把 UI 隐藏说成高级 TaskSpec 已拒绝。
+- PR #188 同一 head 的正式 native workflow、17 项 formal runtime、2 项 catalog contract 和 13 项真实 Chromium JUnit 均通过；Artifact `14484456607` 保留完整证据。
+- O3-A 的 Chromium 旅程只验证目录隔离；O3-B/C 仍必须逐事件做 whole-spacecraft sealed A/B 与真实运行旅程。
+
+
+## O3-B 推进事件直接命令证据补齐（2026-11-19）
+
+- PR 说明曾声明记录官方 `THRArrayOnTimeCmdMsgPayload.OnTimeRequest`，但代码审计发现 trace 实际只有燃烧状态、推力和燃料记录，没有逐采样命令请求字段。仅靠燃料消耗与轨道响应能证明结果变化，但无法直接审计控制器施加的命令持续时间。
+- 已将 `PropulsionBurnController.commandOutMsg` 纳入统一 recorder map，并新增 `propulsion.burn_command_on_time_s`（各推进器请求 on-time 的最大值）和 `propulsion.nominal_burn_command_on_time_s`（TaskSpec 配置标称值）。这两个字段来自实际官方 THRArrayOnTimeCmdMsg recorder，不是根据事件参数反推的派生值。
+- 点火失败 profile 现在要求事件期间实际 OnTimeRequest 为 0；冲量损失 profile 要求实际请求小于标称请求且大于 0。paired Run Bundle 同时断言 nominal 8 s、ignition failure 0 s、impulse loss 2 s（配置比例 0.25），并保留燃料消耗、推力及轨道响应 A/B。
+- 新增字段已同步 capability trace_fields、operator effect evidence、observability effect_evidence 与两个 formal profiles；字段集合需保持四方一致。官方 Basilisk CI 结果待当前 PR head 验证。
+
+
+## O3-B 推进命令请求 recorder 补齐（2026-11-19）
+
+- 代码审查发现 PR 描述声称记录官方 THRArrayOnTimeCmdMsg.OnTimeRequest，但实际 trace 只有 burn status、推力和燃料记录。仅用燃料/轨道结果无法直接审计控制器请求的燃烧持续时间。
+- 已把 `PropulsionBurnController.commandOutMsg` 作为独立消息加入 recorder map，并按每个采样记录最大单推进器请求 on-time `propulsion.burn_command_on_time_s`；`propulsion.nominal_burn_command_on_time_s` 取 TaskSpec 标称配置值，不从事件参数反推。
+- ignition failure formal profile 要求命令请求为 0；impulse loss profile 要求命令请求小于标称值且大于 0。paired A/B 进一步断言 8 s → 0 s 与 8 s → 2 s，并保留 fuel/thrust/orbit A/B。
+- 这使“控制命令变化”和“官方 Thruster/FuelTank 物理结果”形成两层独立证据。新增字段已同步 capability trace_fields、operator effects、observability 和 effect registry。最终结论等待官方 Basilisk 2.11.0 CI。
+
+
+## O3-B TaskSpec 参数字典缺口与修复（2026-11-19）
+
+- 八个整星事件 paired bundle 首轮未进入 Basilisk：`prepare_run` 的 planning 阶段对共享 nominal ADCS baseline 返回 6 个 `PARAMETER_PATH_UNCONSUMED`。根因是测试使用了真实运行时读取的 `rw_initial_speed_rad_s_0/1/2`，但 `whole_spacecraft.unified_native.v1` Capability parameters 没有声明这些键；每个键同时出现在 canonical `parameters.values` 和兼容镜像 `model.config`，所以审计报告 3×2=6 个未知路径。
+- 这些参数确实被 `unified_native.py` 消费：分别设置官方 Basilisk HR16 RW 的初始 Omega，单位 rad/s，并在 `rwFactory.create(Omega=...)` 前转换为 RPM。它们属于正式用户参数，不是测试专用参数，因此正确修复是补 Capability schema，而不是删除测试值或绕过 parameter audit。
+- 已将 RW1-RW3 初始速度及 RW4 初始速度（仅 pyramid_4）加入 Capability parameters，约束 -500～500 rad/s；新增运行时检查，三轮构型显式设置 RW4 初始速度时 fail closed，避免被静默忽略。
+- paired test 文件增加 ADCS/propulsion baseline 参数消费审计；官方 native workflow 增加 RW4 ghost-parameter rejection JUnit 检查。下一次 CI 应先验证 planning PASS，再进入八个 Basilisk sealed A/B。
+
+
+## O3-B ADCS 二值电机失效语义回归修正（2026-11-19）
+
+- PR #190 首轮官方 native workflow 在旧 `test_p9n5_adcs_guided_event_catalog.py` 失败：实际向导给 `adcs_rw_motor_failure` 暴露了 `torque_scale`，而已冻结的产品合同要求它只有 `wheel_index`。这不是测试过时；历史 N5-E 决策明确要求 binary motor failure 与 partial torque-authority degradation 分开。
+- 修复：`adcs_rw_motor_failure` guided schema 仅保留 wheel_index；whole 与 subsystem 两个正式 evidence profile 都断言 `effective_torque_ratio_{wheel_index} == 0`，不再引用 value_parameter；whole formal/paired tests 不再传 torque_scale。
+- 参数准入同时收紧：`parameter_consumption` 不再接受 motor failure 的 torque_scale / remaining_torque_ratio；新增 planner-level 测试确认 advanced TaskSpec 传入 torque_scale=0.25 时以 PARAMETER_PATH_UNCONSUMED 拒绝。独立 `adcs_rw_torque_authority_loss` 仍允许 torque_scale=0.25 等部分退化。
+- 运行时 `ProjectNativeRWCommandModel` 对 `adcs_rw_motor_failure` 固定施加 0 力矩；旧通用 alias `rw_motor_failure` 的兼容行为单独保留。这样即使直接绕过 guided form，也不会把 whole motor failure 变成部分力矩事件。
+- 同步更新 fault catalog 与 whole-spacecraft 数据集生成器：motor failure 只采样目标轮号；部分力矩样本属于独立 degradation 条件。
+- 原失败是旧契约回归，不是 Basilisk 物理失败。修复后的官方 Basilisk 2.11.0 native workflow 尚待最终 PR head 重跑，不提前记 PASS。
+
+## O3-B / O3-C 交付门禁经验（2026-11-19）
+
+1. **测试存在不等于测试执行。** PR 中已有九条整星 Chromium→Basilisk 真实 Run 测试，但官方 workflow 的 `-k` 只选了目录测试；所以虽然测试代码完整、目录浏览器通过，八类事件的用户旅程仍未被验收。今后每个重要用户旅程必须有 collect-only 精确数量门禁，并在 JUnit 中逐条核对 testcase、failure 和 skipped。
+2. **物理与浏览器证据分开计数。** O3-B 的 9 passed 是整星物理 A/B（nominal/参数消费检查 + 八个 injected sealed Run）；不能拿它替代 O3-C 的 9 条 Chromium 用户旅程。
+3. **稳定的 pytest IDs 有助于证据追踪。** 给 whole-spacecraft nominal 和八类事件加固定 IDs，workflow 以 ID 集合核对，避免仅检查函数名而遗漏某个参数化场景。
+4. **O3-C 的用户旅程必须验证端到端闭环。** 每条真实 Chromium 路径需要经过向导、TaskSpec、官方 Basilisk Run、effect evidence、直接 telemetry、plots、FMEA、sealed Bundle 的 manifest/逐文件 SHA-256 与 Run Center 历史重开；单纯渲染事件目录不够。
+5. 当前 O3-C 门禁已接入官方 native workflow，但 head `84757e7969254bddcaf3368ef7efd0b8fd531f4f` 的完整 CI 尚未完成。不得把 collect-only 9/9 当成真实运行 9/9 PASS。
+## O3-C Chromium 参数契约回归（2026-11-19）
+
+- 将整星 motor failure 加入真实浏览器旅程后，发现参数化用例仍提交 `torque_scale=0.0`，而本阶段已冻结的 `adcs_rw_motor_failure` 只有 `wheel_index`；部分力矩损失必须使用独立 degradation `adcs_rw_torque_authority_loss`。
+- 这是 browser fixture 未随服务端 schema 一起迁移，不是 Basilisk 物理问题。已将 Chromium 参数改为 `{"wheel_index": 0}`，使表单编辑、canonical TaskSpec 与 runtime binary actuator 行为一致。
+- 经验：对每个事件至少做三方参数契约检查（form parameter_fields、browser fixture、canonical TaskSpec），不能只依赖 native paired test 已通过。
+- 修复提交 `dbd98a03a18807d5252d646f03a0f170076d7735`；上一 head `908d347f...` 的 CI 不包含此修复，最终结论必须等待新 head 的完整回归。
+## O3-D 原始封存运行证据归档经验（2026-11-19）
+
+- JUnit 与 direct-recorder JSON 是测试摘要，不等于原始 Run Bundle。测试若把 sealed bundle 放在 pytest tmp_path，CI 结束后会丢失原始任务、telemetry、manifest、seal 和逐文件哈希，无法独立复核。
+- 对物理 A/B：在原 bundle integrity PASS 后复制整个 bundle 目录到 artifact staging，再对复制件重新执行 `verify_run_bundle`；报告记录 nominal/injected 两份 bundle 的归档路径。
+- 对 Chromium：保留浏览器实际下载的 ZIP 原件，不仅验证临时下载；将其复制到 artifact staging，并生成 sidecar，记录 ZIP SHA-256 与 bundle manifest SHA-256。
+- Artifact 上传必须显式包含物理 run_bundles/**、browser_run_bundles/**、JUnit 与 effect_ab.json，并保持 `if-no-files-found: error`，避免路径写错时静默产出不完整交付包。
+- 归档代码已加入候选分支；只有同头官方 CI 完成且 Artifact 内核对 10 份物理 Run Bundle、9 份 Chromium ZIP 与 9 个 sidecar 后，O3-D 才可记为 PASS。
+
+## O3-C 高级参数浏览器控件修复（2026-11-19）
+
+- 首轮 PR #190 native workflow `44455172008` 的浏览器 job 失败，10 条 whole-spacecraft event Run journey 都在等待 `simulation.step_s` 可见时超时；其他 12 条测试通过、4 条按条件 deselected。此处不是物理模型失败。
+- 根因：`simulation.step_s` 在 Capability Form Schema 中是 `importance=advanced`。测试直接给 DOM 内 `<details>` 赋 `open=true`，没有使用产品的参数显示模式切换，导致高级控件在向导参数面板状态变化时仍不可见。
+- 修复后的真实 UI 操作顺序：展开 `#wizardParametersPanel` → 点击 `[data-wizard-parameter-mode="all"]` → 等待 `simulation.step_s` 输入可见 → 修改积分步长。这样验证的是用户真实可执行的交互路径，而不是绕过 UI 强行修改隐藏 DOM。
+- 修复提交 `cca76913d01f7758fb6de13fa194715f32be6c84`。新 head 的完整 Chromium 与原始 Run Bundle 归档验收尚未完成；不将测试代码修复记作 O3-C PASS。
+
+
+## O3-D 浏览器 Run Bundle 原件归档缺口与修复（2026-11-19）
+
+- 审计发现 browser test 原本把下载 ZIP 保存到 pytest `tmp_path` 并完成 manifest/seal/per-file SHA-256 校验，但没有把 ZIP 复制到 workflow archive audit 所读取的 `reports/native_whole_spacecraft_events/browser_run_bundles/`。这会导致 9 条旅程即使执行成功，O3-D 仍因 0/9 原件归档而失败。
+- 已在每条 Chromium journey 校验 ZIP 后，使用 `shutil.copy2` 将实际浏览器下载原件复制到 Artifact staging，并写同名 sidecar JSON，包含 case/run/effect、ZIP SHA-256、bundle manifest SHA-256、sealed 和 integrity 状态。
+- sidecar 的 JSON 文本换行一度多转义一层（会在文件尾留下字面量 `\\n`，使 JSON 解析失败）；已修正为标准 `\n` newline，并复核源码。
+- 这次经验：CI archive audit 必须与测试实际写出的路径逐字对照；不能只根据测试变量名或测试成功就假设文件已进入 artifact staging。最终仍须以 9 ZIP + 9 sidecar 的真实数量、hash 重算和 Artifact 下载后核查为准。
+- 相关提交：`0fef08b3140dd9db9d58ef5d1e7d2eb7f7750076`、`ee84a2c33ad3f224188d986149ba8f98d1ddb6fb`。当前同 head CI 尚待完成。
+## O3-C 浏览器运行摘要契约修正（2026-11-19）
+
+- 对照整星统一适配器的真实 `summary.json` 与浏览器验收断言时，发现浏览器测试沿用了 ADCS/EPS/Comm 等分系统适配器的旧契约：期待 `instantiated_connected_recorded` 且 `external_or_proxy_module_count == 0`。
+- `whole_spacecraft.unified_native.v1` 实际由 `WholeSpacecraftUnifiedNativeAdapter` 执行，摘要契约是 `instantiated_connected_recorded_unified`；整星图包含 4 个工程代理功率桥，推进场景再增加 1 个推进桥，因此该字段应分别为 4 和 5。
+- 这不是放宽模型边界，也不能把代理计数改成 0；浏览器测试应与独立 Basilisk A/B 测试保持同一物理事实和声明边界。
+- 已将九条浏览器旅程的摘要断言改为按 case 校验 unified runtime 标识及 4/5 个工程代理桥。最终是否通过仍以修复后同一 PR head 的官方 Basilisk + Chromium CI 和证据 Artifact 为准。
+## O3-C Chromium 真实运行链故障定位（2026-11-19）
+
+- 旧 head `fd9062f` 的官方 Chromium 作业并非单一断言失败：ADCS 子系统旅程在归档阶段引用了未定义的 `case_id/event_kind/event_effect`，整星九条旅程则因 `embedded_worker=False` 没有启动异步执行 worker，最终等待 `SUCCEEDED` 超时。
+- 该 ADCS 子系统旅程不属于整星九条证据归档，错误的归档代码还会污染整星归档目录；已删除这段误放置的归档逻辑，保留原有下载 ZIP 的哈希、manifest 与 seal 校验。
+- 整星事件曲线缺失的根因是 `form_schema._explicit_output_rows` 过早过滤了 `outputs.trace_fields` 中的通配模式，导致 `_TRACE_PATTERN_EXPANSIONS` 无法展开已登记的反作用轮字段。现仅对 trace 保留模式输入，由白名单展开器生成可选的具体字段；summary 仍过滤通配占位符。
+- 已将整星浏览器测试改为启用 embedded worker，并在单元测试中明确要求最大力矩、摩擦阻尼和最高转速三类事件证据曲线可选。
+- 经验：UI 的真实运行测试必须启动实际 worker；曲线字典必须在 UI 层保留“已登记模式→有限具体字段”的展开链；跨任务的证据归档目录不得被无关子系统测试写入。
+- 修复后的最新提交为 `777b4520013f677fa82109aa0aa6869497345605`。此前 head 的失败结果只用于定位，不作为当前 head 结论；最终验收仍以新 head 的官方 Basilisk + Chromium 作业和完整 Artifact 为准。
+## O3-B 整星 ADCS 闭环验收补强（2026-11-19）
+
+- 复核原始计划后确认：整星 ADCS 事件不能只依赖分系统 ADCS 的闭环证据；整星名义基线必须直接检查统一运行图输出的姿态闭环结果。
+- 已在整星 ADCS nominal Run Bundle fixture 中增加 adcs_closed_loop_improved 断言；所有 ADCS 注入用例仍逐项验证真实事件效应与资源反馈闭合。
+- 经验：跨分系统能力的验收必须在同一整星运行图上证明闭环与资源耦合，不能用独立分系统的 PASS 替代整星证据。
+## 整星 ADCS 闭环时间窗校正（2026-11-19）
+
+- 首次将整星名义基线的 adcs_closed_loop_improved 作为硬门槛后，官方 Basilisk 2.11.0 在 14 s 窗口内未通过；不能删掉该门槛，也不能用 ADCS 子系统的 30 s PASS 替代整星结果。
+- 结合此前整星 A/B 记录，8 s 时名义姿态误差约 9.42°，而整星初始设定为 8°，表明 14 s 窗口不足以证明闭环收敛。现仅将整星 ADCS nominal baseline 延长到 30 s，八个故障/退化/约束注入用例仍保持 14 s，以保留 4–10 s 事件窗口和恢复观测。
+- 断言失败时同时输出初始与最终姿态误差，便于区分“收敛时间不足”和“控制链/坐标系方向错误”。最终仍需同一 head 的官方 Basilisk 结果确认 30 s 是否足以收敛。
+## O3-B 30 s 整星 ADCS 基线验收结果（2026-11-19）
+
+- 当前 head `39892ea785ac4e4c01b9c210da7c10c205f2ff0e` 的官方 Basilisk 2.11.0 作业 `44462643496` 已通过步骤 16：其中包括整星 ADCS 30 s nominal closed-loop baseline、整星 ADCS 八类事件 A/B 与封存、EPS/Comm-Data 原生 A/B 和相关 formal evidence contracts。
+- 因此 14 s 仅作为事件注入实验窗口，不能直接作为整星名义闭环收敛验收窗口；将 nominal ADCS Run 延长至 30 s，同时保留 8 个 injected Run 的 14 s 时长和 4–10 s 事件区间。
+- 该结果仅表示 O3-B 官方物理门禁通过；O3-C 九条 Chromium 真实运行链和 O3-D 10 份物理 + 9 份浏览器原件归档仍待同一 head 完成。
+## O3-D 浏览器归档 sidecar 可信状态绑定（2026-11-19）
+
+- 检查九条浏览器 Run Bundle 下载链时，发现 sidecar 的 `integrity_ok` 虽然前置断言已经验证 `durable.integrity.ok`，但写入时仍使用字面量 `true`，不够直接表达证据来源。
+- 已改为写入 `durable["integrity"]["ok"]`，并在 sidecar 生成点再次要求该值为 true；ZIP 原件、seal/manifest/per-file SHA-256 校验保持不变。
+- 最新测试提交 `e3338d69c214e2c6bc53a5376c70ba5fb81a5031` 已触发新的同头官方验收。经验：证据元数据应绑定实际验证结果，不能用硬编码 PASS 替代来源字段，即使前置断言已经通过。
+## O3-B 闭环指标改为同时披露真实姿态与估计姿态（2026-11-19）
+
+- 复核闭环指标来源后发现，原 `adcs_closed_loop_improved` 使用 `attTrackingError.sigma_BR`，即基于传感器融合导航解算的估计误差；它能说明控制器在估计反馈上的变化，但不能单独证明真实航天器姿态相对惯性参考的误差也在下降。
+- 已从官方 Basilisk `Spacecraft` 状态 recorder 的 `state.sigma_BN` 计算 `attitude.truth.pointing_error_deg`，并新增 `initial_truth_pointing_error_deg`、`final_truth_pointing_error_deg` 和 `adcs_truth_closed_loop_improved`。保留原估计误差指标，不混淆两种物理含义。
+- 整星能力 trace 字典和向导曲线标签已声明真实姿态误差参量；O3-B 30 s nominal Run Bundle 现在同时要求估计闭环和真实姿态闭环改善。
+- 经验：闭环验收必须区分估计误差与真实状态误差；只看控制器反馈量可能把传感器偏差误认为物理收敛。最新代码提交链 `e2e4778` / `32cc891` / `0627fec` / `f3ff97e` / `270452f` 的官方 Basilisk 同头验收尚在运行。
+## O3-C 浏览器验收：FMEA 显式启用与事件执行器归属（2026-11-19）
+
+- 官方 Chromium 运行 `44463373970` 完成九条旅程后发现两类真实产品契约问题：普通向导默认 `outputs.fmea.enabled=false`，但 FMEA API 对未生成的结果返回 404；另一个测试把整星能力作用域 `whole_spacecraft` 错当成了每个事件的运行时目标。
+- 已在快速仿真向导的结果指标/曲线面板增加“生成 FMEA 表”开关，绑定 canonical `state.formData.outputs.fmea.enabled`，修改后清除旧校验状态，并在校验摘要中显示启用状态。FMEA 仍保持可选，不对没有 S/O/D 评级的事件伪造 RPN。
+- 事件目标现在按整星 Capability 的 `operator.effects[].owner` 校验：反作用轮事件归 `project_rw_command_fault_manager`，陀螺事件归 `project_imu_fault_injector`，推进事件归 `project_propulsion_burn_controller`。这些是整星运行图内的实际事件执行器归属，不是把整星对象选择错误改成子系统。
+- 浏览器测试已改为通过向导显式启用 FMEA，并要求持久化 TaskSpec 保存 enabled/formats；事件目标断言从 Capability operator owner 动态读取，不硬编码 `whole_spacecraft`。
+- 经验：测试必须遵循产品的可选输出开关；能力对象层级与事件实现执行器层级是两个不同概念，验收应验证 canonical owner，而不是强行要求事件目标始终等于 capability target。
+- 相关修复提交：`37b96c9`（向导 FMEA 控件）、`275157e`（TaskSpec 绑定）、`b757a7e`（浏览器真实流程与事件 owner 断言）。最新同头官方验收尚待结果。
+## O3-C 推进冲量退化浏览器采样窗口修正（2026-11-19）
+
+- Official Basilisk/Chromium workflow `44465130374`：Basilisk O3-B step 16 PASS；浏览器作业 21 passed、1 failed、4 deselected。唯一失败为 `propulsion_burn_impulse_loss`：测试取 `active_rows[-1]`，即事件窗口末端 t=10 s；但 25% remaining-impulse profile 把 t=5 s 开始的 8 s 名义燃烧缩短为 2 s，真实推力窗口是 5–7 s，t=10 s 推力为 0 是正确物理结果。
+- 已将该事件的物理断言采样点改为最接近 t=6 s 的活动遥测样本，并显式断言采样时刻处于 `[5, 7)` s。命令 on-time 仍要求 2 s、名义 on-time 8 s、推力和推进剂消耗均要求为正；没有放宽物理断言。
+- 经验：瞬态效应的浏览器验收必须按物理作用窗口取样，不能用事件标签仍 active 的末端样本替代实际执行器作用时刻。
+- 修复提交 `d55c3c3255c185b6226f7363e3aa273d82674fb7`；同头 Chromium + 10+9 sealed archive audit 尚待重跑。

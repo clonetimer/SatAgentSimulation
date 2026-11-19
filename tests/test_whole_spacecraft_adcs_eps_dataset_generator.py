@@ -93,7 +93,7 @@ def test_fault_ranges_are_reference_informed_and_traceable() -> None:
     by_id = {item.condition_id: item for item in CONDITIONS}
     assert HR16_MAX_TORQUE_NM == pytest.approx(0.2)
     assert by_id["adcs_rw_jamming"].parameter_ranges["brake_torque_nm"] == pytest.approx((0.18, 0.20))
-    assert by_id["adcs_rw_motor_failure"].parameter_ranges["torque_scale"] == (0.0, 0.0)
+    assert set(by_id["adcs_rw_motor_failure"].parameter_ranges) == {"wheel_index"}
     assert by_id["adcs_gyro_bias_step"].parameter_ranges["bias_step_deg_s"] == pytest.approx((0.001, 0.010))
     assert by_id["adcs_gyro_noise_increase"].parameter_ranges["noise_scale"] == (8.0, 12.0)
     assert by_id["adcs_rw_bearing_seizure"].parameter_ranges["drag_nms"][1] < 0.001

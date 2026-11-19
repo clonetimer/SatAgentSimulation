@@ -395,6 +395,9 @@ def _build_unified_rows(
             "orbit.phase_rad": math.atan2(float(position[1]), float(position[0])),
             "orbit.eclipse_factor": float(recorder_map["eclipse"].shadowFactor[index]),
             "adcs.pointing_error_deg": _pointing_error_deg(guide.sigma_BR[index]),
+            # This is the actual Basilisk spacecraft attitude relative to the
+            # inertial reference, independent of the sensor-fused estimate.
+            "attitude.truth.pointing_error_deg": _pointing_error_deg(state.sigma_BN[index]),
             # Body rates come from the estimator NavAttMsg (frame B), not the
             # raw IMU platform-frame recorder (frame P).
             "adcs.body_rate_rad_s_x": float(recorder_map["fusion_attitude"].omega_BN_B[index][0]),
@@ -613,7 +616,17 @@ def _build_unified_rows(
                     "propulsion.enabled": 1,
                     "propulsion.burn_active": int(recorder_map["propulsion_burn_status"].deviceStatus[index]),
                     "propulsion.burn_permitted": int(recorder_map["propulsion_permission"].deviceStatus[index]),
+                    "propulsion.burn_command_on_time_s": max(
+                        (float(value) for value in list(recorder_map["propulsion_burn_command"].OnTimeRequest[index])),
+                        default=0.0,
+                    ),
+                    "propulsion.nominal_burn_command_on_time_s": max(
+                        float(cfg.values.get("propulsion_burn_on_time_s", 0.0)),
+                        0.0,
+                    ),
                     "propulsion.fuel_mass_kg": float(fuel_rec.fuelMass[index]),
+                    "propulsion.initial_propellant_kg": float(fuel_rec.fuelMass[0]),
+                    "propulsion.propellant_used_kg": max(0.0, float(fuel_rec.fuelMass[0]) - float(fuel_rec.fuelMass[index])),
                     "propulsion.fuel_mass_dot_kg_s": float(fuel_rec.fuelMassDot[index]),
                     "propulsion.total_thrust_n": sum(thrust_forces),
                     "propulsion.max_thrust_factor": max(thrust_factors, default=0.0),
@@ -963,6 +976,8 @@ class UnifiedNativeRuntime:
             sc.hub.IHubPntBc_B = [list(row) for row in new_hub_inertia_b]
         # RW4 parameters have no physical owner in a three-wheel graph;
         # reject them instead of silently dropping a requested hardware edit.
+        if len(rw_axes) != 4 and values.get("rw_initial_speed_rad_s_3") is not None:
+            raise ValueError("NATIVE_RW4_INITIAL_SPEED_REQUIRES_PYRAMID_4")
         if len(rw_axes) != 4 and values.get("rw_max_momentum_nms_3") is not None:
             raise ValueError("NATIVE_RW4_MOMENTUM_REQUIRES_PYRAMID_4")
         rw_factory.addToSpacecraft("reaction_wheels", rw, sc)
@@ -1861,6 +1876,7 @@ class UnifiedNativeRuntime:
                     "propulsion_fuel": whole_modules["propulsion_fuel_tank"].fuelTankOutMsg,
                     "propulsion_burn_status": whole_modules["propulsion_controller"].burnStatusOutMsg,
                     "propulsion_permission": whole_modules["propulsion_controller"].permissionStatusOutMsg,
+                    "propulsion_burn_command": whole_modules["propulsion_controller"].commandOutMsg,
                 })
                 messages["propulsion_power"] = whole_modules["propulsion_power_bridge"].powerOutMsg
                 for thruster_index, thruster_msg in enumerate(whole_modules["propulsion_thrusters"].thrusterOutMsgs):
@@ -2292,6 +2308,11 @@ class UnifiedNativeRuntime:
             "initial_pointing_error_deg": rows[0]["adcs.pointing_error_deg"],
             "final_pointing_error_deg": final["adcs.pointing_error_deg"],
             "adcs_closed_loop_improved": final["adcs.pointing_error_deg"] < rows[0]["adcs.pointing_error_deg"],
+            "initial_truth_pointing_error_deg": rows[0]["attitude.truth.pointing_error_deg"],
+            "final_truth_pointing_error_deg": final["attitude.truth.pointing_error_deg"],
+            "adcs_truth_closed_loop_improved": (
+                final["attitude.truth.pointing_error_deg"] < rows[0]["attitude.truth.pointing_error_deg"]
+            ),
             "initial_orbit_radius_m": rows[0]["orbit.radius_m"],
             "final_orbit_radius_m": final["orbit.radius_m"],
             "runtime_message_read_error_count": len(runtime_read_errors),

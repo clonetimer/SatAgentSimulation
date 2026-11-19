@@ -23,7 +23,7 @@ _CAPABILITY_PARAMETER_ALIASES: dict[str, dict[str, str]] = {
 _EFFECT_PARAMETER_KEYS: dict[str, frozenset[str]] = {
     "adcs_rw_jamming": frozenset({"wheel_index", "brake_torque_nm", "jam_torque_nm", "fmea"}),
     "rw_jamming": frozenset({"wheel_index", "fmea"}),
-    "adcs_rw_motor_failure": frozenset({"wheel_index", "remaining_torque_ratio", "torque_scale", "fmea"}),
+    "adcs_rw_motor_failure": frozenset({"wheel_index", "fmea"}),
     "adcs_rw_torque_authority_loss": frozenset({"wheel_index", "remaining_torque_ratio", "torque_scale", "fmea"}),
     "rw_motor_failure": frozenset({"wheel_index", "remaining_torque_ratio", "fmea"}),
     "adcs_reaction_wheel_speed_limit": frozenset({"wheel_index", "max_speed_rad_s", "max_speed_rpm", "fmea"}),

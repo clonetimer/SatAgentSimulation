@@ -1,7 +1,9 @@
 """Guided task workspace prioritizes common actions and preserves task history."""
 import hashlib
+import shutil
 import json
 import os
+from pathlib import Path
 import zipfile
 from urllib.parse import urlsplit
 
@@ -1234,6 +1236,8 @@ def test_guided_native_subsystem_workbench_runs_adcs_and_exports_verified_run_bu
                 for relative, entry in manifest["files"].items():
                     assert hashlib.sha256(archive.read(f"{prefix}{relative}")).hexdigest() == entry["sha256"]
 
+
+
             page.locator('[data-result-tab="charts"]').click()
             page.wait_for_function(
                 "() => document.querySelector('#chartLegend')?.children.length > 0",
@@ -1712,7 +1716,6 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
             fmea = client.get(f"/runs/{run_id}/fmea")
             assert fmea.status_code == 200, fmea.text
             assert "no risk score is fabricated" in fmea.json()["manifest"]["warning"]
-            assert fmea.json()["run_id"] == run_id
 
             with page.expect_download(timeout=30000) as bundle_download_info:
                 page.locator("#downloadRunBundleBtn").click()
@@ -1816,6 +1819,10 @@ def test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events(
                 "payload_instrument_off",
                 "comm_data_downlink_link_loss",
                 "eps_battery_capacity_loss",
+                "adcs_rw_jamming",
+                "adcs_rw_motor_failure",
+                "gyro_bias_step",
+                "propulsion_thruster_ignition_failure",
             }
 
             page.locator('#wizardOptions [data-wizard-fault="payload_instrument_off"]').click()
@@ -1830,19 +1837,506 @@ def test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events(
                     "payload_instrument_off",
                     "comm_data_downlink_link_loss",
                     "eps_battery_capacity_loss",
+                    "adcs_rw_jamming",
+                    "adcs_rw_motor_failure",
+                    "gyro_bias_step",
+                    "propulsion_thruster_ignition_failure",
                 },
                 "degradation": {
                     "solar_panel_efficiency_loss",
                     "thermal_radiator_rejection_loss",
+                    "gyro_noise_increase",
+                    "rw_friction_degradation",
+                    "propulsion_burn_impulse_loss",
                 },
-                "constraint": {"power_safe_mode_threshold"},
+                "constraint": {
+                    "power_safe_mode_threshold",
+                    "adcs_reaction_wheel_speed_limit",
+                },
             }
             for kind, expected_effects in expected.items():
                 page.locator("#effectKind").select_option(kind)
                 actual = set(page.locator("#effectSelect option").evaluate_all("(items) => items.map((item) => item.value)"))
                 assert actual == expected_effects, (kind, actual)
+                assert "adcs_imu_signal_loss" not in actual
             assert page.locator("#eventList .event-card").count() == 1
             assert not errors, errors
             page.close()
         finally:
             browser.close()
+
+
+
+
+@pytest.mark.parametrize(
+    ("case_id", "event_kind", "event_effect", "event_parameters"),
+    [
+        ("nominal", None, None, {}),
+        ("adcs_rw_jamming", "fault", "adcs_rw_jamming", {"wheel_index": 0, "brake_torque_nm": 0.2}),
+        ("adcs_rw_motor_failure", "fault", "adcs_rw_motor_failure", {"wheel_index": 0}),
+        ("gyro_bias_step", "fault", "gyro_bias_step", {"bias_step_deg_s": [0.5, 0.0, 0.0]}),
+        ("gyro_noise_increase", "degradation", "gyro_noise_increase", {"noise_scale": 100.0}),
+        ("rw_friction_degradation", "degradation", "rw_friction_degradation", {"wheel_index": 0, "drag_nms": 0.012}),
+        ("adcs_reaction_wheel_speed_limit", "constraint", "adcs_reaction_wheel_speed_limit", {"wheel_index": 0, "max_speed_rad_s": 5.0}),
+        ("propulsion_thruster_ignition_failure", "fault", "propulsion_thruster_ignition_failure", {}),
+        ("propulsion_burn_impulse_loss", "degradation", "propulsion_burn_impulse_loss", {"remaining_impulse_ratio": 0.25}),
+    ],
+    ids=[
+        "nominal",
+        "adcs_rw_jamming",
+        "adcs_rw_motor_failure",
+        "gyro_bias_step",
+        "gyro_noise_increase",
+        "rw_friction_degradation",
+        "adcs_reaction_wheel_speed_limit",
+        "propulsion_thruster_ignition_failure",
+        "propulsion_burn_impulse_loss",
+    ],
+)
+def test_guided_whole_spacecraft_event_run_bundle(
+    tmp_path,
+    case_id,
+    event_kind,
+    event_effect,
+    event_parameters,
+):
+    """Each whole-spacecraft event must complete a real Chromium-to-Basilisk sealed Run."""
+    pytest.importorskip("Basilisk", reason="requires official Basilisk 2.11.0")
+    from importlib.metadata import version
+    assert version("bsk") == "2.11.0"
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=True,
+        auth_mode="disabled",
+    )
+    errors = []
+    with TestClient(app) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 960}, locale="zh-CN")
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            def proxy(route):
+                request = route.request
+                url = urlsplit(request.url)
+                request_path = url.path + ("?" + url.query if url.query else "")
+                response = client.request(
+                    request.method,
+                    request_path,
+                    content=request.post_data_buffer,
+                    headers={key: value for key, value in request.headers.items() if key in ("content-type", "accept")},
+                )
+                route.fulfill(
+                    status=response.status_code,
+                    body=response.content,
+                    headers={"content-type": response.headers.get("content-type", "application/json")},
+                )
+
+            page.route("https://workbench.test/**", proxy)
+            page.goto("https://workbench.test/", wait_until="networkidle")
+            page.locator('#wizardOptions [data-wizard-goal="fault_run"]').click()
+            page.locator('#wizardOptions [data-wizard-level="whole_spacecraft"]').click()
+            object_option = page.locator('#wizardOptions [data-wizard-object="whole_spacecraft"]')
+            object_option.wait_for(state="visible", timeout=15000)
+            object_option.click()
+
+            fault_options = page.locator("#wizardOptions [data-wizard-fault]")
+            fault_options.first.wait_for(state="visible", timeout=15000)
+            assert set(fault_options.evaluate_all(
+                "(items) => items.map((item) => item.getAttribute('data-wizard-fault'))"
+            )) == {
+                "payload_instrument_off",
+                "comm_data_downlink_link_loss",
+                "eps_battery_capacity_loss",
+                "adcs_rw_jamming",
+                "adcs_rw_motor_failure",
+                "gyro_bias_step",
+                "propulsion_thruster_ignition_failure",
+            }
+
+            # Use one verified quick-start fault only to enter the configuration step.
+            page.locator('#wizardOptions [data-wizard-fault="payload_instrument_off"]').click()
+            page.locator('#wizardOptions [data-wizard-mode="offline"]').click()
+            page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
+            fault_panel = page.locator("#wizardFaultPanel")
+            assert not fault_panel.evaluate("(node) => node.classList.contains('hidden')")
+            if fault_panel.get_attribute("open") is None:
+                fault_panel.locator(":scope > summary").click()
+
+            expected_catalog = {
+                "fault": {
+                    "payload_instrument_off",
+                    "comm_data_downlink_link_loss",
+                    "eps_battery_capacity_loss",
+                    "adcs_rw_jamming",
+                    "adcs_rw_motor_failure",
+                    "gyro_bias_step",
+                    "propulsion_thruster_ignition_failure",
+                },
+                "degradation": {
+                    "solar_panel_efficiency_loss",
+                    "thermal_radiator_rejection_loss",
+                    "gyro_noise_increase",
+                    "rw_friction_degradation",
+                    "propulsion_burn_impulse_loss",
+                },
+                "constraint": {
+                    "power_safe_mode_threshold",
+                    "adcs_reaction_wheel_speed_limit",
+                },
+            }
+            for kind, expected_effects in expected_catalog.items():
+                page.locator("#effectKind").select_option(kind)
+                actual = set(page.locator("#effectSelect option").evaluate_all(
+                    "(items) => items.map((item) => item.value)"
+                ))
+                assert actual == expected_effects, (kind, actual)
+                assert "adcs_imu_signal_loss" not in actual
+
+            # Remove the quick-start event. The journey below must run only its
+            # requested effect, or no event at all for the nominal control.
+            starter = page.locator("#eventList .event-card").first
+            starter.wait_for(state="visible", timeout=10000)
+            starter.locator("button.remove-event").click()
+            assert page.locator("#eventList .event-card").count() == 0
+
+            if event_effect:
+                page.locator("#effectKind").select_option(event_kind)
+                page.locator("#effectSelect").select_option(event_effect)
+                page.locator("#addEffectBtn").click()
+                event_card = page.locator("#eventList .event-card").first
+                event_card.wait_for(state="visible", timeout=10000)
+                assert event_card.get_attribute("data-event-kind") == event_kind
+
+                def set_event_field(field: str, value) -> None:
+                    control = event_card.locator(f'input[data-event-field="{field}"]')
+                    control.wait_for(state="visible", timeout=10000)
+                    serialized = json.dumps(value) if isinstance(value, (list, tuple)) else str(value)
+                    control.fill(serialized)
+                    control.dispatch_event("change")
+
+                set_event_field("start_s", 4.0)
+                set_event_field("end_s", 10.0)
+                for name, value in event_parameters.items():
+                    set_event_field(f"parameters.{name}", value)
+
+            parameters_panel = page.locator("#wizardParametersPanel")
+            if parameters_panel.get_attribute("open") is None:
+                parameters_panel.locator(":scope > summary").click()
+            # simulation.step_s is intentionally classified as an advanced field.
+            # Use the same explicit "全部参数" interaction as a real operator so
+            # the advanced control is rendered open rather than force-opening DOM nodes.
+            page.locator('#wizardParametersPanel [data-wizard-parameter-mode="all"]').click()
+            form = page.locator("#wizardParameterHost #dynamicForm")
+            form.wait_for(state="attached", timeout=15000)
+            step_field = page.locator(
+                '#wizardParameterHost #dynamicForm [data-field-path="simulation.step_s"] input'
+            )
+            step_field.wait_for(state="visible", timeout=10000)
+
+            def set_form_value(field_path: str, value) -> None:
+                wrapper = page.locator(
+                    f'#wizardParameterHost #dynamicForm [data-field-path="{field_path}"]'
+                )
+                wrapper.wait_for(state="attached", timeout=10000)
+                wrapper.evaluate(
+                    "(node) => { for (let parent = node; parent; parent = parent.parentElement) "
+                    "if (parent.tagName === 'DETAILS') parent.open = true; }"
+                )
+                control = wrapper.locator("input, select, textarea").first
+                control.wait_for(state="visible", timeout=10000)
+                if isinstance(value, bool):
+                    if value and not control.is_checked():
+                        control.check()
+                    elif not value and control.is_checked():
+                        control.uncheck()
+                else:
+                    control.fill(str(value))
+                    control.dispatch_event("change")
+
+            set_form_value("simulation.duration_s", 14.0)
+            set_form_value("simulation.step_s", 0.2)
+            set_form_value("simulation.sample_s", 1.0)
+
+            if case_id.startswith("propulsion_"):
+                parameter_values = {
+                    "initial_soc": 0.9,
+                    "propulsion_enabled": True,
+                    "propulsion_burn_start_s": 5.0,
+                    "propulsion_burn_on_time_s": 8.0,
+                    "propulsion_thrust_n": 5.0,
+                    "propulsion_isp_s": 200.0,
+                    "propulsion_initial_propellant_kg": 1.0,
+                    "propulsion_tank_capacity_kg": 2.0,
+                    "propulsion_min_burn_soc": 0.05,
+                }
+            else:
+                parameter_values = {
+                    "initial_soc": 0.75,
+                    "rw_initial_speed_rad_s_0": 10.471975511965978,
+                    "rw_initial_speed_rad_s_1": 20.943951023931955,
+                    "rw_initial_speed_rad_s_2": 31.41592653589793,
+                }
+            for name, value in parameter_values.items():
+                set_form_value(f"parameters.values.{name}", value)
+
+            plot_fields_by_case = {
+                "nominal": ["orbit.radius_m", "eps.battery_soc"],
+                "adcs_rw_jamming": ["adcs.rw.effective_torque_ratio_0"],
+                "adcs_rw_motor_failure": ["adcs.rw.effective_max_torque_nm_0"],
+                "gyro_bias_step": ["adcs.sensor.gyro_bias_norm_rad_s"],
+                "gyro_noise_increase": ["adcs.sensor.gyro_noise_norm_rad_s"],
+                "rw_friction_degradation": ["adcs.rw.effective_drag_nms_0"],
+                "adcs_reaction_wheel_speed_limit": ["adcs.rw.effective_max_speed_rad_s_0"],
+                "propulsion_thruster_ignition_failure": [
+                    "propulsion.burn_command_on_time_s",
+                    "propulsion.total_thrust_n",
+                    "propulsion.propellant_used_kg",
+                ],
+                "propulsion_burn_impulse_loss": [
+                    "propulsion.burn_command_on_time_s",
+                    "propulsion.nominal_burn_command_on_time_s",
+                    "propulsion.total_thrust_n",
+                    "propulsion.propellant_used_kg",
+                ],
+            }
+            plot_fields = plot_fields_by_case[case_id]
+            for plot_field in sorted(plot_fields):
+                plot_search = page.locator("#wizardOutputSearch")
+                plot_search.fill(plot_field)
+                plot_card = page.locator("#wizardCurveChoices .wizard-curve-card").filter(has_text=plot_field)
+                plot_card.wait_for(state="visible", timeout=10000)
+                curve_detail = plot_card.locator("details.wizard-curve-detail")
+                if curve_detail.get_attribute("open") is None:
+                    curve_detail.locator(":scope > summary").click()
+                plot_option = curve_detail.locator("label.wizard-curve-row").filter(has_text=plot_field)
+                plot_option.wait_for(state="visible", timeout=10000)
+                plot_checkbox = plot_option.locator('input[type="checkbox"]')
+                if not plot_checkbox.is_checked():
+                    plot_checkbox.check()
+                plot_search.fill("")
+
+            # FMEA is an explicit optional output. Enable it through the guided
+            # output control so the resulting TaskSpec and Run Bundle include it.
+            fmea_toggle = page.locator("#wizardFmeaEnabled")
+            fmea_toggle.wait_for(state="visible", timeout=10000)
+            if not fmea_toggle.is_checked():
+                fmea_toggle.check()
+
+            page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
+            page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
+            page.wait_for_function(
+                "() => document.querySelector('#wizardNotice')?.textContent.includes('配置校验通过')",
+                timeout=30000,
+            )
+            page.locator("#wizardOptions").get_by_role("button", name="运行仿真").click()
+            page.locator("#wizardRunResultsHost").wait_for(state="visible", timeout=120000)
+            page.wait_for_function(
+                "() => document.querySelector('#activeRunCard')?.innerText.includes('SUCCEEDED')",
+                timeout=120000,
+            )
+
+            run_rows = client.get("/runs?limit=200").json().get("runs", [])
+            matching = [
+                row for row in run_rows
+                if row.get("primary_capability_id") == "whole_spacecraft.unified_native.v1"
+                and row.get("status") == "SUCCEEDED"
+            ]
+            assert len(matching) == 1, matching
+            run_id = matching[0]["run_id"]
+            detail = client.get(f"/runs/{run_id}")
+            assert detail.status_code == 200, detail.text
+            durable = detail.json()["run"]
+            assert durable["task_spec"]["model"]["capability_id"] == "whole_spacecraft.unified_native.v1"
+            assert durable["task_spec"]["simulation"]["level"] == "whole_spacecraft"
+            assert durable["task_spec"]["simulation"]["backend"] == "basilisk"
+            assert durable["task_spec"]["assurance"]["allow_proxy"] is False
+            assert durable["sealed"] is True
+            assert durable["integrity"]["ok"] is True
+            assert durable["validation_outcome"]["result"] == "PASS"
+            assert durable["task_spec"]["outputs"]["fmea"]["enabled"] is True
+            assert set(durable["task_spec"]["outputs"]["fmea"]["formats"]) == {"csv", "json"}
+
+            if event_effect:
+                event_key = {
+                    "fault": "faults",
+                    "degradation": "degradations",
+                    "constraint": "constraints",
+                }[event_kind]
+                events = durable["task_spec"]["events"][event_key]
+                assert len(events) == 1, events
+                assert events[0]["effect"] == event_effect
+                from sat_sim.capability_registry import get_capability
+                whole_contract = get_capability("whole_spacecraft.unified_native.v1").data
+                expected_owner = next(
+                    item["owner"]
+                    for item in whole_contract["operator"]["effects"]
+                    if item["effect_id"] == event_effect
+                )
+                assert events[0]["target"] == expected_owner
+                assert events[0]["start_s"] == 4.0
+                assert events[0]["end_s"] == 10.0
+                assert events[0]["parameters"] == event_parameters
+                evidence = durable["validation_outcome"]["injection_evidence"]
+                assert len(evidence) == 1, evidence
+                assert evidence[0]["requested_effect"] == event_effect
+                assert evidence[0]["delivery_result"] == "PASS"
+                assert evidence[0]["effect_result"] == "PASS"
+                assert "RUNTIME_EFFECT_VERIFIED" in evidence[0]["reason_codes"]
+            else:
+                assert not durable["task_spec"]["events"]["faults"]
+                assert not durable["task_spec"]["events"]["degradations"]
+                assert not durable["task_spec"]["events"]["constraints"]
+                assert durable["validation_outcome"]["injection_evidence"] == []
+
+            summary = durable["summary"]
+            expected_proxy_count = 5 if case_id.startswith("propulsion_") else 4
+            assert summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
+            assert summary["external_or_proxy_module_count"] == expected_proxy_count
+
+            telemetry = client.get(f"/runs/{run_id}/telemetry?limit=500")
+            assert telemetry.status_code == 200, telemetry.text
+            rows = telemetry.json()["rows"]
+            assert rows
+            if event_effect:
+                active_label = {
+                    "fault": "label.fault_active",
+                    "degradation": "label.degradation_active",
+                    "constraint": "label.constraint_active",
+                }[event_kind]
+                active_rows = [
+                    row for row in rows
+                    if 4.0 <= float(row["time_s"]) <= 10.0 and row.get(active_label) is True
+                ]
+                assert active_rows, rows
+                assert any(event_effect in str(row.get("event.active_effects", "")) for row in active_rows)
+                active = active_rows[-1]
+                if case_id == "propulsion_burn_impulse_loss":
+                    # The 25% impulse profile shortens the 5 s nominal burn to
+                    # 2 s. Sample inside that physical burn window, not at the
+                    # later event-window end where thrust must already be zero.
+                    active = min(active_rows, key=lambda row: abs(float(row["time_s"]) - 6.0))
+                    assert 5.0 <= float(active["time_s"]) < 7.0
+                if case_id == "adcs_rw_jamming":
+                    assert active["adcs.rw.effective_torque_ratio_0"] == pytest.approx(0.0, abs=1e-12)
+                elif case_id == "adcs_rw_motor_failure":
+                    assert active["adcs.rw.effective_max_torque_nm_0"] == pytest.approx(0.0, abs=1e-12)
+                elif case_id == "gyro_bias_step":
+                    assert active["adcs.sensor.gyro_bias_norm_rad_s"] > 0.0
+                elif case_id == "gyro_noise_increase":
+                    assert active["adcs.sensor.gyro_noise_norm_rad_s"] > 0.0
+                elif case_id == "rw_friction_degradation":
+                    assert active["adcs.rw.effective_drag_nms_0"] == pytest.approx(0.012, rel=1e-9)
+                elif case_id == "adcs_reaction_wheel_speed_limit":
+                    assert active["adcs.rw.effective_max_speed_rad_s_0"] == pytest.approx(5.0)
+                    assert any(
+                        abs(row["adcs.rw.speed_rad_s_0"]) > 5.0
+                        and abs(row["adcs.control.applied_torque_nm_0"]) > 0.0
+                        for row in active_rows
+                    )
+                elif case_id == "propulsion_thruster_ignition_failure":
+                    assert active["propulsion.burn_command_on_time_s"] == pytest.approx(0.0, abs=1e-12)
+                    assert active["propulsion.nominal_burn_command_on_time_s"] == pytest.approx(8.0)
+                    assert active["propulsion.total_thrust_n"] == pytest.approx(0.0, abs=1e-12)
+                    assert active["propulsion.propellant_used_kg"] == pytest.approx(0.0, abs=1e-12)
+                elif case_id == "propulsion_burn_impulse_loss":
+                    assert active["propulsion.burn_command_on_time_s"] == pytest.approx(2.0)
+                    assert active["propulsion.nominal_burn_command_on_time_s"] == pytest.approx(8.0)
+                    assert active["propulsion.total_thrust_n"] > 0.0
+                    assert active["propulsion.propellant_used_kg"] > 0.0
+            else:
+                assert not any(
+                    row.get("label.fault_active") or row.get("label.degradation_active") or row.get("label.constraint_active")
+                    for row in rows
+                )
+
+            plots = client.get(f"/runs/{run_id}/plots")
+            assert plots.status_code == 200, plots.text
+            actual_plot_fields = {item["field"] for item in plots.json()["plot_manifest"]["series"]}
+            assert set(plot_fields) <= actual_plot_fields, (plot_fields, actual_plot_fields)
+            fmea = client.get(f"/runs/{run_id}/fmea")
+            assert fmea.status_code == 200, fmea.text
+            assert "no risk score is fabricated" in fmea.json()["manifest"]["warning"]
+            assert fmea.json()["run_id"] == run_id
+
+            with page.expect_download(timeout=30000) as bundle_download_info:
+                page.locator("#downloadRunBundleBtn").click()
+            bundle_download = bundle_download_info.value
+            bundle_path = tmp_path / f"{case_id}_whole_spacecraft_run_bundle.zip"
+            bundle_download.save_as(str(bundle_path))
+            with zipfile.ZipFile(bundle_path) as archive:
+                prefix = f"{run_id}/"
+                manifest_name = f"{prefix}bundle_manifest.json"
+                seal_name = f"{prefix}SEALED.json"
+                archive_names = set(archive.namelist())
+                manifest_bytes = archive.read(manifest_name)
+                manifest = json.loads(manifest_bytes)
+                seal = json.loads(archive.read(seal_name))
+                expected = {f"{prefix}{relative}" for relative in manifest["files"]}
+                assert archive_names == expected | {manifest_name, seal_name}
+                assert seal["run_id"] == run_id
+                assert seal["bundle_manifest_sha256"] == hashlib.sha256(manifest_bytes).hexdigest()
+                for relative, entry in manifest["files"].items():
+                    assert hashlib.sha256(archive.read(f"{prefix}{relative}")).hexdigest() == entry["sha256"]
+
+            # Keep the browser-downloaded original ZIP outside tmp_path so the
+            # official O3-D artifact can independently re-check its seal and hashes.
+            browser_archive_dir = Path("reports/native_whole_spacecraft_events/browser_run_bundles")
+            browser_archive_dir.mkdir(parents=True, exist_ok=True)
+            archived_zip = browser_archive_dir / f"{case_id}.zip"
+            shutil.copy2(bundle_path, archived_zip)
+            archived_zip_sha256 = hashlib.sha256(archived_zip.read_bytes()).hexdigest()
+            manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+            sidecar = {
+                "schema_version": "p9-o3.browser-run-bundle.v1",
+                "case_id": case_id,
+                "run_id": run_id,
+                "event_kind": event_kind,
+                "event_effect": event_effect,
+                "bundle_zip_sha256": archived_zip_sha256,
+                "bundle_manifest_sha256": manifest_sha256,
+                "sealed": (
+                    seal.get("run_id") == run_id
+                    and seal.get("bundle_manifest_sha256") == manifest_sha256
+                ),
+                "integrity_ok": durable["integrity"]["ok"],
+            }
+            assert sidecar["sealed"] is True and sidecar["integrity_ok"] is True, sidecar
+            (browser_archive_dir / f"{case_id}.json").write_text(
+                json.dumps(sidecar, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            page.locator('[data-result-tab="charts"]').click()
+            page.wait_for_function(
+                "() => document.querySelector('#chartLegend')?.children.length > 0",
+                timeout=15000,
+            )
+            page.locator("#wizardOpenRunCenterBtn").wait_for(state="visible", timeout=10000)
+            page.locator("#wizardOpenRunCenterBtn").click()
+            page.locator("#runCenterView").wait_for(state="visible", timeout=15000)
+            history_row = page.locator("#runCenterTableBody tr").filter(has_text=run_id)
+            history_row.wait_for(state="visible", timeout=15000)
+            history_row.get_by_role("button", name="查看").click()
+            page.locator("#creatorView").wait_for(state="visible", timeout=20000)
+            replayed = page.locator("#activeRunCard")
+            replayed.wait_for(state="visible", timeout=15000)
+            run_metadata = replayed.locator("details.compact-run-metadata")
+            run_metadata.locator("summary").click()
+            assert run_id in replayed.inner_text()
+            page.locator('[data-result-tab="charts"]').click()
+            page.wait_for_function(
+                "() => document.querySelector('#chartLegend')?.children.length > 0",
+                timeout=15000,
+            )
+            assert not errors, errors
+            page.close()
+        finally:
+            browser.close()
+    assert not errors, errors

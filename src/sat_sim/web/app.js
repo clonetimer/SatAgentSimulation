@@ -5374,15 +5374,32 @@
       return;
     }
     const wholeSpacecraftVerifiedEffects = {
-      fault: new Set(['payload_instrument_off', 'comm_data_downlink_link_loss', 'eps_battery_capacity_loss']),
-      degradation: new Set(['solar_panel_efficiency_loss', 'thermal_radiator_rejection_loss']),
-      constraint: new Set(['power_safe_mode_threshold']),
+      fault: new Set([
+        'payload_instrument_off',
+        'comm_data_downlink_link_loss',
+        'eps_battery_capacity_loss',
+        'adcs_rw_jamming',
+        'adcs_rw_motor_failure',
+        'gyro_bias_step',
+        'propulsion_thruster_ignition_failure',
+      ]),
+      degradation: new Set([
+        'solar_panel_efficiency_loss',
+        'thermal_radiator_rejection_loss',
+        'gyro_noise_increase',
+        'rw_friction_degradation',
+        'propulsion_burn_impulse_loss',
+      ]),
+      constraint: new Set([
+        'power_safe_mode_threshold',
+        'adcs_reaction_wheel_speed_limit',
+      ]),
     };
     const wholeAllowed = state.selectedCapabilityId === 'whole_spacecraft.unified_native.v1'
       ? wholeSpacecraftVerifiedEffects[kind]
       : null;
     if (wholeAllowed && !wholeAllowed.has(effect)) {
-      showNotice('整星向导仅开放已有整星级正式物理效果证据的事件；其他事件完成整星 A/B 验收后再开放。', 'warning');
+      showNotice('整星向导仅开放已通过整星配对 A/B 与正式证据验收的 14 类事件；未声明事件保持隐藏。', 'warning');
       return;
     }
     const template = effectCatalog(kind).find((item) => item.effect === effect);
@@ -9031,6 +9048,9 @@
     if ((!host && !qoiHost) || !state.schema || !state.formData) return;
     if (host) host.replaceChildren();
     if (qoiHost) qoiHost.replaceChildren();
+    const advancedOutputs = ensureAdvancedOutputs();
+    const fmeaToggle = el('wizardFmeaEnabled');
+    if (fmeaToggle && advancedOutputs) fmeaToggle.checked = Boolean(advancedOutputs.fmea.enabled);
     const qoiOptions = (state.schema.outputs?.summary_options || []).map(normalizedOutputOption);
     const traceOptions = (state.schema.outputs?.trace_options || []).map(normalizedOutputOption);
     const selectedQoi = new Set(state.formData.outputs?.qoi || []);
@@ -9396,6 +9416,7 @@
         ['采样间隔', String(getPath(state.formData, 'simulation.sample_s')) + ' s'],
         ['故障事件', String((state.formData.events.faults || []).length) + ' 个'],
         ['输出曲线', String((state.formData.outputs.plots || []).length) + ' 条'],
+        ['FMEA 输出', state.formData.outputs.fmea?.enabled ? '已启用' : '未启用'],
       ];
       rows.forEach((item) => { const row = document.createElement('div'); row.className = 'wizard-review-row'; const name = document.createElement('span'); name.textContent = item[0]; const value = document.createElement('strong'); value.textContent = item[1]; row.append(name, value); review.appendChild(row); });
       options.appendChild(review);
@@ -11690,6 +11711,14 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       try { await Promise.all([loadCapabilities(), loadScenarioTemplates()]); } catch (error) { showNotice(error.message, 'error'); } finally { hideBusy(); }
     });
     el('addTelemetryStreamBtn').addEventListener('click', addTelemetryStream);
+    el('wizardFmeaEnabled')?.addEventListener('change', (event) => {
+      const outputs = ensureAdvancedOutputs(); if (!outputs) return;
+      outputs.fmea.enabled = Boolean(event.target.checked);
+      markOutputChanged();
+      state.wizard.validated = false;
+      state.wizard.validatedForm = null;
+      renderSimulationWizard();
+    });
     el('fmeaEnabled').addEventListener('change', (event) => {
       const outputs = ensureAdvancedOutputs(); if (!outputs) return;
       outputs.fmea.enabled = Boolean(event.target.checked); markOutputChanged();

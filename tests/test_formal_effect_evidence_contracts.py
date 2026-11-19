@@ -87,6 +87,10 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
             "payload_instrument_off", "comm_data_downlink_link_loss",
             "eps_battery_capacity_loss", "solar_panel_efficiency_loss",
             "thermal_radiator_rejection_loss", "power_safe_mode_threshold",
+            "adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step",
+            "gyro_noise_increase", "rw_friction_degradation",
+            "adcs_reaction_wheel_speed_limit",
+            "propulsion_thruster_ignition_failure", "propulsion_burn_impulse_loss",
         },
         "subsystem.eps.unified_native.v1": {
             "generation_storage_distribution_failure", "energy_margin_degradation",
@@ -104,11 +108,15 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
             assert profile is not None
             assert profile.classification == EffectEvidenceClassification.VERIFIED_NATIVE_EFFECT
             assert profile.assertions
-            if capability_id in {"subsystem.eps.unified_native.v1", "subsystem.comm_data.unified_native.v1"}:
+            if capability_id in {
+                WHOLE_ID, "subsystem.eps.unified_native.v1", "subsystem.comm_data.unified_native.v1",
+            }:
                 assert profile.implementation == "basilisk_native"
                 declared_fields = contract.observability.effect_evidence[effect_id]
                 assert len(declared_fields) == len(set(declared_fields))
                 assert set(declared_fields) == set(profile.evidence_fields)
+                if capability_id == WHOLE_ID:
+                    assert set(effects[effect_id].evidence_fields) == set(profile.evidence_fields)
 
 
 @pytest.mark.parametrize(
@@ -127,6 +135,24 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
         (WHOLE_ID, "degradation", _event("solar_panel_efficiency_loss", target="whole_spacecraft", remaining_efficiency_ratio=0.3), {}),
         (WHOLE_ID, "degradation", _event("thermal_radiator_rejection_loss", target="whole_spacecraft", remaining_rejection_ratio=0.2), {"payload_power_w": 200.0}),
         (WHOLE_ID, "constraint", _event("power_safe_mode_threshold", target="whole_spacecraft", soc_threshold=0.9), {"initial_soc": 0.62}),
+        (WHOLE_ID, "fault", _event("adcs_rw_jamming", target="whole_spacecraft", wheel_index=0, brake_torque_nm=0.2), {}),
+        (WHOLE_ID, "fault", _event("adcs_rw_motor_failure", target="whole_spacecraft", wheel_index=0), {}),
+        (WHOLE_ID, "fault", _event("gyro_bias_step", target="whole_spacecraft", bias_step_deg_s=[0.5, 0.0, 0.0]), {}),
+        (WHOLE_ID, "degradation", _event("gyro_noise_increase", target="whole_spacecraft", noise_scale=100.0), {}),
+        (WHOLE_ID, "degradation", _event("rw_friction_degradation", target="whole_spacecraft", wheel_index=0, drag_nms=0.012), {}),
+        (WHOLE_ID, "constraint", _event("adcs_reaction_wheel_speed_limit", target="whole_spacecraft", wheel_index=0, max_speed_rad_s=5.0), {}),
+        (WHOLE_ID, "fault", _event("propulsion_thruster_ignition_failure", target="whole_spacecraft"), {
+            "initial_soc": 0.9, "propulsion_enabled": True, "propulsion_burn_start_s": 5.0,
+            "propulsion_burn_on_time_s": 8.0, "propulsion_thrust_n": 5.0,
+            "propulsion_isp_s": 200.0, "propulsion_initial_propellant_kg": 1.0,
+            "propulsion_tank_capacity_kg": 2.0, "propulsion_min_burn_soc": 0.05,
+        }),
+        (WHOLE_ID, "degradation", _event("propulsion_burn_impulse_loss", target="whole_spacecraft", remaining_impulse_ratio=0.25), {
+            "initial_soc": 0.9, "propulsion_enabled": True, "propulsion_burn_start_s": 5.0,
+            "propulsion_burn_on_time_s": 8.0, "propulsion_thrust_n": 5.0,
+            "propulsion_isp_s": 200.0, "propulsion_initial_propellant_kg": 1.0,
+            "propulsion_tank_capacity_kg": 2.0, "propulsion_min_burn_soc": 0.05,
+        }),
         ("subsystem.eps.unified_native.v1", "fault", _event("generation_storage_distribution_failure", target="eps"), {}),
         ("subsystem.eps.unified_native.v1", "degradation", _event("energy_margin_degradation", target="eps"), {}),
         ("subsystem.comm_data.unified_native.v1", "fault", _event("transmitter_rate_loss", target="comm_data"), {}),
@@ -150,3 +176,34 @@ def test_each_unified_effect_has_formal_runtime_pass(capability_id, category, ev
     assert evidence.effect_result == ValidationResult.PASS
     assert "RUNTIME_EFFECT_VERIFIED" in evidence.reason_codes
     assert "EFFECT_EVIDENCE_CANDIDATE" not in evidence.reason_codes
+
+
+
+def test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect() -> None:
+    """Advanced TaskSpec admission must not bypass the capability's declared event boundary."""
+    spec = _spec(
+        WHOLE_ID,
+        category="fault",
+        event=_event("adcs_rw_jamming", target="whole_spacecraft", wheel_index=0, brake_torque_nm=0.2),
+    )
+    # The unified runtime knows this IMU effect, but the whole-spacecraft
+    # capability has not declared it or registered a whole-graph evidence profile.
+    spec["events"]["faults"][0]["effect"] = "adcs_imu_signal_loss"
+    planning = plan_task_spec(spec)
+    assert not planning.validation.ok
+    assert any(issue.severity == "error" for issue in planning.validation.issues)
+
+
+def test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect_and_partial_motor_torque_parameter() -> None:
+    spec = _spec(
+        WHOLE_ID,
+        category="fault",
+        event=_event("adcs_rw_motor_failure", target="whole_spacecraft", wheel_index=0, torque_scale=0.25),
+    )
+    planning = plan_task_spec(spec)
+    assert not planning.validation.ok
+    assert any(
+        issue.code == "PARAMETER_PATH_UNCONSUMED"
+        and "events.faults[0].parameters.torque_scale" in issue.path
+        for issue in planning.validation.issues
+    )
