@@ -11,6 +11,7 @@ def _run_composite(
     duration_s: float = 40.0,
     solar_power_w: float = 95.0,
     disable_tx_power: bool = False,
+    antenna_off: bool = False,
 ):
     pytest.importorskip("Basilisk", reason="requires official Basilisk 2.11.0")
     from Basilisk.architecture import messaging
@@ -35,6 +36,17 @@ def _run_composite(
     )
     graph = build_whole_spacecraft_graph(structure)
     _apply_run_config_to_graph(graph, run_cfg)
+
+    if antenna_off:
+        # Exercise a real no-TX state: turn off the physical spacecraft antenna
+        # before execution so SimpleAntenna -> LinkBudget -> DownlinkHandling
+        # naturally produces no RF attempt while the Comm PDU remains enabled.
+        off_payload = messaging.AntennaStateMsgPayload()
+        off_payload.antennaState = 0
+        off_message = messaging.AntennaStateMsg().write(off_payload)
+        rf_graph = graph.component_registry["native_rf_access_graph"]
+        rf_graph.spacecraft_antenna.antennaSetStateInMsg.subscribeTo(off_message)
+        graph.component_registry["_test_antenna_off_state_msg"] = off_message
 
     if disable_tx_power:
         comm_power_nodes = graph.component_registry["comm_power_nodes"]
@@ -71,7 +83,7 @@ def _assert_same_recorder_fields(left, right, recorder_name: str, fields: tuple[
 
 def test_composite_native_antenna_power_closes_eps_thermal_and_preserves_rf_physics() -> None:
     active_graph, active_summary, _ = _run_composite()
-    power_off_graph, power_off_summary, _ = _run_composite(disable_tx_power=True)
+    power_off_graph, power_off_summary, power_off_rows = _run_composite(disable_tx_power=True)
 
     nodes = active_graph.component_registry["comm_power_nodes"]
     assert len(nodes) == 3
@@ -99,12 +111,8 @@ def test_composite_native_antenna_power_closes_eps_thermal_and_preserves_rf_phys
         index for index, enabled in enumerate(tx_status)
         if index > 0 and int(enabled) == 1
     ]
-    idle_indices = [
-        index for index, enabled in enumerate(idle_status)
-        if index > 0 and int(enabled) == 1
-    ]
     assert tx_indices, "the native DownlinkHandling path must exercise an actual RF transmission"
-    assert idle_indices, "the composite PDU-enabled no-TX state must be exercised"
+    assert all(row.comm_control_power_w == pytest.approx(0.0, abs=1e-6) for row in power_off_rows if row.time_s > 0.0)
 
     for index in tx_indices:
         assert -float(tx_power[index]) == pytest.approx(5.0, abs=1e-6)
@@ -116,9 +124,6 @@ def test_composite_native_antenna_power_closes_eps_thermal_and_preserves_rf_phys
         )
         assert -float(power_off_graph.recorders["comm_power_tx"].netPower[index]) == pytest.approx(0.0, abs=1e-6)
         assert -float(power_off_graph.recorders["comm_power_base"].netPower[index]) == pytest.approx(0.0, abs=1e-6)
-
-    for index in idle_indices:
-        assert -float(idle_power[index]) == pytest.approx(2.0, abs=1e-6)
 
     active_thermal_bridge = active_graph.thermal_graph.network.power_bridges["electronics"]
     control_thermal_bridge = power_off_graph.thermal_graph.network.power_bridges["electronics"]
@@ -169,3 +174,31 @@ def test_composite_native_comm_power_is_zero_when_pdu_disables_comm() -> None:
         assert all(float(value) == pytest.approx(0.0, abs=1e-9) for value in values)
 
     assert summary.max_comm_control_power_w == pytest.approx(0.0, abs=1e-9)
+
+
+
+def test_composite_native_comm_idle_power_is_two_w_when_physical_antenna_is_off():
+    graph, summary, rows = _run_composite(antenna_off=True, duration_s=8.0)
+    adapter = graph.component_registry["comm_status_adapter"]
+    runtime_samples = adapter.trace[1:]
+    assert runtime_samples
+    assert all(sample.pdu_enabled for sample in runtime_samples)
+    assert all(not sample.tx_enabled and sample.idle_enabled for sample in runtime_samples)
+
+    downlink = graph.recorders["downlink"]
+    assert all(int(value) == 0 for value in list(downlink.linkActive)[1:])
+    assert all(float(value) == pytest.approx(0.0, abs=1e-9) for value in list(downlink.attemptedDataRate)[1:])
+
+    for recorder_name, expected in (
+        ("comm_power_tx", 0.0),
+        ("comm_power_base", 0.0),
+        ("comm_power_idle", -2.0),
+    ):
+        values = list(getattr(graph.recorders[recorder_name], "netPower"))[1:]
+        assert values
+        assert all(float(value) == pytest.approx(expected, abs=1e-9) for value in values)
+
+    runtime_power = [row.comm_control_power_w for row in rows if row.time_s > 0.0]
+    assert runtime_power
+    assert max(runtime_power) == pytest.approx(2.0, abs=1e-6)
+    assert summary.max_comm_control_power_w >= 2.0
