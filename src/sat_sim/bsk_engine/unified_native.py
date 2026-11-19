@@ -752,7 +752,10 @@ def _build_unified_rows(
                     for wheel_index in range(rw_power_wheel_count)
                 ),
                 "eps.loads.payload_power_w": max(0.0, -float(recorder_map["payload_power"].netPower[index])),
-                "eps.loads.comm_power_w": max(0.0, -float(recorder_map["downlink_power"].netPower[index])),
+                "eps.loads.comm_power_w": (
+                    max(0.0, -float(recorder_map["downlink_power"].netPower[index]))
+                    + max(0.0, -float(recorder_map["comm_base_power"].netPower[index]))
+                ),
                 "eps.loads.heater_power_w": max(0.0, -float(recorder_map["heater_power"].netPower[index])),
                 "eps.pdu.payload_enabled": int(recorder_map["pdu_payload_status"].deviceStatus[index]),
                 "eps.pdu.adcs_enabled": int(recorder_map["pdu_adcs_status"].deviceStatus[index]),
@@ -1747,24 +1750,35 @@ class UnifiedNativeRuntime:
                 "project_comm_downlink_status_adapter",
                 downlink_msg=native_downlink.downlinkOutMsg,
                 enable_status_msg=pdu.commStatusOutMsg,
+                antenna_msg=rf_access.spacecraft_antenna.antennaOutMsg,
             )
             add(comm_status_adapter, comm_status_adapter.ModelTag, "basilisk_project_native", 37)
-            from Basilisk.simulation import antennaPower
+            from Basilisk.simulation import antennaPower, simplePowerSink
             comm_power_node = antennaPower.AntennaPower()
             comm_power_node.ModelTag = "native_comm_antenna_power"
-            comm_power_node.basePowerNeed = comm_antenna_base_power_w
-            # PowerNodeBase defaults enabled. Fail closed until the first
-            # PDU/downlink status message is available.
-            comm_power_node.powerStatus = 0
-            comm_power_node.antennaSetStateInMsg.subscribeTo(rf_access.spacecraft_antenna.antennaOutMsg)
-            comm_power_node.nodeStatusInMsg.subscribeTo(comm_status_adapter.txStatusOutMsg)
+            # The official AntennaPower node consumes a power-only gated copy
+            # of the physical SimpleAntenna log. Keep its own base draw at zero;
+            # non-RF electronics overhead is a separate PDU-gated official sink.
+            comm_power_node.basePowerNeed = 0.0
+            comm_power_node.antennaSetStateInMsg.subscribeTo(comm_status_adapter.antennaPowerOutMsg)
             add(comm_power_node, comm_power_node.ModelTag, "basilisk_official_native", 36)
             battery.addPowerNodeToModel(comm_power_node.nodePowerOutMsg)
-            connected("spacecraft_antenna.antennaOutMsg", comm_power_node.ModelTag)
+
+            comm_base_power_node = simplePowerSink.SimplePowerSink()
+            comm_base_power_node.ModelTag = "native_comm_base_power"
+            comm_base_power_node.nodePowerOut = -comm_antenna_base_power_w
+            comm_base_power_node.powerStatus = 0
+            comm_base_power_node.nodeStatusInMsg.subscribeTo(comm_status_adapter.txStatusOutMsg)
+            add(comm_base_power_node, comm_base_power_node.ModelTag, "basilisk_official_native", 36)
+            battery.addPowerNodeToModel(comm_base_power_node.nodePowerOutMsg)
+
+            connected("spacecraft_antenna.antennaOutMsg", "project_comm_downlink_status_adapter")
             connected("native_downlink.downlinkOutMsg", "project_comm_downlink_status_adapter")
             connected("project_eps_pdu.commStatusOutMsg", "project_comm_downlink_status_adapter")
-            connected("project_comm_downlink_status_adapter.txStatusOutMsg", comm_power_node.ModelTag)
+            connected("project_comm_downlink_status_adapter.antennaPowerOutMsg", comm_power_node.ModelTag)
+            connected("project_comm_downlink_status_adapter.txStatusOutMsg", comm_base_power_node.ModelTag)
             connected(f"{comm_power_node.ModelTag}.nodePowerOutMsg", "battery")
+            connected(f"{comm_base_power_node.ModelTag}.nodePowerOutMsg", "battery")
             heater_power_bridge = StatusPowerBridge(
                 "project_heater_status_power_bridge",
                 active_power_w=float(values.get("heater_power_w", 15.0)),
@@ -1778,6 +1792,7 @@ class UnifiedNativeRuntime:
                 "adcs_power_nodes": adcs_power_nodes,
                 "payload_power_bridge": payload_power_bridge,
                 "comm_power_node": comm_power_node,
+                "comm_base_power_node": comm_base_power_node,
                 "comm_status_adapter": comm_status_adapter,
                 "comm_antenna_base_power_w": comm_antenna_base_power_w,
                 "comm_antenna_tx_power_w": comm_antenna_tx_power_w,
@@ -2097,6 +2112,7 @@ class UnifiedNativeRuntime:
                 "bus_power": whole_modules["bus_power"].nodePowerOutMsg,
                 "payload_power": whole_modules["payload_power_bridge"].powerOutMsg,
                 "downlink_power": whole_modules["comm_power_node"].nodePowerOutMsg,
+                "comm_base_power": whole_modules["comm_base_power_node"].nodePowerOutMsg,
                 "comm_tx_status": whole_modules["comm_status_adapter"].txStatusOutMsg,
                 "comm_idle_status": whole_modules["comm_status_adapter"].idleStatusOutMsg,
                 "heater_power": whole_modules["heater_power_bridge"].powerOutMsg,
@@ -2498,7 +2514,10 @@ class UnifiedNativeRuntime:
             runtime_read_errors.extend(
                 f"comm_status_adapter: {sample.error}"
                 for sample in whole_modules["comm_status_adapter"].trace
-                if sample.error and sample.input_status is InputReadStatus.ERROR
+                if sample.error and (
+                    sample.input_status is InputReadStatus.ERROR
+                    or (sample.time_ns > 0 and sample.input_status is InputReadStatus.NOT_READY)
+                )
             )
             runtime_read_errors.extend(f"rf_gate: {item}" for item in getattr(whole_modules["rf_gate"], "read_errors", ()))
             runtime_read_errors.extend(f"thermal: {item}" for item in getattr(whole_modules["thermal"], "read_errors", ()))
@@ -2616,16 +2635,20 @@ class UnifiedNativeRuntime:
             summary.update({
                 "comm_power_model": {
                     "implementation": "Basilisk.simulation.antennaPower.AntennaPower",
-                    "antenna_input_message": "SimpleAntenna.antennaOutMsg",
+                    "antenna_input_message": "DownlinkAntennaStatusAdapter.antennaPowerOutMsg (gated copy of SimpleAntenna.antennaOutMsg)",
+                    "antenna_source_message": "SimpleAntenna.antennaOutMsg",
                     "status_adapter": "DownlinkAntennaStatusAdapter",
+                    "base_power_node": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
                     "status_inputs": [
                         "DownlinkHandling.downlinkOutMsg.linkActive",
                         "DownlinkHandling.downlinkOutMsg.attemptedDataRate",
                         "project_eps_pdu.commStatusOutMsg",
+                        "SimpleAntenna.antennaOutMsg.P_Tx",
                     ],
                     "tx_enable_condition": "PDU_Comm_enabled && linkActive && attemptedDataRate > 0",
                     "antenna_tx_power_w": whole_modules["comm_antenna_tx_power_w"],
                     "base_power_w": whole_modules["comm_antenna_base_power_w"],
+                    "base_power_is_separate_pdu_gated_sink": True,
                     "total_active_tx_power_w": (
                         whole_modules["comm_antenna_tx_power_w"]
                         + whole_modules["comm_antenna_base_power_w"]
