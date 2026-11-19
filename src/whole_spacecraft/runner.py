@@ -670,7 +670,11 @@ def _execute_whole_spacecraft_graph(
                 propulsion_power_w=max(0.0, -_rec_value(recorders.get("propulsion_power"), "netPower", i, float(getattr(propulsion_sample, "electrical_power_w", 0.0)))),
                 propulsion_activity=float(getattr(propulsion_sample, "activity", 0.0)),
                 propulsion_cumulative_energy_j=_trace_cumulative_energy_at(propulsion_power_trace, time_s),
-                heater_eps_load_w=max(0.0, -_rec_value(recorders.get("heater_eps_feedback"), "netPower", i, 0.0)),
+                heater_eps_load_w=(
+                    sum(max(0.0, -_rec_value(recorders.get(name), "netPower", i, 0.0)) for name in recorders if name.startswith("heater_eps_power_"))
+                    if any(name.startswith("heater_eps_power_") for name in recorders)
+                    else max(0.0, -_rec_value(recorders.get("heater_eps_feedback"), "netPower", i, 0.0))
+                ),
                 heater_active_count=heater_active_count,
                 pdu_heater_enabled=pdu_heater_enabled,
                 eclipse_shadow_factor=_rec_value(recorders.get("eclipse"), "shadowFactor", i, 1.0),
@@ -823,8 +827,14 @@ def _execute_whole_spacecraft_graph(
                 eps_to_thermal_heat_energy_j += float(energy_j)
             elif str(label).startswith("heater."):
                 heater_thermal_energy_j += float(energy_j)
-    heater_electrical_energy_j = _integrate_recorder_field(
-        recorders.get("heater_eps_feedback"), "netPower", absolute=True
+    heater_native_power_recorders = [
+        recorder for name, recorder in recorders.items()
+        if name.startswith("heater_eps_power_")
+    ]
+    heater_electrical_energy_j = (
+        sum(_integrate_recorder_field(recorder, "netPower", absolute=True) for recorder in heater_native_power_recorders)
+        if heater_native_power_recorders
+        else _integrate_recorder_field(recorders.get("heater_eps_feedback"), "netPower", absolute=True)
     )
     thermal_power_bridge_count = len(thermal_power_bridges)
     thermal_power_bridge_exercised_count = sum(
@@ -886,7 +896,7 @@ def _execute_whole_spacecraft_graph(
     if _coupling_requires_runtime_evidence("adcs_pointing_to_payload_comm_gate"):
         proxy_checks.append(bool(graph.mission_gate is not None and mission_trace))
     if _coupling_requires_runtime_evidence("thermal_heaters_to_eps_load"):
-        proxy_checks.append(bool(recorders.get("heater_eps_feedback") is not None))
+        proxy_checks.append(bool(heater_native_power_recorders or recorders.get("heater_eps_feedback") is not None))
     if rf_graph is not None:
         proxy_checks.append(rf_environment_wiring_count >= 8)
     solar_power_coupling_required = _coupling_requires_runtime_evidence("orbit_sun_attitude_eclipse_to_eps_solar_power")
