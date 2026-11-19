@@ -614,6 +614,8 @@ def _build_unified_rows(
                     "propulsion.burn_active": int(recorder_map["propulsion_burn_status"].deviceStatus[index]),
                     "propulsion.burn_permitted": int(recorder_map["propulsion_permission"].deviceStatus[index]),
                     "propulsion.fuel_mass_kg": float(fuel_rec.fuelMass[index]),
+                    "propulsion.initial_propellant_kg": float(fuel_rec.fuelMass[0]),
+                    "propulsion.propellant_used_kg": max(0.0, float(fuel_rec.fuelMass[0]) - float(fuel_rec.fuelMass[index])),
                     "propulsion.fuel_mass_dot_kg_s": float(fuel_rec.fuelMassDot[index]),
                     "propulsion.total_thrust_n": sum(thrust_forces),
                     "propulsion.max_thrust_factor": max(thrust_factors, default=0.0),
