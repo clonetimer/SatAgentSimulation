@@ -432,17 +432,32 @@ def get_eps_solar_power_output_msg(graph: EpsBasiliskModuleGraph) -> Any:
     return get_power_output_msg(graph.solar_source)
 
 
-def attach_eps_basilisk_graph_to_task(sim: Any, task_name: str, graph: EpsBasiliskModuleGraph) -> None:
-    """Attach EPS Basilisk graph to a simulation task in dependency order."""
+def attach_eps_basilisk_graph_to_task(
+    sim: Any,
+    task_name: str,
+    graph: EpsBasiliskModuleGraph,
+    *,
+    model_priorities: Mapping[str, int] | None = None,
+) -> None:
+    """Attach EPS Basilisk graph with optional task-local dependency priorities."""
+
+    priorities = dict(model_priorities or {})
+
+    def add(model: Any, key: str) -> None:
+        priority = priorities.get(key)
+        if priority is None:
+            sim.AddModelToTask(task_name, model)
+        else:
+            sim.AddModelToTask(task_name, model, None, int(priority))
 
     for request in graph.requests.values():
-        sim.AddModelToTask(task_name, request)
+        add(request, "requests")
     if graph.pdu is not None:
-        sim.AddModelToTask(task_name, graph.pdu)
-    sim.AddModelToTask(task_name, graph.solar_source)
+        add(graph.pdu, "pdu")
+    add(graph.solar_source, "solar_source")
     for sink in graph.load_sinks.values():
-        sim.AddModelToTask(task_name, sink)
-    sim.AddModelToTask(task_name, graph.battery)
+        add(sink, "load_sinks")
+    add(graph.battery, "battery")
 
 
 
