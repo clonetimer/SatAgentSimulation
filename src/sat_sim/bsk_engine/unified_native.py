@@ -219,6 +219,11 @@ def _native_comm_antenna_power_health(
         runtime_pdu_states.append(pdu_enabled)
         runtime_tx_states.append(tx_enabled)
 
+        if initialization_sample:
+            # At t=0, Basilisk module Reset ordering can expose the antenna's
+            # initial TX log before the status-only adapter's first runtime
+            # update reaches AntennaPower. It is not an integrated load sample.
+            continue
         if tx_enabled is not expected_tx:
             violations.append({
                 "time_s": time_s,
@@ -1748,6 +1753,9 @@ class UnifiedNativeRuntime:
             comm_power_node = antennaPower.AntennaPower()
             comm_power_node.ModelTag = "native_comm_antenna_power"
             comm_power_node.basePowerNeed = comm_antenna_base_power_w
+            # PowerNodeBase defaults enabled. Fail closed until the first
+            # PDU/downlink status message is available.
+            comm_power_node.powerStatus = 0
             comm_power_node.antennaSetStateInMsg.subscribeTo(rf_access.spacecraft_antenna.antennaOutMsg)
             comm_power_node.nodeStatusInMsg.subscribeTo(comm_status_adapter.txStatusOutMsg)
             add(comm_power_node, comm_power_node.ModelTag, "basilisk_official_native", 36)
