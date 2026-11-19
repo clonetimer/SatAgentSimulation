@@ -48,7 +48,6 @@ jobs:
             src/integration/qoi_profiles/resource_closure.py \
             src/whole_spacecraft/builder.py \
             src/whole_spacecraft/runner.py \
-            src/whole_spacecraft/builder.py \
             src/whole_spacecraft/schemas.py \
             src/subsystems/eps/builder.py \
             src/subsystems/payload/builder.py \
