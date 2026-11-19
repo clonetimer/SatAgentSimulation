@@ -59,7 +59,7 @@ def test_propulsion_burn_changes_orbit_relative_to_same_no_burn_baseline() -> No
     assert abs(radius_delta) > 0.1
     assert base_result.summary["propulsion_enabled"] is False
     assert base_result.summary["official_module_count"] == 28
-    assert base_result.summary["project_native_module_count"] == 27
+    assert base_result.summary["project_native_module_count"] == 28
 
 
 def test_native_thruster_direction_ab_changes_trajectory_without_changing_fuel_rate() -> None:
