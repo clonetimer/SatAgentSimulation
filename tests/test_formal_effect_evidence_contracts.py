@@ -115,6 +115,8 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
                 declared_fields = contract.observability.effect_evidence[effect_id]
                 assert len(declared_fields) == len(set(declared_fields))
                 assert set(declared_fields) == set(profile.evidence_fields)
+                if capability_id == WHOLE_ID:
+                    assert set(effects[effect_id].evidence_fields) == set(profile.evidence_fields)
 
 
 @pytest.mark.parametrize(
