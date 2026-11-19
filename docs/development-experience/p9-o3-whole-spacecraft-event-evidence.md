@@ -147,3 +147,9 @@
 - 检查九条浏览器 Run Bundle 下载链时，发现 sidecar 的 `integrity_ok` 虽然前置断言已经验证 `durable.integrity.ok`，但写入时仍使用字面量 `true`，不够直接表达证据来源。
 - 已改为写入 `durable["integrity"]["ok"]`，并在 sidecar 生成点再次要求该值为 true；ZIP 原件、seal/manifest/per-file SHA-256 校验保持不变。
 - 最新测试提交 `e3338d69c214e2c6bc53a5376c70ba5fb81a5031` 已触发新的同头官方验收。经验：证据元数据应绑定实际验证结果，不能用硬编码 PASS 替代来源字段，即使前置断言已经通过。
+## O3-B 闭环指标改为同时披露真实姿态与估计姿态（2026-11-19）
+
+- 复核闭环指标来源后发现，原 `adcs_closed_loop_improved` 使用 `attTrackingError.sigma_BR`，即基于传感器融合导航解算的估计误差；它能说明控制器在估计反馈上的变化，但不能单独证明真实航天器姿态相对惯性参考的误差也在下降。
+- 已从官方 Basilisk `Spacecraft` 状态 recorder 的 `state.sigma_BN` 计算 `attitude.truth.pointing_error_deg`，并新增 `initial_truth_pointing_error_deg`、`final_truth_pointing_error_deg` 和 `adcs_truth_closed_loop_improved`。保留原估计误差指标，不混淆两种物理含义。
+- 整星能力 trace 字典和向导曲线标签已声明真实姿态误差参量；O3-B 30 s nominal Run Bundle 现在同时要求估计闭环和真实姿态闭环改善。
+- 经验：闭环验收必须区分估计误差与真实状态误差；只看控制器反馈量可能把传感器偏差误认为物理收敛。最新代码提交链 `e2e4778` / `32cc891` / `0627fec` / `f3ff97e` / `270452f` 的官方 Basilisk 同头验收尚在运行。
