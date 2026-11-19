@@ -2,7 +2,7 @@
 
 日期：2026-11-19  
 基线：P9-O2 squash merge `7207244a660db732ea321a0c9c64b28df0912c08`  
-状态：O3-A guided event catalog gate 已进入 main（a96d7fed，该 main commit 尚无可见 Checks）；O3-B 的八类整星事件 profiles、正式 A/B Run Bundle 测试与 direct TaskSpec admission audit 已提交候选分支，等待官方 CI；O3-C/D 尚未完成。
+状态：O3-A 已合入 main；O3-B 八类整星事件物理 A/B 与 sealed Run Bundle 已在官方 Basilisk 2.11.0 通过；O3-C 九条 Chromium→Basilisk 旅程已接入官方 workflow，当前 head fb42f71a0ed07b3bb76cbb05803787779181267e 的同头 CI 运行中；O3-D 归档与最终准入待 O3-C PASS 后收尾。
 
 ## 目标
 
