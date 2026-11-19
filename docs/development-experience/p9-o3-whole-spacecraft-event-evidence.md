@@ -188,3 +188,11 @@
 - 全量 native regression 为 195 passed、2 failed；失败集中于 R9-I 两个拓扑的电池 public-Reset 负面对照。持续初始参数测试已在首帧取样修正后通过。进一步检查发现：R9-I 源仿真配置了 `adcs_power_w=60`，但独立子进程的 fresh graph 只复制 `rw_configuration`，未复制源功率配置，导致对照组初始条件不一致。下一步必须将源运行参数显式写入实验输入，并由子进程按相同参数重建；同时检查源 checkpoint 电池能量是否确实偏离初始电量，避免做“无激励 A/B”。
 - 经验：① 原生功率计量模块替换不得改写执行器本体参数；② 初始化 recorder 首帧不能当作稳定电池/PDU状态；③ paired/negative-control 子进程必须复用源图完整物理配置，只传拓扑或部分参数会破坏对照实验；④ 若因果指标无差异，先核对输入条件与激励是否存在，不得删断言或把不显著误报为 PASS。
 - 保留声明边界：目前只移除 ADCS 一项工程代理；payload、comm、heater 仍为 3 项代理，启用推进后为 4 项。该模型仍是机械功率到电功率的工程模型，不代表绕组电阻、电压、铜损、逆变器损耗、硬件标定或飞行验证。
+
+
+### R9-I 负面对照的绝对误差对称性修正（2026-11-19）
+
+- 将源仿真的功率配置（ADCS base draw、太阳翼面积和效率）完整写入实验输入，并要求两个独立子进程回显与源图相同的运行参数；源 checkpoint 电池能量必须相对初始电量有可测差值。由此排除了“源/子进程配置不一致”和“没有能量激励”两类伪对照。
+- 同头真实 Basilisk 仍出现 `reset_changed=false`。复核上游 Basilisk v2.11.0 `PowerStorageBase::Reset` 源码后发现：`Reset(CurrentSimNanos)` 会将内部 `storedCharge` 设为公开 `storedCharge_Init`，同时把 `previousTime` 归零。此前比较器只保存电池能量的绝对最大误差；若 BASE 臂低估、RESET 臂高估且误差幅值相同，`reset_changed` 就会错误地报告“误差未改变”。
+- 正确做法：从源、BASE、RESET 三份真实原生测量中直接计算有符号电池能量残差（child energy - uninterrupted source energy），同时保留原有绝对误差报告；断言 RESET 的有符号误差非零且相对 BASE 发生可测变化，不把“绝对误差幅值相同”误解为“轨迹相同”。
+- 经验：物理 A/B 的误差指标必须保留方向信息；仅比较 `abs(error)` 可能掩盖符号翻转。对于 Reset/初始化时间类负面对照，应同时核验源状态与子进程配置、实际激励、有符号残差和调度时间，不得删除原有失败门禁或把无差异结果改成 PASS。
