@@ -2,7 +2,7 @@
 
 Date: 2026-11-20
 
-Status: implementation candidate; same-head official Basilisk 2.11.0 acceptance pending.
+Status: focused P10-A acceptance PASS (64 passed on PR head `768ec6b982de46ee698aec4c459fe5dd5cdac114`); full native whole-spacecraft regression pending.
 
 ## What changed
 
@@ -29,9 +29,10 @@ This is a deliberate model-semantics change. The active load is unchanged at nom
 5. Power-on/off A/B must leave data generation and storage unchanged; otherwise the power-accounting migration has accidentally changed the science-data path.
 6. Thermal energy accumulators advance only when the thermal task executes. The first A/B test used an 8 s horizon with the default 10 s thermal period, so the thermal bridge only saw its zero-dt initialization sample. Set the thermal task period inside the test horizon (0.2 s here) before asserting integrated energy; do not misdiagnose a sampling-cadence issue as a missing message link.
 
-## Acceptance still pending
+## Acceptance evidence — focused PASS; full native pending
 
-- Official Basilisk 2.11.0 active/inactive and PDU-shed tests.
-- Paired battery response and thermal efficiency energy accounting.
-- Payload data/storage invariance under power-node-only A/B.
-- Full native Basilisk, focused P10-A and static checks on the exact PR head.
+- Official upstream Basilisk 2.11.0 provenance and offline environment preflight: PASS.
+- Focused P10-A suite: 64 passed in 60.54 s, including active/inactive, PDU-shed, battery response, thermal energy, and data-path invariance.
+- Paired battery response and thermal efficiency energy accounting: PASS.
+- Payload data/storage invariance under power-node-only A/B: PASS.
+- Static checks and project script/dependency governance: PASS. Full native whole-spacecraft regression is still running.
