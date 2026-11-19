@@ -34,3 +34,8 @@ No runtime physics, Run Bundle validation rules, or acceptance thresholds are we
 
 - P10-A5 same-head official Basilisk and guided browser workflow: pending.
 - Independent native component/subsystem physical and Run Bundle workflow: pending.
+
+
+## P10-A5 final outcome
+
+PR #198 merged as `8b269e12dc7ea9652f30bdd6e6a93fd01166996c`. The final guided browser inventory was 0 proxies for nominal whole-spacecraft runs and 1 when propulsion was enabled. The independent native component/subsystem Run Bundle workflow passed. The full native whole-spacecraft regression, including the 3600 simulated-second TC/TM soak, passed.
