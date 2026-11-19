@@ -186,6 +186,56 @@ def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> N
     assert "native_downlink.downlinkOutMsg->project_comm_downlink_status_adapter" in manifest["connections"]
 
 
+def test_unified_native_payload_power_node_is_official_and_data_path_invariant() -> None:
+    adapter = get_adapter_for_capability(WHOLE_ID)
+    on = adapter.run(_short_spec(
+        WHOLE_ID,
+        values={"payload_power_w": 38.0, "payload_max_pointing_error_deg": 180.0},
+        duration_s=12.0,
+    ))
+    off = adapter.run(_short_spec(
+        WHOLE_ID,
+        values={"payload_power_w": 0.0, "payload_max_pointing_error_deg": 180.0},
+        duration_s=12.0,
+    ))
+
+    assert on.summary["resource_feedback_bridge_health"]["payload"]["status"] == "PASS"
+    assert on.summary["resource_feedback_bridge_health"]["payload"]["source"] == (
+        "Basilisk.simulation.simplePowerSink.SimplePowerSink"
+    )
+    assert on.summary["payload_dynamic_power_observed"] is True
+    assert on.summary["engineering_proxy_module_count"] == 1
+    assert "project_payload_activity_power_bridge" not in on.metadata["model_source_boundary"]["external_or_proxy"]
+    assert "native_payload_power" in on.metadata["model_source_boundary"]["official_basilisk_native"]
+
+    on_rows = on.trace_rows
+    off_rows = off.trace_rows
+    assert [row["time_s"] for row in on_rows] == [row["time_s"] for row in off_rows]
+    assert any(float(row["payload.generated_bps"]) > 0.0 for row in on_rows)
+    for active_row, zero_row in zip(on_rows, off_rows):
+        assert float(active_row["payload.generated_bps"]) == pytest.approx(float(zero_row["payload.generated_bps"]), abs=1e-9)
+        assert float(active_row["data.storage_bits"]) == pytest.approx(float(zero_row["data.storage_bits"]), abs=1e-6)
+        expected_power = 38.0 if (
+            int(active_row["eps.pdu.payload_enabled"]) == 1
+            and float(active_row["payload.generated_bps"]) > 0.0
+        ) else 0.0
+        assert float(active_row["eps.loads.payload_power_w"]) == pytest.approx(expected_power, abs=1e-6)
+        assert float(zero_row["eps.loads.payload_power_w"]) == pytest.approx(0.0, abs=1e-9)
+
+    active_index = next(
+        index for index, row in enumerate(on_rows[:-1])
+        if float(row["eps.loads.payload_power_w"]) > 0.0
+    )
+    assert float(on_rows[active_index + 1]["eps.net_power_w"]) == pytest.approx(
+        float(off_rows[active_index + 1]["eps.net_power_w"]) - 38.0,
+        abs=1e-5,
+    )
+    assert max(float(row["thermal.payload_temp_k"]) for row in on_rows) > max(
+        float(row["thermal.payload_temp_k"]) for row in off_rows
+    )
+
+
+
 def test_low_soc_gate_changes_power_data_and_thermal_runtime_inputs() -> None:
     adapter = get_adapter_for_capability(WHOLE_ID)
     result = adapter.run(
@@ -201,6 +251,7 @@ def test_low_soc_gate_changes_power_data_and_thermal_runtime_inputs() -> None:
     assert all(row["payload.active"] == 0 for row in active_rows)
     assert all(row["comm.active"] == 0 for row in active_rows)
     assert all(row["payload.generated_bps"] == pytest.approx(0.0) for row in active_rows)
+    assert all(row["eps.loads.payload_power_w"] == pytest.approx(0.0) for row in active_rows)
     assert all(row["comm.downlink_bps"] == pytest.approx(0.0) for row in active_rows)
     assert all(int(row["eps.pdu.comm_enabled"]) == 0 for row in active_rows)
     assert all(int(row["comm.tx_enabled"]) == 0 for row in active_rows)
