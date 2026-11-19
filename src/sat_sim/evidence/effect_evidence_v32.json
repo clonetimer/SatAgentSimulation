@@ -1086,9 +1086,7 @@
       "implementation": "basilisk_native",
       "executable": true,
       "evidence_fields": [
-        "adcs.sensor.gyro_bias_norm_rad_s",
-        "adcs.sensor.gyro_bias_rad_s_x",
-        "adcs.sensor.gyro_measured_rad_s_x"
+        "adcs.sensor.gyro_bias_norm_rad_s"
       ],
       "runtime_assertions": [
         {
@@ -1115,8 +1113,7 @@
       "implementation": "basilisk_native",
       "executable": true,
       "evidence_fields": [
-        "adcs.sensor.gyro_noise_norm_rad_s",
-        "adcs.sensor.gyro_measured_rad_s_x"
+        "adcs.sensor.gyro_noise_norm_rad_s"
       ],
       "runtime_assertions": [
         {
