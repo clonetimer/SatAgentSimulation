@@ -36,7 +36,7 @@ Keep the RF propagation, link budget, downlink handling and storage path unchang
 
 - Unified-native now uses official `Basilisk.simulation.antennaPower.AntennaPower` with the existing spacecraft `SimpleAntenna.antennaOutMsg`; `DownlinkAntennaStatusAdapter` gates the native node from PDU permission and the actual `DownlinkHandling` attempted-rate signal.
 - Active composite now uses the same official antenna power model and a separate official `SimplePowerSink` to preserve its 2 W PDU-enabled idle draw. The non-native fallback remains explicitly proxy-classified only when the native ODH/RF path is disabled.
-- The summary health audit reports stimulus, PDU transition and directional-response evidence. Only the expected t=0 `NOT_READY` initialization sample is excluded; later missing/invalid inputs remain fail-closed.
+- The summary health audit reports stimulus, PDU transition and directional-response evidence. The complete t=0 reset/scheduler barrier is excluded from causal power metrics because it can contain a pre-update AntennaPower recorder value; every positive-time sample is strictly checked and later missing/invalid inputs remain fail-closed.
 - Composite trace output records `comm_control_power_w`; unified trace output exposes PDU status, TX/idle status, attempted rate and native Comm power. Same-head paired RF/battery/thermal tests and capability/CI updates are being completed before PR acceptance.
 
 ## Model semantics and limitations
