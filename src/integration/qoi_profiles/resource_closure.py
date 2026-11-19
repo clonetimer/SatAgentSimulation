@@ -49,6 +49,28 @@ def _max_power(bridge: Any) -> float:
     return max((float(row.electrical_power_w) for row in getattr(bridge, "trace", ())), default=0.0)
 
 
+def _max_native_adcs_power(graph: Any) -> float:
+    """Return the maximum summed load from official per-wheel power recorders."""
+    names = sorted(
+        name for name in graph.recorders
+        if name.startswith("adcs_power_")
+    )
+    if not names:
+        return 0.0
+    series = [
+        [float(value) for value in getattr(graph.recorders[name], "netPower", ())]
+        for name in names
+    ]
+    sample_count = min((len(values) for values in series), default=0)
+    return max(
+        (
+            sum(max(0.0, -series[wheel_index][sample_index]) for wheel_index in range(len(series)))
+            for sample_index in range(sample_count)
+        ),
+        default=0.0,
+    )
+
+
 def _thermal_payload_temp(graph: Any) -> float:
     network = getattr(graph.thermal_graph, "network", None)
     nodes = getattr(network, "nodes", {}) if network is not None else {}
@@ -165,8 +187,8 @@ def run_resource_closure_profiles() -> dict[str, Any]:
 
     adcs_idle_graph = _execute_graph(WholeSpacecraftConfig(mission_initial_sigma_bn=(0.0, 0.0, 0.0), propulsion_enabled=False), 8.0)
     adcs_slew_graph = _execute_graph(WholeSpacecraftConfig(mission_initial_sigma_bn=(0.1, 0.0, 0.0), propulsion_enabled=False), 8.0)
-    idle_adcs_power = _max_power(adcs_idle_graph.component_registry["adcs_power_bridge"])
-    slew_adcs_power = _max_power(adcs_slew_graph.component_registry["adcs_power_bridge"])
+    idle_adcs_power = _max_native_adcs_power(adcs_idle_graph)
+    slew_adcs_power = _max_native_adcs_power(adcs_slew_graph)
     _check(
         checks,
         check_id="adcs_eps.control_effort_to_power_load_feedback",
