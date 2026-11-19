@@ -110,6 +110,7 @@ def test_r9i_genuine_basilisk_battery_public_reset_must_not_be_called_recovery(
                 assert result["battery_reset_control"] is None
             arms[mode]={
                 "pid":result["child_pid"],
+                "measurements": result["measurements"],
                 "reports":[build_divergence_report(
                     uninterrupted=ref,imported_child=actual,
                     source_pid=os.getpid(),child_pid=result["child_pid"],
@@ -127,10 +128,36 @@ def test_r9i_genuine_basilisk_battery_public_reset_must_not_be_called_recovery(
         assert outcome["automatic_resume_allowed"] is False
         assert outcome["automatic_tc_replay_allowed"] is False
         assert len(outcome["samples"])==4
-        # The first native step must demonstrate an actual non-inert
-        # difference between source initial battery vs source checkpoint
-        # energy; no fabricated telemetry or all-zero synthetic outcome.
-        assert outcome["samples"][0]["reset_changed"],outcome
+        # The comparison helper stores absolute residuals. In this
+        # experiment the public Reset can set storedCharge from the public
+        # initial field, but it also resets previousTime to zero. The resulting
+        # reset-arm energy error can have the same magnitude as baseline while
+        # having the opposite sign. Compare signed native energy residuals;
+        # absolute-error equality is not evidence that the two trajectories
+        # are identical.
+        signed_energy_samples=[]
+        for index,(source_measurement,baseline_measurement,reset_measurement) in enumerate(
+            zip(truth,arms[BASE]["measurements"],arms[RESET]["measurements"])
+        ):
+            source_energy=float(source_measurement["eps"]["battery_energy_j"])
+            baseline_error=float(baseline_measurement["eps"]["battery_energy_j"])-source_energy
+            reset_error=float(reset_measurement["eps"]["battery_energy_j"])-source_energy
+            signed_energy_samples.append({
+                "time_ns":stops[index],
+                "baseline_signed_error_j":baseline_error,
+                "reset_signed_error_j":reset_error,
+                "signed_error_change_j":reset_error-baseline_error,
+                "absolute_error_equal":abs(abs(reset_error)-abs(baseline_error))<=1e-9,
+            })
+        assert signed_energy_samples
+        assert abs(signed_energy_samples[0]["reset_signed_error_j"]) > 1.0, signed_energy_samples
+        assert abs(signed_energy_samples[0]["signed_error_change_j"]) > 1.0, signed_energy_samples
+        # The original boolean is explicitly the change in *absolute* error.
+        # It may be false when the signed error changes sign symmetrically.
+        assert outcome["samples"][0]["reset_changed"] is False, outcome
+        print("R9I_SIGNED_ENERGY_ERROR_AUDIT:"+json.dumps(
+            signed_energy_samples,sort_keys=True,allow_nan=False,
+        ),flush=True)
         print("R9I_REAL_NATIVE_PUBLIC_BATTERY_RESET_BARRIER:"+json.dumps(
             outcome,sort_keys=True,allow_nan=False,
         ),flush=True)
