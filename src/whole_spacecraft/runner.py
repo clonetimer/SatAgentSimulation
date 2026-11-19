@@ -428,11 +428,12 @@ def _whole_spacecraft_native_modules(graph: WholeSpacecraftGraph) -> tuple[str, 
         "simplePowerSink.SimplePowerSink",
         "simpleSolarPanel.SimpleSolarPanel",
         "ReactionWheelPower.ReactionWheelPower",
-        "antennaPower.AntennaPower",
         "simpleInstrument.SimpleInstrument",
         "simpleStorageUnit.SimpleStorageUnit",
         "simpleTransmitter.SimpleTransmitter",
     ]
+    if graph.component_registry.get("comm_power_nodes"):
+        modules.append("antennaPower.AntennaPower")
     if graph.component_registry.get("native_downlink") is not None:
         modules.extend([
             "groundLocation.GroundLocation",
@@ -990,6 +991,10 @@ def _execute_whole_spacecraft_graph(
             "ThermalStatusEvaluator(SysModel)",
             "ConstantHeatInput(SysModel)",
             "WholeSpacecraftMissionGate(SysModel)",
+        ) + (
+            ("DownlinkAntennaStatusAdapter(SysModel)",)
+            if graph.component_registry.get("comm_status_adapter") is not None
+            else ()
         ),
         included_subsystems=included_subsystems,
         excluded_subsystems=() if propulsion_enabled else ("propulsion",),
