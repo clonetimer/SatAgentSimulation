@@ -222,6 +222,69 @@ def _native_payload_power_health(
         "input_source": "simpleInstrument.nodeDataOutMsg + project_eps_pdu.payloadStatusOutMsg",
     }
 
+def _native_heater_power_health(
+    rows: list[dict[str, Any]],
+    *,
+    heater_names: tuple[str, ...],
+) -> dict[str, Any]:
+    """Audit PDU permission against actual ThermalHeater electrical output recorders."""
+    tolerance_w = 1.0e-6
+    powers: list[float] = []
+    pdu_states: list[bool] = []
+    violations: list[dict[str, Any]] = []
+    for row in rows:
+        pdu_enabled = bool(int(row.get("eps.pdu.heater_enabled", 0)))
+        actual = max(0.0, float(row.get("eps.loads.heater_power_w", 0.0)))
+        component_sum = sum(
+            max(0.0, float(row.get(f"eps.loads.{name}_thermostat_power_w", 0.0)))
+            for name in heater_names
+        )
+        powers.append(actual)
+        pdu_states.append(pdu_enabled)
+        if abs(actual - component_sum) > tolerance_w:
+            violations.append({
+                "time_s": float(row.get("time_s", 0.0)),
+                "reason": "heater_total_does_not_match_native_thermal_heater_outputs",
+                "reported_power_w": actual,
+                "component_power_sum_w": component_sum,
+            })
+        if not pdu_enabled and actual > tolerance_w:
+            violations.append({
+                "time_s": float(row.get("time_s", 0.0)),
+                "reason": "pdu_disabled_with_positive_native_heater_power",
+                "actual_power_w": actual,
+            })
+    positive_power_count = sum(1 for value in powers if value > tolerance_w)
+    power_span = max(powers, default=0.0) - min(powers, default=0.0)
+    transition = len(set(pdu_states)) > 1
+    status = "NOT_READY" if not rows or not heater_names else ("FAIL" if violations else "PASS")
+    return {
+        "status": status,
+        "sample_count": len(rows),
+        "valid_sample_count": len(rows),
+        "not_ready_sample_count": 0,
+        "error_count": 0,
+        "errors": [],
+        "power_min_w": min(powers, default=0.0),
+        "power_max_w": max(powers, default=0.0),
+        "power_span_w": power_span,
+        "activity_min": min(powers, default=0.0),
+        "activity_max": max(powers, default=0.0),
+        "activity_span": power_span,
+        "positive_activity_sample_count": positive_power_count,
+        "positive_power_sample_count": positive_power_count,
+        "enabled_transition_observed": transition,
+        "stimulus_observed": bool(positive_power_count or transition),
+        "directional_response_pass": not violations,
+        "directional_violation_count": len(violations),
+        "directional_violations": violations[:10],
+        "source": "ThermalHeater.electricalPowerOutMsg",
+
+        "input_source": "project_eps_pdu.heaterStatusOutMsg -> ThermalHeater.enableInMsg",
+
+        "heater_names": list(heater_names),
+    }
+
 def _native_comm_antenna_power_health(
     rows: list[dict[str, Any]], *,
     base_power_w: float,
