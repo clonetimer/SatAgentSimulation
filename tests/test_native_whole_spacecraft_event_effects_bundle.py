@@ -83,7 +83,7 @@ def _load_spec(
             "id": f"{effect}_event",
             "effect": effect,
             "target": target or "whole_spacecraft",
-            "start_s": 0.0 if effect == "adcs_reaction_wheel_speed_limit" else EVENT_START_S,
+            "start_s": 0.0 if effect in {"adcs_rw_jamming", "adcs_reaction_wheel_speed_limit"} else EVENT_START_S,
             "end_s": EVENT_END_S,
             "magnitude": 1.0,
             "parameters": dict(event_parameters or {}),
@@ -204,7 +204,7 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_runs_and_sealed_bun
         event_parameters=event_parameters,
     )
     nominal = whole_spacecraft_nominal_runs[domain]
-    active_window_start = 0.0 if effect == "adcs_reaction_wheel_speed_limit" else EVENT_START_S
+    active_window_start = 0.0 if effect in {"adcs_rw_jamming", "adcs_reaction_wheel_speed_limit"} else EVENT_START_S
     active_rows = [
         row for row in injected.trace_rows
         if active_window_start <= float(row["time_s"]) <= EVENT_END_S
