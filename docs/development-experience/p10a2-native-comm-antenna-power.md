@@ -33,3 +33,7 @@ The former `DownlinkActivityPowerBridge` inferred power from a rate-normalized p
 - Composite active TX at 30 W, PDU-enabled idle at 2 W, and PDU-off at 0 W.
 - Paired composite run with the TX power node independently disabled: RF LinkBudget and DownlinkHandling outputs unchanged, battery net power differs by 30 W during TX, and thermal electronics heat input contains the native TX energy contribution.
 - Same-head full native whole-spacecraft, component/subsystem, Run Bundle, browser and parameter-surface regression.
+
+## Cross-environment import regression found by CI
+
+The first PR run exposed that the new adapter was defined only inside the Basilisk-present branch, while `unified_native.py` imports it at module load time. That broke lightweight test and tooling environments that intentionally omit Basilisk. The module now exports a `None` placeholder in the no-Basilisk branch, matching the existing optional bridge contract. Native runtime construction still requires official Basilisk; the placeholder is import compatibility only.
