@@ -75,3 +75,5 @@ def test_native_heater_status_drives_official_power_nodes_and_battery() -> None:
 
     assert max(row.heater_eps_load_w for row in active_rows) == pytest.approx(expected_total_w, abs=1e-6)
     assert max(row.heater_eps_load_w for row in idle_rows) == pytest.approx(0.0, abs=1e-9)
+    assert active_summary.heater_electrical_energy_j > 0.0
+    assert idle_summary.heater_electrical_energy_j == pytest.approx(0.0, abs=1e-9)
