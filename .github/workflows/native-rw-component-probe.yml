@@ -304,6 +304,8 @@ jobs:
             reports/native_subsystem_eps_comm_data/formal_effects.xml
             reports/native_whole_spacecraft_events/effect_ab.xml
             reports/native_whole_spacecraft_events/effect_ab.json
+            reports/native_whole_spacecraft_events/run_bundles/**
+            reports/native_whole_spacecraft_events/browser_run_bundles/**
             reports/native_whole_spacecraft_events/rw4_initial_speed_guard.xml
             reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml
             reports/native_rw_component_probe/physical_ab.json
