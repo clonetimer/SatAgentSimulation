@@ -37,3 +37,11 @@ A second Windows-only workflow failure occurred after the CLI passed: the benchm
 ## Distinguish a listed CAD download from acquired CAD evidence
 
 A supplier marketplace page may list a CAD model and file size without exposing the actual file bytes or reuse terms to an automated fetch. Record the state as "CAD listed, bytes/license not verified", not "CAD acquired" and not "no CAD exists". Attempt the source acquisition and SHA-256/license check first; only fall back to image-to-3D if access, permitted reuse or target-model identity prevents use of the real CAD.
+## 2026-11-19: supplier access, license scope and local inference budget
+
+- KAIROSPACE KSST-01's 2.88 MB CAD entry on satsearch is not a direct anonymous download; the visible page routes CAD requests through a supplier inquiry. The official datasheet has an all-rights-reserved notice and the product page restricts reuse without prior written permission. Do not scrape its drawing/photo into a generation pipeline or claim the CAD was acquired.
+- Public product dimensions are not the same thing as an authorized reusable geometry source. Record them as third-party product facts and identity leads only; do not silently populate the project's target device schema.
+- An open-source star-tracker repository may contain software or KiCad PCB/ECAD but no mechanical solid. Check the repository tree for STEP/STL/FCStd/IGES/GLB and an explicit license before calling it a CAD alternative.
+- TRELLIS.2's official 24 GB VRAM/Linux requirement is a poor default for a local RTX 5060. TripoSR is a more practical first G1 candidate: official MIT license, roughly 6 GB VRAM for one image, and native GLB output. Its output remains an appearance-only single-view reconstruction; it cannot certify hidden surfaces, boresight, mounting holes or dimensions.
+- Stable Fast 3D has similar VRAM needs but gated weights and Stability AI Community License obligations; Hunyuan3D-2.1 requires more VRAM and a separate territory/distribution license review. Keep both optional rather than adding them to the core simulator.
+- Do not run inference until the input image's original bytes, SHA-256, provenance locator and explicit permission for internal model generation/display are recorded. A technically feasible model is not a legally admissible input.
