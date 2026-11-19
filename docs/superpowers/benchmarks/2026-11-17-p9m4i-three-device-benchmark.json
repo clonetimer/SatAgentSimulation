@@ -225,15 +225,39 @@
       "reported_size_mb": 2.49,
       "usage_policy_uri": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
       "usage_policy_summary": "NASA media guidelines generally allow non-commercial educational/informational use, including computer graphical simulations and media used in 3D-model rendition; third-party copyright-protected assets must be identified and separately cleared.",
-      "license_assessment_status": "candidate_pending_exact_media_rights_review",
+      "license_assessment_status": "policy_basis_found_pending_project_owner_signoff_and_source_hash",
       "source_bytes_obtained": false,
       "source_sha256": null,
       "eligible_for_inference": false,
       "limitations": [
         "generic Europa Clipper mock-up, not the target satellite's confirmed star-tracker model",
         "single perspective image provides no engineering scale, mounting interface, aperture dimensions or boresight",
-        "no TripoSR inference until original bytes, SHA-256 and source-specific rights review are recorded"
-      ]
+        "visible hand/person and workbench background must be excluded by reviewed preprocessing",
+        "no TripoSR inference until original bytes, SHA-256, background-removal review and project-owner scope signoff are recorded"
+      ],
+      "rights_assessment": {
+        "status": "policy_basis_found_pending_project_owner_signoff",
+        "usage_policy_uri": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+        "candidate_permitted_uses": [
+          "model_generation",
+          "internal_preview"
+        ],
+        "external_distribution_allowed": false,
+        "source_credit": "NASA/JPL-Caltech",
+        "separate_third_party_copyright_notice_observed": false,
+        "review_basis": [
+          "NASA's current media guidance explicitly includes media used in 3D-model rendition for educational or informational purposes.",
+          "The exact source page identifies the mock-up and credits NASA/JPL-Caltech; no separate third-party copyright notice is displayed on that page.",
+          "The source image is a Europa Clipper mock-up, not the project's target star-tracker model."
+        ],
+        "restrictions": [
+          "Non-commercial educational/informational G1 preview only.",
+          "Do not use NASA/JPL logos or imply NASA, JPL or Caltech endorsement.",
+          "Label the output as AI-generated and attribute the generation to TripoSR, not NASA.",
+          "Do not externally distribute the generated model until project-owner scope review is complete."
+        ],
+        "project_owner_signoff": "pending"
+      }
     }
   ]
 }
