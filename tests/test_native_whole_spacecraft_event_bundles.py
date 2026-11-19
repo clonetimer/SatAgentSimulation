@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from importlib.metadata import version
 from pathlib import Path
 from typing import Any
@@ -164,6 +165,13 @@ def _run_case(
         raise AssertionError(f"whole-spacecraft Run Bundle validation did not PASS: {details.get('reason_code')}")
     integrity = verify_run_bundle(prepared.bundle_root)
     assert integrity["ok"] is True, integrity
+    archived_bundle = Path("reports/native_whole_spacecraft_events/run_bundles") / run_id
+    if archived_bundle.exists():
+        shutil.rmtree(archived_bundle)
+    archived_bundle.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(prepared.bundle_root, archived_bundle)
+    archived_integrity = verify_run_bundle(archived_bundle)
+    assert archived_integrity["ok"] is True, archived_integrity
     assert executed.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
     assert executed.summary["external_or_proxy_module_count"] == (5 if group == "propulsion" else 4)
     assert executed.summary["resource_feedback_closure_status"] == "PASS"
@@ -175,19 +183,19 @@ def _run_case(
         assert evidence.delivery_result.value == "PASS"
         assert evidence.effect_result.value == "PASS"
         assert "RUNTIME_EFFECT_VERIFIED" in evidence.reason_codes
-    return executed, integrity
+    return executed, integrity, archived_bundle
 
 
 @pytest.fixture(scope="module")
 def nominal_runs(tmp_path_factory):
     root = tmp_path_factory.mktemp("p9o3_whole_nominal")
-    adcs, adcs_integrity = _run_case(root, "adcs", "p9o3_whole_adcs_nominal")
-    propulsion, propulsion_integrity = _run_case(root, "propulsion", "p9o3_whole_propulsion_nominal")
+    adcs, adcs_integrity, adcs_bundle = _run_case(root, "adcs", "p9o3_whole_adcs_nominal")
+    propulsion, propulsion_integrity, propulsion_bundle = _run_case(root, "propulsion", "p9o3_whole_propulsion_nominal")
     assert propulsion.summary["propulsion_burn_observed"] is True
     assert propulsion.summary["propellant_used_kg"] > 0.0
     return {
-        "adcs": (adcs, adcs_integrity),
-        "propulsion": (propulsion, propulsion_integrity),
+        "adcs": (adcs, adcs_integrity, adcs_bundle),
+        "propulsion": (propulsion, propulsion_integrity, propulsion_bundle),
     }
 
 
@@ -226,8 +234,8 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_sealed_run_bundles(
     effect: str,
     parameters: dict[str, Any],
 ) -> None:
-    nominal, nominal_integrity = nominal_runs[group]
-    injected, injected_integrity = _run_case(
+    nominal, nominal_integrity, nominal_bundle = nominal_runs[group]
+    injected, injected_integrity, injected_bundle = _run_case(
         tmp_path,
         group,
         f"p9o3_whole_{effect}_injected",
@@ -328,6 +336,8 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_sealed_run_bundles(
         "effect_id": effect,
         "nominal_run_id": nominal.run_record.run_id,
         "injected_run_id": injected.run_record.run_id,
+        "nominal_bundle_archive": str(nominal_bundle),
+        "injected_bundle_archive": str(injected_bundle),
         "nominal": {
             "status": nominal.run_record.status.value,
             "sealed": nominal.run_record.sealed,
