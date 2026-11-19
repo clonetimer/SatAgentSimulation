@@ -2,7 +2,7 @@
 
 Date: 2026-11-19
 
-Status: implementation candidate; same-head official Basilisk 2.11.0 acceptance pending.
+Status: COMPLETE — merged in PR #194 as `d40761eb7c1f478301fccd6b510e0136c2e28fd6`; focused and full native Basilisk 2.11.0 acceptance passed.
 
 ## What changed
 
@@ -29,8 +29,15 @@ The old `HeaterPowerFeedback` reconstructed electrical draw from nominal `params
 5. Keep the reduced legacy thermal fallback bridge in this slice; it remains explicitly proxy-coupled.
 6. The configured heater rating remains an engineering assumption, not calibrated hardware evidence.
 
-## Acceptance still pending
+## Acceptance evidence — PASS
 
-- Official Basilisk 2.11.0 per-heater on/off and non-unity power-scale tests.
-- Paired battery A/B with the expected summed electrical draw after the actual task scheduling boundary.
-- Whole-spacecraft thermal, PDU, battery, Run Bundle, and full native CI regressions on the exact branch head.
+- Official Basilisk 2.11.0 per-heater on/off and non-unity power-scale tests: PASS.
+- Paired battery A/B with the expected summed electrical draw after the actual task scheduling boundary: PASS.
+- Focused P10-A: 62 passed; full native whole-spacecraft workflow, static checks and governance CI passed on the accepted head.
+
+
+## Merge
+
+- PR #194 merged to `main` as `d40761eb7c1f478301fccd6b510e0136c2e28fd6`.
+- Evidence artifact: `p10a-native-rw-comm-heater-eps-evidence` (GitHub Actions artifact, run 44561323513).
+- Engineering boundary remains: rated heater watts and power scaling are model parameters, not hardware calibration.
