@@ -1,16 +1,23 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
-from sat_sim.p9m4i_source_intake import (
-    MAX_SOURCE_BYTES,
-    fetch_nasa_star_tracker_source,
-    jpeg_dimensions,
+_SOURCE_SCRIPT = (
+    Path(__file__).resolve().parents[2]
+    / "scripts" / "cad" / "fetch_p9m4i_source_image.py"
 )
+_SPEC = importlib.util.spec_from_file_location("p9m4i_source_intake_test_module", _SOURCE_SCRIPT)
+assert _SPEC is not None and _SPEC.loader is not None
+_SOURCE_MODULE = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(_SOURCE_MODULE)
+MAX_SOURCE_BYTES = _SOURCE_MODULE.MAX_SOURCE_BYTES
+fetch_nasa_star_tracker_source = _SOURCE_MODULE.fetch_nasa_star_tracker_source
+jpeg_dimensions = _SOURCE_MODULE.jpeg_dimensions
 
 
 def _minimal_jpeg(width: int = 16, height: int = 12) -> bytes:
