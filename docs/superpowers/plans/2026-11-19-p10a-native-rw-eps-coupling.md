@@ -1,7 +1,7 @@
 # P10-A1: Replace the ADCS power proxy with Basilisk ReactionWheelPower
 
 Date: 2026-11-19
-Status: implementation candidate; same-head Basilisk acceptance pending
+Status: COMPLETE — merged to main in P10-A1 (2026-11-19); official Basilisk 2.11.0 same-head acceptance passed.
 
 ## Objective
 
