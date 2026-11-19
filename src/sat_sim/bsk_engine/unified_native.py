@@ -999,7 +999,6 @@ class UnifiedNativeRuntime:
             adcs_power_base_w = 12.0
             adcs_drive_efficiency = 0.75
             adcs_max_power_w = 120.0
-            adcs_mechanical_power_cap_per_wheel_w = -1.0
         else:
             adcs_power_base_w = float(values.get("adcs_power_w", 12.0))
             adcs_drive_efficiency = float(values.get("adcs_drive_efficiency", 0.75))
@@ -1014,13 +1013,10 @@ class UnifiedNativeRuntime:
                 or adcs_max_power_w <= 0.0
             ):
                 raise ValueError("NATIVE_ADCS_POWER_PROFILE_INVALID")
-            # Basilisk ReactionWheelPower consumes the actual RW state message.
-            # Its P_max field is a per-wheel mechanical-power ceiling; distribute
-            # the configured total electrical cap across wheels after reserving
-            # the fixed base draw and applying the declared electromechanical eta.
-            adcs_mechanical_power_cap_per_wheel_w = (
-                (adcs_max_power_w - adcs_power_base_w) * adcs_drive_efficiency / len(rw_axes)
-            )
+            # adcs_max_power_w is a fail-closed observation envelope below,
+            # not a physical RW P_max actuator limit. Leave Basilisk P_max at
+            # its native disabled default so this power-accounting change does
+            # not silently alter reaction-wheel dynamics.
         rw_actual_masses_kg: list[float] = []
         for index, axis in enumerate(rw_axes):
             if rw_friction_mode == "per_wheel":
@@ -1056,7 +1052,6 @@ class UnifiedNativeRuntime:
             official_rw_device = rw_factory.create(
                 "Honeywell_HR16", list(axis), maxMomentum=float(momentum_value),
                 Omega=omega_factory_rpm, u_max=rw_hardware_u_max_by_wheel[index],
-                P_max=adcs_mechanical_power_cap_per_wheel_w,
                 label=f"RW{index + 1}",
                 rWB_B=list(rw_positions[index]),
                 **rw_friction_kwargs,
@@ -2475,8 +2470,8 @@ class UnifiedNativeRuntime:
                     "base_power_w_per_wheel": adcs_power_base_w / len(rw_axes),
                     "elec_to_mech_efficiency": adcs_drive_efficiency,
                     "mech_to_elec_efficiency": -1.0,
-                    "max_power_w_total": adcs_max_power_w,
-                    "mechanical_power_cap_w_per_wheel": adcs_mechanical_power_cap_per_wheel_w,
+                    "max_power_monitoring_w_total": adcs_max_power_w,
+                    "power_limit_semantics": "monitoring_only_fail_closed_no_actuator_clamp",
                     "pdu_status_message": "project_eps_pdu.adcsStatusOutMsg",
                     "limitations": [
                         "mechanical-work power model; not a winding resistance or bus-voltage circuit model",
