@@ -160,3 +160,13 @@
 - 六条用例都走过真实 Chromium UI、TestClient API 代理、异步 Basilisk 执行、sealed Run Bundle 下载和 Run Center 历史重开。故障/退化用例还验证 TaskSpec 时间窗与 magnitude、`validation_outcome.injection_evidence`、活动期直接遥测、曲线 manifest 和 FMEA provenance。
 - EPS fault browser 断言直接检查 PDU 通道关闭、载荷负载为零且 shed_reason 包含 `payload_channel_trip`；EPS degradation 检查电池有效容量与太阳阵输出相对 nominal 降低；Comm/Data fault/degradation 检查 SimpleTransmitter 存储节点实际码率低于 nominal 参照。
 - 首轮 workflow 已成功，但 browser 测试结果仅在 Actions 日志中；为满足 O2-E 可移交证据要求，下一轮将 JUnit XML 纳入 `native-component-physical-evidence` artifact，并对 6+1 目标用例数量与 skipped/failure 状态做归档前断言。
+
+
+## P9-O2 最终交付复核（2026-11-19）
+
+- PR #187 已合并：`7207244a660db732ea321a0c9c64b28df0912c08`。
+- 四组 EPS/Comm-Data paired native sealed Run Bundle A/B：4/4 PASS；formal runtime effect evidence：17 passed、1 deselected；O2 guided catalog：2 passed。
+- 六条真实 Chromium 用户旅程已在官方 workflow 执行。最终可移交的同一原生证据包 Artifact `14484456607`（39,263 bytes，未过期）由 O3-A workflow `44424648554` 生成；其中 JUnit 13 tests、0 failures、0 skipped，包含 O2 六条旅程及 O3-A 目录旅程。
+- O2 事件入口现已合入主干，EPS/Comm-Data 各自严格按 capability + event-kind allowlist 暴露。旧宽泛 Comm/Data ID fail closed。
+- 开发边界：EPS 为 aggregate scenario；Comm/Data 仅为 SimpleTransmitter nodeBaudRate 数据率影响，不宣称 RF 功率、链路裕度、地面站过站、BER/PER 或存储故障闭环。
+- 下一阶段应以 O3 整星统一运行图事件证据为主线，不再回到 O2 重复拆分。
