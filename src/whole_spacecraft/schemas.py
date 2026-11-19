@@ -316,6 +316,8 @@ class WholeSpacecraftSummary:
     mission_dropped_bits: float = 0.0
     max_downlink_delivered_bps: float = 0.0
     max_downlink_dropped_bps: float = 0.0
+    max_adcs_control_power_w: float = 0.0
+    adcs_power_monitoring_limit_w: float = 120.0
     final_attitude_error_deg: float = 0.0
     runtime_unsupported_count: int = 0
     runtime_fault_event_status: str = "not_applicable"

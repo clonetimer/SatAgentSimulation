@@ -17,7 +17,6 @@ from sat_sim.adapter_base import SimulationResult
 from sat_sim.task_validator import ValidationIssue
 from sat_sim.fault_environment import BSKRLStyleFaultAdapter
 from integration.resource_feedback import (
-    AdcsControlPowerBridge,
     DataActivityPowerBridge,
     DownlinkActivityPowerBridge,
     InputReadStatus,
@@ -164,6 +163,74 @@ def _bridge_health_payload(bridge: Any) -> dict[str, Any]:
         "directional_response_pass": not directional_violations,
         "directional_violation_count": len(directional_violations),
         "directional_violations": directional_violations[:10],
+    }
+
+
+def _native_adcs_power_health(rows: list[dict[str, Any]], cfg: "UnifiedRuntimeConfig") -> dict[str, Any]:
+    """Audit official ReactionWheelPower outputs against actual RW state telemetry."""
+    wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
+    base_power_w = float(cfg.values.get("adcs_power_w", 12.0))
+    max_power_w = float(cfg.values.get("adcs_max_power_w", 120.0))
+    tolerance_w = 1.0e-6
+    powers: list[float] = []
+    activities: list[float] = []
+    enabled_values: list[bool] = []
+    errors: list[str] = []
+    violations: list[dict[str, Any]] = []
+    for row in rows:
+        try:
+            power = float(row["eps.loads.adcs_power_w"])
+            activity = sum(
+                abs(float(row[f"adcs.rw.actual_mechanical_power_w_{index}"]))
+                for index in range(wheel_count)
+            )
+            enabled = bool(int(row.get("eps.pdu.adcs_enabled", 0)))
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            errors.append(f"ADCS_NATIVE_POWER_TELEMETRY_INVALID:{type(exc).__name__}:{exc}")
+            continue
+        if not math.isfinite(power) or not math.isfinite(activity):
+            errors.append("ADCS_NATIVE_POWER_TELEMETRY_NON_FINITE")
+            continue
+        powers.append(power)
+        activities.append(activity)
+        enabled_values.append(enabled)
+        time_s = float(row.get("time_s", 0.0))
+        if not enabled and power > tolerance_w:
+            violations.append({"time_s": time_s, "reason": "disabled_with_positive_power", "power_w": power})
+        elif enabled and power < base_power_w - tolerance_w:
+            violations.append({"time_s": time_s, "reason": "enabled_below_base_power", "power_w": power, "base_power_w": base_power_w})
+        elif enabled and power > max_power_w + tolerance_w:
+            violations.append({"time_s": time_s, "reason": "power_above_configured_cap", "power_w": power, "max_power_w": max_power_w})
+        elif enabled and activity > tolerance_w and power <= base_power_w + tolerance_w:
+            violations.append({"time_s": time_s, "reason": "mechanical_work_without_dynamic_power", "activity_w": activity, "power_w": power})
+    power_span = max(powers) - min(powers) if powers else 0.0
+    activity_span = max(activities) - min(activities) if activities else 0.0
+    positive_activity_count = sum(value > tolerance_w for value in activities)
+    positive_power_count = sum(value > tolerance_w for value in powers)
+    enabled_transition = len(set(enabled_values)) > 1
+    stimulus_observed = bool(positive_activity_count or power_span > tolerance_w or activity_span > tolerance_w or enabled_transition)
+    return {
+        "status": "FAIL" if errors or violations else ("PASS" if powers else "NOT_READY"),
+        "sample_count": len(rows),
+        "valid_sample_count": len(powers),
+        "not_ready_sample_count": len(rows) - len(powers),
+        "error_count": len(errors),
+        "errors": errors[:10],
+        "power_min_w": min(powers) if powers else 0.0,
+        "power_max_w": max(powers) if powers else 0.0,
+        "power_span_w": power_span,
+        "activity_min": min(activities) if activities else 0.0,
+        "activity_max": max(activities) if activities else 0.0,
+        "activity_span": activity_span,
+        "positive_activity_sample_count": positive_activity_count,
+        "positive_power_sample_count": positive_power_count,
+        "enabled_transition_observed": enabled_transition,
+        "stimulus_observed": stimulus_observed,
+        "directional_response_pass": not violations,
+        "directional_violation_count": len(violations),
+        "directional_violations": violations[:10],
+        "source": "Basilisk.simulation.ReactionWheelPower",
+        "input_source": "reactionWheelStateEffector.rwOutMsgs",
     }
 
 
@@ -382,6 +449,7 @@ def _build_unified_rows(
         for axis in ("yaw", "pitch", "roll")
     ]
     mag_dcm_sb = np.asarray(RigidBodyKinematics.euler3212C(mag_mount_321), dtype=float).reshape(3, 3)
+    rw_power_wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
     for index in range(start_index, len(times)):
         nanos = times[index]
         state = recorder_map["state"]
@@ -532,6 +600,13 @@ def _build_unified_rows(
                 f"adcs.rw.effective_torque_ratio_{wheel_index}": float(recorder_map["rw_effective_torque_limit"].motorTorque[index][wheel_index]) / nominal_torque,
                 f"adcs.rw.effective_max_speed_rad_s_{wheel_index}": float(recorder_map["rw_effective_speed_limit"].wheelSpeeds[index][wheel_index]),
             })
+        for wheel_index in range(rw_power_wheel_count):
+            wheel_state = recorder_map[f"rw_state_{wheel_index}"]
+            actual_torque = float(wheel_state.u_current[index])
+            actual_speed = float(wheel_state.Omega[index])
+            row[f"adcs.rw.actual_applied_torque_nm_{wheel_index}"] = actual_torque
+            row[f"adcs.rw.actual_speed_rad_s_{wheel_index}"] = actual_speed
+            row[f"adcs.rw.actual_mechanical_power_w_{wheel_index}"] = actual_torque * actual_speed
         row["label.fault_active"] = bool(recorder_map["event_fault"].deviceStatus[index])
         row["label.degradation_active"] = bool(recorder_map["event_degradation"].deviceStatus[index])
         row["label.constraint_active"] = bool(recorder_map["event_constraint"].deviceStatus[index])
@@ -563,7 +638,10 @@ def _build_unified_rows(
                 "eps.battery_energy_wh": float(battery.storageLevel[index]) / 3600.0,
                 "eps.battery_soc": float(battery.storageLevel[index]) / capacity,
                 "eps.net_power_w": float(battery.currentNetPower[index]),
-                "eps.loads.adcs_power_w": max(0.0, -float(recorder_map["adcs_power"].netPower[index])),
+                "eps.loads.adcs_power_w": sum(
+                    max(0.0, -float(recorder_map[f"adcs_power_{wheel_index}"].netPower[index]))
+                    for wheel_index in range(rw_power_wheel_count)
+                ),
                 "eps.loads.payload_power_w": max(0.0, -float(recorder_map["payload_power"].netPower[index])),
                 "eps.loads.comm_power_w": max(0.0, -float(recorder_map["downlink_power"].netPower[index])),
                 "eps.loads.heater_power_w": max(0.0, -float(recorder_map["heater_power"].netPower[index])),
@@ -686,7 +764,7 @@ class UnifiedNativeRuntime:
         "mrp_feedback", "rw_motor_torque",
     )
     WHOLE_OFFICIAL_MODULES = (
-        "solar_panel", "bus_power", "adcs_power", "payload_power", "downlink_power",
+        "solar_panel", "bus_power", "reaction_wheel_power", "payload_power", "downlink_power",
         "battery", "payload_instrument", "transmitter", "storage", "payload_thermal",
     )
     PROJECT_MODULES = (
@@ -917,6 +995,28 @@ class UnifiedNativeRuntime:
                 raise ValueError("NATIVE_RW_PER_WHEEL_FRICTION_REQUIRES_NONZERO")
         # Preserve the original frictionless nominal hardware and identical
         # legacy group-wide friction when the new mode is not requested.
+        if cfg.adcs_only:
+            adcs_power_base_w = 12.0
+            adcs_drive_efficiency = 0.75
+            adcs_max_power_w = 120.0
+        else:
+            adcs_power_base_w = float(values.get("adcs_power_w", 12.0))
+            adcs_drive_efficiency = float(values.get("adcs_drive_efficiency", 0.75))
+            adcs_max_power_w = float(values.get("adcs_max_power_w", 120.0))
+            if (
+                not math.isfinite(adcs_power_base_w)
+                or not math.isfinite(adcs_drive_efficiency)
+                or not math.isfinite(adcs_max_power_w)
+                or adcs_power_base_w < 0.0
+                or not 0.0 < adcs_drive_efficiency <= 1.0
+                or adcs_max_power_w < adcs_power_base_w
+                or adcs_max_power_w <= 0.0
+            ):
+                raise ValueError("NATIVE_ADCS_POWER_PROFILE_INVALID")
+            # adcs_max_power_w is a fail-closed observation envelope below,
+            # not a physical RW P_max actuator limit. Leave Basilisk P_max at
+            # its native disabled default so this power-accounting change does
+            # not silently alter reaction-wheel dynamics.
         rw_actual_masses_kg: list[float] = []
         for index, axis in enumerate(rw_axes):
             if rw_friction_mode == "per_wheel":
@@ -1491,21 +1591,28 @@ class UnifiedNativeRuntime:
             connected("project_native_rf_downlink_gate.linkBudgetOutMsg", "native_downlink_handling")
             connected("native_downlink_handling.nodeDataOutMsg", "storage")
 
-            # P0-21: the EPS/thermal power source must observe the same
-            # *post-electrical-driver*, *post-fault* torque vector that reaches
-            # the official Basilisk reaction wheels. The upstream FSW raw
-            # request can exceed min(u_max_i, Imax*Kt) and is NOT applied.
-            # This remains an explicit |T*Omega|/efficiency engineering load
-            # bridge, not a winding loss, bus-voltage or motor current model.
-            adcs_power_bridge = AdcsControlPowerBridge(
-                "project_adcs_control_power_bridge",
-                motor_torque_msg=rw_fault.commandOutMsg,
-                wheel_speed_msg=rw.rwSpeedOutMsg,
-                base_power_w=float(values.get("adcs_power_w", 12.0)),
-                drive_efficiency=float(values.get("adcs_drive_efficiency", 0.75)),
-                max_power_w=float(values.get("adcs_max_power_w", 120.0)),
-                enable_status_msg=pdu.adcsStatusOutMsg,
-            )
+            # Use Basilisk's official ReactionWheelPower module per wheel.
+            # Each module reads the actual C++ RWConfigLogMsg (Omega/u_current)
+            # emitted by reactionWheelStateEffector after native actuator limits.
+            # Priority 48 runs after PDU status (49) and before recorder sampling.
+            from Basilisk.simulation import ReactionWheelPower
+            adcs_power_nodes = []
+            for wheel_index, rw_state_msg in enumerate(rw.rwOutMsgs):
+                power_node = ReactionWheelPower.ReactionWheelPower()
+                power_node.ModelTag = f"reaction_wheel_power_{wheel_index}"
+                power_node.basePowerNeed = adcs_power_base_w / len(rw_axes)
+                power_node.elecToMechEfficiency = adcs_drive_efficiency
+                # -1 disables regenerative braking; preserve the previous
+                # bridge's no-energy-recovery assumption.
+                power_node.mechToElecEfficiency = -1.0
+                power_node.rwStateInMsg.subscribeTo(rw_state_msg)
+                power_node.nodeStatusInMsg.subscribeTo(pdu.adcsStatusOutMsg)
+                add(power_node, power_node.ModelTag, "basilisk_official_native", 48)
+                battery.addPowerNodeToModel(power_node.nodePowerOutMsg)
+                connected(f"reaction_wheels.rwOutMsgs[{wheel_index}]", power_node.ModelTag)
+                connected("project_eps_pdu.adcsStatusOutMsg", power_node.ModelTag)
+                connected(f"{power_node.ModelTag}.nodePowerOutMsg", "battery")
+                adcs_power_nodes.append(power_node)
             payload_power_bridge = DataActivityPowerBridge(
                 "project_payload_activity_power_bridge",
                 nominal_rate_bps=max(1.0, float(values.get("payload_data_rate_bps", 2_500_000.0))),
@@ -1525,14 +1632,12 @@ class UnifiedNativeRuntime:
                 active_power_w=float(values.get("heater_power_w", 15.0)),
                 enable_status_msg=pdu.heaterStatusOutMsg,
             )
-            for bridge in (adcs_power_bridge, payload_power_bridge, comm_power_bridge, heater_power_bridge):
+            for bridge in (payload_power_bridge, comm_power_bridge, heater_power_bridge):
                 add(bridge, bridge.ModelTag, "engineering_proxy", 54)
                 battery.addPowerNodeToModel(bridge.powerOutMsg)
                 connected(f"{bridge.ModelTag}.powerOutMsg", "battery")
-            connected("project_rw_command_fault_manager.commandOutMsg", "project_adcs_control_power_bridge")
-            connected("reaction_wheels.rwSpeedOutMsg", "project_adcs_control_power_bridge")
             whole_modules.update({
-                "adcs_power_bridge": adcs_power_bridge,
+                "adcs_power_nodes": adcs_power_nodes,
                 "payload_power_bridge": payload_power_bridge,
                 "comm_power_bridge": comm_power_bridge,
                 "heater_power_bridge": heater_power_bridge,
@@ -1754,11 +1859,12 @@ class UnifiedNativeRuntime:
                 (sink.nodePowerOutMsg, 8./18., "electronics", "bus_electronics"),
                 (sink.nodePowerOutMsg, 3./18., "adcs", "bus_adcs"),
                 (sink.nodePowerOutMsg, 5./18., "solar_panel", "bus_solar_panel"),
-                (adcs_power_bridge.powerOutMsg, 0.90, "adcs", "adcs_control"),
                 (payload_power_bridge.powerOutMsg, 0.95, "payload", "payload_activity"),
                 (comm_power_bridge.powerOutMsg, 0.90, "comm", "comm_downlink"),
                 (heater_power_bridge.powerOutMsg, 1.00, "battery", "pdu_heater"),
             ]
+            for wheel_index, power_node in enumerate(whole_modules["adcs_power_nodes"]):
+                thermal_inputs.append((power_node.nodePowerOutMsg, 0.90, "adcs", f"adcs_rw_{wheel_index}"))
             if "propulsion_power_bridge" in whole_modules:
                 thermal_inputs.append((whole_modules["propulsion_power_bridge"].powerOutMsg, 0.85, "propulsion", "propulsion_activity"))
             thermal_graph = build_thermal_network_assembly_graph(
@@ -1841,12 +1947,13 @@ class UnifiedNativeRuntime:
             "event_degradation": event_status.degradationOutMsg,
             "event_constraint": event_status.constraintOutMsg,
         }
+        for wheel_index, rw_state_msg in enumerate(rw.rwOutMsgs):
+            messages[f"rw_state_{wheel_index}"] = rw_state_msg
         if not cfg.adcs_only:
             messages.update({
                 "battery": whole_modules["battery"].batPowerOutMsg,
                 "panel": whole_modules["panel"].nodePowerOutMsg,
                 "bus_power": whole_modules["bus_power"].nodePowerOutMsg,
-                "adcs_power": whole_modules["adcs_power_bridge"].powerOutMsg,
                 "payload_power": whole_modules["payload_power_bridge"].powerOutMsg,
                 "downlink_power": whole_modules["comm_power_bridge"].powerOutMsg,
                 "heater_power": whole_modules["heater_power_bridge"].powerOutMsg,
@@ -1866,6 +1973,8 @@ class UnifiedNativeRuntime:
                 "pdu_comm_status": whole_modules["pdu"].commStatusOutMsg,
                 "pdu_heater_status": whole_modules["pdu"].heaterStatusOutMsg,
             })
+            for wheel_index, power_node in enumerate(whole_modules["adcs_power_nodes"]):
+                messages[f"adcs_power_{wheel_index}"] = power_node.nodePowerOutMsg
             for thermal_node_name, thermal_node in whole_modules["thermal_graph"].nodes.items():
                 messages[f"thermal_temp_{thermal_node_name}"] = thermal_node.tempOutMsg
                 messages[f"thermal_safe_{thermal_node_name}"] = thermal_node.thermalStatusOutMsg
@@ -2227,14 +2336,14 @@ class UnifiedNativeRuntime:
         causal_evidence: dict[str, Any] = {"status": "PASS", "requirements": []}
         if not cfg.adcs_only:
             bridge_objects = {
-                "adcs": whole_modules["adcs_power_bridge"],
                 "payload": whole_modules["payload_power_bridge"],
                 "comm": whole_modules["comm_power_bridge"],
                 "heater": whole_modules["heater_power_bridge"],
             }
             if "propulsion_power_bridge" in whole_modules:
                 bridge_objects["propulsion"] = whole_modules["propulsion_power_bridge"]
-            bridge_health = {name: _bridge_health_payload(bridge) for name, bridge in bridge_objects.items()}
+            bridge_health = {"adcs": _native_adcs_power_health(rows, cfg)}
+            bridge_health.update({name: _bridge_health_payload(bridge) for name, bridge in bridge_objects.items()})
             for name, health in bridge_health.items():
                 runtime_read_errors.extend(f"{name}: {item}" for item in health.get("errors", []))
             runtime_read_errors.extend(f"rf_gate: {item}" for item in getattr(whole_modules["rf_gate"], "read_errors", ()))
@@ -2351,6 +2460,25 @@ class UnifiedNativeRuntime:
         if not cfg.adcs_only:
             resource_status = "FAIL" if any(health.get("status") == "FAIL" for health in bridge_health.values()) else "PASS"
             summary.update({
+                "adcs_power_model": {
+                    "implementation": "Basilisk.simulation.ReactionWheelPower",
+                    "input_message": "reactionWheelStateEffector.rwOutMsgs[i]",
+                    "input_fields": {"Omega": "rad/s", "u_current": "N*m (applied motor torque)"},
+                    "output_message": "PowerNodeUsageMsg",
+                    "power_equation": "P_base_i + abs(Omega_i*u_current_i)/elecToMechEfficiency",
+                    "base_power_w_total": adcs_power_base_w,
+                    "base_power_w_per_wheel": adcs_power_base_w / len(rw_axes),
+                    "elec_to_mech_efficiency": adcs_drive_efficiency,
+                    "mech_to_elec_efficiency": -1.0,
+                    "max_power_monitoring_w_total": adcs_max_power_w,
+                    "power_limit_semantics": "monitoring_only_fail_closed_no_actuator_clamp",
+                    "pdu_status_message": "project_eps_pdu.adcsStatusOutMsg",
+                    "limitations": [
+                        "mechanical-work power model; not a winding resistance or bus-voltage circuit model",
+                        "does not calculate copper loss, inverter switching loss or motor current dynamics",
+                        "base power and conversion efficiency remain explicit engineering assumptions",
+                    ],
+                },
                 "thermal_environment": whole_modules["thermal"].radiative_environment.evidence(),
                 "thermal_conduction_paths": [
                     {"from_node": path.from_node, "to_node": path.to_node,

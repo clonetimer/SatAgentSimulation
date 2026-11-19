@@ -68,6 +68,22 @@ def _finite_rows_ok(rows: list[WholeSpacecraftTraceRow]) -> bool:
     return bool(rows) and all(_is_finite_scalar(getattr(row, field)) for row in rows for field in critical_fields)
 
 
+def _validate_native_adcs_power_envelope(power_samples: list[float], limit_w: float) -> float:
+    """Fail closed if native per-wheel ADCS power exceeds the legacy monitor envelope."""
+    if not _is_finite_scalar(limit_w) or float(limit_w) <= 0.0:
+        raise ValueError("COMPOSITE_ADCS_POWER_LIMIT_INVALID")
+    values = [float(value) for value in power_samples]
+    if any(not math.isfinite(value) or value < -1e-9 for value in values):
+        raise ValueError("COMPOSITE_ADCS_POWER_SAMPLE_INVALID")
+    peak = max(values, default=0.0)
+    if peak > float(limit_w) + 1e-6:
+        raise RuntimeError(
+            "COMPOSITE_ADCS_POWER_ENVELOPE_EXCEEDED:"
+            f"observed={peak:.9g}W:limit={float(limit_w):.9g}W"
+        )
+    return peak
+
+
 def _finite_adcs_recorders_ok(recorders: dict[str, Any]) -> bool:
     for rec_name, fields in (
         ("adcs_attitude", ("sigma_BR", "omega_BR_B")),
@@ -560,7 +576,9 @@ def _execute_whole_spacecraft_graph(
                 return float(getattr(node, "temp_k", default_c + 273.15)) - 273.15
         return float(default_c)
 
-    adcs_power_trace = list(getattr(graph.component_registry.get("adcs_power_bridge"), "trace", ()))
+    adcs_power_recorder_names = sorted(
+        name for name in recorders if name.startswith("adcs_power_")
+    )
     propulsion_power_trace = list(getattr(graph.component_registry.get("propulsion_power_bridge"), "trace", ()))
     fuel_values = _recorder_values(fuel_tank_rec, "fuelMass")
     initial_propellant_kg = fuel_values[0] if fuel_values else 0.0
@@ -594,7 +612,6 @@ def _execute_whole_spacecraft_graph(
         net_power_w = _rec_value(battery_rec, "currentNetPower", i, nominal_net_power)
         sc_position = _rec_vector(recorders.get("spacecraft_state"), "r_BN_N", i)
         sc_velocity = _rec_vector(recorders.get("spacecraft_state"), "v_BN_N", i)
-        adcs_sample = _trace_sample_at(adcs_power_trace, time_s)
         propulsion_sample = _trace_sample_at(propulsion_power_trace, time_s)
         heater_names = [name for name in recorders if name.startswith("heater_") and name != "heater_eps_feedback"]
         heater_active_count = sum(1.0 for name in heater_names if _rec_value(recorders.get(name), "deviceStatus", i, 0.0) > 0.5)
@@ -638,7 +655,10 @@ def _execute_whole_spacecraft_graph(
                 fuel_mass_flow_kg_s=fuel_mass_flow_kg_s,
                 tank_pressure_pa=tank_pressure_pa,
                 tank_pressure_available=tank_pressure_available,
-                adcs_control_power_w=max(0.0, -_rec_value(recorders.get("adcs_power"), "netPower", i, float(getattr(adcs_sample, "electrical_power_w", 0.0)))),
+                adcs_control_power_w=sum(
+                    max(0.0, -_rec_value(recorders.get(name), "netPower", i, 0.0))
+                    for name in adcs_power_recorder_names
+                ),
                 propulsion_power_w=max(0.0, -_rec_value(recorders.get("propulsion_power"), "netPower", i, float(getattr(propulsion_sample, "electrical_power_w", 0.0)))),
                 propulsion_activity=float(getattr(propulsion_sample, "activity", 0.0)),
                 propulsion_cumulative_energy_j=_trace_cumulative_energy_at(propulsion_power_trace, time_s),
@@ -680,6 +700,17 @@ def _execute_whole_spacecraft_graph(
                 )
             )
         rows = gated_rows
+
+    # Native ReactionWheelPower outputs are not clipped. Preserve the
+    # former 120 W engineering envelope as a run-level acceptance monitor.
+    # This catches excursions without altering physical wheel or battery state.
+    adcs_power_monitoring_limit_w = float(
+        graph.component_registry.get("adcs_power_monitoring_limit_w", 120.0)
+    )
+    max_native_adcs_power_w = _validate_native_adcs_power_envelope(
+        [row.adcs_control_power_w for row in rows],
+        adcs_power_monitoring_limit_w,
+    )
 
     conservation_battery_rec = recorders.get("conservation_battery")
     if conservation_battery_rec is None:
@@ -999,6 +1030,8 @@ def _execute_whole_spacecraft_graph(
         mission_dropped_bits=dropped_bits,
         max_downlink_delivered_bps=max((r.downlink_delivered_bps for r in rows), default=0.0),
         max_downlink_dropped_bps=max((r.downlink_dropped_bps for r in rows), default=0.0),
+        max_adcs_control_power_w=max_native_adcs_power_w,
+        adcs_power_monitoring_limit_w=adcs_power_monitoring_limit_w,
         final_attitude_error_deg=rows[-1].attitude_error_deg if rows else 0.0,
         runtime_unsupported_count=runtime_unsupported_count,
         runtime_fault_event_status=(runtime_fault_audit.get("runtime_event_status") if runtime_fault_audit is not None else "not_applicable"),

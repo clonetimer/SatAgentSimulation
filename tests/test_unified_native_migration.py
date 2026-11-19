@@ -126,12 +126,13 @@ def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> N
     adapter = get_adapter_for_capability(WHOLE_ID)
     result = adapter.run(_short_spec(WHOLE_ID))
     assert result.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
-    # Three static official power sinks were intentionally replaced by
-    # message-driven project-native activity bridges in v0.5.6.3.
-    assert result.summary["official_module_count"] >= 18
+    # ADCS power is now computed by official ReactionWheelPower nodes;
+    # payload, communication and auxiliary heater loads remain explicit proxies.
+    assert result.summary["official_module_count"] >= 21
     assert result.summary["project_native_module_count"] >= 16
-    assert result.summary["engineering_proxy_module_count"] == 4
-    assert result.summary["external_or_proxy_module_count"] == 4
+    assert result.summary["engineering_proxy_module_count"] == 3
+    assert result.summary["external_or_proxy_module_count"] == 3
+    assert result.summary["adcs_power_model"]["implementation"] == "Basilisk.simulation.ReactionWheelPower"
     assert result.summary["connected_message_count"] >= 36
     assert result.summary["energy_bounds_pass"] is True
     assert result.summary["data_bounds_pass"] is True
@@ -156,11 +157,13 @@ def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> N
     assert result.summary["resource_feedback_closure_status"] == "PASS"
     assert result.summary["heater_pdu_power_feedback_observed"] is False
     assert set(result.metadata["model_source_boundary"]["external_or_proxy"]) == {
-        "project_adcs_control_power_bridge",
         "project_payload_activity_power_bridge",
         "project_comm_activity_power_bridge",
         "project_heater_status_power_bridge",
     }
+    assert {
+        "reaction_wheel_power_0", "reaction_wheel_power_1", "reaction_wheel_power_2"
+    }.issubset(set(result.metadata["model_source_boundary"]["official_basilisk_native"]))
 
 
 def test_low_soc_gate_changes_power_data_and_thermal_runtime_inputs() -> None:

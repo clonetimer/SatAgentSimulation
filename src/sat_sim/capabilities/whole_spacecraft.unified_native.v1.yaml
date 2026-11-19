@@ -839,6 +839,22 @@ parameters:
     required: false
     default: 12.0
     min: 0.0
+    description: Total fixed base electrical draw for the reaction-wheel cluster, distributed equally across official Basilisk ReactionWheelPower nodes.
+  adcs_drive_efficiency:
+    type: number
+    unit: ratio
+    required: false
+    default: 0.75
+    min: 0.01
+    max: 1.0
+    description: Electrical-to-mechanical conversion efficiency used by the official Basilisk ReactionWheelPower mechanical-work model; not a calibrated motor winding model.
+  adcs_max_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 120.0
+    min: 0.1
+    description: Fail-closed monitoring envelope for total native ADCS power draw; exceeding it fails resource feedback acceptance and does not clamp wheel torque or dynamics.
   payload_power_w:
     type: number
     unit: W

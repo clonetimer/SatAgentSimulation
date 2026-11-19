@@ -26,7 +26,6 @@ from integration.whole_spacecraft_links import (  # noqa: E402
     wire_payload_to_comm_storage,
 )
 from integration.resource_feedback import (  # noqa: E402
-    AdcsControlPowerBridge,
     DataActivityPowerBridge,
     DownlinkActivityPowerBridge,
     ThrusterActivityPowerBridge,
@@ -650,24 +649,44 @@ def build_whole_spacecraft_graph(
         evidence=("payload electrical power scales with actual DataNodeUsage baudRate",),
     )
 
-    adcs_power_bridge = AdcsControlPowerBridge(
-        "adcsControlPowerBridge",
-        motor_torque_msg=adcs_graph.rw_closed_loop.rw_motor_torque.rwMotorTorqueOutMsg,
-        wheel_speed_msg=adcs_graph.rw_closed_loop.rw_state_effector.rwSpeedOutMsg,
-        base_power_w=10.0,
-        drive_efficiency=0.75,
-        max_power_w=120.0,
-        enable_status_msg=adcs_status_msg,
-    )
-    sim.AddModelToTask(sim_task_name, adcs_power_bridge)
-    battery.addPowerNodeToModel(adcs_power_bridge.powerOutMsg)
-    resource_feedback_bridges["adcs"] = adcs_power_bridge
-    power_inputs.append((adcs_power_bridge.powerOutMsg, 0.9, "adcs", "adcs.control_effort"))
+    # P10-A1B: use one official Basilisk ReactionWheelPower per physical
+    # reaction wheel. The native RW output contains the actual applied torque
+    # (u_current) and wheel speed (Omega); do not use the upstream FSW request.
+    from Basilisk.simulation import ReactionWheelPower
+    rw_state_effector = adcs_graph.rw_closed_loop.rw_state_effector
+    rw_state_messages = tuple(rw_state_effector.rwOutMsgs)
+    if not rw_state_messages:
+        raise RuntimeError("COMPOSITE_NATIVE_RW_POWER_REQUIRES_WHEEL_OUTPUT_MESSAGES")
+    adcs_base_power_w = 10.0
+    adcs_drive_efficiency = 0.75
+    # Preserve the legacy 120 W envelope as a fail-closed monitor. The
+    # official module is never clamped; a real exceedance rejects the run.
+    adcs_power_monitoring_limit_w = 120.0
+    adcs_power_nodes: list[Any] = []
+    for wheel_index, rw_state_msg in enumerate(rw_state_messages):
+        power_node = ReactionWheelPower.ReactionWheelPower()
+        power_node.ModelTag = f"reactionWheelPower{wheel_index}"
+        power_node.basePowerNeed = adcs_base_power_w / len(rw_state_messages)
+        power_node.elecToMechEfficiency = adcs_drive_efficiency
+        # Preserve the legacy no-regeneration assumption.
+        power_node.mechToElecEfficiency = -1.0
+        power_node.rwStateInMsg.subscribeTo(rw_state_msg)
+        if adcs_status_msg is not None:
+            power_node.nodeStatusInMsg.subscribeTo(adcs_status_msg)
+        sim.AddModelToTask(sim_task_name, power_node)
+        battery.addPowerNodeToModel(power_node.nodePowerOutMsg)
+        adcs_power_nodes.append(power_node)
+        power_inputs.append((
+            power_node.nodePowerOutMsg, 0.9, "adcs", f"adcs.reaction_wheel_{wheel_index}",
+        ))
     coupling_matrix["adcs_control_effort_to_eps_thermal"] = _coupling_record(
         name="adcs_control_effort_to_eps_thermal", source_subsystem="adcs", sink_subsystem="eps,thermal",
-        coupling_status="proxy_coupled_verified",
-        interface="RW motor torque + wheel speed -> electrical power -> battery + ADCS thermal node",
-        evidence=("sum(abs(motorTorque * wheelSpeed))/drive_efficiency",),
+        coupling_status="coupled",
+        interface="reactionWheelStateEffector.rwOutMsgs[i] -> official ReactionWheelPower -> battery + ADCS thermal node",
+        evidence=(
+            "per-wheel native RW output Omega and u_current feed official ReactionWheelPower",
+            "each official nodePowerOutMsg is connected to SimpleBattery and the ADCS thermal node",
+        ),
     )
 
     if native_downlink is not None:
@@ -952,9 +971,12 @@ def build_whole_spacecraft_graph(
         "adcs_rate": adcs_graph.rw_closed_loop.rate_log,
         "rw_speeds": adcs_graph.rw_closed_loop.rw_speed_log,
         "spacecraft_state": central_spacecraft.scStateOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s))),
-        "adcs_power": resource_feedback_bridges["adcs"].powerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s))),
+        "pdu_adcs_status": eps_graph.status_messages["adcs"].recorder(macros.sec2nano(float(cfg.recorder_step_s))) if eps_graph.status_messages.get("adcs") is not None else None,
         "pdu_heater_status": eps_graph.status_messages["heater"].recorder(macros.sec2nano(float(cfg.recorder_step_s))) if eps_graph.status_messages.get("heater") is not None else None,
     }
+    for wheel_index, (rw_state_msg, power_node) in enumerate(zip(rw_state_messages, adcs_power_nodes)):
+        recorders[f"rw_state_{wheel_index}"] = rw_state_msg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+        recorders[f"adcs_power_{wheel_index}"] = power_node.nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
     if resource_feedback_bridges.get("propulsion") is not None:
         recorders["propulsion_power"] = resource_feedback_bridges["propulsion"].powerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
     if orb_env_graph.eclipse_msg is not None:
@@ -1005,13 +1027,15 @@ def build_whole_spacecraft_graph(
         "battery", "storage", "instrument", "transmitter", "solar_power", "gated_downlink_link_budget",
         "conservation_battery", "conservation_storage", "conservation_instrument", "conservation_downlink",
         "downlink_node", "downlink", "ground_access", "rf_link_budget",
-        "spacecraft_antenna", "ground_antenna", "spacecraft_state", "adcs_power",
+        "spacecraft_antenna", "ground_antenna", "spacecraft_state", "pdu_adcs_status",
         "propulsion_power", "pdu_heater_status", "eclipse",
     ):
         rec = recorders.get(rec_name)
         if rec is not None:
             sim.AddModelToTask(recorder_task_name, rec)
     for rec_name, rec in recorders.items():
+        if (rec_name.startswith("rw_state_") or rec_name.startswith("adcs_power_")) and rec is not None:
+            sim.AddModelToTask(recorder_task_name, rec)
         if rec_name.startswith("heater_") and rec_name != "heater_eps_feedback" and rec is not None:
             sim.AddModelToTask(recorder_task_name, rec)
 
@@ -1031,7 +1055,8 @@ def build_whole_spacecraft_graph(
         "eps_pdu": eps_graph.pdu,
         "payload_power_bridge": resource_feedback_bridges.get("payload"),
         "comm_power_bridge": resource_feedback_bridges.get("comm"),
-        "adcs_power_bridge": resource_feedback_bridges.get("adcs"),
+        "adcs_power_nodes": tuple(adcs_power_nodes),
+        "adcs_power_monitoring_limit_w": adcs_power_monitoring_limit_w,
         "propulsion_power_bridge": resource_feedback_bridges.get("propulsion"),
         "rw_cluster": adcs_graph.rw_closed_loop.rw_state_effector,
         "reaction_wheel_bundle": adcs_graph.rw_closed_loop.rw_bundle,

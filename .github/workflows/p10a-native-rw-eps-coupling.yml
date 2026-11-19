@@ -1,0 +1,89 @@
+name: P10-A1 native RW to EPS power coupling
+
+on:
+  pull_request:
+    paths:
+      - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/whole_spacecraft/builder.py"
+      - "src/whole_spacecraft/runner.py"
+      - "src/integration/qoi_profiles/resource_closure.py"
+      - "src/sat_sim/capabilities/whole_spacecraft.composite_digital_twin.v1.yaml"
+      - "tests/test_native_rw_power_consistency.py"
+      - "tests/test_composite_native_adcs_power.py"
+      - "tests/test_resource_closure_agent_trust.py"
+      - "tests/test_unified_native_migration.py"
+      - "tests/test_unified_native_event_migration.py"
+      - "tests/test_native_whole_spacecraft_event_bundles.py"
+      - "tests/test_propulsion_whole_coupling.py"
+      - "tests/interactive/test_native_battery_reset_barrier.py"
+      - "tests/interactive/test_native_whole_first_tick_diagnostics.py"
+      - "docs/development-experience/p9-o3-whole-spacecraft-event-evidence.md"
+      - "docs/superpowers/plans/2026-11-19-p10a-native-rw-eps-coupling.md"
+      - ".github/workflows/p10a-native-rw-eps-coupling.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p10a-native-rw-eps-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-rw-eps-coupling:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install public upstream Basilisk and pinned test requirements
+        run: |
+          python -m pip install \
+            "bsk==2.11.0" "sgp4==2.25" "colorama==0.4.6" \
+            "numpy==2.3.5" "pydantic==2.13.4" "jsonschema==4.26.0" \
+            "PyYAML==6.0.3" "joblib==1.5.3" "scikit-learn==1.9.0" \
+            "psutil==7.2.2" "numba==0.63.1" \
+            "pytest==9.0.3" "fastapi==0.139.2" "starlette==1.3.1" "httpx==0.28.1"
+      - name: Report actual Basilisk distribution
+        run: |
+          python - <<'PY'
+          import Basilisk
+          from importlib.metadata import version
+          assert Basilisk.__version__ == "2.11.0"
+          assert version("bsk") == "2.11.0"
+          print("P10A_BASILISK_PROVENANCE:2.11.0")
+          PY
+      - name: Prepare offline orbital environment assets
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python scripts/fetch_environment_assets.py
+          python - <<'PY'
+          from sat_sim.bsk_engine.orbital_environment import NativeOrbitalEnvironment
+          NativeOrbitalEnvironment(
+              {"environment_profile": "spice_wmm", "epoch_utc": "2026-01-01T00:00:00Z"},
+              duration_s=2.0,
+          )
+          print("P10A_OFFLINE_ENVIRONMENT_PREFLIGHT:PASS")
+          PY
+      - name: Run actual RW state to ReactionWheelPower to SimpleBattery A/B
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          mkdir -p reports/p10a
+          python -m pytest -q -s \
+            tests/test_native_rw_power_consistency.py \
+            tests/test_unified_native_migration.py::test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds \
+            tests/test_composite_native_adcs_power.py \
+            tests/test_resource_closure_agent_trust.py::test_resource_closure_profiles_close_all_seven_p1_links \
+            tests/interactive/test_native_battery_reset_barrier.py \
+            --junitxml=reports/p10a/native-rw-eps-junit.xml
+      - name: Upload focused P10-A1 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: p10a-native-rw-eps-evidence
+          path: reports/p10a/native-rw-eps-junit.xml
+          if-no-files-found: error
+          retention-days: 30

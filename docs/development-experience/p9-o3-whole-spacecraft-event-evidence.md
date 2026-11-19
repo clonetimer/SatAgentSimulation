@@ -176,3 +176,47 @@
 - 推进冲量退化的最终浏览器测试改在 5–7 s 实际燃烧窗口内取样，artifact telemetry 证实 2 s burn command、峰值推力 10 N、推进剂消耗为正（约 0.00493 kg）。该修复保留了物理断言，纠正的是测试采样窗口，而非放宽通过条件。
 - 经验归纳：① 真实姿态闭环必须基于官方 Spacecraft 状态，不能只看估计反馈误差；② 瞬态故障/退化要在实际物理作用窗口取样，事件标签持续时间不等于执行器持续作用时间；③ 浏览器必须执行真实异步 Run 并归档原始 ZIP，不能用目录渲染或 fixture 代替；④ sidecar 状态必须绑定真实 Run integrity 结果；⑤ 能力作用域与事件执行器 owner 必须分开校验。
 - 维持声明边界：整星 Capability 仍为 `engineering_preview` / `agent_ready_candidate`；四个（推进时五个）工程代理功率桥、项目自有 ADCS 注入 SysModel、单次推进脉冲模型等限制继续披露，不升级为 flight validation 或全官方原生耦合声明。
+
+
+## P10-A1 反作用轮原生功率节点接入与真实 Basilisk 验收（2026-11-19）
+
+- 将整星 ADCS 功率从项目自有 `AdcsControlPowerBridge` 替换为每个实际反作用轮一个官方 `Basilisk.simulation.ReactionWheelPower`。输入直接订阅 `reactionWheelStateEffector.rwOutMsgs[i]`，使用实际 `Omega` 和施加力矩 `u_current`；输出 `PowerNodeUsageMsg` 直接接入官方 `SimpleBattery` 与热网络 ADCS 节点。
+- 保留既有总基础功耗假设并按轮均分；显式声明电机电到机械效率；关闭能量回收，保持原功率桥的非回收语义。没有把 `P_max` 写入 RW Factory，避免“功率计量替换”暗中改变真实轮系动力学。
+- `adcs_max_power_w` 作为 fail-closed 监测上限，不是轮系执行器限幅。超限应导致资源反馈验收失败，而不是修改物理力矩或轮速。
+- P10-A1 专项 workflow 使用公开上游 Basilisk 2.11.0，离线轨道环境预检 PASS；真实 A/B、PDU 负载切除、原生电池耦合与整星代理计数测试同头 4 passed / 0 failed / 0 skipped。Artifact `p10a-native-rw-eps-evidence` ID `14518316870`。
+- 参数表面审计、静态检查、脚本治理、组件/分系统物理与 Run Bundle 验收、P9-H 和 P9-N3 同头门禁均通过。不能把专项 P10-A1 PASS 等同于整星全量回归或 PR 合并 PASS。
+- 全量 native regression 为 195 passed、2 failed；失败集中于 R9-I 两个拓扑的电池 public-Reset 负面对照。持续初始参数测试已在首帧取样修正后通过。进一步检查发现：R9-I 源仿真配置了 `adcs_power_w=60`，但独立子进程的 fresh graph 只复制 `rw_configuration`，未复制源功率配置，导致对照组初始条件不一致。下一步必须将源运行参数显式写入实验输入，并由子进程按相同参数重建；同时检查源 checkpoint 电池能量是否确实偏离初始电量，避免做“无激励 A/B”。
+- 经验：① 原生功率计量模块替换不得改写执行器本体参数；② 初始化 recorder 首帧不能当作稳定电池/PDU状态；③ paired/negative-control 子进程必须复用源图完整物理配置，只传拓扑或部分参数会破坏对照实验；④ 若因果指标无差异，先核对输入条件与激励是否存在，不得删断言或把不显著误报为 PASS。
+- 保留声明边界：目前只移除 ADCS 一项工程代理；payload、comm、heater 仍为 3 项代理，启用推进后为 4 项。该模型仍是机械功率到电功率的工程模型，不代表绕组电阻、电压、铜损、逆变器损耗、硬件标定或飞行验证。
+
+
+### R9-I 负面对照的首 tick 与有符号电池误差修正（2026-11-19）
+
+- 将源仿真的功率配置（ADCS base draw、太阳翼面积和效率）完整写入实验输入，并要求两个独立子进程回显与源图相同的运行参数；源 checkpoint 电池能量必须相对初始电量有可测差值。由此排除了“源/子进程配置不一致”和“没有能量激励”两类伪对照。
+- 复核上游 Basilisk v2.11.0 `PowerStorageBase::Reset` 源码：`Reset(CurrentSimNanos)` 会将内部 `storedCharge` 设为公开 `storedCharge_Init`，同时把 `previousTime` 归零。实验子进程在初始化后的第一个调度 tick 仍可能没有收到全部 `PowerNodeUsageMsg`；`PowerStorageBase::UpdateState` 会因此写出零值电池消息，BASE/RESET 两臂的首个电池观测都无效。
+- 同头真实 CI 的后续有效样本（t=1.2–1.6 s）显示：BASE 臂电池能量相对 uninterrupted source 高约 45–53 J；RESET 臂低约 55–69 J。RESET 确实改变了电池状态，但由于 `previousTime` 归零导致积分时间窗错误，产生相反方向的能量偏差；它不是可用的电池状态恢复方法。
+- 正确做法：保留首 tick 原始证据但不用于电池 A/B；仅对后续消息已写入且电池能量为正的样本，比较 child 与 uninterrupted source 的有符号电池能量残差。要求 RESET 与 BASE 的有符号残差有可测变化，并核验 RESET 的误差仍明显非零、方向发生翻转；不再把首 tick 的 `reset_changed=false` 当成整个实验失败。
+- 经验：① 原生电池有效样本判定必须同时看调度时刻和 PowerNodeUsageMsg 写入状态；② 绝对误差会丢失误差方向，物理 A/B 应保留 signed residual；③ paired 子进程必须复用源图完整物理配置；④ 不能因测试断言失败就删掉负面对照，先区分初始化无效样本、积分时钟差异和真实状态恢复失败。
+
+
+## P10-A1A 能力作用域审计：active composite legacy path（2026-11-19）
+
+- P10-A1A 已在推荐的 `whole_spacecraft.unified_native.v1` 中移除 ADCS 工程功率桥，但继续检索活动 capability 和实际 runner 后发现，`whole_spacecraft.composite_digital_twin.v1` 仍为 `lifecycle.status=active`、`exposed_to_agent=true`、`exposed_to_real_llm_eval=true)，其独立 `src/whole_spacecraft/builder.py` 仍创建 `AdcsControlPowerBridge`。
+- 该旧图还被 `src/integration/qoi_profiles/resource_closure.py` 和 `src/whole_spacecraft/runner.py` 直接使用。因此“ADCS proxy count 4→3”严格只适用于推荐统一运行图，不适用于所有 active whole-spacecraft capability。
+- 不把该 capability 当作历史文件或自动视为废弃；单独建立 P10-A1B，要求将其旧图迁移到同一官方 `ReactionWheelPower` per-wheel 路径，或在完整特性/模板/浏览器/real-LLM-eval parity 审计后再显式退役并替换。
+- 经验：跨 capability 的物理改造必须同时检索 lifecycle exposure、adapter class_path、实际 runner、QoI consumer 和 browser/eval 路径；仅修改推荐 capability 的 runtime，不能宣称全产品已消除同类 proxy。
+
+
+### P10-A1B active composite capability迁移实施记录（2026-11-19）
+
+- 针对仍处于 active / agent-exposed / real-LLM-eval-exposed 的 `whole_spacecraft.composite_digital_twin.v1`，已将 `src/whole_spacecraft/builder.py` 中的 `AdcsControlPowerBridge` 替换为官方 Basilisk per-wheel `ReactionWheelPower`。每个节点直接订阅 `rw_state_effector.rwOutMsgs[i]`，并受 EPS PDU ADCS status 控制；同一官方 `nodePowerOutMsg` 同时接入 battery 和 ADCS thermal node。
+- 同步更新 composite runner：`adcs_control_power_w` 由 per-wheel 原生 power recorder 求和；更新 resource-closure QoI，从真实 per-wheel recorder 计算 idle/slew 功耗差；更新 capability 输出字段说明。
+- 新增 `tests/test_composite_native_adcs_power.py`：覆盖实际 wheel state → ReactionWheelPower 方程、每轮消息计数、PDU 禁用时原生功率节点归零；接入 P10-A1 focused workflow 与完整 native workflow。
+- 这一阶段不再把 active composite capability 留作“计划迁移”；当前代码已实现，仍需同头 Basilisk 2.11.0 CI 确认。测试通过前不宣称所有 active capability 的 ADCS proxy 已全部清除。
+
+
+### P10-A1B composite 原生功率 recorder 采样经验（2026-11-19）
+
+- 首轮 P10-A1B 专项测试在两个拓扑以外的旧 composite graph 上失败，根因不是 ReactionWheelPower 物理方程，而是 `WholeSpacecraftConfig.recorder_step_s` 默认 10 s、测试仿真只有 8 s，导致功率 recorder 只有一个初始化样本。不能把“recorders 字段存在”误当成“已取得运行样本”。
+- 修复：composite 原生功率 A/B 显式设置 `recorder_step_s=0.2 s`；资源闭环 QoI 的 idle/slew 8 s 图也显式使用 0.2 s 采样，保证它比较的是运行期功率，而不是首帧/静态基础功耗。
+- 经验：凡是将工程 bridge trace 改成 Basilisk message recorder，必须同步检查 recorder cadence、仿真时长和有效样本数量；测试应断言最小样本数，并跳过初始化样本。

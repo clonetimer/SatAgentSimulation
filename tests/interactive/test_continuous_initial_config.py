@@ -514,7 +514,10 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
                 assert packet.status_code == 200
                 frames = packet.json()["frames"]
                 if len(frames) >= 2:
-                    samples[label] = frames[0]["values"]
+                    # The first row is the initialization sample; native
+                    # SimpleBattery state becomes authoritative after the
+                    # first scheduler update.
+                    samples[label] = frames[1]["values"]
                     break
                 assert time.monotonic() < deadline, label
                 time.sleep(.02)
