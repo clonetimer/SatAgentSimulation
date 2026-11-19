@@ -226,6 +226,7 @@ def _native_heater_power_health(
     rows: list[dict[str, Any]],
     *,
     heater_names: tuple[str, ...],
+    pdu_status_recorder: Any | None = None,
 ) -> dict[str, Any]:
     """Audit PDU permission against actual ThermalHeater electrical output recorders."""
     tolerance_w = 1.0e-6
@@ -256,6 +257,8 @@ def _native_heater_power_health(
             })
     positive_power_count = sum(1 for value in powers if value > tolerance_w)
     power_span = max(powers, default=0.0) - min(powers, default=0.0)
+    if pdu_status_recorder is not None:
+        pdu_states = [bool(int(value)) for value in pdu_status_recorder.deviceStatus]
     transition = len(set(pdu_states)) > 1
     status = "NOT_READY" if not rows or not heater_names else ("FAIL" if violations else "PASS")
     return {
@@ -2326,6 +2329,14 @@ class UnifiedNativeRuntime:
             sim.AddModelToTask(task_name, recorder, None, 1)
             recorder_map[name] = recorder
             record_sources.append(name)
+        # Preserve fast PDU transition evidence even when output telemetry is
+        # sampled more slowly than the native simulation task.
+        pdu_heater_status_fast = whole_modules["pdu"].heaterStatusOutMsg.recorder(
+            macros.sec2nano(cfg.step_s)
+        )
+        sim.AddModelToTask(task_name, pdu_heater_status_fast, None, 1)
+        recorder_map["pdu_heater_status_fast"] = pdu_heater_status_fast
+        record_sources.append("pdu_heater_status_fast")
 
         from sat_sim.basilisk_recorder_groups import attach_grouped_message_recorders, group_manifest
         recorder_groups = attach_grouped_message_recorders(
@@ -2671,6 +2682,7 @@ class UnifiedNativeRuntime:
                 "heater": _native_heater_power_health(
                     rows,
                     heater_names=tuple(whole_modules["thermal_graph"].heaters),
+                    pdu_status_recorder=recorder_map["pdu_heater_status_fast"],
                 ),
                 "payload": _native_payload_power_health(
                     rows,
