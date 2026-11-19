@@ -1195,7 +1195,9 @@
         "propulsion.fuel_mass_kg",
         "propulsion.initial_propellant_kg",
         "propulsion.propellant_used_kg",
-        "orbit.radius_m"
+        "orbit.radius_m",
+        "propulsion.burn_command_on_time_s",
+        "propulsion.nominal_burn_command_on_time_s"
       ],
       "runtime_assertions": [
         {
@@ -1213,6 +1215,22 @@
           "value": 0,
           "scope": "active_all",
           "tolerance": 1e-12
+        },
+        {
+          "id": "whole_propulsion_ignition_failure_suppresses_official_on_time_request",
+          "field": "propulsion.burn_command_on_time_s",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 1e-12
+        },
+        {
+          "id": "whole_propulsion_ignition_failure_preserves_nominal_burn_request_reference",
+          "field": "propulsion.nominal_burn_command_on_time_s",
+          "operator": "gt",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 1e-12
         }
       ],
       "claim_limitations": [
@@ -1220,7 +1238,7 @@
         "The project-owned burn controller suppresses the official Basilisk thruster on-time command at the scheduled ignition boundary; this is not a physical valve, spark or feed-system failure model.",
         "The evidence verifies the scheduled burn case under the configured SOC/safe-mode permission and does not generalize to every propulsion architecture."
       ],
-      "rationale": "The official Basilisk thruster and fuel-tank recorders show zero thrust and zero propellant consumption for the same whole-spacecraft burn configuration that produces thrust and fuel use in the paired nominal bundle."
+      "rationale": "The official Basilisk thruster and fuel-tank recorders show zero thrust and zero propellant consumption, and the directly recorded THRArrayOnTimeCmdMsg.OnTimeRequest is suppressed to zero for the same whole-spacecraft burn configuration that produces thrust and fuel use in the paired nominal bundle."
     },
     {
       "capability_id": "whole_spacecraft.unified_native.v1",
@@ -1237,7 +1255,9 @@
         "propulsion.initial_propellant_kg",
         "propulsion.propellant_used_kg",
         "propulsion.electrical_power_w",
-        "orbit.radius_m"
+        "orbit.radius_m",
+        "propulsion.burn_command_on_time_s",
+        "propulsion.nominal_burn_command_on_time_s"
       ],
       "runtime_assertions": [
         {
@@ -1263,6 +1283,22 @@
           "value": 0,
           "scope": "active_any",
           "tolerance": 1e-12
+        },
+        {
+          "id": "whole_propulsion_impulse_loss_reduces_official_on_time_request",
+          "field": "propulsion.burn_command_on_time_s",
+          "operator": "lt",
+          "right_field": "propulsion.nominal_burn_command_on_time_s",
+          "scope": "active_all",
+          "tolerance": 1e-12
+        },
+        {
+          "id": "whole_propulsion_impulse_loss_keeps_a_nonzero_official_burn_request",
+          "field": "propulsion.burn_command_on_time_s",
+          "operator": "gt",
+          "value": 0,
+          "scope": "active_any",
+          "tolerance": 1e-12
         }
       ],
       "claim_limitations": [
@@ -1270,7 +1306,7 @@
         "The project-owned burn controller reduces the scheduled official Basilisk thruster on-time request; this is a commanded impulse-duration reduction, not an engine chamber-pressure or Isp degradation model.",
         "The paired whole-spacecraft A/B verifies reduced integrated thrust/fuel/orbit response for the configured single burn; it does not generalize to multi-burn missions or hardware transient dynamics."
       ],
-      "rationale": "The whole-spacecraft recorder captures the reduced-duration thrust pulse and actual fuel consumption; a paired nominal bundle verifies that the injected burn consumes less propellant and produces less integrated thrust impulse."
+      "rationale": "The project burn controller reduces the directly recorded official THRArrayOnTimeCmdMsg.OnTimeRequest; the whole-spacecraft recorder captures the shortened thrust pulse and actual fuel consumption, while the paired nominal bundle verifies the full configured burn duration and greater impulse."
     }
   ]
 }
