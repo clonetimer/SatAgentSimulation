@@ -56,7 +56,7 @@ def test_native_odh_is_the_only_production_downlink_and_nominal_statuses_pass() 
     assert max(float(row["thermal.comm_heat_input_w"]) for row in result.trace_rows) > 0.0
     assert "native_comm_antenna_power" in result.metadata["model_source_boundary"]["official_basilisk_native"]
     assert "project_comm_downlink_status_adapter" in result.metadata["model_source_boundary"]["basilisk_project_native"]
-    assert "project_comm_activity_power_bridge" not in result.metadata["model_source_boundary"]["engineering_proxy"]
+    assert "project_comm_activity_power_bridge" not in result.metadata["model_source_boundary"]["external_or_proxy"]
 
 
 def test_thermal_reset_is_valid_and_overtemp_gates_payload_and_comm() -> None:
