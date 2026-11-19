@@ -441,6 +441,10 @@ outputs:
     unit: W
     dtype: number
     description: ADCS electrical load summed from official per-wheel Basilisk ReactionWheelPower node recorders driven by actual reaction-wheel state messages.
+  - name: comm_control_power_w
+    unit: W
+    dtype: number
+    description: Comm/Data electrical load summed from the official Basilisk AntennaPower TX node and the composite runtime's official 2 W idle SimplePowerSink.
   - name: propulsion_power_w
     unit: W
     dtype: number
@@ -525,6 +529,8 @@ outputs:
     unit: count
   - name: proxy_coupling_count
     unit: count
+  - name: max_comm_control_power_w
+    unit: W
   - name: mission_success_score
     unit: deterministic_ratio
   - name: mission_success_score_basis
