@@ -1939,14 +1939,19 @@ class UnifiedNativeRuntime:
             connected("project_comm_downlink_status_adapter.txStatusOutMsg", comm_base_power_node.ModelTag)
             connected(f"{comm_power_node.ModelTag}.nodePowerOutMsg", "battery")
             connected(f"{comm_base_power_node.ModelTag}.nodePowerOutMsg", "battery")
-            heater_power_bridge = StatusPowerBridge(
-                "project_heater_status_power_bridge",
-                active_power_w=float(values.get("heater_power_w", 15.0)),
-                enable_status_msg=pdu.heaterStatusOutMsg,
-            )
-            add(heater_power_bridge, heater_power_bridge.ModelTag, "engineering_proxy", 54)
-            battery.addPowerNodeToModel(heater_power_bridge.powerOutMsg)
-            connected(f"{heater_power_bridge.ModelTag}.powerOutMsg", "battery")
+            # The auxiliary PDU-controlled heater is distinct from the
+            # thermal network's battery thermostat. Keep its fixed 15 W profile,
+            # but let the official Basilisk power sink own the status gating.
+            from Basilisk.simulation import simplePowerSink
+            heater_power_node = simplePowerSink.SimplePowerSink()
+            heater_power_node.ModelTag = "native_auxiliary_heater_power"
+            heater_power_node.nodePowerOut = -abs(float(values.get("heater_power_w", 15.0)))
+            heater_power_node.powerStatus = 0
+            heater_power_node.nodeStatusInMsg.subscribeTo(pdu.heaterStatusOutMsg)
+            add(heater_power_node, heater_power_node.ModelTag, "basilisk_official_native", 54)
+            battery.addPowerNodeToModel(heater_power_node.nodePowerOutMsg)
+            connected("project_eps_pdu.heaterStatusOutMsg", heater_power_node.ModelTag)
+            connected(f"{heater_power_node.ModelTag}.nodePowerOutMsg", "battery")
             whole_modules.update({
                 "adcs_power_nodes": adcs_power_nodes,
                 "payload_power_node": payload_power_node,
@@ -1956,7 +1961,7 @@ class UnifiedNativeRuntime:
                 "comm_status_adapter": comm_status_adapter,
                 "comm_antenna_base_power_w": comm_antenna_base_power_w,
                 "comm_antenna_tx_power_w": comm_antenna_tx_power_w,
-                "heater_power_bridge": heater_power_bridge,
+                "heater_power_node": heater_power_node,
                 "rf_access": rf_access,
                 "rf_gate": rf_gate,
                 "native_downlink": native_downlink,
@@ -2178,7 +2183,7 @@ class UnifiedNativeRuntime:
                 (payload_power_node.nodePowerOutMsg, 0.95, "payload", "payload.instrument_active"),
                 (comm_power_node.nodePowerOutMsg, 0.90, "comm", "comm_antenna_tx"),
                 (comm_base_power_node.nodePowerOutMsg, 0.90, "comm", "comm_base_tx"),
-                (heater_power_bridge.powerOutMsg, 1.00, "battery", "pdu_heater"),
+                (heater_power_node.nodePowerOutMsg, 1.00, "battery", "pdu_auxiliary_heater"),
             ]
             for wheel_index, power_node in enumerate(whole_modules["adcs_power_nodes"]):
                 thermal_inputs.append((power_node.nodePowerOutMsg, 0.90, "adcs", f"adcs_rw_{wheel_index}"))
@@ -2276,7 +2281,7 @@ class UnifiedNativeRuntime:
                 "comm_base_power": whole_modules["comm_base_power_node"].nodePowerOutMsg,
                 "comm_tx_status": whole_modules["comm_status_adapter"].txStatusOutMsg,
                 "comm_idle_status": whole_modules["comm_status_adapter"].idleStatusOutMsg,
-                "heater_power": whole_modules["heater_power_bridge"].powerOutMsg,
+                "heater_power": whole_modules["heater_power_node"].nodePowerOutMsg,
                 "instrument": whole_modules["instrument"].nodeDataOutMsg,
                 "storage": whole_modules["storage"].storageUnitDataOutMsg,
                 "temperature": whole_modules["thermal_graph"].nodes["payload"].tempOutMsg,
