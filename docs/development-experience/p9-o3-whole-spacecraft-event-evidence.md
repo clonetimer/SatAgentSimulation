@@ -15,3 +15,12 @@
 - 服务端 form schema 是普通 guided event catalog 的权威来源；前端 add-event 再做同一 allowlist 防御。
 - O3-A 只限制普通向导展示范围，不谎称直接 TaskSpec/advanced path 已拒绝未验证事件；该执行边界单独审计。
 - 当前可开放的整星事件为 fault 3、degradation 2、constraint 1；未验证的 8 个事件保持隐藏，直到整星级证据通过。
+
+
+## O3-A 合并与 O3-B 初始审计经验（2026-11-19）
+
+- O3-A PR #188 已合入 main：`a96d7feddbb051cf0cf590a3f8c5e4679eed348a`。同 head 的 P9-G 浏览器回归 20/20 PASS；desktop/mobile 截图与 JUnit 已归档。
+- Whole runtime 的 `external_or_proxy_module_count` 不是 0 的原因已核实：4 个 engineering-proxy power bridges（ADCS、payload、comm、heater）；启用推进再增加 propulsion power bridge。它们的来源边界在 `model_source_boundary.engineering_proxy` 中明确列出，不能将其误称为官方 Basilisk 模块。
+- O3-B 的事件效果本身由 Basilisk 官方模型与项目原生 SysModel 在同一 Process/Task 中执行；证据需分别记录官方模块、项目原生模块和 engineering proxies 数量，不能只看 runtime truth 字符串。
+- RW1 默认初始轮速约 10.47 rad/s，低于 speed-limit 测试阈值 15 rad/s；如果不显式设置 `rw_initial_speed_rad_s_0=100`，事件虽会更新 limit 字段，却未必真正触发超速制动。A/B 必须验证 active torque 的方向与 wheel speed 响应。
+- 推进 impulse-loss 改变的是 burn command on-time，而不是 thruster 的瞬时 thrustFactor；不能把 `propulsion.max_thrust_factor` 误当成冲量比例。正式证据应记录 burn controller 的实际 OnTimeRequest，并用燃料消耗和轨道响应证明物理结果。
