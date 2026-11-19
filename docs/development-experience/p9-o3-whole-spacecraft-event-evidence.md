@@ -142,3 +142,8 @@
 - 当前 head `39892ea785ac4e4c01b9c210da7c10c205f2ff0e` 的官方 Basilisk 2.11.0 作业 `44462643496` 已通过步骤 16：其中包括整星 ADCS 30 s nominal closed-loop baseline、整星 ADCS 八类事件 A/B 与封存、EPS/Comm-Data 原生 A/B 和相关 formal evidence contracts。
 - 因此 14 s 仅作为事件注入实验窗口，不能直接作为整星名义闭环收敛验收窗口；将 nominal ADCS Run 延长至 30 s，同时保留 8 个 injected Run 的 14 s 时长和 4–10 s 事件区间。
 - 该结果仅表示 O3-B 官方物理门禁通过；O3-C 九条 Chromium 真实运行链和 O3-D 10 份物理 + 9 份浏览器原件归档仍待同一 head 完成。
+## O3-D 浏览器归档 sidecar 可信状态绑定（2026-11-19）
+
+- 检查九条浏览器 Run Bundle 下载链时，发现 sidecar 的 `integrity_ok` 虽然前置断言已经验证 `durable.integrity.ok`，但写入时仍使用字面量 `true`，不够直接表达证据来源。
+- 已改为写入 `durable["integrity"]["ok"]`，并在 sidecar 生成点再次要求该值为 true；ZIP 原件、seal/manifest/per-file SHA-256 校验保持不变。
+- 最新测试提交 `e3338d69c214e2c6bc53a5376c70ba5fb81a5031` 已触发新的同头官方验收。经验：证据元数据应绑定实际验证结果，不能用硬编码 PASS 替代来源字段，即使前置断言已经通过。
