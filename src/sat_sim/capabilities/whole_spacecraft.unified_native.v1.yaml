@@ -1143,6 +1143,8 @@ outputs:
   - adcs.sensor.gyro_measured_rad_s_*
   - adcs.sensor.gyro_bias_rad_s_*
   - adcs.sensor.gyro_noise_rad_s_*
+  - adcs.sensor.gyro_bias_norm_rad_s
+  - adcs.sensor.gyro_noise_norm_rad_s
   - adcs.rw.command_torque_nm_*
   - adcs.control.applied_torque_nm_*
   - adcs.rw.effective_drag_nms_*
@@ -1164,7 +1166,10 @@ outputs:
   - propulsion.burn_active
   - propulsion.burn_permitted
   - propulsion.fuel_mass_kg
+  - propulsion.initial_fuel_mass_kg
   - propulsion.fuel_mass_dot_kg_s
+  - propulsion.burn_command_on_time_s
+  - propulsion.nominal_burn_on_time_s
   - propulsion.total_thrust_n
   - propulsion.max_thrust_factor
   - propulsion.electrical_power_w
@@ -1223,7 +1228,7 @@ operator:
     owner: project_rw_command_fault_manager
     implementation: basilisk_native
     evidence_fields:
-    - adcs.rw.effective_torque_ratio_0
+    - adcs.rw.effective_max_torque_nm_0
     - adcs.control.applied_torque_nm_0
     verification: declared
   - effect_id: adcs_rw_motor_failure
@@ -1267,6 +1272,9 @@ operator:
     - propulsion.burn_active
     - propulsion.total_thrust_n
     - propulsion.fuel_mass_kg
+    - propulsion.initial_fuel_mass_kg
+    - propulsion.burn_command_on_time_s
+    - propulsion.nominal_burn_on_time_s
     - orbit.radius_m
     verification: declared
   - effect_id: solar_panel_efficiency_loss
@@ -1305,8 +1313,12 @@ operator:
     owner: project_propulsion_burn_controller
     implementation: basilisk_native
     evidence_fields:
+    - propulsion.burn_active
+    - propulsion.burn_command_on_time_s
+    - propulsion.nominal_burn_on_time_s
     - propulsion.total_thrust_n
     - propulsion.fuel_mass_kg
+    - propulsion.initial_fuel_mass_kg
     - propulsion.electrical_power_w
     - orbit.radius_m
     verification: declared
