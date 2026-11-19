@@ -44,3 +44,14 @@ The first official Basilisk 2.11.0 P10-A focused run reached 67 tests and report
 3. The propulsion inventory test still expected 'project_heater_status_power_bridge'. It now asserts the heater bridge is absent and the only remaining proxy is the optional propulsion activity bridge (count 1).
 
 These are test-contract and observation-cadence corrections; the runtime model is unchanged in this repair round. Re-run the exact PR head before treating them as resolved.
+
+
+## Second focused CI repair round
+
+The next official Basilisk 2.11.0 focused run exposed seven failures (60 passed):
+
+1. Six reduced ADCS/event fixtures do not instantiate an EPS PDU. The fast heater-PDU evidence recorder was initially accessed under the broad non-ADCS-only branch and raised 'KeyError: pdu'. It is now created only when the PDU exists, and the health audit accepts an absent fast recorder for fixtures that do not exercise EPS.
+2. The drained PDU test changes the heater-permission state, but the thermal thermostats are already off in that scenario. A PDU bit transition without positive heater electrical draw is not an observed power-feedback response. The audit now separates raw PDU-state transition from an actual electrical-load response; the test expects no heater power-feedback claim for that drained scenario while retaining the PDU-shed assertions.
+3. The propulsion inventory assertion was aligned to the single remaining optional propulsion proxy; the retired heater proxy is no longer expected.
+
+The runtime continues to use actual 'ThermalHeater.electricalPowerOutMsg' for EPS and actual 'ThermalHeater.powerOutMsg' for deposited heat. No synthetic heater power law or relaxed physical criterion was introduced.
