@@ -1178,7 +1178,9 @@ outputs:
   - adcs.sensor.gyro_noise_rad_s_*
   - adcs.rw.command_torque_nm_*
   - adcs.control.applied_torque_nm_*
-  - adcs.rw.effective_torque_ratio_*
+  - adcs.rw.effective_torque_ratio_0
+  - adcs.rw.effective_torque_ratio_1
+  - adcs.rw.effective_torque_ratio_2
   - adcs.rw.effective_drag_nms_*
   - adcs.rw.effective_max_torque_nm_*
   - adcs.rw.effective_max_speed_rad_s_*
@@ -1397,7 +1399,6 @@ operator:
     - time_s
     - orbit.*
     - adcs.*
-    - adcs.rw.effective_torque_ratio_*
     - eps.*
     - payload.*
     - comm.*
