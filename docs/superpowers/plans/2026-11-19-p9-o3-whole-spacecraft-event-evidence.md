@@ -84,3 +84,16 @@
 - The only mismatch across all 14 whole-spacecraft profiles was `solar_panel_efficiency_loss`: the operator effect contract and direct observability contract already exposed `eps.battery_soc` as contextual telemetry, while the profile omitted it. The runtime trace records `eps.battery_soc` directly from the official battery recorder.
 - Corrected the formal evidence contract by adding `eps.battery_soc` to that profile's evidence_fields, keeping the existing operator and observability declarations aligned. No physical assertion or effect semantics were weakened; battery SOC remains contextual evidence, while the effect-specific assertions still target solar efficiency ratio and solar-array output power.
 - A small set-based audit across all 14 profiles found this was the sole operator/profile evidence-field mismatch. The updated PR head must rerun formal tests and the full official Basilisk workflow before O3-B can be accepted.
+
+
+## O3-A 正式收尾（2026-11-19）
+
+- PR #188 已合并，merge commit `a96d7feddbb051cf0cf590a3f8c5e4679eed348a`。
+- Same-head official native workflow `44424648554` success；formal effect runtime 17 passed、1 deselected；whole-spacecraft guided catalog 2 passed；Chromium JUnit 13 tests、0 failures、0 skipped。
+- Artifact `14484456607`（39,263 bytes），包含整星目录 Chromium 证据及 O2 六条 EPS/Comm-Data 真实 Run 旅程。O3-A 只验收六个已验证整星事件的目录隔离，不代表新增八个事件已完成运行证据。
+
+## O3-B 当前实现分支与验收（2026-11-19）
+
+- 当前主候选 PR #190，branch `feat/p9-o3-b-whole-spacecraft-event-evidence-20261119`；较早 PR #189 覆盖相近范围，待 #190 最终通过后合并/关闭重复候选，避免两套重复交付。
+- O3-B 当前 14 个整星 effect profile 与 operator evidence fields / observability evidence fields 的静态集合审计为 14/14 一致。
+- 最新字段修复 head `232021432da171810f199098e20129c6dc527ebe` 的官方 native workflow `44437771461` 正在运行；不能将静态一致性审计等同于 8 个 paired sealed A/B 通过。
