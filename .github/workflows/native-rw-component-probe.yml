@@ -21,6 +21,8 @@ on:
       - "tests/test_native_eps_comm_data_effects_bundle.py"
       - "tests/test_p9o2_eps_comm_data_guided_event_catalog.py"
       - "tests/test_p9o3_whole_spacecraft_guided_event_catalog.py"
+      - "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml"
+      - "tests/test_native_whole_spacecraft_event_bundles.py"
       - "tests/test_multi_rate_fmea_unified_subsystems.py"
       - "src/sat_sim/capabilities/subsystem.adcs_unified_native.v1.yaml"
       - "tests/test_unified_native_migration.py"
@@ -161,7 +163,10 @@ jobs:
           python -m pytest -q -s --junitxml=reports/native_adcs/adcs_fault_effects.xml tests/test_native_adcs_fault_effects.py
           python -m pytest -q -s tests/test_formal_effect_evidence_contracts.py -k unified_effect_contracts_are_declared_and_registered
           python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/formal_effects.xml \
-            tests/test_formal_effect_evidence_contracts.py -k test_each_unified_effect_has_formal_runtime_pass
+            tests/test_formal_effect_evidence_contracts.py -k "test_unified_effect_contracts_are_declared_and_registered or test_each_unified_effect_has_formal_runtime_pass or test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect"
+          mkdir -p reports/native_whole_spacecraft_events
+          python -m pytest -q -s --junitxml=reports/native_whole_spacecraft_events/effect_ab.xml \
+            tests/test_native_whole_spacecraft_event_bundles.py
           python -m pytest -q -s tests/test_p9n5_adcs_guided_event_catalog.py
           python -m pytest -q -s tests/test_p9o2_eps_comm_data_guided_event_catalog.py
           python -m pytest -q -s tests/test_p9o3_whole_spacecraft_guided_event_catalog.py
@@ -267,6 +272,8 @@ jobs:
             reports/native_subsystem_eps_comm_data/effect_ab.xml
             reports/native_subsystem_eps_comm_data/effect_ab.json
             reports/native_subsystem_eps_comm_data/formal_effects.xml
+            reports/native_whole_spacecraft_events/effect_ab.xml
+            reports/native_whole_spacecraft_events/effect_ab.json
             reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
