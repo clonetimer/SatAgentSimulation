@@ -25,7 +25,7 @@ def test_propulsion_is_physically_coupled_into_recommended_whole_runtime() -> No
     result = adapter.run(spec, contract.data)
     assert result.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
     assert result.summary["propulsion_enabled"] is True
-    assert result.summary["official_module_count"] == 28
+    assert result.summary["official_module_count"] == 29
     assert result.summary["project_native_module_count"] == 27
     assert result.summary["external_or_proxy_module_count"] == 3
     assert result.summary["propellant_used_kg"] > 0.0
@@ -58,7 +58,7 @@ def test_propulsion_burn_changes_orbit_relative_to_same_no_burn_baseline() -> No
     radius_delta = burn_result.summary["final_orbit_radius_m"] - base_result.summary["final_orbit_radius_m"]
     assert abs(radius_delta) > 0.1
     assert base_result.summary["propulsion_enabled"] is False
-    assert base_result.summary["official_module_count"] == 26
+    assert base_result.summary["official_module_count"] == 27
     assert base_result.summary["project_native_module_count"] == 26
 
 
