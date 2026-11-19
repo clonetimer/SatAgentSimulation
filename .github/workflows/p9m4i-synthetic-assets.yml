@@ -99,7 +99,7 @@ jobs:
               (44485479649, 14510716115),
           }
           assert all(
-              item["contains_source_bytes"] is True and item["status"] == "delete_required"
+              item["contains_source_bytes"] is True and item["status"] in {"delete_required", "deleted"}
               for item in superseded_artifacts
           )
           assert nasa_source["eligible_for_inference"] is False
@@ -140,6 +140,37 @@ jobs:
           assert receipt["inference_eligible"] is False
           assert receipt["source_rights_assessment"]["status"] == "policy_basis_found_pending_project_owner_signoff"
           print("P9M4I_NASA_SOURCE_INTAKE_PINNED:1", receipt["sha256"], receipt["size_bytes"])
+          PY
+      - name: Verify superseded public artifacts are deleted when marked deleted
+        env:
+          GH_REPOSITORY: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from urllib.error import HTTPError
+          from urllib.request import Request, urlopen
+
+          benchmark = json.loads(Path("docs/superpowers/benchmarks/2026-11-17-p9m4i-three-device-benchmark.json").read_text(encoding="utf-8"))
+          source = next(item for item in benchmark["candidate_image_sources"] if item["source_id"] == "nasa_europa_clipper_star_tracker_mockup_2025")
+          for artifact in source["superseded_public_source_artifacts"]:
+              status = artifact["status"]
+              artifact_id = artifact["artifact_id"]
+              if status == "delete_required":
+                  print("P9M4I_PUBLIC_ARTIFACT_DELETE_REQUIRED:", artifact_id)
+                  continue
+              if status != "deleted":
+                  raise SystemExit(f"P9M4I_PUBLIC_ARTIFACT_STATUS_INVALID:{artifact_id}:{status}")
+              url = f"https://api.github.com/repos/{os.environ['GH_REPOSITORY']}/actions/artifacts/{artifact_id}"
+              request = Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "SatAgentSimulation-P9M4I"})
+              try:
+                  with urlopen(request, timeout=15) as response:
+                      raise SystemExit(f"P9M4I_PUBLIC_ARTIFACT_STILL_ACCESSIBLE:{artifact_id}:{response.status}")
+              except HTTPError as exc:
+                  if exc.code not in {404, 410}:
+                      raise
+              print("P9M4I_PUBLIC_ARTIFACT_DELETED:", artifact_id)
           PY
       - name: Upload metadata-only source intake receipt
         uses: actions/upload-artifact@v4
