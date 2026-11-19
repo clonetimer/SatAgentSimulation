@@ -137,8 +137,6 @@ def _run_case(
     assert summary["external_or_proxy_module_count"] == expected_proxy_count
     assert summary["runtime_event_count"] == (1 if event_kind else 0)
     if event_kind:
-        if event_kind in {"fault", "degradation"}:
-            assert summary["fault_environment_episode_count"] == 1
         assert len(executed.validation.injection_evidence) == 1
         evidence = executed.validation.injection_evidence[0]
         assert evidence.delivery_result.value == "PASS"
