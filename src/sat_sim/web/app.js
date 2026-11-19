@@ -5373,6 +5373,18 @@
       showNotice('该分系统仅允许已经通过官方 Basilisk 配对 A/B 与正式证据验收的事件。', 'warning');
       return;
     }
+    const wholeSpacecraftVerifiedEffects = {
+      fault: new Set(['payload_instrument_off', 'comm_data_downlink_link_loss', 'eps_battery_capacity_loss']),
+      degradation: new Set(['solar_panel_efficiency_loss', 'thermal_radiator_rejection_loss']),
+      constraint: new Set(['power_safe_mode_threshold']),
+    };
+    const wholeAllowed = state.selectedCapabilityId === 'whole_spacecraft.unified_native.v1'
+      ? wholeSpacecraftVerifiedEffects[kind]
+      : null;
+    if (wholeAllowed && !wholeAllowed.has(effect)) {
+      showNotice('整星向导仅开放已有整星级正式物理效果证据的事件；其他事件完成整星 A/B 验收后再开放。', 'warning');
+      return;
+    }
     const template = effectCatalog(kind).find((item) => item.effect === effect);
     if (!template) return;
     const key = kind === 'fault' ? 'faults' : (kind === 'degradation' ? 'degradations' : 'constraints');

@@ -1761,3 +1761,88 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
         finally:
             browser.close()
     assert not errors, errors
+
+
+def test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events(tmp_path):
+    """The whole-spacecraft wizard must expose only its own verified effect profiles."""
+    pytest.importorskip("Basilisk", reason="requires official Basilisk 2.11.0")
+    from importlib.metadata import version
+    assert version("bsk") == "2.11.0"
+    playwright = pytest.importorskip("playwright.sync_api")
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable:
+        pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
+
+    app = create_app(
+        runs_root=tmp_path / "runs",
+        artifacts_root=tmp_path / "artifacts",
+        embedded_worker=False,
+        auth_mode="disabled",
+    )
+    errors = []
+    with TestClient(app) as client, playwright.sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            page = browser.new_page(viewport={"width": 1366, "height": 900}, locale="zh-CN")
+            page.on("pageerror", lambda error: errors.append(str(error)))
+
+            def proxy(route):
+                request = route.request
+                url = urlsplit(request.url)
+                request_path = url.path + ("?" + url.query if url.query else "")
+                response = client.request(
+                    request.method,
+                    request_path,
+                    content=request.post_data_buffer,
+                    headers={key: value for key, value in request.headers.items() if key in ("content-type", "accept")},
+                )
+                route.fulfill(
+                    status=response.status_code,
+                    body=response.content,
+                    headers={"content-type": response.headers.get("content-type", "application/json")},
+                )
+
+            page.route("https://workbench.test/**", proxy)
+            page.goto("https://workbench.test/", wait_until="networkidle")
+            page.locator('#wizardOptions [data-wizard-goal="fault_run"]').click()
+            page.locator('#wizardOptions [data-wizard-level="whole_spacecraft"]').click()
+            object_option = page.locator('#wizardOptions [data-wizard-object="whole_spacecraft"]')
+            object_option.wait_for(state="visible", timeout=15000)
+            object_option.click()
+
+            fault_options = page.locator("#wizardOptions [data-wizard-fault]")
+            fault_options.first.wait_for(state="visible", timeout=15000)
+            assert set(fault_options.evaluate_all("(items) => items.map((item) => item.getAttribute('data-wizard-fault'))")) == {
+                "payload_instrument_off",
+                "comm_data_downlink_link_loss",
+                "eps_battery_capacity_loss",
+            }
+
+            page.locator('#wizardOptions [data-wizard-fault="payload_instrument_off"]').click()
+            page.locator('#wizardOptions [data-wizard-mode="offline"]').click()
+            page.locator("#wizardConfigSections").wait_for(state="visible", timeout=15000)
+            fault_panel = page.locator("#wizardFaultPanel")
+            assert not fault_panel.evaluate("(node) => node.classList.contains('hidden')")
+            assert fault_panel.get_attribute("open") is not None
+
+            expected = {
+                "fault": {
+                    "payload_instrument_off",
+                    "comm_data_downlink_link_loss",
+                    "eps_battery_capacity_loss",
+                },
+                "degradation": {
+                    "solar_panel_efficiency_loss",
+                    "thermal_radiator_rejection_loss",
+                },
+                "constraint": {"power_safe_mode_threshold"},
+            }
+            for kind, expected_effects in expected.items():
+                page.locator("#effectKind").select_option(kind)
+                actual = set(page.locator("#effectSelect option").evaluate_all("(items) => items.map((item) => item.value)"))
+                assert actual == expected_effects, (kind, actual)
+            assert page.locator("#eventList .event-card").count() == 1
+            assert not errors, errors
+            page.close()
+        finally:
+            browser.close()

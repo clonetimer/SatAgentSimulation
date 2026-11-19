@@ -879,6 +879,18 @@ GUIDED_EFFECT_ALLOWLISTS: dict[str, dict[str, frozenset[str]]] = {
         "degradation": frozenset({"transmitter_rate_degradation"}),
         "constraint": frozenset(),
     },
+    "whole_spacecraft.unified_native.v1": {
+        "fault": frozenset({
+            "payload_instrument_off",
+            "comm_data_downlink_link_loss",
+            "eps_battery_capacity_loss",
+        }),
+        "degradation": frozenset({
+            "solar_panel_efficiency_loss",
+            "thermal_radiator_rejection_loss",
+        }),
+        "constraint": frozenset({"power_safe_mode_threshold"}),
+    },
 }
 
 
