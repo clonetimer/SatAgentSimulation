@@ -259,10 +259,9 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
     },
     "adcs_rw_motor_failure": {
         "magnitude_applicable": False,
-        "instructions": "二值故障：目标轮电机在事件时间窗内不再提供驱动力矩；torque_scale=0 表示完全失效。",
+        "instructions": "二值故障：目标轮电机在事件时间窗内完全失去驱动力矩。部分力矩权限下降应使用独立退化事件 adcs_rw_torque_authority_loss。",
         "parameters": [
             {"name": "wheel_index", "label": "目标轮号", "type": "integer", "minimum": 0, "maximum": 3, "default": 0, "description": "从0开始编号。"},
-            {"name": "torque_scale", "label": "剩余力矩比例", "type": "number", "unit": "ratio", "minimum": 0.0, "maximum": 1.0, "default": 0.0, "description": "0表示完全失效，1表示保持标称力矩。"},
         ],
     },
     "adcs_rw_torque_authority_loss": {
