@@ -45,6 +45,9 @@ jobs:
       - name: Validate synthetic asset schema and GLB audit
         env:
           PYTHONPATH: "src"
+          # The CLI help text is bilingual; force UTF-8 on Windows runners too.
+          PYTHONUTF8: "1"
+          PYTHONIOENCODING: "utf-8"
         run: |
           python -m pytest -q tests/cad/test_synthetic_asset_generation.py tests/cad/test_triposr_g1.py
           python scripts/cad/audit_synthetic_asset.py --help
