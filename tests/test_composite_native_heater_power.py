@@ -23,6 +23,7 @@ def _run(force_heaters: bool):
     assert heaters
     for heater in heaters.values():
         heater.forced_state = bool(force_heaters)
+        heater.power_scale = 0.5
 
     run_cfg = WholeSpacecraftRunConfig(duration_s=3.0, sample_s=0.2, structure=cfg)
     summary, rows = _execute_whole_spacecraft_graph(graph, run_cfg)
@@ -33,23 +34,22 @@ def test_native_heater_status_drives_official_power_nodes_and_battery() -> None:
     active, active_summary, active_rows = _run(True)
     idle, idle_summary, idle_rows = _run(False)
 
-    active_nodes = active.component_registry["heater_power_nodes"]
-    idle_nodes = idle.component_registry["heater_power_nodes"]
+    active_sources = active.component_registry["heater_power_sources"]
+    idle_sources = idle.component_registry["heater_power_sources"]
     heaters = active.thermal_graph.network.heaters
-    assert set(active_nodes) == set(heaters)
-    assert set(idle_nodes) == set(heaters)
+    assert set(active_sources) == set(heaters)
+    assert set(idle_sources) == set(heaters)
     assert active.component_registry.get("heater_eps_feedback") is None
 
     coupling = active.coupling_matrix["thermal_heaters_to_eps_load"]
     assert coupling.coupling_status == "coupled"
-    assert "SimplePowerSink.nodeStatusInMsg" in coupling.interface
+    assert "ThermalHeater.electricalPowerOutMsg" in coupling.interface
 
     expected_total_w = 0.0
     for name, heater in heaters.items():
-        node = active_nodes[name]
-        assert node.__class__.__name__ == "SimplePowerSink"
-        assert node.nodeStatusInMsg.isLinked()
-        expected_w = abs(float(heater.params.power_w))
+        source = active_sources[name]
+        assert source is heater
+        expected_w = abs(float(heater.params.power_w)) * 0.5
         expected_total_w += expected_w
 
         active_values = list(active.recorders[f"heater_eps_power_{name}"].netPower)
@@ -58,7 +58,7 @@ def test_native_heater_status_drives_official_power_nodes_and_battery() -> None:
         assert all(float(value) == pytest.approx(-expected_w, abs=1e-9) for value in active_values[1:])
         assert all(float(value) == pytest.approx(0.0, abs=1e-9) for value in idle_values[1:])
 
-    # The SimpleBattery runs before the thermal task's heater power nodes;
+    # The SimpleBattery may sample the thermal task output one task tick later;
     # compare the next battery sample to the power-node sample that it consumes.
     active_battery = active.recorders["battery"]
     idle_battery = idle.recorders["battery"]
