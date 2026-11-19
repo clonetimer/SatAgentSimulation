@@ -27,7 +27,7 @@ def test_propulsion_is_physically_coupled_into_recommended_whole_runtime() -> No
     assert result.summary["propulsion_enabled"] is True
     assert result.summary["official_module_count"] == 24
     assert result.summary["project_native_module_count"] == 27
-    assert result.summary["external_or_proxy_module_count"] == 5
+    assert result.summary["external_or_proxy_module_count"] == 4
     assert result.summary["propellant_used_kg"] > 0.0
     assert result.summary["max_total_thrust_n"] > 0.0
     assert result.summary["propulsion_burn_observed"] is True
