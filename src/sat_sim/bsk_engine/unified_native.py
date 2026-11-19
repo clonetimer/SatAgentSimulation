@@ -17,8 +17,8 @@ from sat_sim.adapter_base import SimulationResult
 from sat_sim.task_validator import ValidationIssue
 from sat_sim.fault_environment import BSKRLStyleFaultAdapter
 from integration.resource_feedback import (
-    DataActivityPowerBridge,
     DownlinkAntennaStatusAdapter,
+    PayloadActivityStatusAdapter,
     InputReadStatus,
     StatusPowerBridge,
     ThrusterActivityPowerBridge,
