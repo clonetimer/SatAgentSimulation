@@ -87,6 +87,73 @@ class DownlinkAntennaStatusSample:
     error: str | None = None
 
 
+@dataclass(frozen=True)
+class PayloadActivityStatusSample:
+    time_ns: int
+    pdu_enabled: bool
+    generated_rate_bps: float
+    payload_active: bool
+    input_status: InputReadStatus = InputReadStatus.VALID
+    error: str | None = None
+
+
+if sysModel is not None:
+    class PayloadActivityStatusAdapter(sysModel.SysModel):
+        """Translate actual instrument activity and PDU permission into a load-enable status.
+
+        This adapter owns no power equation. The configured fixed active load is
+        represented by an official Basilisk SimplePowerSink.
+        """
+
+        def __init__(self, model_tag: str, *, data_msg: Any, enable_status_msg: Any) -> None:
+            super().__init__()
+            if data_msg is None or enable_status_msg is None:
+                raise ValueError("PAYLOAD_ACTIVITY_STATUS_INPUTS_REQUIRED")
+            self.ModelTag = str(model_tag)
+            self.dataInMsg = messaging.DataNodeUsageMsgReader()
+            self.dataInMsg.subscribeTo(data_msg)
+            self.enableInMsg = messaging.DeviceStatusMsgReader()
+            self.enableInMsg.subscribeTo(enable_status_msg)
+            self.activeStatusOutMsg = messaging.DeviceStatusMsg()
+            self.trace: list[PayloadActivityStatusSample] = []
+
+        def Reset(self, CurrentSimNanos: int) -> None:
+            self.trace.clear()
+            self.UpdateState(CurrentSimNanos)
+
+        def UpdateState(self, CurrentSimNanos: int) -> None:
+            pdu_enabled, pdu_status, pdu_error = _status_enabled(
+                self.enableInMsg, CurrentSimNanos, default=False,
+            )
+            data, data_status, data_error = _read_payload(
+                self.dataInMsg, CurrentSimNanos,
+            )
+            rate = float(getattr(data, "baudRate", 0.0)) if data is not None else 0.0
+            status = (
+                InputReadStatus.ERROR
+                if InputReadStatus.ERROR in (pdu_status, data_status)
+                else InputReadStatus.NOT_READY
+                if InputReadStatus.NOT_READY in (pdu_status, data_status)
+                else InputReadStatus.VALID
+            )
+            error = pdu_error or data_error
+            if not math.isfinite(rate) or rate < 0.0:
+                status = InputReadStatus.ERROR
+                error = error or "payload data-rate telemetry is non-finite or negative"
+            active = bool(status is InputReadStatus.VALID and pdu_enabled and rate > 0.0)
+            output = messaging.DeviceStatusMsgPayload()
+            output.deviceStatus = int(active)
+            self.activeStatusOutMsg.write(output, CurrentSimNanos, self.moduleID)
+            self.trace.append(PayloadActivityStatusSample(
+                time_ns=int(CurrentSimNanos),
+                pdu_enabled=bool(pdu_enabled),
+                generated_rate_bps=rate if math.isfinite(rate) else 0.0,
+                payload_active=active,
+                input_status=status,
+                error=error,
+            ))
+
+
 if sysModel is not None:
     class DownlinkAntennaStatusAdapter(sysModel.SysModel):
         """Translate PDU/downlink/antenna telemetry into power-side TX and idle state.
