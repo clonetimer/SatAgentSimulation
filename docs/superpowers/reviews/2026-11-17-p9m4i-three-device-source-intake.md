@@ -137,3 +137,25 @@
 - 没有任何许可明确的 KSST-01 原始图像/CAD 输入，因此本轮没有运行 TripoSR、TRELLIS.2 或其他生成模型，也没有生成星敏感器模型。
 - 只有输入图来源、SHA-256 和许可范围均核验后，才运行 TripoSR G1；输出只进入 `synthetic_preview`，不得推导安装孔、boresight、接口或 as-built 身份。
 - 电池组和反作用轮仍是 BIRDS-4 真实 CAD 对照组；本轮不再对它们重复生成。
+## 2026-11-19 新增 NASA 星敏感器视觉来源候选
+
+### Europa Clipper 3D-printed Star Tracker Mock-Up
+
+- NASA Science 页面：`https://science.nasa.gov/missions/europa-clipper/europa-clipper-resources/3d-printed-star-tracker-mock-up/`
+- 页面描述该物体为 Europa Clipper stellar reference unit 的 3D 打印 mock-up，包含 optical head 与 shielding，用于 fit/tool-access 检查；下载条目为 2.49 MB JPEG，页面日期 2025-05-29，来源署名 NASA/JPL-Caltech。
+- 可直接定位的媒体 URL：`https://assets.science.nasa.gov/content/dam/science/missions/europa-clipper/images/Star-Tracker-3D-Print-Full.JPG`
+- NASA Images and Media Usage Guidelines：NASA 内容通常可用于非商业教育/信息用途，范围包括 computer graphical simulations，以及用于 3D model rendition 的媒体文件；第三方受版权保护素材应标明版权持有人。该页面只有 NASA/JPL-Caltech credit，未显示独立的第三方 copyright 标记。
+- 初步判定：这是目前最合适的单图 G1 输入候选，可用于“通用星敏光学头/遮光罩外观”预览，不是项目目标设备的型号证明。因为 credit 中含 JPL-Caltech，仍保留 source-specific rights review；在原始 JPEG 字节、SHA-256 与最终许可审查记录进入 manifest 前，不设置 runner 所需的 `license.status=approved`，不运行 TripoSR。
+- 该图没有尺寸、安装孔、光轴/boresight、接口和真实尺度信息；生成结果只能是 `synthetic_reference_geometry` / G1，必须标记 `scale_status=unknown_from_single_image`，不得作为 reference CAD、安装坐标或 as-built。
+- NASA 的 SI usage guidance 要求生成输出明确标注为 AI 生成，不得使用 NASA 标识，不得暗示 NASA 审查或背书；输出署名生成工具本身，不将模型结果表述为 NASA 提供的几何事实。
+
+### NASA Europa Clipper 3D 模型与 2025D 打印模型（视觉控制候选）
+
+- NASA 官方 Europa Clipper 3D model 页面提供 `clipper_spacecraft.glb`（34.05 MB）和 USDZ（14.61 MB）；该页面称其为 3D graphic model，不是工程 CAD。
+- NASA Europa Clipper 2025D scale model 页面列出两个 Stellar-Reference Units，并说明模型约 1:106、尺度并非精确；其页面标注 CC0 / Public Domain Dedication。
+- 这两项可以作为“有公开视觉参考”的 control/审查线索，但不是 BIRDS-4、KSST-01 或项目目标星敏的真实 CAD。当前尚未取得文件字节、哈希、节点/部件 crosswalk，故不纳入本轮可交付模型，不做节点拆分或实装映射。
+- 如果后续取得文件，应先核对具体资产的 license/credit、原始文件哈希、模型树中 SRU 是否独立成节点，再决定是否作为 G1 visual control；不得从 1:106 打印模型推导工程尺寸。
+
+### 本轮结论
+
+NASA 资料为 TripoSR G1 提供了一个比 KSST-01 厂商照片更有希望的公开候选，但目前只完成来源与政策层面的筛查。**原始媒体字节、hash、source-specific permission review 和真实 GPU inference 均未完成**；因此 benchmark 状态继续保持 `pilot_specification_not_yet_executed`。
