@@ -50,3 +50,11 @@
 - 已将 `PropulsionBurnController.commandOutMsg` 纳入统一 recorder map，并新增 `propulsion.burn_command_on_time_s`（各推进器请求 on-time 的最大值）和 `propulsion.nominal_burn_command_on_time_s`（TaskSpec 配置标称值）。这两个字段来自实际官方 THRArrayOnTimeCmdMsg recorder，不是根据事件参数反推的派生值。
 - 点火失败 profile 现在要求事件期间实际 OnTimeRequest 为 0；冲量损失 profile 要求实际请求小于标称请求且大于 0。paired Run Bundle 同时断言 nominal 8 s、ignition failure 0 s、impulse loss 2 s（配置比例 0.25），并保留燃料消耗、推力及轨道响应 A/B。
 - 新增字段已同步 capability trace_fields、operator effect evidence、observability effect_evidence 与两个 formal profiles；字段集合需保持四方一致。官方 Basilisk CI 结果待当前 PR head 验证。
+
+
+## O3-B 推进命令请求 recorder 补齐（2026-11-19）
+
+- 代码审查发现 PR 描述声称记录官方 THRArrayOnTimeCmdMsg.OnTimeRequest，但实际 trace 只有 burn status、推力和燃料记录。仅用燃料/轨道结果无法直接审计控制器请求的燃烧持续时间。
+- 已把 `PropulsionBurnController.commandOutMsg` 作为独立消息加入 recorder map，并按每个采样记录最大单推进器请求 on-time `propulsion.burn_command_on_time_s`；`propulsion.nominal_burn_command_on_time_s` 取 TaskSpec 标称配置值，不从事件参数反推。
+- ignition failure formal profile 要求命令请求为 0；impulse loss profile 要求命令请求小于标称值且大于 0。paired A/B 进一步断言 8 s → 0 s 与 8 s → 2 s，并保留 fuel/thrust/orbit A/B。
+- 这使“控制命令变化”和“官方 Thruster/FuelTank 物理结果”形成两层独立证据。新增字段已同步 capability trace_fields、operator effects、observability 和 effect registry。最终结论等待官方 Basilisk 2.11.0 CI。
