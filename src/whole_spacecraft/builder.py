@@ -659,6 +659,9 @@ def build_whole_spacecraft_graph(
         raise RuntimeError("COMPOSITE_NATIVE_RW_POWER_REQUIRES_WHEEL_OUTPUT_MESSAGES")
     adcs_base_power_w = 10.0
     adcs_drive_efficiency = 0.75
+    # Preserve the legacy 120 W envelope as a fail-closed monitor. The
+    # official module is never clamped; a real exceedance rejects the run.
+    adcs_power_monitoring_limit_w = 120.0
     adcs_power_nodes: list[Any] = []
     for wheel_index, rw_state_msg in enumerate(rw_state_messages):
         power_node = ReactionWheelPower.ReactionWheelPower()
@@ -1053,6 +1056,7 @@ def build_whole_spacecraft_graph(
         "payload_power_bridge": resource_feedback_bridges.get("payload"),
         "comm_power_bridge": resource_feedback_bridges.get("comm"),
         "adcs_power_nodes": tuple(adcs_power_nodes),
+        "adcs_power_monitoring_limit_w": adcs_power_monitoring_limit_w,
         "propulsion_power_bridge": resource_feedback_bridges.get("propulsion"),
         "rw_cluster": adcs_graph.rw_closed_loop.rw_state_effector,
         "reaction_wheel_bundle": adcs_graph.rw_closed_loop.rw_bundle,
