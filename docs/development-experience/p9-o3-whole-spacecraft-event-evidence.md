@@ -42,3 +42,11 @@
 - 整星普通向导目录收敛为 fault 3、degradation 2、constraint 1；底层 14 个运行时声明保留，未验证的八项只在普通向导隐藏。不能把 UI 隐藏说成高级 TaskSpec 已拒绝。
 - PR #188 同一 head 的正式 native workflow、17 项 formal runtime、2 项 catalog contract 和 13 项真实 Chromium JUnit 均通过；Artifact `14484456607` 保留完整证据。
 - O3-A 的 Chromium 旅程只验证目录隔离；O3-B/C 仍必须逐事件做 whole-spacecraft sealed A/B 与真实运行旅程。
+
+
+## O3-B 推进事件直接命令证据补齐（2026-11-19）
+
+- PR 说明曾声明记录官方 `THRArrayOnTimeCmdMsgPayload.OnTimeRequest`，但代码审计发现 trace 实际只有燃烧状态、推力和燃料记录，没有逐采样命令请求字段。仅靠燃料消耗与轨道响应能证明结果变化，但无法直接审计控制器施加的命令持续时间。
+- 已将 `PropulsionBurnController.commandOutMsg` 纳入统一 recorder map，并新增 `propulsion.burn_command_on_time_s`（各推进器请求 on-time 的最大值）和 `propulsion.nominal_burn_command_on_time_s`（TaskSpec 配置标称值）。这两个字段来自实际官方 THRArrayOnTimeCmdMsg recorder，不是根据事件参数反推的派生值。
+- 点火失败 profile 现在要求事件期间实际 OnTimeRequest 为 0；冲量损失 profile 要求实际请求小于标称请求且大于 0。paired Run Bundle 同时断言 nominal 8 s、ignition failure 0 s、impulse loss 2 s（配置比例 0.25），并保留燃料消耗、推力及轨道响应 A/B。
+- 新增字段已同步 capability trace_fields、operator effect evidence、observability effect_evidence 与两个 formal profiles；字段集合需保持四方一致。官方 Basilisk CI 结果待当前 PR head 验证。
