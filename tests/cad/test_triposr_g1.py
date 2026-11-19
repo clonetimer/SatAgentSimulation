@@ -236,3 +236,13 @@ def test_image_to_3d_manifest_schema_requires_permission_for_generation(tmp_path
     manifest["source_image"]["license"]["permitted_uses"] = ["model_generation"]
     with pytest.raises(Exception):
         Draft202012Validator(schema).validate(manifest)
+
+
+
+@pytest.mark.parametrize("minimum_vram", [True, float("nan"), float("inf"), 0.99])
+def test_image_to_3d_manifest_rejects_invalid_vram_thresholds(tmp_path, monkeypatch, minimum_vram):
+    manifest_path, manifest, _, _ = _fixture(tmp_path, monkeypatch)
+    manifest["config"]["minimum_free_vram_gb"] = minimum_vram
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="P9M4I_TRIPOSR_MINIMUM_VRAM_INVALID"):
+        triposr_g1.validate_image_to_3d_manifest(manifest_path)
