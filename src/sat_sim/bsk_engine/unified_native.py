@@ -609,15 +609,19 @@ def _build_unified_rows(
                     thruster_rec = recorder_map[key]
                     thrust_forces.append(float(thruster_rec.thrustForce[index]))
                     thrust_factors.append(float(thruster_rec.thrustFactor[index]))
+                burn_command = recorder_map["propulsion_burn_command"].OnTimeRequest[index]
                 row.update({
                     "propulsion.enabled": 1,
                     "propulsion.burn_active": int(recorder_map["propulsion_burn_status"].deviceStatus[index]),
                     "propulsion.burn_permitted": int(recorder_map["propulsion_permission"].deviceStatus[index]),
                     "propulsion.fuel_mass_kg": float(fuel_rec.fuelMass[index]),
+                    "propulsion.initial_fuel_mass_kg": float(cfg.values.get("propulsion_initial_propellant_kg", 1.0)),
                     "propulsion.fuel_mass_dot_kg_s": float(fuel_rec.fuelMassDot[index]),
                     "propulsion.total_thrust_n": sum(thrust_forces),
                     "propulsion.max_thrust_factor": max(thrust_factors, default=0.0),
                     "propulsion.electrical_power_w": max(0.0, -float(recorder_map["propulsion_power"].netPower[index])),
+                    "propulsion.burn_command_on_time_s": max((float(value) for value in burn_command), default=0.0),
+                    "propulsion.nominal_burn_on_time_s": float(cfg.values.get("propulsion_burn_on_time_s", 4.0)),
                     "propulsion.thrust_force_n_0": thrust_forces[0] if thrust_forces else 0.0,
                     "propulsion.thrust_force_n_1": thrust_forces[1] if len(thrust_forces) > 1 else 0.0,
                 })
@@ -1861,6 +1865,7 @@ class UnifiedNativeRuntime:
                     "propulsion_fuel": whole_modules["propulsion_fuel_tank"].fuelTankOutMsg,
                     "propulsion_burn_status": whole_modules["propulsion_controller"].burnStatusOutMsg,
                     "propulsion_permission": whole_modules["propulsion_controller"].permissionStatusOutMsg,
+                    "propulsion_burn_command": whole_modules["propulsion_controller"].commandOutMsg,
                 })
                 messages["propulsion_power"] = whole_modules["propulsion_power_bridge"].powerOutMsg
                 for thruster_index, thruster_msg in enumerate(whole_modules["propulsion_thrusters"].thrusterOutMsgs):
