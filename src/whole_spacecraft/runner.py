@@ -616,7 +616,7 @@ def _execute_whole_spacecraft_graph(
         sc_position = _rec_vector(recorders.get("spacecraft_state"), "r_BN_N", i)
         sc_velocity = _rec_vector(recorders.get("spacecraft_state"), "v_BN_N", i)
         propulsion_sample = _trace_sample_at(propulsion_power_trace, time_s)
-        heater_names = [name for name in recorders if name.startswith("heater_") and name != "heater_eps_feedback"]
+        heater_names = [name for name in recorders if name.startswith("heater_") and name != "heater_eps_feedback" and not name.startswith("heater_eps_power_")]
         heater_active_count = sum(1.0 for name in heater_names if _rec_value(recorders.get(name), "deviceStatus", i, 0.0) > 0.5)
         pdu_heater_enabled = 1.0 if _rec_value(recorders.get("pdu_heater_status"), "deviceStatus", i, 0.0) > 0.5 else 0.0
         rf_cnr = max(
