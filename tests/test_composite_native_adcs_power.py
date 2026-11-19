@@ -13,6 +13,7 @@ def _run(initial_soc: float):
     graph = build_whole_spacecraft_graph(WholeSpacecraftConfig(
         initial_soc=initial_soc,
         mission_initial_sigma_bn=(0.1, 0.0, 0.0),
+        recorder_step_s=0.2,
         propulsion_enabled=False,
     ))
     graph.sim.InitializeSimulation()
