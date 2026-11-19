@@ -4,11 +4,16 @@ on:
   pull_request:
     paths:
       - "src/sat_sim/synthetic_asset_generation.py"
+      - "src/sat_sim/triposr_g1.py"
       - "src/sat_sim/schemas/synthetic-reference-geometry.v1.schema.json"
+      - "src/sat_sim/schemas/p9m4i-image-to-3d-input.v1.schema.json"
       - "scripts/cad/audit_synthetic_asset.py"
+      - "scripts/cad/run_triposr_g1.py"
       - "scripts/cad/build_parametric_synthetic_asset.FCMacro"
       - "docs/superpowers/benchmarks/2026-11-17-p9m4i-parametric-input.schema.json"
       - "tests/cad/test_synthetic_asset_generation.py"
+      - "tests/cad/test_triposr_g1.py"
+      - "docs/development-experience/p9m4m-glb-audit.md"
       - "docs/superpowers/plans/2026-11-17-p9m4i-ai-engineering-asset-generation.md"
       - "docs/superpowers/benchmarks/2026-11-17-p9m4i-three-device-benchmark.json"
       - "docs/superpowers/reviews/2026-11-17-p9m4i-three-device-source-intake.md"
@@ -41,8 +46,9 @@ jobs:
         env:
           PYTHONPATH: "src"
         run: |
-          python -m pytest -q tests/cad/test_synthetic_asset_generation.py
+          python -m pytest -q tests/cad/test_synthetic_asset_generation.py tests/cad/test_triposr_g1.py
           python scripts/cad/audit_synthetic_asset.py --help
+          python scripts/cad/run_triposr_g1.py --help
       - name: Validate benchmark manifest
         shell: bash
         run: |
