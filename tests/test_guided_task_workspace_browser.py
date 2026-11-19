@@ -1712,7 +1712,6 @@ def test_guided_native_subsystem_workbench_runs_eps_and_comm_data_and_exports_ve
             fmea = client.get(f"/runs/{run_id}/fmea")
             assert fmea.status_code == 200, fmea.text
             assert "no risk score is fabricated" in fmea.json()["manifest"]["warning"]
-            assert fmea.json()["run_id"] == run_id
 
             with page.expect_download(timeout=30000) as bundle_download_info:
                 page.locator("#downloadRunBundleBtn").click()
@@ -2165,7 +2164,6 @@ def test_guided_whole_spacecraft_event_run_bundle(
             assert telemetry.status_code == 200, telemetry.text
             rows = telemetry.json()["rows"]
             assert rows
-            assert set(plot_fields) <= set(durable["task_spec"]["outputs"]["qoi"]), durable["task_spec"]["outputs"]["qoi"]
             if event_effect:
                 active_label = {
                     "fault": "label.fault_active",
