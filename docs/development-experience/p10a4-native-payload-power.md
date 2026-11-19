@@ -27,6 +27,7 @@ This is a deliberate model-semantics change. The active load is unchanged at nom
 3. The SimplePowerSink status input gates the fixed load; do not infer load from a UI or PDU state alone.
 4. The same official `PowerNodeUsageMsg` feeds EPS and thermal, preventing two independent payload-power estimates.
 5. Power-on/off A/B must leave data generation and storage unchanged; otherwise the power-accounting migration has accidentally changed the science-data path.
+6. Thermal energy accumulators advance only when the thermal task executes. The first A/B test used an 8 s horizon with the default 10 s thermal period, so the thermal bridge only saw its zero-dt initialization sample. Set the thermal task period inside the test horizon (0.2 s here) before asserting integrated energy; do not misdiagnose a sampling-cadence issue as a missing message link.
 
 ## Acceptance still pending
 
