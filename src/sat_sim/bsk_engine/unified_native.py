@@ -167,18 +167,42 @@ def _bridge_health_payload(bridge: Any) -> dict[str, Any]:
 
 
 def _native_comm_antenna_power_health(
-    rows: list[dict[str, Any]], *, base_power_w: float, tx_power_w: float,
+    rows: list[dict[str, Any]], *,
+    base_power_w: float,
+    tx_power_w: float,
+    adapter_trace: list[Any] | tuple[Any, ...] = (),
 ) -> dict[str, Any]:
-    """Verify native antenna power follows PDU and actual RF transmission state."""
+    """Verify native Comm power follows PDU, RF attempt and physical antenna state."""
     tolerance_w = 1.0e-6
-    expected_tx_power_w = float(base_power_w) + float(tx_power_w)
+    expected_nominal_tx_power_w = float(base_power_w) + float(tx_power_w)
     powers: list[float] = []
+    antenna_tx_powers: list[float] = []
     tx_count = 0
     idle_count = 0
     runtime_pdu_states: list[bool] = []
     runtime_tx_states: list[bool] = []
     errors: list[str] = []
     violations: list[dict[str, Any]] = []
+
+    def _adapter_sample_at(time_s: float):
+        if not adapter_trace:
+            return None
+        return min(
+            adapter_trace,
+            key=lambda sample: abs(float(getattr(sample, "time_ns", 0)) * macros.NANO2SEC - time_s),
+        )
+
+    for sample in adapter_trace:
+        sample_time_s = float(getattr(sample, "time_ns", 0)) * macros.NANO2SEC
+        sample_status = getattr(sample, "input_status", None)
+        if sample_time_s > 0.0 and sample_status in {
+            InputReadStatus.ERROR, InputReadStatus.NOT_READY,
+        }:
+            errors.append(
+                f"COMM_ANTENNA_ADAPTER_INPUT_INVALID:t={sample_time_s:.9g}:"
+                f"{getattr(sample, 'error', None) or sample_status}"
+            )
+
     for row in rows:
         try:
             time_s = float(row.get("time_s", 0.0))
@@ -201,35 +225,51 @@ def _native_comm_antenna_power_health(
             errors.append("COMM_ANTENNA_POWER_TELEMETRY_NON_FINITE_OR_NEGATIVE")
             continue
 
-        # Basilisk's t=0 recorder row is a reset/scheduler barrier. Depending
-        # on reset ordering, the antenna power node may still publish its
-        # pre-update TX load while the status adapter is publishing its first
-        # PDU/downlink-derived state. Do not use that row as causal evidence;
-        # every positive-time sample remains strictly audited.
-        initialization_sample = time_s <= 0.0
-        if initialization_sample:
+        # t=0 is a reset/scheduler barrier, not a physical power sample.
+        if time_s <= 0.0:
             continue
 
-        expected_tx = bool(pdu_enabled and link_active and attempted > 0.0)
+        adapter_sample = _adapter_sample_at(time_s)
+        if adapter_sample is None:
+            errors.append(f"COMM_ANTENNA_ADAPTER_SAMPLE_MISSING:t={time_s:.9g}")
+            continue
+        adapter_status = getattr(adapter_sample, "input_status", None)
+        antenna_state = int(getattr(adapter_sample, "antenna_state", 0))
+        antenna_tx_power = float(getattr(adapter_sample, "antenna_tx_power_w", 0.0))
+        if adapter_status is not InputReadStatus.VALID:
+            errors.append(
+                f"COMM_ANTENNA_ADAPTER_SAMPLE_INVALID:t={time_s:.9g}:"
+                f"{getattr(adapter_sample, 'error', None) or adapter_status}"
+            )
+            continue
+        if not math.isfinite(antenna_tx_power) or antenna_tx_power < 0.0:
+            errors.append("COMM_ANTENNA_RF_POWER_NON_FINITE_OR_NEGATIVE")
+            continue
+
+        expected_tx = bool(
+            pdu_enabled and link_active and attempted > 0.0
+            and antenna_state in (2, 3) and antenna_tx_power > 0.0
+        )
         expected_idle = bool(pdu_enabled and not expected_tx)
-        expected_power = expected_tx_power_w if expected_tx else 0.0
+        expected_power = (
+            float(base_power_w) + antenna_tx_power
+            if expected_tx else 0.0
+        )
         powers.append(actual)
+        antenna_tx_powers.append(antenna_tx_power)
         tx_count += int(tx_enabled)
         idle_count += int(idle_enabled)
         runtime_pdu_states.append(pdu_enabled)
         runtime_tx_states.append(tx_enabled)
 
-        if initialization_sample:
-            # At t=0, Basilisk module Reset ordering can expose the antenna's
-            # initial TX log before the status-only adapter's first runtime
-            # update reaches AntennaPower. It is not an integrated load sample.
-            continue
         if tx_enabled is not expected_tx:
             violations.append({
                 "time_s": time_s,
                 "reason": "tx_status_mismatch",
                 "expected": expected_tx,
                 "actual": tx_enabled,
+                "antenna_state": antenna_state,
+                "antenna_tx_power_w": antenna_tx_power,
             })
         if idle_enabled is not expected_idle:
             violations.append({
@@ -266,12 +306,16 @@ def _native_comm_antenna_power_health(
         "idle_enabled_sample_count": idle_count,
         "power_min_w": min(powers) if powers else 0.0,
         "power_max_w": max(powers) if powers else 0.0,
-        "expected_tx_power_w": expected_tx_power_w,
+        "antenna_tx_power_min_w": min(antenna_tx_powers) if antenna_tx_powers else 0.0,
+        "antenna_tx_power_max_w": max(antenna_tx_powers) if antenna_tx_powers else 0.0,
+        "expected_tx_power_w": expected_nominal_tx_power_w,
         "base_power_w": float(base_power_w),
         "antenna_tx_power_w": float(tx_power_w),
-        "tx_enable_condition": "pdu_comm_enabled && downlink.linkActive && downlink.attemptedDataRate > 0",
+        "tx_enable_condition": "pdu_comm_enabled && linkActive && attemptedDataRate > 0 && physical_antenna_state in {TX,RXTX} && P_Tx > 0",
         "source": "Basilisk.simulation.antennaPower.AntennaPower",
-        "antenna_input": "SimpleAntenna.antennaOutMsg",
+        "antenna_input": "DownlinkAntennaStatusAdapter.antennaPowerOutMsg",
+        "antenna_source": "SimpleAntenna.antennaOutMsg",
+        "base_power_node": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
         "status_adapter": "DownlinkAntennaStatusAdapter",
     }
 
@@ -2507,6 +2551,7 @@ class UnifiedNativeRuntime:
                     rows,
                     base_power_w=whole_modules["comm_antenna_base_power_w"],
                     tx_power_w=whole_modules["comm_antenna_tx_power_w"],
+                    adapter_trace=whole_modules["comm_status_adapter"].trace,
                 ),
             }
             bridge_health.update({name: _bridge_health_payload(bridge) for name, bridge in bridge_objects.items()})
