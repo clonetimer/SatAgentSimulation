@@ -37,3 +37,7 @@ The former `DownlinkActivityPowerBridge` inferred power from a rate-normalized p
 ## Cross-environment import regression found by CI
 
 The first PR run exposed that the new adapter was defined only inside the Basilisk-present branch, while `unified_native.py` imports it at module load time. That broke lightweight test and tooling environments that intentionally omit Basilisk. The module now exports a `None` placeholder in the no-Basilisk branch, matching the existing optional bridge contract. Native runtime construction still requires official Basilisk; the placeholder is import compatibility only.
+
+## Reset-barrier correction from first native CI
+
+The first full Basilisk run showed that the t=0 row is not merely a possible `NOT_READY` input: reset ordering can leave the official AntennaPower node's first recorder value at its pre-update TX draw while the adapter publishes an idle status. That is a reset-barrier artifact, not a runtime causal sample. The health audit now excludes the complete t=0 row (power, TX/idle status and PDU transition counts) and strictly checks every positive-time sample. This avoids false failures without relaxing runtime checks.
