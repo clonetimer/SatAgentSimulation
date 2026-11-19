@@ -1172,10 +1172,13 @@ outputs:
   - thermal.payload_temp_k
   - thermal.radiator_rejection_ratio
   - adcs.sensor.gyro_measured_rad_s_*
+  - adcs.sensor.gyro_bias_norm_rad_s
   - adcs.sensor.gyro_bias_rad_s_*
+  - adcs.sensor.gyro_noise_norm_rad_s
   - adcs.sensor.gyro_noise_rad_s_*
   - adcs.rw.command_torque_nm_*
   - adcs.control.applied_torque_nm_*
+  - adcs.rw.effective_torque_ratio_*
   - adcs.rw.effective_drag_nms_*
   - adcs.rw.effective_max_torque_nm_*
   - adcs.rw.effective_max_speed_rad_s_*
@@ -1197,6 +1200,8 @@ outputs:
   - propulsion.burn_command_on_time_s
   - propulsion.nominal_burn_command_on_time_s
   - propulsion.fuel_mass_kg
+  - propulsion.initial_propellant_kg
+  - propulsion.propellant_used_kg
   - propulsion.fuel_mass_dot_kg_s
   - propulsion.total_thrust_n
   - propulsion.max_thrust_factor
