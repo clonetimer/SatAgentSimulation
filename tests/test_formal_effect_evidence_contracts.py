@@ -184,7 +184,7 @@ def test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect(
     spec = _spec(
         WHOLE_ID,
         category="fault",
-        event=_event("adcs_star_tracker_signal_loss", target="whole_spacecraft"),
+        event=_event("adcs_imu_signal_loss", target="whole_spacecraft"),
     )
     planning = plan_task_spec(spec)
     assert not planning.validation.ok
