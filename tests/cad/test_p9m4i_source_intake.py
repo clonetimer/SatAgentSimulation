@@ -6,10 +6,15 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 
 _SOURCE_SCRIPT = (
     Path(__file__).resolve().parents[2]
     / "scripts" / "cad" / "fetch_p9m4i_source_image.py"
+)
+_WORKFLOW_PATH = (
+    Path(__file__).resolve().parents[2]
+    / ".github" / "workflows" / "p9m4i-synthetic-assets.yml"
 )
 _SPEC = importlib.util.spec_from_file_location("p9m4i_source_intake_test_module", _SOURCE_SCRIPT)
 assert _SPEC is not None and _SPEC.loader is not None
@@ -109,6 +114,7 @@ def test_fetch_nasa_star_tracker_source_writes_original_bytes_and_receipt(tmp_pa
     assert receipt["width_px"] == 1000
     assert receipt["height_px"] == 750
     assert receipt["sha256"] == hashlib.sha256(payload).hexdigest()
+    assert receipt["source_bytes_retained"] is True
     assert receipt["source_credit"] == "NASA/JPL-Caltech"
     assert receipt["source_rights_assessment"]["status"] == (
         "policy_basis_found_pending_project_owner_signoff"
@@ -187,3 +193,52 @@ def test_fetch_refuses_to_overwrite_existing_source_evidence(tmp_path):
 
     with pytest.raises(ValueError, match="P9M4I_SOURCE_INTAKE_OUTPUT_ALREADY_EXISTS"):
         fetch_nasa_star_tracker_source(tmp_path, opener=opener)
+
+
+
+def test_fetch_receipt_only_mode_does_not_persist_original_source(tmp_path):
+    payload = _minimal_jpeg(1000, 750)
+
+    def opener(_request, timeout):
+        assert timeout == 45
+        return _Response(payload)
+
+    receipt = fetch_nasa_star_tracker_source(
+        tmp_path,
+        opener=opener,
+        expected_sha256=hashlib.sha256(payload).hexdigest(),
+        retain_source_bytes=False,
+    )
+    image = tmp_path / "nasa-europa-clipper-star-tracker-mockup.jpg"
+    metadata_path = tmp_path / "source-intake.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+
+    assert not image.exists()
+    assert metadata_path.is_file()
+    assert receipt == metadata
+    assert receipt["source_bytes_retained"] is False
+    assert receipt["size_bytes"] == len(payload)
+    assert receipt["width_px"] == 1000
+    assert receipt["height_px"] == 750
+    assert receipt["sha256"] == hashlib.sha256(payload).hexdigest()
+    assert receipt["inference_eligible"] is False
+
+
+def test_public_source_intake_workflow_uploads_metadata_receipt_only():
+    workflow = yaml.safe_load(_WORKFLOW_PATH.read_text(encoding="utf-8"))
+    steps = workflow["jobs"]["nasa-source-intake"]["steps"]
+    fetch_step = next(
+        step for step in steps
+        if step.get("name", "").startswith("Fetch and hash NASA source")
+    )
+    assert "--receipt-only" in fetch_step["run"]
+
+    uploads = [
+        step for step in steps
+        if str(step.get("uses", "")).startswith("actions/upload-artifact@")
+    ]
+    assert len(uploads) == 1
+    upload = uploads[0]["with"]
+    assert upload["name"] == "p9m4i-nasa-star-tracker-intake-receipt"
+    assert upload["path"] == "reports/p9m4i/source-intake/source-intake.json"
+    assert upload["retention-days"] == 7
