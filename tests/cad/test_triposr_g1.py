@@ -12,9 +12,17 @@ from jsonschema import Draft202012Validator
 from sat_sim import triposr_g1
 
 
-def _write_glb(path: Path) -> None:
-    points = [(0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
-    binary = struct.pack("<9f", *(value for point in points for value in point))
+def _write_glb(path: Path, points=None) -> None:
+    if points is None:
+        # Two non-coplanar triangles give the structural fixture non-zero XYZ
+        # extents while retaining a minimal, non-indexed triangle-list mesh.
+        points = [
+            (0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0),
+            (0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0),
+        ]
+    binary = struct.pack(f"<{len(points) * 3}f", *(value for point in points for value in point))
+    mins = [min(point[axis] for point in points) for axis in range(3)]
+    maxs = [max(point[axis] for point in points) for axis in range(3)]
     document = {
         "asset": {"version": "2.0"},
         "scene": 0,
@@ -26,10 +34,10 @@ def _write_glb(path: Path) -> None:
         "accessors": [{
             "bufferView": 0,
             "componentType": 5126,
-            "count": 3,
+            "count": len(points),
             "type": "VEC3",
-            "min": [0.0, 0.0, 0.0],
-            "max": [1.0, 1.0, 0.0],
+            "min": mins,
+            "max": maxs,
         }],
     }
     raw_json = json.dumps(document, separators=(",", ":")).encode("utf-8")
@@ -42,6 +50,17 @@ def _write_glb(path: Path) -> None:
         + struct.pack("<I4s", len(raw_json), b"JSON") + raw_json
         + struct.pack("<I4s", len(binary), b"BIN\\0") + binary
     )
+
+
+def test_audit_glb_rejects_zero_extent_geometry(tmp_path):
+    planar_points = [
+        (0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0),
+        (0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (1.0, 1.0, 0.0),
+    ]
+    path = tmp_path / "zero-depth.glb"
+    _write_glb(path, points=planar_points)
+    with pytest.raises(ValueError, match="P9M4I_GLB_ZERO_OR_INVALID_EXTENT"):
+        triposr_g1.audit_glb(path)
 
 
 def _git(repository: Path, *args: str) -> str:
@@ -66,14 +85,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument("image")
 parser.add_argument("--output-dir", required=True)
 args, _ = parser.parse_known_args()
-points = [(0.0,0.0,0.0),(1.0,0.0,0.0),(0.0,1.0,0.0)]
-binary = struct.pack("<9f", *(v for p in points for v in p))
+points = [(0.0,0.0,0.0),(1.0,0.0,0.0),(0.0,1.0,0.0),
+          (0.0,0.0,0.0),(0.0,1.0,0.0),(0.0,0.0,1.0)]
+binary = struct.pack("<18f", *(v for p in points for v in p))
 doc = {"asset":{"version":"2.0"},"scene":0,"scenes":[{"nodes":[0]}],
        "nodes":[{"mesh":0}],"meshes":[{"primitives":[{"attributes":{"POSITION":0}}]}],
        "buffers":[{"byteLength":len(binary)}],
        "bufferViews":[{"buffer":0,"byteOffset":0,"byteLength":len(binary)}],
-       "accessors":[{"bufferView":0,"componentType":5126,"count":3,"type":"VEC3",
-                     "min":[0.0,0.0,0.0],"max":[1.0,1.0,0.0]}]}
+       "accessors":[{"bufferView":0,"componentType":5126,"count":6,"type":"VEC3",
+                     "min":[0.0,0.0,0.0],"max":[1.0,1.0,1.0]}]}
 raw = json.dumps(doc,separators=(",",":")).encode("utf-8")
 raw += b" " * (-len(raw) % 4)
 binary += b"\\0" * (-len(binary) % 4)
@@ -197,6 +217,10 @@ def test_triposr_worker_emits_unregistered_g1_candidate_and_audited_glb(tmp_path
 
 
 def test_image_to_3d_manifest_schema_requires_permission_for_generation(tmp_path, monkeypatch):
+    # Keep the production model pins before _fixture patches them to its local
+    # temporary Git repository; this test validates the committed schema pins.
+    pinned_revision = triposr_g1.TRIPOSR_REVISION
+    pinned_license_blob_sha1 = triposr_g1.TRIPOSR_LICENSE_BLOB_SHA1
     manifest_path, manifest, _, _ = _fixture(tmp_path, monkeypatch)
     schema_path = (
         Path(__file__).resolve().parents[2]
@@ -204,8 +228,10 @@ def test_image_to_3d_manifest_schema_requires_permission_for_generation(tmp_path
     )
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
-    manifest["model"]["revision"] = triposr_g1.TRIPOSR_REVISION
-    manifest["model"]["license_blob_sha1"] = triposr_g1.TRIPOSR_LICENSE_BLOB_SHA1
+    assert schema["properties"]["model"]["properties"]["revision"]["const"] == pinned_revision
+    assert schema["properties"]["model"]["properties"]["license_blob_sha1"]["const"] == pinned_license_blob_sha1
+    manifest["model"]["revision"] = pinned_revision
+    manifest["model"]["license_blob_sha1"] = pinned_license_blob_sha1
     Draft202012Validator(schema).validate(manifest)
     manifest["source_image"]["license"]["permitted_uses"] = ["model_generation"]
     with pytest.raises(Exception):
