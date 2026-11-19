@@ -1252,7 +1252,7 @@ def test_guided_native_subsystem_workbench_runs_adcs_and_exports_verified_run_bu
                 "integrity_ok": durable["integrity"]["ok"],
             }
             browser_bundle_archive.with_suffix(".json").write_text(
-                json.dumps(browser_bundle_metadata, ensure_ascii=False, indent=2) + "\\n",
+                json.dumps(browser_bundle_metadata, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8",
             )
 
