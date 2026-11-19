@@ -184,3 +184,12 @@ This remains a bounded structural audit, not a replacement for the Khronos glTF 
 4. 电池组和反作用轮继续作为 BIRDS-4 真实 STEP ground-truth controls；不再将它们计入缺失 CAD 的 AI 生成对象。
 
 经验：产品页出现 CAD 下载标记不等于原始 CAD 已可下载，更不等于拥有再使用权；开源星敏软件/PCB 也不等于完整机械 CAD。模型选型必须同时核对显存、输出格式、Windows/Linux 支持和模型/权重许可证。
+
+## 2026-11-19：公开 CI 原始来源制品策略修正
+
+本仓库为 public，GitHub Actions artifacts 对仓库读取者可下载。此前 NASA 来源采集 job 将原始 JPEG 与 receipt 一起上传，和该来源的 `external_distribution_allowed=false`、`project_owner_signoff=pending` 状态冲突。
+
+- CLI 增加 `--receipt-only`：CI 只在内存中读取源图并校验 MIME、JPEG 结构、尺寸和 SHA-256，不将原始图写入 runner 工作目录。
+- 公开 artifact 仅上传 `source-intake.json`，记录来源 URI、credit、字节数、尺寸、SHA-256、权利状态和 `inference_eligible=false`；保留期 7 天。
+- 两个历史公开原图 artifact 需要手动删除：run `44482953922` / artifact `14509376634`；run `44485479649` / artifact `14510716115`。删除前不得合并；新工作流不会自动删除旧 artifact。
+- 本次修正不改变来源用途判断，不代表 NASA/JPL-Caltech 已批准本项目使用；不运行 TripoSR，不生成星敏感器模型。
