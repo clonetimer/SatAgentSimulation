@@ -634,6 +634,7 @@ def build_whole_spacecraft_graph(
     power_inputs: list[tuple[Any, float, str, str]] = []
     shadow_factor_msg = None
     heater_feedback = None
+    heater_power_nodes: dict[str, Any] = {}
     resource_feedback_bridges: dict[str, Any] = {}
 
     payload_status_msg = eps_graph.status_messages.get("payload")
@@ -945,21 +946,31 @@ def build_whole_spacecraft_graph(
             )
 
         if coupling.enable_thermal_heaters_to_eps_load and thermal_graph.network.heaters:
-            heater_feedback = build_heater_power_feedback_bridge([
-                (heater.heaterOutMsg, heater.params.power_w)
-                for heater in thermal_graph.network.heaters.values()
-            ])
-            if heater_feedback.heaterInMsgs:
-                sim.AddModelToTask(thermal_task_name, heater_feedback)
-                battery.addPowerNodeToModel(heater_feedback.powerOutMsg)
+            # P10-A3: thermal-network heater state directly gates official
+            # Basilisk SimplePowerSink nodes. No project-owned power equation
+            # or aggregate PowerNodeUsage bridge is needed for binary loads.
+            from components.power_sink.builder import build_simple_power_sink
+
+            for name, heater in thermal_graph.network.heaters.items():
+                power_node = build_simple_power_sink(
+                    f"thermalHeaterPower_{name}",
+                    -abs(float(heater.params.power_w)),
+                )
+                power_node.nodeStatusInMsg.subscribeTo(heater.heaterOutMsg)
+                sim.AddModelToTask(thermal_task_name, power_node)
+                battery.addPowerNodeToModel(power_node.nodePowerOutMsg)
+                heater_power_nodes[str(name)] = power_node
+            if heater_power_nodes:
                 coupling_matrix["thermal_heaters_to_eps_load"] = _coupling_record(
                     name="thermal_heaters_to_eps_load",
                     source_subsystem="thermal",
                     sink_subsystem="eps",
-                    coupling_status="proxy_coupled_verified",
-                    interface="heater status/output -> HeaterPowerFeedback.PowerNodeUsageMsg -> battery.addPowerNodeToModel",
-                    evidence=tuple(f"{name}.heaterOutMsg power_w={heater.params.power_w}" for name, heater in thermal_graph.network.heaters.items()),
-                    notes=("Heater electrical load is bridged back to EPS as a power sink.",),
+                    coupling_status="coupled",
+                    interface="ThermalHeater.heaterOutMsg -> official SimplePowerSink.nodeStatusInMsg -> battery.addPowerNodeToModel",
+                    evidence=tuple(
+                        f"{name}.heaterOutMsg -> {node.ModelTag}.nodeStatusInMsg; power_w={-float(node.nodePowerOut)}"
+                        for name, node in heater_power_nodes.items()
+                    ),
                 )
         elif not coupling.enable_thermal_heaters_to_eps_load:
             coupling_matrix["thermal_heaters_to_eps_load"] = _disabled_coupling_record(
@@ -1128,6 +1139,8 @@ def build_whole_spacecraft_graph(
     if heater_feedback is not None:
         recorders["heater_eps_feedback"] = heater_feedback.powerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         sim.AddModelToTask(recorder_task_name, recorders["heater_eps_feedback"])
+    for heater_name, power_node in heater_power_nodes.items():
+        recorders[f"heater_eps_power_{heater_name}"] = power_node.nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
 
     if fuel_tank is not None:
         recorders["fuel_tank"] = fuel_tank.fuelTankOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
@@ -1172,6 +1185,7 @@ def build_whole_spacecraft_graph(
         "comm_antenna_base_power_w": comm_antenna_base_power_w,
         "comm_antenna_tx_power_w": comm_antenna_tx_power_w,
         "adcs_power_nodes": tuple(adcs_power_nodes),
+        "heater_power_nodes": dict(heater_power_nodes),
         "adcs_power_monitoring_limit_w": adcs_power_monitoring_limit_w,
         "propulsion_power_bridge": resource_feedback_bridges.get("propulsion"),
         "rw_cluster": adcs_graph.rw_closed_loop.rw_state_effector,
