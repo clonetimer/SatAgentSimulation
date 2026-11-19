@@ -95,7 +95,11 @@ def test_fetch_nasa_star_tracker_source_writes_original_bytes_and_receipt(tmp_pa
         assert timeout == 45
         return _Response(payload)
 
-    receipt = fetch_nasa_star_tracker_source(tmp_path, opener=opener)
+    receipt = fetch_nasa_star_tracker_source(
+        tmp_path,
+        opener=opener,
+        expected_sha256=hashlib.sha256(payload).hexdigest(),
+    )
     image = tmp_path / "nasa-europa-clipper-star-tracker-mockup.jpg"
     metadata = json.loads((tmp_path / "source-intake.json").read_text(encoding="utf-8"))
 
@@ -116,6 +120,21 @@ def test_fetch_nasa_star_tracker_source_writes_original_bytes_and_receipt(tmp_pa
     assert receipt["source_rights_assessment"]["external_distribution_allowed"] is False
     assert receipt["preprocessing"]["background_removed"] is False
     assert receipt["inference_eligible"] is False
+
+
+def test_fetch_rejects_source_digest_not_matching_pinned_revision(tmp_path):
+    payload = _minimal_jpeg()
+
+    def opener(_request, timeout):
+        return _Response(payload)
+
+    with pytest.raises(ValueError, match="P9M4I_SOURCE_SHA256_NOT_PINNED"):
+        fetch_nasa_star_tracker_source(
+            tmp_path,
+            opener=opener,
+            expected_sha256="0" * 64,
+        )
+    assert not list(tmp_path.iterdir())
 
 
 def test_fetch_rejects_non_jpeg_content_type(tmp_path):
