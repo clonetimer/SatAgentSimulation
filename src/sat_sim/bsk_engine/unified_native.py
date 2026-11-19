@@ -1829,13 +1829,26 @@ class UnifiedNativeRuntime:
                 connected("project_eps_pdu.adcsStatusOutMsg", power_node.ModelTag)
                 connected(f"{power_node.ModelTag}.nodePowerOutMsg", "battery")
                 adcs_power_nodes.append(power_node)
-            payload_power_bridge = DataActivityPowerBridge(
-                "project_payload_activity_power_bridge",
-                nominal_rate_bps=max(1.0, float(values.get("payload_data_rate_bps", 2_500_000.0))),
-                active_power_w=float(values.get("payload_power_w", 38.0)),
+            # Fixed active-mode Payload load: actual instrument activity and
+            # PDU permission gate an official Basilisk SimplePowerSink.
+            payload_status_adapter = PayloadActivityStatusAdapter(
+                "project_payload_activity_status_adapter",
                 data_msg=instrument.nodeDataOutMsg,
                 enable_status_msg=pdu.payloadStatusOutMsg,
             )
+            add(payload_status_adapter, payload_status_adapter.ModelTag, "basilisk_project_native", 39)
+            from Basilisk.simulation import simplePowerSink
+            payload_power_node = simplePowerSink.SimplePowerSink()
+            payload_power_node.ModelTag = "native_payload_power"
+            payload_power_node.nodePowerOut = -abs(float(values.get("payload_power_w", 38.0)))
+            payload_power_node.powerStatus = 0
+            payload_power_node.nodeStatusInMsg.subscribeTo(payload_status_adapter.activeStatusOutMsg)
+            add(payload_power_node, payload_power_node.ModelTag, "basilisk_official_native", 38)
+            battery.addPowerNodeToModel(payload_power_node.nodePowerOutMsg)
+            connected("payload_instrument.nodeDataOutMsg", payload_status_adapter.ModelTag)
+            connected("project_eps_pdu.payloadStatusOutMsg", payload_status_adapter.ModelTag)
+            connected(f"{payload_status_adapter.ModelTag}.activeStatusOutMsg", payload_power_node.ModelTag)
+            connected(f"{payload_power_node.ModelTag}.nodePowerOutMsg", "battery")
             comm_active_power_w = float(values.get("downlink_power_w", 16.0))
             comm_antenna_tx_power_w = float(rf_access.spacecraft_antenna.getAntennaP_Tx())
             if (
@@ -1885,13 +1898,13 @@ class UnifiedNativeRuntime:
                 active_power_w=float(values.get("heater_power_w", 15.0)),
                 enable_status_msg=pdu.heaterStatusOutMsg,
             )
-            for bridge in (payload_power_bridge, heater_power_bridge):
-                add(bridge, bridge.ModelTag, "engineering_proxy", 54)
-                battery.addPowerNodeToModel(bridge.powerOutMsg)
-                connected(f"{bridge.ModelTag}.powerOutMsg", "battery")
+            add(heater_power_bridge, heater_power_bridge.ModelTag, "engineering_proxy", 54)
+            battery.addPowerNodeToModel(heater_power_bridge.powerOutMsg)
+            connected(f"{heater_power_bridge.ModelTag}.powerOutMsg", "battery")
             whole_modules.update({
                 "adcs_power_nodes": adcs_power_nodes,
-                "payload_power_bridge": payload_power_bridge,
+                "payload_power_node": payload_power_node,
+                "payload_status_adapter": payload_status_adapter,
                 "comm_power_node": comm_power_node,
                 "comm_base_power_node": comm_base_power_node,
                 "comm_status_adapter": comm_status_adapter,
@@ -2116,7 +2129,7 @@ class UnifiedNativeRuntime:
                 (sink.nodePowerOutMsg, 8./18., "electronics", "bus_electronics"),
                 (sink.nodePowerOutMsg, 3./18., "adcs", "bus_adcs"),
                 (sink.nodePowerOutMsg, 5./18., "solar_panel", "bus_solar_panel"),
-                (payload_power_bridge.powerOutMsg, 0.95, "payload", "payload_activity"),
+                (payload_power_node.nodePowerOutMsg, 0.95, "payload", "payload.instrument_active"),
                 (comm_power_node.nodePowerOutMsg, 0.90, "comm", "comm_antenna_tx"),
                 (comm_base_power_node.nodePowerOutMsg, 0.90, "comm", "comm_base_tx"),
                 (heater_power_bridge.powerOutMsg, 1.00, "battery", "pdu_heater"),
@@ -2212,7 +2225,7 @@ class UnifiedNativeRuntime:
                 "battery": whole_modules["battery"].batPowerOutMsg,
                 "panel": whole_modules["panel"].nodePowerOutMsg,
                 "bus_power": whole_modules["bus_power"].nodePowerOutMsg,
-                "payload_power": whole_modules["payload_power_bridge"].powerOutMsg,
+                "payload_power": whole_modules["payload_power_node"].nodePowerOutMsg,
                 "downlink_power": whole_modules["comm_power_node"].nodePowerOutMsg,
                 "comm_base_power": whole_modules["comm_base_power_node"].nodePowerOutMsg,
                 "comm_tx_status": whole_modules["comm_status_adapter"].txStatusOutMsg,
