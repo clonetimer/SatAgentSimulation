@@ -107,3 +107,11 @@
 - 新增正式 workflow step 和 Artifact：`reports/native_whole_spacecraft_events/effect_ab.xml` / `effect_ab.json`。
 - 扩展 formal effect runtime 用例，WHOLE_ID 从 6 个事件增至 14 个；同时检查 operator evidence_fields 与 profile evidence_fields 一致。
 - 该提交仍是 O3-B 候选实现；在当前分支官方 Basilisk CI 完成前，不把 8 个事件标记为通过，也不扩展普通用户向导 allowlist。
+
+
+## O3-B PR 与当前验收状态（2026-11-19）
+
+- Draft PR #189：`https://github.com/clonetimer/SatAgentSimulation/pull/189`，基于 O3-A merge commit `a96d7feddbb051cf0cf590a3f8c5e4679eed348a`。
+- 当前分支包含八个 whole-spacecraft effect profiles、10-run paired sealed bundle suite、burn command recorder、operator/profile field parity test 和 official Basilisk workflow gate。
+- PR head 上的 CI 仍是唯一准入依据；旧 head 或单独的 adapter unit test 不可替代正式 sealed Run Bundle A/B。
+- O3-B 未通过前，普通向导 allowlist 保持 O3-A 六项；O3-C 只在物理证据通过后增加八项浏览器旅程。
