@@ -973,6 +973,8 @@ class UnifiedNativeRuntime:
             sc.hub.IHubPntBc_B = [list(row) for row in new_hub_inertia_b]
         # RW4 parameters have no physical owner in a three-wheel graph;
         # reject them instead of silently dropping a requested hardware edit.
+        if len(rw_axes) != 4 and values.get("rw_initial_speed_rad_s_3") is not None:
+            raise ValueError("NATIVE_RW4_INITIAL_SPEED_REQUIRES_PYRAMID_4")
         if len(rw_axes) != 4 and values.get("rw_max_momentum_nms_3") is not None:
             raise ValueError("NATIVE_RW4_MOMENTUM_REQUIRES_PYRAMID_4")
         rw_factory.addToSpacecraft("reaction_wheels", rw, sc)
