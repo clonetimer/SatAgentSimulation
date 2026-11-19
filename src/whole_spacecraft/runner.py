@@ -58,6 +58,7 @@ def _finite_rows_ok(rows: list[WholeSpacecraftTraceRow]) -> bool:
         "battery_storage_j",
         "battery_soc",
         "net_power_w",
+        "comm_control_power_w",
         "data_storage_bits",
         "thermal_temp_c",
         "thermal_margin_c",
@@ -148,6 +149,7 @@ TRACE_FIELDS: tuple[str, ...] = (
     "tank_pressure_pa",
     "tank_pressure_available",
     "adcs_control_power_w",
+    "comm_control_power_w",
     "propulsion_power_w",
     "propulsion_activity",
     "propulsion_cumulative_energy_j",
@@ -659,6 +661,11 @@ def _execute_whole_spacecraft_graph(
                     max(0.0, -_rec_value(recorders.get(name), "netPower", i, 0.0))
                     for name in adcs_power_recorder_names
                 ),
+                comm_control_power_w=sum(
+                    max(0.0, -_rec_value(recorders.get(name), "netPower", i, 0.0))
+                    for name in ("comm_power_tx", "comm_power_idle", "comm_power_bridge")
+                    if recorders.get(name) is not None
+                ),
                 propulsion_power_w=max(0.0, -_rec_value(recorders.get("propulsion_power"), "netPower", i, float(getattr(propulsion_sample, "electrical_power_w", 0.0)))),
                 propulsion_activity=float(getattr(propulsion_sample, "activity", 0.0)),
                 propulsion_cumulative_energy_j=_trace_cumulative_energy_at(propulsion_power_trace, time_s),
@@ -1032,6 +1039,7 @@ def _execute_whole_spacecraft_graph(
         max_downlink_dropped_bps=max((r.downlink_dropped_bps for r in rows), default=0.0),
         max_adcs_control_power_w=max_native_adcs_power_w,
         adcs_power_monitoring_limit_w=adcs_power_monitoring_limit_w,
+        max_comm_control_power_w=max((row.comm_control_power_w for row in rows), default=0.0),
         final_attitude_error_deg=rows[-1].attitude_error_deg if rows else 0.0,
         runtime_unsupported_count=runtime_unsupported_count,
         runtime_fault_event_status=(runtime_fault_audit.get("runtime_event_status") if runtime_fault_audit is not None else "not_applicable"),
