@@ -26,6 +26,7 @@ Updated the guided whole-spacecraft browser Run Bundle assertion from 3/4 to 1/2
 - Runtime source-boundary inventory is a public acceptance contract: any component migration must update focused tests, propulsion/event tests, browser journeys and sealed Run Bundle assertions.
 - Use the exact run's observed summary values to update inventory expectations; do not assume the prior migration changed only one test surface.
 - The first browser count adjustment was incomplete: the focused test had been corrected but the independent browser suite still carried the old 3/4 expectation. Verify the full test file and the actual failing line, not just the PR patch fragment.
+- A test-only PR did not trigger the native browser workflow because `tests/test_guided_task_workspace_browser.py` was missing from that workflow's path filter. Add the test to both native and static workflow path filters so future assertion-only changes receive same-head browser and syntax validation.
 - Keep official Basilisk physical A/B evidence separate from browser acceptance. The former passed; the latter exposed a stale metadata expectation, not a physical coupling defect.
 
 ## Acceptance still pending
