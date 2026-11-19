@@ -54,6 +54,8 @@ def test_whole_spacecraft_guided_event_catalog_is_limited_to_verified_native_pro
     assert UNDECLARED_RUNTIME_EFFECTS.isdisjoint(set().union(*exposed.values()))
     trace_fields = set(schema["outputs"]["trace_fields"])
     assert {
+        "adcs.pointing_error_deg",
+        "attitude.truth.pointing_error_deg",
         "adcs.rw.effective_torque_ratio_0",
         "adcs.rw.effective_max_torque_nm_0",
         "adcs.rw.effective_drag_nms_0",
