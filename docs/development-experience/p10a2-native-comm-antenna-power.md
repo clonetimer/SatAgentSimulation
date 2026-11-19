@@ -48,3 +48,10 @@ The first PR run exposed that the new adapter was defined only inside the Basili
 - Same-head CI showed that the initial inherited status-port integration left the official AntennaPower node at 0 W while the adapter reported TX. The model must be verified by its actual PowerNodeUsageMsg, not inferred from a status flag.
 - The final design gates a power-only AntennaLogMsg copy and sets AntennaPower.basePowerNeed to zero. The RF source P_Tx/P_Rx are copied from SimpleAntenna; the original RF message and LinkBudget remain unchanged.
 - A separate official SimplePowerSink carries the 11 W / 25 W non-RF TX base draw and is controlled by the adapter's TX status. Composite's 2 W idle node remains separate.
+
+
+## Physical antenna state is part of the TX gate
+
+- PDU permission and native DownlinkHandling activity are necessary but not sufficient to create RF power. The adapter also requires the physical SimpleAntenna state to be TX or RXTX.
+- The power-only antenna log remains OFF when the real antenna is OFF/RX-only, even if downlink telemetry reports a TX attempt. This prevents a false electrical load when the physical RF device cannot transmit.
+- A focused Basilisk regression covers antenna-OFF behavior and verifies TX=0, idle follows PDU permission, and the power-only log remains OFF.
