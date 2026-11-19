@@ -1421,6 +1421,7 @@ operator:
       solar_panel_efficiency_loss:
       - eps.solar_array_efficiency_ratio
       - eps.solar_array_power_w
+      - eps.battery_soc
       thermal_radiator_rejection_loss:
       - thermal.radiator_rejection_ratio
       - thermal.payload_temp_k
