@@ -51,4 +51,4 @@ This slice removes only the unified-native heater proxy. It does not migrate the
 - Native heater electrical/deposited-heat contract, PDU fail-closed test, unified-native heater/Payload/Comm A/B, static checks, project script/dependency governance, unit-only tests, registered parameter audit, P9-H and finite-run browser tests passed.
 - Independent native component/subsystem physical and sealed Run Bundle acceptance passed, including guided browser Run journeys with final proxy inventory 0 nominal / 1 propulsion.
 - Evidence artifact: `p10a-native-rw-comm-heater-payload-eps-evidence` (Actions run 44576238049, attempt 2).
-- Full native whole-spacecraft regression passed through 180 simulated-second TC/TM soak and 30+ second wall-clock endurance; the 3600 simulated-second TC/TM soak was still running at merge time and remains pending.
+- Full native whole-spacecraft regression: PASS, including the 8+ second pilot, 30+ second real-wall-clock endurance/external audit, 180 simulated-second TC/TM soak, and 3600 simulated-second TC/TM soak.
