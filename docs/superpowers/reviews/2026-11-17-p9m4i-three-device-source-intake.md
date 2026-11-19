@@ -182,6 +182,14 @@ NASA 资料为 TripoSR G1 提供了一个比 KSST-01 厂商照片更有希望的
 ## 2026-11-19 公开 CI artifact 复核
 
 - 复核发现旧 source-intake workflow 将原始 NASA/JPL-Caltech JPEG 与 receipt 一起上传到 public repository 的 Actions artifact；由于来源记录为 `external_distribution_allowed=false` 且 `project_owner_signoff=pending`，该做法不满足项目自身的分发边界。
-- 历史 artifact：run `44482953922` / ID `14509376634`，以及 run `44485479649` / ID `14510716115`。两者包含原始 source bytes，状态均为 `delete_required`；删除前不得合并 P9-M4-I。
+- 历史 artifact：run `44482953922` / ID `14509376634`，以及 run `44485479649` / ID `14510716115`。两者此前包含原始 source bytes，现已删除；逐一查询 artifact ID 均返回 HTTP 404，两个原 workflow run 的 artifact 列表也为空。
 - 后续公开 CI 改用 `--receipt-only`，只上传 `source-intake.json`（来源、SHA-256、尺寸、许可状态和推理门禁），原始图只在内存中用于校验，不持久化、不上传。
 - 该来源仍未获得项目负责人用途签核；`inference_eligible=false` 保持不变。
+
+
+## 2026-11-19 历史公开制品清理验收
+
+- 历史原图 artifact `14509376634` 与 `14510716115` 均已不可下载（GitHub artifact API 返回 404）。
+- 两个原 workflow run 的 artifact 列表均为空。
+- 新 source-intake workflow 的 cleanup step 在上传 metadata-only receipt 前，按固定 ID 幂等删除并再次调用 getArtifact 验证；若仍可访问则 CI 失败。
+- 当前公开 artifact `p9m4i-nasa-star-tracker-intake-receipt` 仅含 `source-intake.json`，不含 JPEG 字节。
