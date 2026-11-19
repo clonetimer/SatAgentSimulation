@@ -1,4 +1,4 @@
-"""P10-A2 status-only adapter for official Basilisk antenna power nodes."""
+"""P10-A2 adapter for official Basilisk antenna RF and base-power nodes."""
 from __future__ import annotations
 
 import math
