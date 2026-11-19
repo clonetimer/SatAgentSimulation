@@ -1163,6 +1163,8 @@ outputs:
   - propulsion.enabled
   - propulsion.burn_active
   - propulsion.burn_permitted
+  - propulsion.burn_command_on_time_s
+  - propulsion.nominal_burn_command_on_time_s
   - propulsion.fuel_mass_kg
   - propulsion.fuel_mass_dot_kg_s
   - propulsion.total_thrust_n
