@@ -440,7 +440,7 @@ outputs:
   - name: adcs_control_power_w
     unit: W
     dtype: number
-    description: ADCS control-effort electrical load observed from the runtime bridge.
+    description: ADCS electrical load summed from official per-wheel Basilisk ReactionWheelPower node recorders driven by actual reaction-wheel state messages.
   - name: propulsion_power_w
     unit: W
     dtype: number
