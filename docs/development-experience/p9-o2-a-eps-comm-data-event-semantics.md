@@ -160,3 +160,13 @@
 - 六条用例都走过真实 Chromium UI、TestClient API 代理、异步 Basilisk 执行、sealed Run Bundle 下载和 Run Center 历史重开。故障/退化用例还验证 TaskSpec 时间窗与 magnitude、`validation_outcome.injection_evidence`、活动期直接遥测、曲线 manifest 和 FMEA provenance。
 - EPS fault browser 断言直接检查 PDU 通道关闭、载荷负载为零且 shed_reason 包含 `payload_channel_trip`；EPS degradation 检查电池有效容量与太阳阵输出相对 nominal 降低；Comm/Data fault/degradation 检查 SimpleTransmitter 存储节点实际码率低于 nominal 参照。
 - 首轮 workflow 已成功，但 browser 测试结果仅在 Actions 日志中；为满足 O2-E 可移交证据要求，下一轮将 JUnit XML 纳入 `native-component-physical-evidence` artifact，并对 6+1 目标用例数量与 skipped/failure 状态做归档前断言。
+
+
+## O2-E 证据归档关闭（2026-11-19）
+
+- PR #187 merged：`7207244a660db732ea321a0c9c64b28df0912c08`。
+- 最终集成 Artifact `14484456607`，ZIP SHA-256 `d4f245f70605d001bdd10c94a02d6fd34fd78d83c7916f15b6a85c3484bc4c3a`。
+- 从 ZIP 实际读取 JUnit：13 tests、0 failures、0 skipped；其中 EPS/Comm-Data 六条真实 Chromium nominal/fault/degradation 旅程全部通过。
+- O2-B 四组 nominal/injected sealed Run Bundle 4/4 PASS；O2-C formal runtime 17 passed；O2-D 六条浏览器旅程已被同一正式 Artifact 封存。
+- 之前记录“浏览器 JUnit 仅在 Actions 日志中，下一轮补归档”的条目属于早期阶段状态，现已被最终 Artifact 覆盖；后续交付应引用 Artifact 14484456607，而不是早期不含浏览器 JUnit 的 Artifact。
+- O2 已关闭；后续主线转入 P9-O3 整星事件证据闭环，不把 O2 的分系统独立验证扩张成整星耦合声明。
