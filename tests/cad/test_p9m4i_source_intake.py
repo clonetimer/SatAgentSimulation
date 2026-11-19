@@ -252,3 +252,16 @@ def test_public_source_intake_workflow_uploads_metadata_receipt_only():
     assert cleanup_step.get("uses") == "actions/github-script@v7"
     assert "deleteArtifact" in cleanup_step["with"]["script"]
     assert "getArtifact" in cleanup_step["with"]["script"]
+
+    benchmark_path = (
+        Path(__file__).resolve().parents[2]
+        / "docs" / "superpowers" / "benchmarks"
+        / "2026-11-17-p9m4i-three-device-benchmark.json"
+    )
+    benchmark = json.loads(benchmark_path.read_text(encoding="utf-8"))
+    nasa_source = next(
+        item for item in benchmark["candidate_image_sources"]
+        if item["source_id"] == "nasa_europa_clipper_star_tracker_mockup_2025"
+    )
+    assert all(item["status"] == "deleted" for item in nasa_source["superseded_public_source_artifacts"])
+    assert nasa_source["public_artifact_cleanup"]["status"] == "verified"
