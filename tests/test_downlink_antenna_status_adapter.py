@@ -116,3 +116,46 @@ def test_downlink_antenna_status_adapter_rejects_nonfinite_rates_fail_closed():
     assert all(int(value) == 0 for value in idle_rec.deviceStatus)
     assert adapter.trace[-1].input_status is InputReadStatus.ERROR
     assert adapter.trace[-1].error
+
+
+def test_downlink_antenna_status_adapter_fails_closed_when_physical_antenna_is_off():
+    sim = SimulationBaseClass.SimBaseClass()
+    process = sim.CreateNewProcess("P10A2AntennaOffProcess")
+    process.addTask(sim.CreateNewTask("P10A2AntennaOffTask", macros.sec2nano(0.2)))
+
+    pdu_payload = messaging.DeviceStatusMsgPayload()
+    pdu_payload.deviceStatus = 1
+    pdu_msg = messaging.DeviceStatusMsg().write(pdu_payload)
+    downlink_payload = messaging.DownlinkHandlingMsgPayload()
+    downlink_payload.linkActive = 1
+    downlink_payload.attemptedDataRate = 1_000_000.0
+    downlink_msg = messaging.DownlinkHandlingMsg().write(downlink_payload)
+    antenna_payload = messaging.AntennaLogMsgPayload()
+    antenna_payload.antennaState = 0  # Physical antenna is OFF.
+    antenna_payload.P_Tx = 5.0
+    antenna_msg = messaging.AntennaLogMsg().write(antenna_payload)
+
+    adapter = DownlinkAntennaStatusAdapter(
+        "downlinkAntennaStatusAdapter",
+        downlink_msg=downlink_msg,
+        enable_status_msg=pdu_msg,
+        antenna_msg=antenna_msg,
+    )
+    sim.AddModelToTask("P10A2AntennaOffTask", adapter)
+    tx_rec = adapter.txStatusOutMsg.recorder()
+    idle_rec = adapter.idleStatusOutMsg.recorder()
+    antenna_rec = adapter.antennaPowerOutMsg.recorder()
+    sim.AddModelToTask("P10A2AntennaOffTask", tx_rec)
+    sim.AddModelToTask("P10A2AntennaOffTask", idle_rec)
+    sim.AddModelToTask("P10A2AntennaOffTask", antenna_rec)
+
+    sim.InitializeSimulation()
+    sim.ConfigureStopTime(macros.sec2nano(0.4))
+    sim.ExecuteSimulation()
+
+    assert all(int(value) == 0 for value in tx_rec.deviceStatus)
+    assert all(int(value) == 1 for value in idle_rec.deviceStatus)
+    assert all(int(value) == 0 for value in antenna_rec.antennaState)
+    assert adapter.trace[-1].antenna_state == 0
+    assert adapter.trace[-1].tx_enabled is False
+    assert adapter.trace[-1].idle_enabled is True
