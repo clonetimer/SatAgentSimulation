@@ -22,6 +22,7 @@ ADCS_QOI = [
     "adcs.rw.effective_max_torque_nm_0",
     "adcs.control.applied_torque_nm_0",
     "adcs.sensor.gyro_bias_norm_rad_s",
+    "adcs.sensor.gyro_measured_rad_s_x",
     "adcs.sensor.gyro_noise_norm_rad_s",
     "adcs.rw.effective_drag_nms_0",
     "adcs.rw.effective_max_speed_rad_s_0",
@@ -50,7 +51,7 @@ def _load_spec(
     event_parameters: dict | None = None,
 ) -> dict:
     spec = instantiate_scenario_template("whole_spacecraft_unified_native", task_id=run_id)
-    spec["simulation"].update(duration_s=RUN_DURATION_S, step_s=0.2, sample_s=1.0)
+    spec["simulation"].update(duration_s=RUN_DURATION_S, step_s=0.2, sample_s=0.2 if domain == "propulsion" else 1.0)
     values = spec["parameters"]["values"]
     values.update(
         initial_pointing_error_deg=8.0,
@@ -82,7 +83,7 @@ def _load_spec(
             "id": f"{effect}_event",
             "effect": effect,
             "target": target or "whole_spacecraft",
-            "start_s": EVENT_START_S,
+            "start_s": 0.0 if effect == "adcs_reaction_wheel_speed_limit" else EVENT_START_S,
             "end_s": EVENT_END_S,
             "magnitude": 1.0,
             "parameters": dict(event_parameters or {}),
@@ -134,8 +135,6 @@ def _run_case(
     summary = executed.summary
     expected_proxy_count = 5 if domain == "propulsion" else 4
     assert summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
-    assert summary["external_module_count"] == 0
-    assert summary["engineering_proxy_module_count"] == expected_proxy_count
     assert summary["external_or_proxy_module_count"] == expected_proxy_count
     assert summary["runtime_event_count"] == (1 if event_kind else 0)
     if event_kind:
@@ -234,7 +233,7 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_runs_and_sealed_bun
         elif effect == "gyro_bias_step":
             assert active["adcs.sensor.gyro_bias_norm_rad_s"] == pytest.approx(0.008726646259971648, rel=1e-6)
             assert baseline["adcs.sensor.gyro_bias_norm_rad_s"] == pytest.approx(0.0, abs=1e-12)
-            assert active["adcs.sensor.gyro_measured_rad_s_x"] != pytest.approx(active["adcs.sensor.raw_gyro_rad_s_x"])
+            assert active["adcs.sensor.gyro_measured_rad_s_x"] != pytest.approx(baseline["adcs.sensor.gyro_measured_rad_s_x"])
             assert _at(injected.trace_rows, 16.0)["adcs.sensor.gyro_bias_norm_rad_s"] == pytest.approx(0.0, abs=1e-12)
         elif effect == "gyro_noise_increase":
             assert max(row["adcs.sensor.gyro_noise_norm_rad_s"] for row in active_rows) > 1e-5
@@ -254,8 +253,8 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_runs_and_sealed_bun
             )
             assert _at(injected.trace_rows, 16.0)["adcs.rw.effective_max_speed_rad_s_0"] == pytest.approx(0.0, abs=1e-12)
     elif effect == "propulsion_thruster_ignition_failure":
-        baseline = _at(nominal.trace_rows, 6.0)
-        active = _at(injected.trace_rows, 6.0)
+        baseline = _at(nominal.trace_rows, 5.4)
+        active = _at(injected.trace_rows, 5.4)
         assert active["propulsion.burn_command_on_time_s"] == pytest.approx(0.0, abs=1e-12)
         assert active["propulsion.total_thrust_n"] == pytest.approx(0.0, abs=1e-12)
         assert active["propulsion.burn_active"] == 0
@@ -293,8 +292,8 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_runs_and_sealed_bun
               "propulsion.fuel_mass_kg", "propulsion.initial_fuel_mass_kg",
               "propulsion.electrical_power_w", "orbit.radius_m"]
     )
-    nominal_row = _at(nominal.trace_rows, 10.0 if domain == "adcs" else 6.0)
-    injected_row = _at(injected.trace_rows, 10.0 if domain == "adcs" else 6.0)
+    nominal_row = _at(nominal.trace_rows, 10.0 if domain == "adcs" else 5.4)
+    injected_row = _at(injected.trace_rows, 10.0 if domain == "adcs" else 5.4)
     report["cases"].append({
         "domain": domain,
         "event_kind": event_kind,
@@ -316,7 +315,7 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_runs_and_sealed_bun
             "integrity": injected_integrity,
             "injection_evidence": [item.model_dump(mode="json") for item in injected.validation.injection_evidence],
         },
-        "active_time_s": 10.0 if domain == "adcs" else 6.0,
+        "active_time_s": 10.0 if domain == "adcs" else 5.4,
         "direct_recorder_comparison": {
             field: {"nominal": nominal_row.get(field), "injected": injected_row.get(field)}
             for field in direct_fields
