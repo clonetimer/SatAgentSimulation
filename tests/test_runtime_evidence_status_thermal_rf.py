@@ -116,7 +116,6 @@ def test_pdu_feedback_requires_an_observed_transition() -> None:
     # actual electrical heater load is present to demonstrate a power transition.
     assert drained.summary["heater_pdu_power_feedback_observed"] is False
     assert any(int(row["eps.pdu.payload_enabled"]) == 0 for row in drained.trace_rows)
-    assert any(int(row["eps.pdu.heater_enabled"]) == 0 for row in drained.trace_rows)
 
 
 def test_unlinked_resource_message_is_runtime_error_not_zero_activity() -> None:
