@@ -2122,6 +2122,13 @@ def test_guided_whole_spacecraft_event_run_bundle(
                     plot_checkbox.check()
                 plot_search.fill("")
 
+            # FMEA is an explicit optional output. Enable it through the guided
+            # output control so the resulting TaskSpec and Run Bundle include it.
+            fmea_toggle = page.locator("#wizardFmeaEnabled")
+            fmea_toggle.wait_for(state="visible", timeout=10000)
+            if not fmea_toggle.is_checked():
+                fmea_toggle.check()
+
             page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
             page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
             page.wait_for_function(
@@ -2153,6 +2160,8 @@ def test_guided_whole_spacecraft_event_run_bundle(
             assert durable["sealed"] is True
             assert durable["integrity"]["ok"] is True
             assert durable["validation_outcome"]["result"] == "PASS"
+            assert durable["task_spec"]["outputs"]["fmea"]["enabled"] is True
+            assert set(durable["task_spec"]["outputs"]["fmea"]["formats"]) == {"csv", "json"}
 
             if event_effect:
                 event_key = {
@@ -2163,7 +2172,14 @@ def test_guided_whole_spacecraft_event_run_bundle(
                 events = durable["task_spec"]["events"][event_key]
                 assert len(events) == 1, events
                 assert events[0]["effect"] == event_effect
-                assert events[0]["target"] == "whole_spacecraft"
+                from sat_sim.capability_registry import get_capability
+                whole_contract = get_capability("whole_spacecraft.unified_native.v1").data
+                expected_owner = next(
+                    item["owner"]
+                    for item in whole_contract["operator"]["effects"]
+                    if item["effect_id"] == event_effect
+                )
+                assert events[0]["target"] == expected_owner
                 assert events[0]["start_s"] == 4.0
                 assert events[0]["end_s"] == 10.0
                 assert events[0]["parameters"] == event_parameters
