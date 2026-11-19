@@ -16,6 +16,7 @@ def _run(*, power_enabled: bool, initial_soc: float = 0.90, duration_s: float = 
         initial_soc=initial_soc,
         solar_power_w=95.0 if initial_soc > 0.5 else 0.0,
         recorder_step_s=0.2,
+        thermal_step_s=0.2,
         propulsion_enabled=False,
     )
     graph = build_whole_spacecraft_graph(cfg)
