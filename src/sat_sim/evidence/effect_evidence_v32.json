@@ -732,7 +732,8 @@
       "executable": true,
       "evidence_fields": [
         "eps.solar_array_efficiency_ratio",
-        "eps.solar_array_power_w"
+        "eps.solar_array_power_w",
+        "eps.battery_soc"
       ],
       "runtime_assertions": [
         {
