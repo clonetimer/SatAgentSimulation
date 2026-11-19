@@ -76,3 +76,11 @@
 - 运行时 `ProjectNativeRWCommandModel` 对 `adcs_rw_motor_failure` 固定施加 0 力矩；旧通用 alias `rw_motor_failure` 的兼容行为单独保留。这样即使直接绕过 guided form，也不会把 whole motor failure 变成部分力矩事件。
 - 同步更新 fault catalog 与 whole-spacecraft 数据集生成器：motor failure 只采样目标轮号；部分力矩样本属于独立 degradation 条件。
 - 原失败是旧契约回归，不是 Basilisk 物理失败。修复后的官方 Basilisk 2.11.0 native workflow 尚待最终 PR head 重跑，不提前记 PASS。
+
+## O3-B / O3-C 交付门禁经验（2026-11-19）
+
+1. **测试存在不等于测试执行。** PR 中已有九条整星 Chromium→Basilisk 真实 Run 测试，但官方 workflow 的 `-k` 只选了目录测试；所以虽然测试代码完整、目录浏览器通过，八类事件的用户旅程仍未被验收。今后每个重要用户旅程必须有 collect-only 精确数量门禁，并在 JUnit 中逐条核对 testcase、failure 和 skipped。
+2. **物理与浏览器证据分开计数。** O3-B 的 9 passed 是整星物理 A/B（nominal/参数消费检查 + 八个 injected sealed Run）；不能拿它替代 O3-C 的 9 条 Chromium 用户旅程。
+3. **稳定的 pytest IDs 有助于证据追踪。** 给 whole-spacecraft nominal 和八类事件加固定 IDs，workflow 以 ID 集合核对，避免仅检查函数名而遗漏某个参数化场景。
+4. **O3-C 的用户旅程必须验证端到端闭环。** 每条真实 Chromium 路径需要经过向导、TaskSpec、官方 Basilisk Run、effect evidence、直接 telemetry、plots、FMEA、sealed Bundle 的 manifest/逐文件 SHA-256 与 Run Center 历史重开；单纯渲染事件目录不够。
+5. 当前 O3-C 门禁已接入官方 native workflow，但 head `84757e7969254bddcaf3368ef7efd0b8fd531f4f` 的完整 CI 尚未完成。不得把 collect-only 9/9 当成真实运行 9/9 PASS。
