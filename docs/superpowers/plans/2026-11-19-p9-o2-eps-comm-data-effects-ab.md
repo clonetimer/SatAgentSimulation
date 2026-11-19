@@ -2,7 +2,7 @@
 
 日期：2026-11-19  
 基线：P9-O1 merge commit `5f61e73aa4cdb952ee927090f6c995255088984b`  
-状态：O2-A/B/C 已通过官方 Basilisk 2.11.0 同 head CI（4/4 配对 A/B、17/17 formal runtime、注册与事件目录测试通过）；O2-D Chromium 故障/退化旅程正在实施，O2-E 最终交付收尾待完成。普通向导入口在 O2-D 浏览器旅程通过前仍保持关闭。
+状态：O2-A/B/C/D/E 全部完成并合入 main（PR #187，merge commit `7207244a660db732ea321a0c9c64b28df0912c08`）。EPS/Comm-Data 事件白名单已通过官方 Basilisk 配对 A/B、formal evidence 和真实 Chromium 用户旅程；不包含整星跨分系统联合闭环。
 
 ## 主线目标
 
@@ -143,3 +143,14 @@ EPS 与 Comm/Data 各执行 nominal、fault、degradation 三类用户旅程：
 - 六条目标旅程逐条执行：向导对象选择、故障/退化白名单隔离、时间窗/magnitude 编辑、正式 TaskSpec 校验、异步 Basilisk Run、validation/effect evidence、直接遥测与曲线、FMEA、sealed Run Bundle 下载和逐文件 SHA-256、Run Center 同一 Run 重开。
 - 本轮原 artifact `native-component-physical-evidence` ID `14480197134`，SHA-256 `42c906c993499f6a365d4919d5d20a39735dad5760b74ddd38ef0c1720735c9a`，大小 38,264 bytes。原 artifact 包含 O2-B / O2-C JUnit 与结构化 A/B 证据，但未包含 O2-D browser JUnit；因此不把该 artifact 作为最终 O2-E 完整归档。
 - O2-E 补充：CI 现在将浏览器测试输出到 `reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml`，并在上传前断言 JUnit 中恰有 6 条 EPS/Comm-Data 旅程和 1 条 ADCS 旅程，且无 failure/skipped；同一 artifact 将包含该报告。此补强提交后必须在新 head 重跑完整官方工作流，最终 artifact ID/SHA 以新 head 为准。
+
+
+## O2-E 最终证据归档与关闭（2026-11-19）
+
+- O2 PR #187 已 squash merge 到 main，merge commit：`7207244a660db732ea321a0c9c64b28df0912c08`。
+- 随后的 O3-A 集成 head `bf1c7a904bd129092f480fa260ee57a12803bc0c` 重新执行官方 native workflow，确保 O2 代码与 O3-A 整星事件目录隔离在同一回归版本。
+- `native-component-physical-evidence` Artifact ID：`14484456607`，大小 39,263 bytes，ZIP SHA-256：`d4f245f70605d001bdd10c94a02d6fd34fd78d83c7916f15b6a85c3484bc4c3a`。
+- 从 Artifact 实际解压读取 `native_subsystem_eps_comm_data/guided_browser_journeys.xml`：13 tests、0 failures、0 skipped；其中 EPS/Comm-Data 六条 nominal/fault/degradation 真实 Chromium 旅程全部通过。
+- O2-B 配对 sealed Run Bundle：4/4 PASS；O2-C formal runtime：17 passed、1 deselected；EPS/Comm-Data guided catalog：2 passed。
+- 六条浏览器旅程覆盖对象选择、fault/degradation 白名单、事件时间窗/magnitude、异步 Basilisk Run、direct telemetry、曲线、FMEA provenance、Run Bundle seal/SHA-256 和 Run Center 历史重开。
+- O2 完成边界：Comm/Data 只验证 SimpleTransmitter.nodeBaudRate 数据率变化，不代表 RF 输出功率、链路预算、地面站过站或 BER/PER；EPS 是受控组合场景，不代表每个单点故障都独立可选；跨分系统联合闭环不属于 O2。
