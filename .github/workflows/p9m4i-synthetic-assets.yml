@@ -94,6 +94,7 @@ jobs:
               assert mapping["node_renderable"] is False
               assert mapping["as_built_eligible"] is False
           print("P9M4I_BENCHMARK_SPEC_VALID:1 generation target + 2 real-CAD controls")
+          PY
 
   nasa-source-intake:
     runs-on: ubuntu-24.04
@@ -113,4 +114,3 @@ jobs:
           path: reports/p9m4i/source-intake/**
           if-no-files-found: error
           retention-days: 30
-          PY
