@@ -1245,6 +1245,8 @@ operator:
     implementation: basilisk_native
     evidence_fields:
     - adcs.sensor.gyro_bias_norm_rad_s
+    - adcs.sensor.gyro_bias_rad_s_x
+    - adcs.sensor.gyro_measured_rad_s_x
     verification: declared
   - effect_id: comm_data_downlink_link_loss
     kind: fault
@@ -1292,6 +1294,7 @@ operator:
     implementation: basilisk_native
     evidence_fields:
     - adcs.sensor.gyro_noise_norm_rad_s
+    - adcs.sensor.gyro_measured_rad_s_x
     verification: declared
   - effect_id: rw_friction_degradation
     kind: degradation
@@ -1299,6 +1302,8 @@ operator:
     implementation: basilisk_native
     evidence_fields:
     - adcs.rw.effective_drag_nms_0
+    - adcs.rw.speed_rad_s_0
+    - adcs.control.applied_torque_nm_0
     verification: declared
   - effect_id: thermal_radiator_rejection_loss
     kind: degradation
@@ -1339,6 +1344,7 @@ operator:
     evidence_fields:
     - adcs.rw.effective_max_speed_rad_s_0
     - adcs.rw.speed_rad_s_0
+    - adcs.control.applied_torque_nm_0
     verification: declared
   observability:
     qoi:
