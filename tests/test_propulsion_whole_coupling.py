@@ -157,3 +157,18 @@ def test_whole_capability_exposes_propulsion_contract() -> None:
     outputs = set(contract["outputs"]["trace_fields"])
     assert "propulsion.fuel_mass_kg" in outputs
     assert "propulsion.total_thrust_n" in outputs
+
+def test_composite_propulsion_power_estimate_is_configurable_and_validated() -> None:
+    from whole_spacecraft.builder import build_whole_spacecraft_graph
+    from whole_spacecraft.schemas import WholeSpacecraftConfig
+
+    graph = build_whole_spacecraft_graph(
+        WholeSpacecraftConfig(propulsion_enabled=True, propulsion_power_w=12.5)
+    )
+    bridge = graph.component_registry["propulsion_power_bridge"]
+    assert bridge.active_power_per_thruster_w == pytest.approx(12.5)
+
+    with pytest.raises(ValueError, match="WHOLE_PROPULSION_POWER_ESTIMATE_INVALID"):
+        build_whole_spacecraft_graph(
+            WholeSpacecraftConfig(propulsion_enabled=True, propulsion_power_w=float("nan"))
+        )
