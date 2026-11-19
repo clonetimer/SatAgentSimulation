@@ -24,3 +24,14 @@
 - O3-B 的事件效果本身由 Basilisk 官方模型与项目原生 SysModel 在同一 Process/Task 中执行；证据需分别记录官方模块、项目原生模块和 engineering proxies 数量，不能只看 runtime truth 字符串。
 - RW1 默认初始轮速约 10.47 rad/s，低于 speed-limit 测试阈值 15 rad/s；如果不显式设置 `rw_initial_speed_rad_s_0=100`，事件虽会更新 limit 字段，却未必真正触发超速制动。A/B 必须验证 active torque 的方向与 wheel speed 响应。
 - 推进 impulse-loss 改变的是 burn command on-time，而不是 thruster 的瞬时 thrustFactor；不能把 `propulsion.max_thrust_factor` 误当成冲量比例。正式证据应记录 burn controller 的实际 OnTimeRequest，并用燃料消耗和轨道响应证明物理结果。
+
+
+## O3-B 首轮实现经验（2026-11-19）
+
+1. Whole-spacecraft event effect 不能只复用 subsystem 测试：必须在 whole unified Process/Task 中运行同一 TaskSpec nominal/injected，封存两个 Run Bundle 并比较直接 recorder。
+2. 为控制 CI 成本，6 个 ADCS 事件共享一个相同初始状态的 nominal baseline，2 个推进事件共享一个 propulsion-enabled nominal baseline；8 个 injected run 独立封存，总计 10 次 Basilisk Run。
+3. RW speed-limit 测试必须让初始轮速超过 limit。默认轮速约 10.47 rad/s，而用户配置的 15 rad/s 限值不会触发制动；本轮将 RW1 初始轮速设为 100 rad/s，并让限速事件从 t=0 生效，确保有超速制动 recorder 证据。
+4. Propulsion impulse-loss 不是瞬时 thrustFactor 衰减，而是 one-shot burn controller 缩短 OnTimeRequest。不能用 `propulsion.max_thrust_factor` 代表剩余冲量比例。本轮增加官方消息 recorder `propulsion_burn_command`，逐样本记录 `OnTimeRequest`，并用 fuel mass、thrust、orbit radius 的 A/B 证明物理响应。
+5. Propulsion 1 s injected burn 使用 0.2 s sample interval，避免 1 s sample 恰好落在 burn 结束边界而漏掉短燃烧窗口。
+6. Whole-spacecraft runtime 包含 4 个 engineering-proxy power bridges，推进启用时为 5 个。它们不等于 external solver，也不是官方 Basilisk 模块；测试必须记录并断言该数量，不可把整个整星运行图宣传为全官方模块原生。
+7. 8 个新 profile 与 operator contract 的 evidence_fields 做逐项一致性检查；guided event allowlist 仍保持 6 个 O3-A 已验收事件，等 O3-B 物理 A/B 通过、O3-C 浏览器旅程通过后再扩展。
