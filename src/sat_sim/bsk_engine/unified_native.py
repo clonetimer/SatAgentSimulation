@@ -613,6 +613,14 @@ def _build_unified_rows(
                     "propulsion.enabled": 1,
                     "propulsion.burn_active": int(recorder_map["propulsion_burn_status"].deviceStatus[index]),
                     "propulsion.burn_permitted": int(recorder_map["propulsion_permission"].deviceStatus[index]),
+                    "propulsion.burn_command_on_time_s": max(
+                        (float(value) for value in list(recorder_map["propulsion_burn_command"].OnTimeRequest[index])),
+                        default=0.0,
+                    ),
+                    "propulsion.nominal_burn_command_on_time_s": max(
+                        float(cfg.values.get("propulsion_burn_on_time_s", 0.0)),
+                        0.0,
+                    ),
                     "propulsion.fuel_mass_kg": float(fuel_rec.fuelMass[index]),
                     "propulsion.initial_propellant_kg": float(fuel_rec.fuelMass[0]),
                     "propulsion.propellant_used_kg": max(0.0, float(fuel_rec.fuelMass[0]) - float(fuel_rec.fuelMass[index])),
@@ -1863,6 +1871,7 @@ class UnifiedNativeRuntime:
                     "propulsion_fuel": whole_modules["propulsion_fuel_tank"].fuelTankOutMsg,
                     "propulsion_burn_status": whole_modules["propulsion_controller"].burnStatusOutMsg,
                     "propulsion_permission": whole_modules["propulsion_controller"].permissionStatusOutMsg,
+                    "propulsion_burn_command": whole_modules["propulsion_controller"].commandOutMsg,
                 })
                 messages["propulsion_power"] = whole_modules["propulsion_power_bridge"].powerOutMsg
                 for thruster_index, thruster_msg in enumerate(whole_modules["propulsion_thrusters"].thrusterOutMsgs):
