@@ -1156,6 +1156,7 @@ outputs:
   - orbit.phase_rad
   - orbit.eclipse_factor
   - adcs.pointing_error_deg
+  - attitude.truth.pointing_error_deg
   - adcs.body_rate_rad_s_*
   - adcs.rw.speed_rad_s_*
   - eps.solar_array_power_w
