@@ -433,7 +433,18 @@ def build_whole_spacecraft_graph(
             sink_subsystem="eps",
             interface="SunMsg + SCStatesMsg + EclipseMsg -> solar generation",
         )
-    attach_eps_basilisk_graph_to_task(sim, sim_task_name, eps_graph)
+    attach_eps_basilisk_graph_to_task(
+        sim,
+        sim_task_name,
+        eps_graph,
+        model_priorities={
+            "requests": 53,
+            "solar_source": 55,
+            "battery": 50,
+            "pdu": 49,
+            "load_sinks": 48,
+        },
+    )
     battery = eps_graph.battery
 
     payload_graph = build_payload_basilisk_assembly_graph(
@@ -441,7 +452,9 @@ def build_whole_spacecraft_graph(
         data_name=cfg.payload_data_name,
         model_tag=cfg.payload_model_tag,
     )
-    attach_payload_basilisk_graph_to_task(sim, sim_task_name, payload_graph)
+    attach_payload_basilisk_graph_to_task(
+        sim, sim_task_name, payload_graph, model_priority=40,
+    )
     instrument = payload_graph.instrument
 
     comm_graph = build_comm_data_basilisk_assembly_graph(
@@ -451,7 +464,9 @@ def build_whole_spacecraft_graph(
         storage_model_tag=cfg.storage_model_tag,
         transmitter_model_tag=cfg.transmitter_model_tag,
     )
-    attach_comm_data_basilisk_graph_to_task(sim, sim_task_name, comm_graph)
+    attach_comm_data_basilisk_graph_to_task(
+        sim, sim_task_name, comm_graph, storage_priority=39,
+    )
     storage = comm_graph.storage
     transmitter = comm_graph.transmitter
 
@@ -522,13 +537,13 @@ def build_whole_spacecraft_graph(
                 planet_msgs=orb_env_graph.planet_msgs,
                 eclipse_msg=orb_env_graph.eclipse_msg,
             )
-            for model in (
-                rf_access_graph.ground_location,
-                rf_access_graph.spacecraft_antenna,
-                rf_access_graph.ground_antenna,
-                rf_access_graph.link_budget,
+            for model, priority in (
+                (rf_access_graph.ground_location, 58),
+                (rf_access_graph.spacecraft_antenna, 57),
+                (rf_access_graph.ground_antenna, 57),
+                (rf_access_graph.link_budget, 56),
             ):
-                sim.AddModelToTask(sim_task_name, model)
+                sim.AddModelToTask(sim_task_name, model, None, priority)
             coupling_matrix["ground_access_rf_link_budget"] = _coupling_record(
                 name="ground_access_rf_link_budget",
                 source_subsystem="comm_data",
@@ -568,7 +583,7 @@ def build_whole_spacecraft_graph(
                 bandwidth_hz=float(cfg.native_downlink_bandwidth_hz),
                 frequency_hz=float(cfg.native_downlink_frequency_hz),
             )
-            sim.AddModelToTask(sim_task_name, native_downlink)
+            sim.AddModelToTask(sim_task_name, native_downlink, None, 38)
         except Exception as exc:
             raise RuntimeError("Failed to build whole-spacecraft native DownlinkHandling chain") from exc
         coupling_matrix["comm_native_odh_to_storage_drain"] = _coupling_record(
@@ -632,7 +647,7 @@ def build_whole_spacecraft_graph(
         data_msg=instrument.nodeDataOutMsg,
         enable_status_msg=payload_status_msg,
     )
-    sim.AddModelToTask(sim_task_name, payload_power_bridge)
+    sim.AddModelToTask(sim_task_name, payload_power_bridge, None, 39)
     battery.addPowerNodeToModel(payload_power_bridge.powerOutMsg)
     resource_feedback_bridges["payload"] = payload_power_bridge
     power_inputs.append((payload_power_bridge.powerOutMsg, 0.95, "payload", "payload.actual_activity"))
@@ -673,7 +688,7 @@ def build_whole_spacecraft_graph(
         power_node.rwStateInMsg.subscribeTo(rw_state_msg)
         if adcs_status_msg is not None:
             power_node.nodeStatusInMsg.subscribeTo(adcs_status_msg)
-        sim.AddModelToTask(sim_task_name, power_node)
+        sim.AddModelToTask(sim_task_name, power_node, None, 48)
         battery.addPowerNodeToModel(power_node.nodePowerOutMsg)
         adcs_power_nodes.append(power_node)
         power_inputs.append((
@@ -710,15 +725,18 @@ def build_whole_spacecraft_graph(
             downlink_msg=native_downlink.downlinkOutMsg,
             enable_status_msg=comm_status_msg,
         )
-        sim.AddModelToTask(sim_task_name, comm_status_adapter)
+        sim.AddModelToTask(sim_task_name, comm_status_adapter, None, 37)
 
         from Basilisk.simulation import antennaPower, simplePowerSink
         comm_antenna_power_node = antennaPower.AntennaPower()
         comm_antenna_power_node.ModelTag = "commAntennaPower"
         comm_antenna_power_node.basePowerNeed = comm_antenna_base_power_w
+        # PowerNodeBase defaults enabled. Fail closed until the first
+        # PDU/downlink status message is available.
+        comm_antenna_power_node.powerStatus = 0
         comm_antenna_power_node.antennaSetStateInMsg.subscribeTo(rf_access_graph.spacecraft_antenna.antennaOutMsg)
         comm_antenna_power_node.nodeStatusInMsg.subscribeTo(comm_status_adapter.txStatusOutMsg)
-        sim.AddModelToTask(sim_task_name, comm_antenna_power_node)
+        sim.AddModelToTask(sim_task_name, comm_antenna_power_node, None, 36)
         battery.addPowerNodeToModel(comm_antenna_power_node.nodePowerOutMsg)
         comm_power_nodes.append(comm_antenna_power_node)
         power_inputs.append((
@@ -731,8 +749,9 @@ def build_whole_spacecraft_graph(
         comm_idle_power_node = simplePowerSink.SimplePowerSink()
         comm_idle_power_node.ModelTag = "commIdlePower"
         comm_idle_power_node.nodePowerOut = -2.0
+        comm_idle_power_node.powerStatus = 0
         comm_idle_power_node.nodeStatusInMsg.subscribeTo(comm_status_adapter.idleStatusOutMsg)
-        sim.AddModelToTask(sim_task_name, comm_idle_power_node)
+        sim.AddModelToTask(sim_task_name, comm_idle_power_node, None, 36)
         battery.addPowerNodeToModel(comm_idle_power_node.nodePowerOutMsg)
         comm_power_nodes.append(comm_idle_power_node)
         power_inputs.append((
@@ -765,7 +784,7 @@ def build_whole_spacecraft_graph(
             active_power_w=30.0, idle_power_w=2.0,
             data_msg=transmitter.nodeDataOutMsg, enable_status_msg=comm_status_msg,
         )
-        sim.AddModelToTask(sim_task_name, comm_power_bridge)
+        sim.AddModelToTask(sim_task_name, comm_power_bridge, None, 36)
         battery.addPowerNodeToModel(comm_power_bridge.powerOutMsg)
         resource_feedback_bridges["comm"] = comm_power_bridge
         power_inputs.append((comm_power_bridge.powerOutMsg, 0.9, "electronics", "comm.fallback_activity"))
@@ -789,7 +808,7 @@ def build_whole_spacecraft_graph(
             thruster_output_msgs=tuple(propulsion_graph.thruster_effector.thrusterOutMsgs),
             active_power_per_thruster_w=20.0,
         )
-        sim.AddModelToTask(sim_task_name, thruster_power_bridge)
+        sim.AddModelToTask(sim_task_name, thruster_power_bridge, None, 36)
         battery.addPowerNodeToModel(thruster_power_bridge.powerOutMsg)
         resource_feedback_bridges["propulsion"] = thruster_power_bridge
         power_inputs.append((thruster_power_bridge.powerOutMsg, 0.85, "structure", "propulsion.actual_activity"))
@@ -996,7 +1015,7 @@ def build_whole_spacecraft_graph(
             payload_power_status_msg=payload_status_msg,
             comm_power_status_msg=comm_status_msg,
         )
-        sim.AddModelToTask(sim_task_name, mission_gate)
+        sim.AddModelToTask(sim_task_name, mission_gate, None, 45)
         coupling_matrix["adcs_pointing_to_payload_comm_gate"] = _coupling_record(
             name="adcs_pointing_to_payload_comm_gate",
             source_subsystem="adcs",
