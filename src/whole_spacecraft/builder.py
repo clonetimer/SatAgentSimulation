@@ -771,9 +771,11 @@ def build_whole_spacecraft_graph(
         coupling_matrix["eps_pdu_to_comm_activity"] = _coupling_record(
             name="eps_pdu_to_comm_activity", source_subsystem="eps", sink_subsystem="comm_data",
             coupling_status="coupled",
-            interface="PDU commStatusOutMsg + native DownlinkHandling activity -> DownlinkAntennaStatusAdapter -> AntennaPower/SimplePowerSink status",
+            interface="PDU commStatusOutMsg + native DownlinkHandling + physical SimpleAntenna log -> DownlinkAntennaStatusAdapter -> gated AntennaLogMsg/AntennaPower and TX/idle SimplePowerSink",
             evidence=(
                 "TX status requires PDU permission, linkActive and attemptedDataRate > 0",
+                "the power-side AntennaLogMsg preserves physical P_Tx without changing the RF LinkBudget message",
+                "the base SimplePowerSink is enabled only during actual TX",
                 "idle status preserves the composite 2 W PDU-enabled no-TX draw",
             ),
         )
