@@ -2877,7 +2877,7 @@ class UnifiedNativeRuntime:
                                                 "adcs": 3./18., "solar_panel": 5./18.},
                     "housekeeping_source": "actual_bus_power_message",
                     "thermostats": "full_electrical_power_debited_from_native_battery; heat=electrical*efficiency",
-                    "auxiliary_heater": "separate_PDU_controlled_load_heater_power_w",
+                    "heater_power_authority": "ThermalHeater.electricalPowerOutMsg_per_node; deposited_heat=ThermalHeater.powerOutMsg",
                     "boundary": "unallocated_electrical_to_heat_fraction_outside_lumped_nodes; not_full_electromechanical_conservation",
                 },
                 "final_battery_soc": final["eps.battery_soc"],
