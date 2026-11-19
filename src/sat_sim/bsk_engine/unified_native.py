@@ -223,6 +223,52 @@ def _native_payload_power_health(
         "input_source": "simpleInstrument.nodeDataOutMsg + project_eps_pdu.payloadStatusOutMsg",
     }
 
+def _native_status_power_health(
+    rows: list[dict[str, Any]],
+    *,
+    active_power_w: float,
+) -> dict[str, Any]:
+    """Audit a PDU-gated official SimplePowerSink with its one-sample task-order boundary."""
+    tolerance_w = 1.0e-6
+    powers = [max(0.0, float(row.get("eps.loads.heater_power_w", 0.0))) for row in rows]
+    pdu_states = [bool(int(row.get("eps.pdu.heater_enabled", 0))) for row in rows]
+    violations: list[dict[str, Any]] = []
+    for index in range(1, len(rows)):
+        expected = float(active_power_w) if pdu_states[index - 1] else 0.0
+        actual = powers[index]
+        if abs(actual - expected) > tolerance_w:
+            violations.append({
+                "time_s": float(rows[index].get("time_s", 0.0)),
+                "expected_power_w": expected,
+                "actual_power_w": actual,
+                "pdu_enabled_previous_sample": pdu_states[index - 1],
+            })
+    positive_count = sum(1 for value in powers[1:] if value > tolerance_w)
+    return {
+        "status": "FAIL" if violations else ("PASS" if rows else "NOT_READY"),
+        "sample_count": len(rows),
+        "valid_sample_count": len(rows),
+        "not_ready_sample_count": 0,
+        "error_count": 0,
+        "errors": [],
+        "power_min_w": min(powers, default=0.0),
+        "power_max_w": max(powers, default=0.0),
+        "power_span_w": max(powers, default=0.0) - min(powers, default=0.0),
+        "activity_min": min((int(value) for value in pdu_states), default=0),
+        "activity_max": max((int(value) for value in pdu_states), default=0),
+        "activity_span": int(len(set(pdu_states)) > 1),
+        "positive_activity_sample_count": sum(1 for value in pdu_states if value),
+        "positive_power_sample_count": positive_count,
+        "enabled_transition_observed": len(set(pdu_states)) > 1,
+        "stimulus_observed": positive_count > 0,
+        "directional_response_pass": not violations,
+        "directional_violation_count": len(violations),
+        "directional_violations": violations[:10],
+        "source": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+        "input_source": "project_eps_pdu.heaterStatusOutMsg",
+        "scheduler_alignment": "power sample i reflects PDU status sample i-1",
+    }
+
 def _native_comm_antenna_power_health(
     rows: list[dict[str, Any]], *,
     base_power_w: float,
