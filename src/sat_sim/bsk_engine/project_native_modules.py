@@ -665,7 +665,17 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
 
         for event in _active(self.events, current_sim_nanos):
             index = _wheel_index(event, self.wheel_count)
-            if event.effect in {"rw_motor_failure", "adcs_rw_motor_failure"}:
+            if event.effect == "adcs_rw_motor_failure":
+                # Whole/unified ADCS motor failure is a binary open torque path.
+                # Partial authority is a separate degradation effect with its own
+                # explicit torque_scale contract; do not let legacy parameters turn
+                # a binary fault into a partial loss.
+                scale = 0.0
+                output[index] = 0.0
+                torque_limits[index] = 0.0
+                command_limits[index] = 0.0
+            elif event.effect == "rw_motor_failure":
+                # Retain the legacy generic alias for older TaskSpecs.
                 scale = max(0.0, min(_event_number(event, ("torque_scale", "remaining_torque_ratio"), 0.0), 1.0))
                 output[index] *= scale
                 torque_limits[index] = self.effective_nominal_max_torques_nm[index] * scale
