@@ -1030,6 +1030,8 @@ def _execute_whole_spacecraft_graph(
         mission_dropped_bits=dropped_bits,
         max_downlink_delivered_bps=max((r.downlink_delivered_bps for r in rows), default=0.0),
         max_downlink_dropped_bps=max((r.downlink_dropped_bps for r in rows), default=0.0),
+        max_adcs_control_power_w=max_native_adcs_power_w,
+        adcs_power_monitoring_limit_w=adcs_power_monitoring_limit_w,
         final_attitude_error_deg=rows[-1].attitude_error_deg if rows else 0.0,
         runtime_unsupported_count=runtime_unsupported_count,
         runtime_fault_event_status=(runtime_fault_audit.get("runtime_event_status") if runtime_fault_audit is not None else "not_applicable"),
