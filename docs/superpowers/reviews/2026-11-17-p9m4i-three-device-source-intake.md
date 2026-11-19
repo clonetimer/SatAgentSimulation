@@ -169,3 +169,12 @@ NASA 资料为 TripoSR G1 提供了一个比 KSST-01 厂商照片更有希望的
 - 新增来源准入测试：校验 JPEG 尺寸解析、SHA-256、错误 MIME、非 JPEG、越权重定向、超限文件和禁止覆盖。CI 增加独立 `nasa-source-intake` job，将原始字节和 intake receipt 作为 artifact 保存。
 - 当前原始媒体字节与 SHA-256 仍待最新 CI artifact 实际获取；`source_bytes_obtained=false`、`source_sha256=null`、`eligible_for_inference=false` 保持不变。项目负责人 sign-off、背景分割人工复核、TripoSR 权重本地哈希与 CUDA preflight 完成前，不运行推理。
 - 经验：权利政策依据、项目用途批准、原始字节完整性、预处理验收和 GPU 可执行性是五个独立门禁；不能用其中一个 PASS 代替其他门禁。
+## 2026-11-19 NASA 原始媒体字节取得与独立复核
+
+- 官方 source-intake workflow `44482953922` 成功下载并上传 artifact `p9m4i-nasa-star-tracker-source-intake`（ID `14509376634`，ZIP 2,658,144 bytes）。
+- 原始 JPEG：4,124,658 bytes，4032 × 3024，SHA-256 `458cd3da892e5d0e75272fc9ee3b931b2c73f8eedecb03caa8d6bd21409fdfad`；下载最终 URL 与固定 NASA media URL 完全一致。
+- 已下载 artifact 并独立解压复核：JPEG 字节数和 SHA-256 与 CI receipt 一致；receipt 自身 SHA-256 `1bd251ad8a30901482269f37f0574303d7992cfe2c6753001a33645c2200d359`。Artifact ZIP SHA-256 `b51793ba2a1d781a609eeab0726045764c4ab86b88e4d1fa40d62f7aa6020d95`。
+- 官方 CI 同 head `5e864c9eaf93cf5b6a67349ed8e9b54dc75477ac`：Ubuntu 24.04 / Windows 2022 各 42 passed；source intake 独立 job PASS。来源字节与哈希现已可复验，但 `inference_eligible=false` 不变。
+- 视觉复核：图中可见一个带圆筒光学头的主体和一个分离摆放的黑色遮光/外罩部件；旁边有手/前臂、细杆/线、反光包装膜和工作台。后续 mask 必须把两个黑色部件保留为“照片中分离摆放的 mock-up 部件”，不得自动推断其装配位置；手/前臂、细杆/线、包装膜与背景必须排除。
+- 首轮 JPEG parser 将 EOI 限定在末尾 32 bytes，导致实际 NASA 文件因尾随 metadata/padding 被误拒；已改为要求 JPEG byte stream 中存在 EOI marker，并新增尾随字节回归测试。没有放宽 MIME、SOI、SOF、尺寸、大小和 pinned SHA-256 检查。
+- 下一步：把原始图与 hash 绑定到一个可重复的人工裁切/alpha-mask receipt；保留原图和处理图两份 hash，人工审核 mask 前继续禁止 TripoSR 推理。
