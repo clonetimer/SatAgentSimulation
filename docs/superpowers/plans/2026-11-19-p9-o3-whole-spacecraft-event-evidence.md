@@ -2,7 +2,7 @@
 
 日期：2026-11-19  
 基线：P9-O2 squash merge `7207244a660db732ea321a0c9c64b28df0912c08`  
-状态：O3-A 已合入 main；O3-B 八类整星事件物理 A/B 与 sealed Run Bundle 已在官方 Basilisk 2.11.0 通过；O3-C 九条 Chromium→Basilisk 旅程已接入官方 workflow，当前 head fb42f71a0ed07b3bb76cbb05803787779181267e 的同头 CI 运行中；O3-D 归档与最终准入待 O3-C PASS 后收尾。
+状态：O3-A 已合入 main；O3-B 八类整星事件物理 A/B 与 sealed Run Bundle 已通过官方 Basilisk 2.11.0；O3-C 九条 Chromium→Basilisk 旅程已接入 CI；O3-D 现将 10 份物理 sealed Run Bundle 与 9 份浏览器下载 Run Bundle 原件及 SHA-256 sidecar 纳入 Artifact，等待当前候选分支同头 CI。
 
 ## 目标
 
@@ -139,3 +139,9 @@
 - 发现 `test_guided_whole_spacecraft_event_run_bundle` 已写好 9 个真实浏览器到 Basilisk 旅程（nominal 1 + 8 events），覆盖向导选择、事件参数、TaskSpec 校验、真实 Run、effect evidence、直接 telemetry、plots、FMEA、Run Bundle 下载与逐文件 SHA-256、Run Center 历史重开；但原官方 workflow 的 pytest `-k` 没有选择该测试。
 - 已为 9 个 journey 增加稳定 pytest IDs；官方 workflow 新增 collect-only 精确要求 9/9，真实执行时显式包含该测试，并在 JUnit XML 中要求九个 ID 全部存在、0 failure、0 skipped。
 - 该浏览器门禁与 O3-B 物理门禁现在在同一 PR head `84757e7969254bddcaf3368ef7efd0b8fd531f4f` 上重跑；结果未出前不宣称 O3-C PASS。
+### O3-D 原始 Run Bundle 归档补齐（2026-11-19）
+
+- 对上一版 Artifact 的实际 ZIP 做了独立检查：包含 8 个物理 effect A/B 直接 recorder 报告与 JUnit，但测试生成的 nominal/injected Run Bundle 原始目录在 pytest tmp_path 结束后被删除；只保留 JSON/JUnit 不足以让第三方复核原始 sealed bundle。
+- 已修改 O3-B `_run_case`：每个 Run 在原目录 integrity PASS 后复制到 `reports/native_whole_spacecraft_events/run_bundles/{run_id}`，并对复制件再次执行 `verify_run_bundle`。
+- 已修改 O3-C Chromium journey：将浏览器下载的 9 个 ZIP 保存到 `browser_run_bundles/`，同时写 sidecar JSON，记录 case_id、run_id、事件类别/ID、ZIP SHA-256、bundle manifest SHA-256、sealed 与 integrity 状态。
+- 官方 Artifact 上传路径现在包含物理 Run Bundle 目录和浏览器下载 ZIP/sidecar；此归档实现尚待最新同头 CI 验证。
