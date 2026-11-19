@@ -9,14 +9,14 @@ from sat_sim.capability_registry import get_adapter_for_capability, get_capabili
 CAPABILITY_ID = "whole_spacecraft.unified_native.v1"
 
 
-def _spec(task_id: str, *, duration_s: float = 3.0, values: dict | None = None) -> dict:
+def _spec(task_id: str, *, duration_s: float = 3.0, sample_s: float = 0.5, values: dict | None = None) -> dict:
     return {
         "task_id": task_id,
         "simulation": {
             "level": "whole_spacecraft",
             "duration_s": duration_s,
             "step_s": 0.1,
-            "sample_s": 0.5,
+            "sample_s": sample_s,
             "backend": "basilisk",
         },
         "model": {"capability_id": CAPABILITY_ID},
@@ -101,6 +101,7 @@ def test_pdu_feedback_requires_an_observed_transition() -> None:
     drained = _run(_spec(
         "v0565_pdu_transition",
         duration_s=15.0,
+        sample_s=0.1,
         values={
             "initial_soc": 0.60,
             "battery_capacity_wh": 1.0,
