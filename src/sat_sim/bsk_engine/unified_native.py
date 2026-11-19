@@ -20,7 +20,6 @@ from integration.resource_feedback import (
     DownlinkAntennaStatusAdapter,
     PayloadActivityStatusAdapter,
     InputReadStatus,
-    StatusPowerBridge,
     ThrusterActivityPowerBridge,
 )
 
