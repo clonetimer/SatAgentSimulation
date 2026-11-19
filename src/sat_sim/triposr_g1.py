@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import subprocess
 import sys
@@ -132,7 +133,11 @@ def validate_image_to_3d_manifest(path: str | Path) -> dict[str, Any]:
         raise ValueError("P9M4I_TRIPOSR_CHUNK_SIZE_INVALID")
     if type(mc_resolution) is not int or not 128 <= mc_resolution <= 512:
         raise ValueError("P9M4I_TRIPOSR_MC_RESOLUTION_INVALID")
-    if not isinstance(minimum_free_vram_gb, (int, float)) or minimum_free_vram_gb < 1:
+    if (
+        type(minimum_free_vram_gb) not in (int, float)
+        or not math.isfinite(minimum_free_vram_gb)
+        or minimum_free_vram_gb < 1
+    ):
         raise ValueError("P9M4I_TRIPOSR_MINIMUM_VRAM_INVALID")
 
     return {
