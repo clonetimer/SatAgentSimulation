@@ -452,12 +452,19 @@ if sysModel is not None:
 
 
 else:  # pragma: no cover
+    # Keep imports of the unified runtime available in lightweight environments
+    # that intentionally do not install Basilisk. These placeholders are never
+    # instantiated by a native run; the official Basilisk dependency remains
+    # mandatory at execution time.
+    DownlinkAntennaStatusAdapter = None
     DataActivityPowerBridge = DownlinkActivityPowerBridge = AdcsControlPowerBridge = StatusPowerBridge = ThrusterActivityPowerBridge = PowerToThermalAggregationBridge = None
 
 
 __all__ = [
     "ActivityPowerSample",
+    "DownlinkAntennaStatusSample",
     "InputReadStatus",
+    "DownlinkAntennaStatusAdapter",
     "DataActivityPowerBridge",
     "DownlinkActivityPowerBridge",
     "AdcsControlPowerBridge",
