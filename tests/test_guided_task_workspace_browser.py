@@ -2283,9 +2283,9 @@ def test_guided_whole_spacecraft_event_run_bundle(
                     seal.get("run_id") == run_id
                     and seal.get("bundle_manifest_sha256") == manifest_sha256
                 ),
-                "integrity_ok": True,
+                "integrity_ok": durable["integrity"]["ok"],
             }
-            assert sidecar["sealed"] is True, sidecar
+            assert sidecar["sealed"] is True and sidecar["integrity_ok"] is True, sidecar
             (browser_archive_dir / f"{case_id}.json").write_text(
                 json.dumps(sidecar, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8",
