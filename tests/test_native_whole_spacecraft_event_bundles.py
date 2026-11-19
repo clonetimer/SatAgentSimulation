@@ -36,7 +36,7 @@ def _values(group: str) -> dict[str, Any]:
             "initial_soc": 0.9,
             "propulsion_enabled": True,
             "propulsion_burn_start_s": 5.0,
-            "propulsion_burn_on_time_s": 8.0,
+            "propulsion_burn_on_time_s": [8.0],
             "propulsion_thrust_n": 5.0,
             "propulsion_isp_s": 200.0,
             "propulsion_initial_propellant_kg": 1.0,
@@ -203,7 +203,7 @@ def _at(rows, time_s: float) -> dict[str, Any]:
         ("adcs", "degradation", "gyro_noise_increase", {"noise_scale": 100.0}),
         ("adcs", "degradation", "rw_friction_degradation", {"wheel_index": 0, "drag_nms": 0.012}),
         ("adcs", "constraint", "adcs_reaction_wheel_speed_limit", {
-            "wheel_index": 0, "max_speed_rad_s": 5.0, "overspeed_brake_gain_nms": 0.025,
+            "wheel_index": 0, "max_speed_rad_s": 5.0,
         }),
         ("propulsion", "fault", "propulsion_thruster_ignition_failure", {}),
         ("propulsion", "degradation", "propulsion_burn_impulse_loss", {"remaining_impulse_ratio": 0.25}),
