@@ -113,3 +113,9 @@
 - sidecar 的 JSON 文本换行一度多转义一层（会在文件尾留下字面量 `\\n`，使 JSON 解析失败）；已修正为标准 `\n` newline，并复核源码。
 - 这次经验：CI archive audit 必须与测试实际写出的路径逐字对照；不能只根据测试变量名或测试成功就假设文件已进入 artifact staging。最终仍须以 9 ZIP + 9 sidecar 的真实数量、hash 重算和 Artifact 下载后核查为准。
 - 相关提交：`0fef08b3140dd9db9d58ef5d1e7d2eb7f7750076`、`ee84a2c33ad3f224188d986149ba8f98d1ddb6fb`。当前同 head CI 尚待完成。
+## O3-C 浏览器运行摘要契约修正（2026-11-19）
+
+- 对照整星统一适配器的真实 `summary.json` 与浏览器验收断言时，发现浏览器测试沿用了 ADCS/EPS/Comm 等分系统适配器的旧契约：期待 `instantiated_connected_recorded` 且 `external_or_proxy_module_count == 0`。
+- `whole_spacecraft.unified_native.v1` 实际由 `WholeSpacecraftUnifiedNativeAdapter` 执行，摘要契约是 `instantiated_connected_recorded_unified`；整星图包含 4 个工程代理功率桥，推进场景再增加 1 个推进桥，因此该字段应分别为 4 和 5。
+- 这不是放宽模型边界，也不能把代理计数改成 0；浏览器测试应与独立 Basilisk A/B 测试保持同一物理事实和声明边界。
+- 已将九条浏览器旅程的摘要断言改为按 case 校验 unified runtime 标识及 4/5 个工程代理桥。最终是否通过仍以修复后同一 PR head 的官方 Basilisk + Chromium CI 和证据 Artifact 为准。
