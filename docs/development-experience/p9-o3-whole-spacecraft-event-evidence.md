@@ -97,3 +97,10 @@
 - 对 Chromium：保留浏览器实际下载的 ZIP 原件，不仅验证临时下载；将其复制到 artifact staging，并生成 sidecar，记录 ZIP SHA-256 与 bundle manifest SHA-256。
 - Artifact 上传必须显式包含物理 run_bundles/**、browser_run_bundles/**、JUnit 与 effect_ab.json，并保持 `if-no-files-found: error`，避免路径写错时静默产出不完整交付包。
 - 归档代码已加入候选分支；只有同头官方 CI 完成且 Artifact 内核对 10 份物理 Run Bundle、9 份 Chromium ZIP 与 9 个 sidecar 后，O3-D 才可记为 PASS。
+
+## O3-C 高级参数浏览器控件修复（2026-11-19）
+
+- 首轮 PR #190 native workflow `44455172008` 的浏览器 job 失败，10 条 whole-spacecraft event Run journey 都在等待 `simulation.step_s` 可见时超时；其他 12 条测试通过、4 条按条件 deselected。此处不是物理模型失败。
+- 根因：`simulation.step_s` 在 Capability Form Schema 中是 `importance=advanced`。测试直接给 DOM 内 `<details>` 赋 `open=true`，没有使用产品的参数显示模式切换，导致高级控件在向导参数面板状态变化时仍不可见。
+- 修复后的真实 UI 操作顺序：展开 `#wizardParametersPanel` → 点击 `[data-wizard-parameter-mode="all"]` → 等待 `simulation.step_s` 输入可见 → 修改积分步长。这样验证的是用户真实可执行的交互路径，而不是绕过 UI 强行修改隐藏 DOM。
+- 修复提交 `cca76913d01f7758fb6de13fa194715f32be6c84`。新 head 的完整 Chromium 与原始 Run Bundle 归档验收尚未完成；不将测试代码修复记作 O3-C PASS。
