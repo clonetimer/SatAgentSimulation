@@ -161,3 +161,9 @@
 - 浏览器测试已改为通过向导显式启用 FMEA，并要求持久化 TaskSpec 保存 enabled/formats；事件目标断言从 Capability operator owner 动态读取，不硬编码 `whole_spacecraft`。
 - 经验：测试必须遵循产品的可选输出开关；能力对象层级与事件实现执行器层级是两个不同概念，验收应验证 canonical owner，而不是强行要求事件目标始终等于 capability target。
 - 相关修复提交：`37b96c9`（向导 FMEA 控件）、`275157e`（TaskSpec 绑定）、`b757a7e`（浏览器真实流程与事件 owner 断言）。最新同头官方验收尚待结果。
+## O3-C 推进冲量退化浏览器采样窗口修正（2026-11-19）
+
+- Official Basilisk/Chromium workflow `44465130374`：Basilisk O3-B step 16 PASS；浏览器作业 21 passed、1 failed、4 deselected。唯一失败为 `propulsion_burn_impulse_loss`：测试取 `active_rows[-1]`，即事件窗口末端 t=10 s；但 25% remaining-impulse profile 把 t=5 s 开始的 8 s 名义燃烧缩短为 2 s，真实推力窗口是 5–7 s，t=10 s 推力为 0 是正确物理结果。
+- 已将该事件的物理断言采样点改为最接近 t=6 s 的活动遥测样本，并显式断言采样时刻处于 `[5, 7)` s。命令 on-time 仍要求 2 s、名义 on-time 8 s、推力和推进剂消耗均要求为正；没有放宽物理断言。
+- 经验：瞬态效应的浏览器验收必须按物理作用窗口取样，不能用事件标签仍 active 的末端样本替代实际执行器作用时刻。
+- 修复提交 `d55c3c3255c185b6226f7363e3aa273d82674fb7`；同头 Chromium + 10+9 sealed archive audit 尚待重跑。
