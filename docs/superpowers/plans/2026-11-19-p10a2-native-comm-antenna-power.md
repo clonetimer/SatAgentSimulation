@@ -101,3 +101,9 @@ The power-only TX gate additionally requires the real SimpleAntenna state to be 
 
 - The pure Comm health audit converts adapter `time_ns` using `1e-9 s/ns`; it must not depend on a function-local Basilisk `macros` import.
 - In the composite graph, SimpleBattery is scheduled before the downstream PDU/Comm power nodes. The battery balance therefore reflects the prior sample's native PowerNodeUsage outputs; A/B battery assertions compare the next sample, while RF and power-node telemetry remain same-sample comparisons.
+
+
+## Final inventory and terminal battery sample
+
+- The project-native module inventory includes the project-owned Comm status adapter: 28 with propulsion enabled and 27 without; official Basilisk unique-module counts are 29 and 27.
+- Battery A/B comparisons use the next sample after each TX power-node output because the battery executes earlier in the task. The terminal TX sample is excluded only when no next battery sample exists; at least one following sample remains mandatory.
