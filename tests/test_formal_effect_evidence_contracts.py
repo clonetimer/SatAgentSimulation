@@ -174,3 +174,16 @@ def test_each_unified_effect_has_formal_runtime_pass(capability_id, category, ev
     assert evidence.effect_result == ValidationResult.PASS
     assert "RUNTIME_EFFECT_VERIFIED" in evidence.reason_codes
     assert "EFFECT_EVIDENCE_CANDIDATE" not in evidence.reason_codes
+
+
+
+def test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect() -> None:
+    """Advanced TaskSpec admission must not bypass the capability's declared event boundary."""
+    spec = _spec(
+        WHOLE_ID,
+        category="fault",
+        event=_event("adcs_star_tracker_signal_loss", target="whole_spacecraft"),
+    )
+    planning = plan_task_spec(spec)
+    assert not planning.validation.ok
+    assert any(issue.severity == "error" for issue in planning.validation.issues)
