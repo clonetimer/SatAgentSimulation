@@ -1,0 +1,53 @@
+name: P9-M4-I one-time legacy public artifact cleanup
+
+on:
+  push:
+    branches:
+      - feat/p9m4i-ai-engineering-asset-generation-20261117
+    paths:
+      - ".github/workflows/p9m4i-delete-legacy-public-artifacts.yml"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  delete-superseded-public-source-artifacts:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Delete only the two superseded raw-source artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ids = [14509376634, 14510716115];
+            for (const artifact_id of ids) {
+              try {
+                await github.rest.actions.getArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id
+                });
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id
+                });
+                core.info(`P9M4I_LEGACY_ARTIFACT_DELETED:${artifact_id}`);
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                core.info(`P9M4I_LEGACY_ARTIFACT_ALREADY_ABSENT:${artifact_id}`);
+              }
+            }
+            for (const artifact_id of ids) {
+              try {
+                await github.rest.actions.getArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id
+                });
+                core.setFailed(`P9M4I_LEGACY_ARTIFACT_STILL_ACCESSIBLE:${artifact_id}`);
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                core.info(`P9M4I_LEGACY_ARTIFACT_VERIFIED_ABSENT:${artifact_id}`);
+              }
+            }
