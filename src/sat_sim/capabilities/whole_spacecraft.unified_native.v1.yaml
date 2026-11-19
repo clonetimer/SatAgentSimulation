@@ -738,6 +738,37 @@ parameters:
     unit: N*m*s
     required: false
     enum: [50, 75, 100]
+  rw_initial_speed_rad_s_0:
+    type: number
+    unit: rad/s
+    required: false
+    default: 10.471975511965978
+    min: -500.0
+    max: 500.0
+    description: RW1 initial native angular speed; converted to RPM at the official Basilisk factory boundary.
+  rw_initial_speed_rad_s_1:
+    type: number
+    unit: rad/s
+    required: false
+    default: 20.943951023931955
+    min: -500.0
+    max: 500.0
+    description: RW2 initial native angular speed; converted to RPM at the official Basilisk factory boundary.
+  rw_initial_speed_rad_s_2:
+    type: number
+    unit: rad/s
+    required: false
+    default: 31.41592653589793
+    min: -500.0
+    max: 500.0
+    description: RW3 initial native angular speed; converted to RPM at the official Basilisk factory boundary.
+  rw_initial_speed_rad_s_3:
+    type: number
+    unit: rad/s
+    required: false
+    min: -500.0
+    max: 500.0
+    description: RW4 initial native angular speed; only valid for pyramid_4 configuration.
   initial_soc:
     type: number
     unit: ratio
