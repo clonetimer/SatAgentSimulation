@@ -62,14 +62,19 @@ def test_payload_native_power_node_closes_battery_and_thermal_without_changing_d
     # A/B switch and must remain bit-for-bit equivalent.
     for recorder_name, fields in (
         ("instrument", ("baudRate", "dataName")),
-        ("storage", ("currentStorage",)),
+        ("storage", ("storageLevel",)),
     ):
         left = active.recorders[recorder_name]
         right = control.recorders[recorder_name]
         assert list(left.times()) == list(right.times())
         for field in fields:
             if hasattr(left, field) and hasattr(right, field):
-                assert list(getattr(left, field)) == pytest.approx(list(getattr(right, field)), abs=1e-12)
+                left_values = list(getattr(left, field))
+                right_values = list(getattr(right, field))
+                if field == "dataName":
+                    assert left_values == right_values
+                else:
+                    assert left_values == pytest.approx(right_values, abs=1e-12)
 
     active_battery = active.recorders["battery"]
     control_battery = control.recorders["battery"]
