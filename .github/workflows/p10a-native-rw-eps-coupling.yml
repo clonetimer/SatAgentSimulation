@@ -4,7 +4,13 @@ on:
   pull_request:
     paths:
       - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/whole_spacecraft/builder.py"
+      - "src/whole_spacecraft/runner.py"
+      - "src/integration/qoi_profiles/resource_closure.py"
+      - "src/sat_sim/capabilities/whole_spacecraft.composite_digital_twin.v1.yaml"
       - "tests/test_native_rw_power_consistency.py"
+      - "tests/test_composite_native_adcs_power.py"
+      - "tests/test_resource_closure_agent_trust.py"
       - "tests/test_unified_native_migration.py"
       - "tests/test_unified_native_event_migration.py"
       - "tests/test_native_whole_spacecraft_event_bundles.py"
@@ -70,6 +76,8 @@ jobs:
           python -m pytest -q -s \
             tests/test_native_rw_power_consistency.py \
             tests/test_unified_native_migration.py::test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds \
+            tests/test_composite_native_adcs_power.py \
+            tests/test_resource_closure_agent_trust.py::test_resource_closure_profiles_close_all_seven_p1_links \
             tests/interactive/test_native_battery_reset_barrier.py \
             --junitxml=reports/p10a/native-rw-eps-junit.xml
       - name: Upload focused P10-A1 evidence
