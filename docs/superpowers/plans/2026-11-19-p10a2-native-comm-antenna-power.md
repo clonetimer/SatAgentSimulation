@@ -25,7 +25,7 @@ Keep the RF propagation, link budget, downlink handling and storage path unchang
    - `native_downlink.downlinkOutMsg.attemptedDataRate`
    - `project_eps_pdu.commStatusOutMsg`
    - the physical `SimpleAntenna.antennaOutMsg` (`P_Tx/P_Rx`)
-   It publishes TX/idle `DeviceStatusMsg` outputs and a separate power-only `AntennaLogMsg` copy. The copy reports TX only when PDU permission, `linkActive` and `attemptedDataRate > 0) are all true; otherwise it reports OFF. The original SimpleAntenna message remains untouched for LinkBudget.
+   It publishes TX/idle `DeviceStatusMsg` outputs and a separate power-only `AntennaLogMsg` copy. The copy reports TX only when PDU permission, `linkActive` and `attemptedDataRate > 0, physical antenna state is TX/RXTX and P_Tx > 0 are all true; otherwise it reports OFF. The original SimpleAntenna message remains untouched for LinkBudget.
 4. Subscribe official `AntennaPower.antennaSetStateInMsg` to the adapter's gated antenna-log copy. Set `AntennaPower.basePowerNeed=0`; this node accounts only for physical antenna RF power.
 5. Represent non-RF electronics/PA overhead with a separate official PDU/TX-gated `SimplePowerSink`: 11 W unified-native and 25 W composite. Preserve total TX profiles: 16 W unified-native = 5 W RF + 11 W base; 30 W composite = 5 W RF + 25 W base.
 6. Connect both official power nodes to the official `SimpleBattery` and the thermal Comm node. The composite's separate official 2 W idle `SimplePowerSink` remains enabled only while PDU Comm is on and no TX is active.
