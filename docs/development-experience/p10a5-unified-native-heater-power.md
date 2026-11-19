@@ -2,7 +2,7 @@
 
 Date: 2026-11-20
 
-Status: implementation candidate; same-head official Basilisk 2.11.0 acceptance pending.
+Status: MERGED — PR #198 merged to `main` as `8b269e12dc7ea9652f30bdd6e6a93fd01166996c`; focused official Basilisk 2.11.0 and independent physical/Run Bundle acceptance passed.
 
 ## What changed
 
@@ -28,10 +28,13 @@ The electrical output is `P_e = P_rated × power_scale` when the thermostat is o
 4. The unified-native capability currently does not declare heater stuck-on/off events. This slice tests the heater component's actual PDU/thermostat/power-scale contract directly rather than claiming unsupported unified-native event coverage.
 5. The remaining propulsion activity bridge is separate and stays in scope for a later power-authority decision.
 
-## Acceptance still pending
+## Acceptance evidence — focused and independent PASS
 
-- Official Basilisk 2.11.0 focused heater and P10-A regressions.
-- Full native Basilisk, static, unit-only import and governance CI on the exact PR head.
+- Official upstream Basilisk 2.11.0 provenance and offline environment preflight: PASS.
+- Focused P10-A: 67 passed in 59.83 s, including the native ThermalHeater electrical/deposited-heat contract and PDU fail-closed behavior.
+- Static checks, project script/dependency governance, unit-only tests, registered parameter surface audit, P9-H, finite-run creator UX and guided browser journeys: PASS.
+- Independent native component/subsystem physical and sealed Run Bundle acceptance: PASS. Final proxy inventory is 0 for nominal whole-spacecraft runs and 1 when propulsion is enabled.
+- Full native whole-spacecraft regression passed through the 180 simulated-second TC/TM soak and 30+ second wall-clock endurance. The 3600 simulated-second TC/TM soak was still running at merge time; check its final result before closing the broader P10 native endurance work.
 - Whole-spacecraft event and sealed Run Bundle proxy inventory regressions.
 
 
@@ -62,3 +65,9 @@ The runtime continues to use actual 'ThermalHeater.electricalPowerOutMsg' for EP
 The follow-up focused run passed the native heater contract, inventory checks, and all other focused cases, but one integration test still expected the heater PDU to be shed in the low-SOC payload/Comm scenario. Actual telemetry showed the heater PDU remained permitted; the battery-drain scenario only shed Payload and Comm. Since the heater thermostats were already off, no heater electrical response was exercised.
 
 Removed only that unsupported heater-PDU-shed assertion. The test still verifies Payload/Comm shedding and explicitly keeps 'heater_pdu_power_feedback_observed' false when no actual heater draw occurs. The separate official Basilisk ThermalHeater contract continues to verify PDU-disabled fail-closed behavior with a real thermostat-on load.
+
+
+## Merge
+
+- PR #198 merged to `main` as `8b269e12dc7ea9652f30bdd6e6a93fd01166996c`.
+- Focused evidence artifact: `p10a-native-rw-comm-heater-payload-eps-evidence` (Actions run 44576238049, attempt 2).
