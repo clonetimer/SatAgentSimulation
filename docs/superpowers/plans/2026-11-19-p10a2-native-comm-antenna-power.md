@@ -89,3 +89,9 @@ The adapter gates on `attemptedDataRate > 0`, not `deliveredDataRate > 0`: faile
 ## Physical antenna state validation refinement
 
 The power-only TX gate additionally requires the real SimpleAntenna state to be TX or RXTX. A PDU-enabled downlink attempt must not create an electrical TX load when the physical antenna is OFF or RX-only. The adapter continues to leave the original RF antenna log untouched; its separate power-side log is OFF in this case.
+
+
+## Same-task scheduling and idle-state acceptance refinement
+
+- Composite `ReactionWheelPower` nodes are inserted at priority 0 after the spacecraft/RW effector models and before recorders. The PDU remains priority 49; the power nodes must consume current-tick `Omega/u_current`, not the previous tick.
+- Idle draw is verified in a separate real no-TX run by setting the physical SimpleAntenna to OFF. The actual SimpleAntenna/LinkBudget/DownlinkHandling chain must then report no attempt while PDU remains enabled; the official idle sink must draw 2 W.
