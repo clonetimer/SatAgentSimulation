@@ -1869,7 +1869,7 @@ def test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events(
     [
         ("nominal", None, None, {}),
         ("adcs_rw_jamming", "fault", "adcs_rw_jamming", {"wheel_index": 0, "brake_torque_nm": 0.2}),
-        ("adcs_rw_motor_failure", "fault", "adcs_rw_motor_failure", {"wheel_index": 0, "torque_scale": 0.0}),
+        ("adcs_rw_motor_failure", "fault", "adcs_rw_motor_failure", {"wheel_index": 0}),
         ("gyro_bias_step", "fault", "gyro_bias_step", {"bias_step_deg_s": [0.5, 0.0, 0.0]}),
         ("gyro_noise_increase", "degradation", "gyro_noise_increase", {"noise_scale": 100.0}),
         ("rw_friction_degradation", "degradation", "rw_friction_degradation", {"wheel_index": 0, "drag_nms": 0.012}),
