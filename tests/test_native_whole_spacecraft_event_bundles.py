@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import shutil
 from importlib.metadata import version
 from pathlib import Path
@@ -203,6 +204,20 @@ def nominal_runs(tmp_path_factory):
         "initial_truth_pointing_error_deg": adcs.summary["initial_truth_pointing_error_deg"],
         "final_truth_pointing_error_deg": adcs.summary["final_truth_pointing_error_deg"],
     }
+    for row in adcs.trace_rows:
+        sigma_norm = math.sqrt(sum(
+            float(row[f"attitude.truth.mrp_BN_{axis}"]) ** 2 for axis in "xyz"
+        ))
+        expected_truth_error_deg = 4.0 * math.degrees(math.atan(sigma_norm))
+        assert row["attitude.truth.pointing_error_deg"] == pytest.approx(
+            expected_truth_error_deg, abs=1.0e-10
+        )
+    assert adcs.summary["initial_truth_pointing_error_deg"] == pytest.approx(
+        adcs.trace_rows[0]["attitude.truth.pointing_error_deg"], abs=1.0e-10
+    )
+    assert adcs.summary["final_truth_pointing_error_deg"] == pytest.approx(
+        adcs.trace_rows[-1]["attitude.truth.pointing_error_deg"], abs=1.0e-10
+    )
     propulsion, propulsion_integrity, propulsion_bundle = _run_case(root, "propulsion", "p9o3_whole_propulsion_nominal")
     assert propulsion.summary["propulsion_burn_observed"] is True
     assert propulsion.summary["propellant_used_kg"] > 0.0
