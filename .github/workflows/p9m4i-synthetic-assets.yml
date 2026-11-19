@@ -23,7 +23,6 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: write
   contents: read
 
 concurrency:
@@ -31,6 +30,50 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  delete-superseded-public-source-artifacts:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Delete and verify superseded public raw-source artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ids = [14509376634, 14510716115];
+            for (const artifact_id of ids) {
+              try {
+                await github.rest.actions.getArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id
+                });
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id
+                });
+                core.info(`P9M4I_LEGACY_ARTIFACT_DELETED:${artifact_id}`);
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                core.info(`P9M4I_LEGACY_ARTIFACT_ALREADY_ABSENT:${artifact_id}`);
+              }
+            }
+            for (const artifact_id of ids) {
+              try {
+                await github.rest.actions.getArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id
+                });
+                core.setFailed(`P9M4I_LEGACY_ARTIFACT_STILL_ACCESSIBLE:${artifact_id}`);
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                core.info(`P9M4I_LEGACY_ARTIFACT_VERIFIED_ABSENT:${artifact_id}`);
+              }
+            }
+
   synthetic-asset-contract:
     strategy:
       fail-fast: false
@@ -115,6 +158,10 @@ jobs:
           PY
 
   nasa-source-intake:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: delete-superseded-public-source-artifacts
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
@@ -142,73 +189,6 @@ jobs:
           assert receipt["source_rights_assessment"]["status"] == "policy_basis_found_pending_project_owner_signoff"
           print("P9M4I_NASA_SOURCE_INTAKE_PINNED:1", receipt["sha256"], receipt["size_bytes"])
           PY
-      - name: Verify superseded public artifacts are deleted when marked deleted
-        env:
-          GH_REPOSITORY: ${{ github.repository }}
-        run: |
-          python - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-          from urllib.error import HTTPError
-          from urllib.request import Request, urlopen
-
-          benchmark = json.loads(Path("docs/superpowers/benchmarks/2026-11-17-p9m4i-three-device-benchmark.json").read_text(encoding="utf-8"))
-          source = next(item for item in benchmark["candidate_image_sources"] if item["source_id"] == "nasa_europa_clipper_star_tracker_mockup_2025")
-          for artifact in source["superseded_public_source_artifacts"]:
-              status = artifact["status"]
-              artifact_id = artifact["artifact_id"]
-              if status == "delete_required":
-                  print("P9M4I_PUBLIC_ARTIFACT_DELETE_REQUIRED:", artifact_id)
-                  continue
-              if status != "deleted":
-                  raise SystemExit(f"P9M4I_PUBLIC_ARTIFACT_STATUS_INVALID:{artifact_id}:{status}")
-              url = f"https://api.github.com/repos/{os.environ['GH_REPOSITORY']}/actions/artifacts/{artifact_id}"
-              request = Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "SatAgentSimulation-P9M4I"})
-              try:
-                  with urlopen(request, timeout=15) as response:
-                      raise SystemExit(f"P9M4I_PUBLIC_ARTIFACT_STILL_ACCESSIBLE:{artifact_id}:{response.status}")
-              except HTTPError as exc:
-                  if exc.code not in {404, 410}:
-                      raise
-              print("P9M4I_PUBLIC_ARTIFACT_DELETED:", artifact_id)
-          PY
-      - name: Delete and verify superseded public raw-source artifacts
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const ids = [14509376634, 14510716115];
-            for (const artifact_id of ids) {
-              try {
-                await github.rest.actions.getArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id
-                });
-                await github.rest.actions.deleteArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id
-                });
-                core.info(`P9M4I_LEGACY_ARTIFACT_DELETED:${artifact_id}`);
-              } catch (error) {
-                if (error.status !== 404) throw error;
-                core.info(`P9M4I_LEGACY_ARTIFACT_ALREADY_ABSENT:${artifact_id}`);
-              }
-            }
-            for (const artifact_id of ids) {
-              try {
-                await github.rest.actions.getArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id
-                });
-                core.setFailed(`P9M4I_LEGACY_ARTIFACT_STILL_ACCESSIBLE:${artifact_id}`);
-              } catch (error) {
-                if (error.status !== 404) throw error;
-                core.info(`P9M4I_LEGACY_ARTIFACT_VERIFIED_ABSENT:${artifact_id}`);
-              }
-            }
       - name: Upload metadata-only source intake receipt
         uses: actions/upload-artifact@v4
         with:
