@@ -205,3 +205,11 @@
 - 该旧图还被 `src/integration/qoi_profiles/resource_closure.py` 和 `src/whole_spacecraft/runner.py` 直接使用。因此“ADCS proxy count 4→3”严格只适用于推荐统一运行图，不适用于所有 active whole-spacecraft capability。
 - 不把该 capability 当作历史文件或自动视为废弃；单独建立 P10-A1B，要求将其旧图迁移到同一官方 `ReactionWheelPower` per-wheel 路径，或在完整特性/模板/浏览器/real-LLM-eval parity 审计后再显式退役并替换。
 - 经验：跨 capability 的物理改造必须同时检索 lifecycle exposure、adapter class_path、实际 runner、QoI consumer 和 browser/eval 路径；仅修改推荐 capability 的 runtime，不能宣称全产品已消除同类 proxy。
+
+
+### P10-A1B active composite capability迁移实施记录（2026-11-19）
+
+- 针对仍处于 active / agent-exposed / real-LLM-eval-exposed 的 `whole_spacecraft.composite_digital_twin.v1`，已将 `src/whole_spacecraft/builder.py` 中的 `AdcsControlPowerBridge` 替换为官方 Basilisk per-wheel `ReactionWheelPower`。每个节点直接订阅 `rw_state_effector.rwOutMsgs[i]`，并受 EPS PDU ADCS status 控制；同一官方 `nodePowerOutMsg` 同时接入 battery 和 ADCS thermal node。
+- 同步更新 composite runner：`adcs_control_power_w` 由 per-wheel 原生 power recorder 求和；更新 resource-closure QoI，从真实 per-wheel recorder 计算 idle/slew 功耗差；更新 capability 输出字段说明。
+- 新增 `tests/test_composite_native_adcs_power.py`：覆盖实际 wheel state → ReactionWheelPower 方程、每轮消息计数、PDU 禁用时原生功率节点归零；接入 P10-A1 focused workflow 与完整 native workflow。
+- 这一阶段不再把 active composite capability 留作“计划迁移”；当前代码已实现，仍需同头 Basilisk 2.11.0 CI 确认。测试通过前不宣称所有 active capability 的 ADCS proxy 已全部清除。
