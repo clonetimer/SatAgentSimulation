@@ -162,7 +162,7 @@ if sysModel is not None:
             valid = status is InputReadStatus.VALID
             tx_enabled = bool(
                 valid and pdu_enabled and link_active and attempted > 0.0
-                and antenna_tx_available
+                and antenna_tx_available and antenna_tx_power > 0.0
             )
             idle_enabled = bool(valid and pdu_enabled and not tx_enabled)
 
