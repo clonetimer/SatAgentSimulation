@@ -2199,8 +2199,9 @@ def test_guided_whole_spacecraft_event_run_bundle(
                 assert durable["validation_outcome"]["injection_evidence"] == []
 
             summary = durable["summary"]
-            assert summary["runtime_truth_status"] == "instantiated_connected_recorded"
-            assert summary["external_or_proxy_module_count"] == 0
+            expected_proxy_count = 5 if case_id.startswith("propulsion_") else 4
+            assert summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
+            assert summary["external_or_proxy_module_count"] == expected_proxy_count
 
             telemetry = client.get(f"/runs/{run_id}/telemetry?limit=500")
             assert telemetry.status_code == 200, telemetry.text
