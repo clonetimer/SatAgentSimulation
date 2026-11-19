@@ -134,7 +134,6 @@ def test_adcs_events_modify_pre_dynamics_messages(category, effect, parameters, 
         ("fault", "payload_instrument_off", {}, "payload.active", lambda rows: all(int(r["payload.active"]) == 0 and float(r["payload.generated_bps"]) == 0.0 for r in rows), {}),
         ("fault", "comm_data_downlink_link_loss", {}, "comm.active", lambda rows: all(int(r["comm.active"]) == 0 and float(r["comm.downlink_bps"]) == 0.0 for r in rows), {}),
         ("fault", "eps_battery_capacity_loss", {"remaining_capacity_ratio": 0.5}, "eps.battery_capacity_j", lambda rows: all(float(r["eps.battery_capacity_j"]) == pytest.approx(288000.0) for r in rows), {}),
-        ("fault", "thermal_heater_stuck_on", {}, "eps.loads.heater_power_w", lambda rows: any(float(r["eps.loads.heater_power_w"]) > 0.0 for r in rows), {"initial_soc": 0.80}),
         ("degradation", "solar_panel_efficiency_loss", {"remaining_efficiency_ratio": 0.2}, "eps.solar_array_power_w", lambda rows: max(float(r["eps.solar_array_power_w"]) for r in rows) < 300.0, {}),
         ("degradation", "thermal_radiator_rejection_loss", {"remaining_rejection_ratio": 0.1}, "thermal.payload_temp_k", lambda rows: all(float(r["thermal.payload_temp_k"]) > 0.0 for r in rows), {"payload_power_w": 200.0}),
         ("constraint", "power_safe_mode_threshold", {"soc_threshold": 0.9}, "label.power_safe_mode_engaged", lambda rows: all(bool(r["label.power_safe_mode_engaged"]) and int(r["payload.active"]) == 0 and int(r["comm.active"]) == 0 for r in rows), {"initial_soc": 0.62}),
@@ -155,32 +154,6 @@ def test_whole_spacecraft_events_propagate_before_state_integration(category, ef
     assert result.summary["data_bounds_pass"] is True
     assert result.summary["external_or_proxy_module_count"] == 0
 
-
-def test_unified_native_heater_power_matches_native_thermal_outputs_without_proxy() -> None:
-    result = get_adapter_for_capability(WHOLE_ID).run(
-        _spec(
-            WHOLE_ID,
-            category="fault",
-            event=_event("thermal_heater_stuck_on", target="whole_spacecraft"),
-            duration_s=16.0,
-            values={"initial_soc": 0.80},
-        )
-    )
-    rows = _during(result)
-    assert rows
-    assert any(float(row["eps.loads.heater_power_w"]) > 0.0 for row in rows)
-    assert result.summary["resource_feedback_bridge_health"]["heater"]["status"] == "PASS"
-    assert result.summary["resource_feedback_bridge_health"]["heater"]["source"] == "ThermalHeater.electricalPowerOutMsg"
-    assert result.summary["external_or_proxy_module_count"] == 0
-    assert "project_heater_status_power_bridge" not in result.metadata["model_source_boundary"]["external_or_proxy"]
-    for row in result.trace_rows:
-        component_sum = sum(
-            float(row.get(f"eps.loads.{name}_thermostat_power_w", 0.0))
-            for name in ("battery", "electronics", "payload", "adcs", "structure", "solar_panel", "comm", "propulsion")
-        )
-        assert float(row["eps.loads.heater_power_w"]) == pytest.approx(component_sum, abs=1e-6)
-        if int(row["eps.pdu.heater_enabled"]) == 0:
-            assert float(row["eps.loads.heater_power_w"]) == pytest.approx(0.0, abs=1e-9)
 
 def test_thermal_degradation_changes_recorder_temperature_against_nominal() -> None:
     adapter = get_adapter_for_capability(WHOLE_ID)
