@@ -100,7 +100,7 @@ jobs:
               (44485479649, 14510716115),
           }
           assert all(
-              item["contains_source_bytes"] is True and item["status"] in {"delete_required", "deleted"}
+              item["contains_source_bytes"] is True and item["status"] == "deleted"
               for item in superseded_artifacts
           )
           assert nasa_source["eligible_for_inference"] is False
