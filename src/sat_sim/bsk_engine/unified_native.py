@@ -166,6 +166,63 @@ def _bridge_health_payload(bridge: Any) -> dict[str, Any]:
     }
 
 
+def _native_payload_power_health(
+    rows: list[dict[str, Any]],
+    *,
+    active_power_w: float,
+    adapter_trace: list[Any] | tuple[Any, ...] = (),
+) -> dict[str, Any]:
+    """Verify native Payload SimplePowerSink follows actual instrument activity and PDU permission."""
+    tolerance_w = 1.0e-6
+    errors: list[str] = []
+    violations: list[dict[str, Any]] = []
+    for sample in adapter_trace:
+        sample_time_s = float(getattr(sample, "time_ns", 0)) * 1.0e-9
+        status = getattr(sample, "input_status", None)
+        if sample_time_s > 0.0 and status in {InputReadStatus.ERROR, InputReadStatus.NOT_READY}:
+            errors.append(f"PAYLOAD_ACTIVITY_ADAPTER_INPUT_INVALID:t={sample_time_s:.9g}:{getattr(sample, 'error', None) or status}")
+    powers: list[float] = []
+    rates: list[float] = []
+    pdu_states: list[bool] = []
+    for row in rows:
+        power = max(0.0, float(row.get("eps.loads.payload_power_w", 0.0)))
+        rate = max(0.0, float(row.get("payload.generated_bps", 0.0)))
+        pdu_enabled = bool(int(row.get("eps.pdu.payload_enabled", 0)))
+        active = bool(pdu_enabled and rate > 0.0)
+        powers.append(power)
+        rates.append(rate)
+        pdu_states.append(pdu_enabled)
+        expected = float(active_power_w) if active else 0.0
+        if abs(power - expected) > tolerance_w:
+            violations.append({"time_s": float(row.get("time_s", 0.0)), "reason": "payload_power_does_not_match_instrument_and_pdu_state", "expected_power_w": expected, "actual_power_w": power, "pdu_enabled": pdu_enabled, "generated_rate_bps": rate})
+    positive_activity_count = sum(1 for value in rates if value > 1.0e-9)
+    positive_power_count = sum(1 for value in powers if value > tolerance_w)
+    power_span = max(powers, default=0.0) - min(powers, default=0.0)
+    stimulus_observed = bool(positive_activity_count or power_span > tolerance_w)
+    return {
+        "status": "FAIL" if errors or violations else ("PASS" if rows else "NOT_READY"),
+        "sample_count": len(rows),
+        "valid_sample_count": len(rows),
+        "not_ready_sample_count": sum(1 for sample in adapter_trace if getattr(sample, "input_status", None) == InputReadStatus.NOT_READY),
+        "error_count": len(errors),
+        "errors": errors[:10],
+        "power_min_w": min(powers, default=0.0),
+        "power_max_w": max(powers, default=0.0),
+        "power_span_w": power_span,
+        "activity_min": min(rates, default=0.0),
+        "activity_max": max(rates, default=0.0),
+        "activity_span": max(rates, default=0.0) - min(rates, default=0.0),
+        "positive_activity_sample_count": positive_activity_count,
+        "positive_power_sample_count": positive_power_count,
+        "enabled_transition_observed": len(set(pdu_states)) > 1,
+        "stimulus_observed": stimulus_observed,
+        "directional_response_pass": not violations,
+        "directional_violation_count": len(violations),
+        "directional_violations": violations[:10],
+        "source": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+        "input_source": "simpleInstrument.nodeDataOutMsg + project_eps_pdu.payloadStatusOutMsg",
+    }
+
 def _native_comm_antenna_power_health(
     rows: list[dict[str, Any]], *,
     base_power_w: float,
