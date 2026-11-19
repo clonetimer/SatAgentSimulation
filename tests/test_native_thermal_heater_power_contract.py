@@ -74,7 +74,7 @@ def test_native_thermal_heater_publishes_electrical_consumption_and_deposited_he
 
 def test_native_thermal_heater_fails_closed_when_eps_pdu_disables_heater() -> None:
     _, electrical, deposited = _run(pdu_enabled=False, power_scale=1.0)
-    assert electrical.netPower
-    assert deposited.netPower
+    assert len(electrical.netPower) > 0
+    assert len(deposited.netPower) > 0
     assert all(float(value) == pytest.approx(0.0, abs=1e-12) for value in electrical.netPower)
     assert all(float(value) == pytest.approx(0.0, abs=1e-12) for value in deposited.netPower)
