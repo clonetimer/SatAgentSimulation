@@ -65,6 +65,8 @@ def test_whole_spacecraft_guided_event_catalog_is_limited_to_verified_native_pro
         "propulsion.initial_propellant_kg",
         "propulsion.propellant_used_kg",
     } <= trace_fields
+    operator_trace = set(get_capability(WHOLE).data["operator"]["observability"]["trace"])
+    assert "attitude.truth.pointing_error_deg" in operator_trace
 
     for effects in exposed.values():
         for effect_id in effects:
