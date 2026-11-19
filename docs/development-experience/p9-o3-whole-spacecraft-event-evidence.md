@@ -35,3 +35,12 @@
 5. Propulsion 1 s injected burn 使用 0.2 s sample interval，避免 1 s sample 恰好落在 burn 结束边界而漏掉短燃烧窗口。
 6. Whole-spacecraft runtime 包含 4 个 engineering-proxy power bridges，推进启用时为 5 个。它们不等于 external solver，也不是官方 Basilisk 模块；测试必须记录并断言该数量，不可把整个整星运行图宣传为全官方模块原生。
 7. 8 个新 profile 与 operator contract 的 evidence_fields 做逐项一致性检查；guided event allowlist 仍保持 6 个 O3-A 已验收事件，等 O3-B 物理 A/B 通过、O3-C 浏览器旅程通过后再扩展。
+
+
+## O3-B 证据契约与采样回归修正（2026-11-19）
+
+- 全部 whole-spacecraft operator evidence_fields 与 VERIFIED_NATIVE_EFFECT profile 做逐项 parity 后，发现两个历史契约不一致：downlink profile 将 recorder 字段误写为 `comm.downlinked_bits`，实际 trace 是 `data.downlinked_bits`，同时 operator 与 profile 对 `data.storage_bits` 的覆盖不同；已统一为两者都声明 storage backlog 与 delivered data。solar efficiency profile 补齐 operator 已声明的 `eps.battery_soc`。
+- formal effect test 现在对 whole-spacecraft 14 个事件逐项断言 operator evidence_fields 与 profile evidence_fields 的集合一致，避免只验证 profile 存在而字段契约漂移。
+- Gyro noise baseline 不假设为零；IMU 可能持续输出基础噪声。A/B 使用固定 seed，对比活动窗口最大噪声幅值相对 nominal 至少 20 倍，并在事件结束后与 nominal 对齐。
+- RW jamming 和 speed-limit 场景从 t=0 生效，避免轮速在事件开始前被控制器自然改变而错过制动触发；speed-limit 测试使用初始 100 rad/s、限值 15 rad/s。
+- Propulsion impulse-loss 的 on-time 只有 1 s；propulsion Run Bundle 使用 0.2 s recorder 采样，避免 1 s 采样恰好错过燃烧活动窗口。
