@@ -84,3 +84,8 @@ The original P10-A2 sketch only stated the unified-native 16 W active profile an
 | composite digital twin | 30 W | 25 W | 5 W | 2 W via official SimplePowerSink | 0 W |
 
 The adapter gates on `attemptedDataRate > 0`, not `deliveredDataRate > 0`: failed packets still represent an actual RF transmission. `deliveredDataRate` remains an output/acceptance metric, not the TX power enable condition.
+
+
+## Physical antenna state validation refinement
+
+The power-only TX gate additionally requires the real SimpleAntenna state to be TX or RXTX. A PDU-enabled downlink attempt must not create an electrical TX load when the physical antenna is OFF or RX-only. The adapter continues to leave the original RF antenna log untouched; its separate power-side log is OFF in this case.
