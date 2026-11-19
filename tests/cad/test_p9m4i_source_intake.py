@@ -243,6 +243,15 @@ def test_public_source_intake_workflow_uploads_metadata_receipt_only():
     assert upload["path"] == "reports/p9m4i/source-intake/source-intake.json"
     assert upload["retention-days"] == 7
 
+    permissions = workflow.get("permissions", {})
+    assert permissions.get("actions") == "write"
+    cleanup_step = next(
+        step for step in steps
+        if step.get("name") == "Delete and verify superseded public raw-source artifacts"
+    )
+    assert step.get("uses") == "actions/github-script@v7"
+
+
     cleanup_step = next(
         step for step in steps
         if step.get("name") == "Verify superseded public artifacts are deleted when marked deleted"
