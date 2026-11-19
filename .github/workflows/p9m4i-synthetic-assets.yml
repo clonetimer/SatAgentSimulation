@@ -9,7 +9,9 @@ on:
       - "src/sat_sim/schemas/p9m4i-image-to-3d-input.v1.schema.json"
       - "scripts/cad/audit_synthetic_asset.py"
       - "scripts/cad/run_triposr_g1.py"
+      - "scripts/cad/fetch_p9m4i_source_image.py"
       - "scripts/cad/build_parametric_synthetic_asset.FCMacro"
+      - "tests/cad/test_p9m4i_source_intake.py"
       - "docs/superpowers/benchmarks/2026-11-17-p9m4i-parametric-input.schema.json"
       - "tests/cad/test_synthetic_asset_generation.py"
       - "tests/cad/test_triposr_g1.py"
@@ -49,7 +51,8 @@ jobs:
           PYTHONUTF8: "1"
           PYTHONIOENCODING: "utf-8"
         run: |
-          python -m pytest -q tests/cad/test_synthetic_asset_generation.py tests/cad/test_triposr_g1.py
+          python -m pytest -q tests/cad/test_synthetic_asset_generation.py tests/cad/test_triposr_g1.py tests/cad/test_p9m4i_source_intake.py
+          python scripts/cad/fetch_p9m4i_source_image.py --help
           python scripts/cad/audit_synthetic_asset.py --help
           python scripts/cad/run_triposr_g1.py --help
       - name: Validate benchmark manifest
@@ -87,4 +90,23 @@ jobs:
               assert mapping["node_renderable"] is False
               assert mapping["as_built_eligible"] is False
           print("P9M4I_BENCHMARK_SPEC_VALID:1 generation target + 2 real-CAD controls")
+
+  nasa-source-intake:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Fetch exact NASA star-tracker mock-up source and record SHA-256
+        run: |
+          python scripts/cad/fetch_p9m4i_source_image.py --output-dir reports/p9m4i/source-intake
+      - name: Upload source bytes and intake receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: p9m4i-nasa-star-tracker-source-intake
+          path: reports/p9m4i/source-intake/**
+          if-no-files-found: error
+          retention-days: 30
           PY
