@@ -226,7 +226,13 @@ def _native_comm_antenna_power_health(
                 "expected": expected_tx,
                 "actual": tx_enabled,
             })
-        if idle_enabled is not expected_idle:
+        # At t=0 an unwritten DownlinkHandling input is fail-closed (idle=0),
+        # while an already-written zero-activity message may legitimately report
+        # idle=1. Accept either only for that initialization sample.
+        if (
+            (initialization_sample and idle_enabled and not expected_idle)
+            or (not initialization_sample and idle_enabled is not expected_idle)
+        ):
             violations.append({
                 "time_s": time_s,
                 "reason": "idle_status_mismatch",
