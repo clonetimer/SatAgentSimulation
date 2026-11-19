@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Run a locally pinned TripoSR checkout for an isolated G1 preview candidate.
-
+"""用途：在隔离环境运行本地固定版本 TripoSR，生成受许可约束的 G1 外观预览候选。
+参数：--manifest 输入来源/许可/模型清单；--output-dir 输出目录；--preflight-only 仅检查许可、模型哈希和 CUDA 显存。
+输出：GLB 候选与 provenance receipt；不注册资产、不分配物理尺度/安装坐标、不创建 as-built 身份。
 The input manifest must prove source-image reuse permission and pin the model,
 license blob and local weights. The output is not registered or physically scaled.
 """
