@@ -2045,11 +2045,19 @@ def test_guided_whole_spacecraft_event_run_bundle(
                 for name, value in event_parameters.items():
                     set_event_field(f"parameters.{name}", value)
 
+            parameters_panel = page.locator("#wizardParametersPanel")
+            if parameters_panel.get_attribute("open") is None:
+                parameters_panel.locator(":scope > summary").click()
+            # simulation.step_s is intentionally classified as an advanced field.
+            # Use the same explicit "全部参数" interaction as a real operator so
+            # the advanced control is rendered open rather than force-opening DOM nodes.
+            page.locator('#wizardParametersPanel [data-wizard-parameter-mode="all"]').click()
             form = page.locator("#wizardParameterHost #dynamicForm")
             form.wait_for(state="attached", timeout=15000)
-            page.locator("#wizardParameterHost details").evaluate_all(
-                "(items) => items.forEach((item) => { item.open = true; })"
+            step_field = page.locator(
+                '#wizardParameterHost #dynamicForm [data-field-path="simulation.step_s"] input'
             )
+            step_field.wait_for(state="visible", timeout=10000)
 
             def set_form_value(field_path: str, value) -> None:
                 wrapper = page.locator(
