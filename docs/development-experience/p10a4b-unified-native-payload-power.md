@@ -28,6 +28,8 @@ The active payload load is fixed at `payload_power_w`; it is not linearly scaled
 3. Update runtime manifest and source-boundary counts; otherwise the old proxy may be gone from the graph but still falsely advertised in the audit.
 4. Keep the low-SOC PDU transition test: the PDU permit and instrument data rate are independent conditions.
 5. The fixed load is a mode assumption. If future hardware evidence supports rate-dependent DC draw, add an explicit measured profile instead of restoring the old proportional proxy.
+6. Importability without Basilisk must be preserved. The first PR run exposed that `PayloadActivityStatusAdapter` lacked the `None` placeholder used by the other optional Basilisk classes; add it to the module's no-Basilisk branch and `__all__` so unit-only tools can import the unified runtime.
+7. Removing one proxy and adding one official node changes runtime inventories: default unified-native proxy count 2 → 1; official and project-native module counts each increase by one. Update propulsion and sealed Run Bundle assertions to use the new audited counts; the first P10 run's two failures and eight fixture errors were stale inventory expectations, not physical-link failures.
 
 ## Acceptance still pending
 
