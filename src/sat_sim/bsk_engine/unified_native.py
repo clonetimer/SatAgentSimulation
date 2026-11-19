@@ -2329,14 +2329,15 @@ class UnifiedNativeRuntime:
             sim.AddModelToTask(task_name, recorder, None, 1)
             recorder_map[name] = recorder
             record_sources.append(name)
-        # Preserve fast PDU transition evidence even when output telemetry is
-        # sampled more slowly than the native simulation task.
-        pdu_heater_status_fast = whole_modules["pdu"].heaterStatusOutMsg.recorder(
-            macros.sec2nano(cfg.step_s)
-        )
-        sim.AddModelToTask(task_name, pdu_heater_status_fast, None, 1)
-        recorder_map["pdu_heater_status_fast"] = pdu_heater_status_fast
-        record_sources.append("pdu_heater_status_fast")
+        if not cfg.adcs_only:
+            # Preserve fast PDU transition evidence even when output telemetry
+            # is sampled more slowly than the native simulation task.
+            pdu_heater_status_fast = whole_modules["pdu"].heaterStatusOutMsg.recorder(
+                macros.sec2nano(cfg.step_s)
+            )
+            sim.AddModelToTask(task_name, pdu_heater_status_fast, None, 1)
+            recorder_map["pdu_heater_status_fast"] = pdu_heater_status_fast
+            record_sources.append("pdu_heater_status_fast")
 
         from sat_sim.basilisk_recorder_groups import attach_grouped_message_recorders, group_manifest
         recorder_groups = attach_grouped_message_recorders(
