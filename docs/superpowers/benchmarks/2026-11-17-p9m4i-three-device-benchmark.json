@@ -225,15 +225,15 @@
       "reported_size_mb": 2.49,
       "usage_policy_uri": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
       "usage_policy_summary": "NASA media guidelines generally allow non-commercial educational/informational use, including computer graphical simulations and media used in 3D-model rendition; third-party copyright-protected assets must be identified and separately cleared.",
-      "license_assessment_status": "policy_basis_found_pending_project_owner_signoff_and_source_hash",
-      "source_bytes_obtained": false,
-      "source_sha256": null,
+      "license_assessment_status": "policy_basis_found_pending_project_owner_signoff",
+      "source_bytes_obtained": true,
+      "source_sha256": "458cd3da892e5d0e75272fc9ee3b931b2c73f8eedecb03caa8d6bd21409fdfad",
       "eligible_for_inference": false,
       "limitations": [
         "generic Europa Clipper mock-up, not the target satellite's confirmed star-tracker model",
         "single perspective image provides no engineering scale, mounting interface, aperture dimensions or boresight",
         "visible hand/person and workbench background must be excluded by reviewed preprocessing",
-        "no TripoSR inference until original bytes, SHA-256, background-removal review and project-owner scope signoff are recorded"
+        "project-owner use-scope signoff and background-removal review are still required before TripoSR inference"
       ],
       "rights_assessment": {
         "status": "policy_basis_found_pending_project_owner_signoff",
@@ -257,6 +257,19 @@
           "Do not externally distribute the generated model until project-owner scope review is complete."
         ],
         "project_owner_signoff": "pending"
+      },
+      "source_size_bytes": 4124658,
+      "source_dimensions_px": [
+        4032,
+        3024
+      ],
+      "source_retrieved_at_utc": "2026-11-19T07:52:41.590154Z",
+      "source_intake_artifact": {
+        "workflow_run_id": 44482953922,
+        "artifact_id": 14509376634,
+        "artifact_name": "p9m4i-nasa-star-tracker-source-intake",
+        "artifact_zip_size_bytes": 2658144,
+        "artifact_zip_sha256": "b51793ba2a1d781a609eeab0726045764c4ab86b88e4d1fa40d62f7aa6020d95"
       }
     }
   ]
