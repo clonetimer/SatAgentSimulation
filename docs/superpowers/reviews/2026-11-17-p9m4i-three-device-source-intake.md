@@ -114,3 +114,26 @@
 5. 人工修复时间与计算资源记录。
 
 不得使用不同来源质量的输入比较两种路线。AI 生成结果始终登记为 `synthetic_reference_geometry`，不绑定遥测、不创建实装实例、不进入 as-built 视图。
+## 2026-11-19 来源复核补充：KSST-01 与开源替代项
+
+### KAIROSPACE KSST-01
+- 官方产品页：`https://www.kairo.space/products/ksst-01-star-tracker`；官方 1 页 datasheet：`https://www.kairo.space/_files/ugd/dca4f9_cdd20d924ed24d76b6ff17cfba81dbaf.pdf`（文件标识 KSDS-ST01-2605-1/1）。
+- Datasheet 公开规格：56 × 60 × 92.8 mm（with baffle）、175 g（without cable, MLI and protective covers）、aperture 18.6 mm、focal length 20.44 mm、FOV 22°、update rate 10 Hz。Satsearch 页面另列 197 g（including baffle），与官方 datasheet 的质量口径不同；不得混用。
+- 官方 datasheet 页脚写明 Copyright © 2026 KAIROSPACE Company Limited, All rights reserved；官方产品页亦声明未获事先书面许可不得复制/使用网站材料。当前不把产品图、机械图或 PDF 作为 image-to-3D 输入，不把第三方尺寸写入项目目标设备参数。
+- Satsearch 页面 `https://satsearch.co/products/kairospace-star-tracker` 的 Downloads 区列出 CAD model (2.88 MB)，但公开页面的图标不是可直接下载的 CAD 文件；页面的 Request details 流程将 CAD model 作为向供应商请求的资料项。尚未取得实际 STEP/IGES/GLB 字节、SHA-256、文件版本和许可。
+- 结论：`CAD_listed_bytes_unavailable_license_unverified_target_identity_unconfirmed`。下一步必须取得供应商原始 CAD 与书面许可，或由项目负责人选择许可清晰的替代型号；不因网页存在 CAD 字样而宣称已取得。
+
+### 开源星敏硬件筛查
+- OreSat：`https://github.com/oresat/oresat-star-tracker-hardware`，default branch `master`，审查 commit `316fb85958342417e69128ae95b5106b145cec22`。仓库树有 star tracker camera board 的 KiCad PCB/原理图、DXF 和 release ZIP；无 STEP/STL/FCStd/IGES/GLB，也未发现 LICENSE 文件。它是电子板卡资料，不是完整光学头/遮光罩/机械安装 CAD，不能替代 KSST-01 几何。
+- SPEL SOST：`https://github.com/spel-uchile/Star_Tracker`，GPL-3.0。README 说明 SOST 在 SUCHAI-2/3 和 PlantSAT 使用，硬件组合为 RPi Zero W 与 RPi V2.1 camera；仓库提供软件和集成照片，没有机械 CAD。它是独立参考设计，不是 KSST-01 同型号设备。
+
+### 图像到 3D 模型可执行性复核
+- TripoSR：`https://github.com/VAST-AI-Research/TripoSR`。官方 README 声明 MIT 许可证覆盖代码和预训练模型，单张图默认约 6 GB VRAM，支持 `--model-save-format glb`；`--chunk-size` 可降低显存峰值。当前最适合本地 G1 feasibility pilot，但不代表机械尺寸精确。
+- TRELLIS.2：`https://github.com/microsoft/TRELLIS.2`。官方要求 Linux + NVIDIA GPU ≥24 GB + CUDA 12.4 推荐配置；作为远端高质量候选，不作为 RTX 5060 本地默认。
+- Stable Fast 3D：`https://github.com/Stability-AI/stable-fast-3d`。约 6 GB VRAM，但模型权重 gated；使用 Stability AI Community License，包含分发通知/署名义务，Windows 支持实验性；当前不作为默认。
+- Hunyuan3D-2.1：`https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1`。shape generation 约 10 GB，shape + texture 约 29 GB；Tencent Community License 有地域与分发条件，先完成适用范围审查，不作为默认。
+
+### 当前门禁
+- 没有任何许可明确的 KSST-01 原始图像/CAD 输入，因此本轮没有运行 TripoSR、TRELLIS.2 或其他生成模型，也没有生成星敏感器模型。
+- 只有输入图来源、SHA-256 和许可范围均核验后，才运行 TripoSR G1；输出只进入 `synthetic_preview`，不得推导安装孔、boresight、接口或 as-built 身份。
+- 电池组和反作用轮仍是 BIRDS-4 真实 CAD 对照组；本轮不再对它们重复生成。
