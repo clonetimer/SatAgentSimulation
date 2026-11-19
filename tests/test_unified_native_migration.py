@@ -135,6 +135,9 @@ def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> N
     assert result.summary["adcs_power_model"]["implementation"] == "Basilisk.simulation.ReactionWheelPower"
     assert result.summary["comm_power_model"]["implementation"] == "Basilisk.simulation.antennaPower.AntennaPower"
     assert result.summary["comm_power_model"]["total_active_tx_power_w"] == pytest.approx(16.0)
+    assert result.summary["comm_power_model"]["antenna_tx_power_w"] == pytest.approx(5.0)
+    assert result.summary["comm_power_model"]["base_power_w"] == pytest.approx(11.0)
+    assert result.summary["comm_power_model"]["base_power_node"] == "Basilisk.simulation.simplePowerSink.SimplePowerSink"
     assert result.summary["resource_feedback_bridge_health"]["comm"]["status"] == "PASS"
     assert result.summary["connected_message_count"] >= 36
     assert result.summary["energy_bounds_pass"] is True
