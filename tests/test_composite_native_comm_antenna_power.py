@@ -118,8 +118,13 @@ def test_composite_native_antenna_power_closes_eps_thermal_and_preserves_rf_phys
         assert -float(tx_power[index]) == pytest.approx(5.0, abs=1e-6)
         assert -float(base_power[index]) == pytest.approx(25.0, abs=1e-6)
         assert -float(idle_power[index]) == pytest.approx(0.0, abs=1e-6)
-        assert float(active_battery.currentNetPower[index]) == pytest.approx(
-            float(control_battery.currentNetPower[index]) - 30.0,
+        # SimpleBattery executes before PDU and the downstream Comm power
+        # nodes. Its recorded bus balance at i+1 therefore consumes the
+        # PowerNodeUsageMsg published at i (one explicit feedback tick).
+        battery_index = index + 1
+        assert battery_index < len(active_battery.currentNetPower)
+        assert float(active_battery.currentNetPower[battery_index]) == pytest.approx(
+            float(control_battery.currentNetPower[battery_index]) - 30.0,
             abs=1e-5,
         )
         assert -float(power_off_graph.recorders["comm_power_tx"].netPower[index]) == pytest.approx(0.0, abs=1e-6)
