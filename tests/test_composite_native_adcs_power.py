@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import pytest
 
+from whole_spacecraft.runner import _validate_native_adcs_power_envelope
+
 
 def _run(initial_soc: float):
     pytest.importorskip("Basilisk")
@@ -29,6 +31,7 @@ def test_active_composite_uses_official_per_wheel_reaction_wheel_power():
     assert "adcs_power_bridge" not in graph.component_registry
     wheel_count = len(graph.adcs_graph.rw_closed_loop.rw_state_effector.rwOutMsgs)
     assert len(nodes) == wheel_count
+    assert graph.component_registry["adcs_power_monitoring_limit_w"] == pytest.approx(120.0)
 
     pdu = graph.recorders["pdu_adcs_status"]
     power_recorders = [graph.recorders[f"adcs_power_{i}"] for i in range(wheel_count)]
@@ -66,3 +69,11 @@ def test_active_composite_pdu_disable_turns_off_native_adcs_power_nodes():
         assert int(pdu.deviceStatus[sample_index]) == 0
         observed = sum(max(0.0, -float(rec.netPower[sample_index])) for rec in power_recorders)
         assert observed == pytest.approx(0.0, abs=1e-6)
+
+
+def test_composite_native_adcs_power_envelope_is_fail_closed_without_clamping():
+    assert _validate_native_adcs_power_envelope([10.0, 72.0, 120.0], 120.0) == pytest.approx(120.0)
+    with pytest.raises(RuntimeError, match="COMPOSITE_ADCS_POWER_ENVELOPE_EXCEEDED"):
+        _validate_native_adcs_power_envelope([10.0, 120.1], 120.0)
+    with pytest.raises(ValueError, match="COMPOSITE_ADCS_POWER_SAMPLE_INVALID"):
+        _validate_native_adcs_power_envelope([10.0, float("nan")], 120.0)
