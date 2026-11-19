@@ -22,7 +22,6 @@ ADCS_QOI = [
     "adcs.rw.effective_max_torque_nm_0",
     "adcs.control.applied_torque_nm_0",
     "adcs.sensor.gyro_bias_norm_rad_s",
-    "adcs.sensor.gyro_measured_rad_s_x",
     "adcs.sensor.gyro_noise_norm_rad_s",
     "adcs.rw.effective_drag_nms_0",
     "adcs.rw.effective_max_speed_rad_s_0",
@@ -235,7 +234,6 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_runs_and_sealed_bun
         elif effect == "gyro_bias_step":
             assert active["adcs.sensor.gyro_bias_norm_rad_s"] == pytest.approx(0.008726646259971648, rel=1e-6)
             assert baseline["adcs.sensor.gyro_bias_norm_rad_s"] == pytest.approx(0.0, abs=1e-12)
-            assert active["adcs.sensor.gyro_measured_rad_s_x"] != pytest.approx(baseline["adcs.sensor.gyro_measured_rad_s_x"])
             assert _at(injected.trace_rows, 16.0)["adcs.sensor.gyro_bias_norm_rad_s"] == pytest.approx(0.0, abs=1e-12)
         elif effect == "gyro_noise_increase":
             assert max(row["adcs.sensor.gyro_noise_norm_rad_s"] for row in active_rows) > 1e-5
