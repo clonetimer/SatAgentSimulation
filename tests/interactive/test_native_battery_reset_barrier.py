@@ -39,7 +39,14 @@ def test_r9i_genuine_basilisk_battery_public_reset_must_not_be_called_recovery(
     origin=UnifiedPersistentRuntime(UnifiedRuntimeConfig(
         capability_id="whole_spacecraft.unified_native.v1",
         duration_s=0.5,step_s=0.2,sample_s=0.2,adcs_only=False,
-        values={"rw_configuration":topology},events=(),
+        values={
+            "rw_configuration": topology,
+            # Force a measurable, reproducible battery-energy change over
+            # the checkpoint window; otherwise a solar/load equilibrium
+            # can make the public-reset negative control inert.
+            "adcs_power_w": 60.0,
+            "adcs_max_power_w": 120.0,
+        },events=(),
         interactive_unbounded=True,
     ),continuous=True)
     origin.prepare()
