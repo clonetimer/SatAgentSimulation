@@ -162,19 +162,19 @@ def test_r9i_genuine_basilisk_battery_public_reset_must_not_be_called_recovery(
         assert runtime_signed_samples
         assert all(sample["baseline_energy_j"] > 0.0 for sample in runtime_signed_samples), signed_energy_samples
         assert all(sample["reset_energy_j"] > 0.0 for sample in runtime_signed_samples), signed_energy_samples
-        # The original boolean measures change in *absolute* error only.
-        # At least one valid runtime sample must show equal absolute residuals
-        # but a materially different signed residual (the reset arm can
-        # over/under-shoot in the opposite direction).
+        # The first post-import row is an uninitialized zero battery message
+        # in both child arms. The later valid rows show that public Reset changes
+        # the battery trajectory and can reverse the sign of its energy error.
+        assert outcome["samples"][0]["reset_changed"] is False, outcome
         assert any(
-            sample["absolute_error_equal"]
-            and abs(sample["signed_error_change_j"]) > 1.0
+            abs(sample["signed_error_change_j"]) > 1.0
+            and sample["baseline_signed_error_j"] * sample["reset_signed_error_j"] < 0.0
             for sample in runtime_signed_samples
         ), signed_energy_samples
         assert any(
-            not outcome["samples"][index + 1]["reset_changed"]
-            and abs(sample["signed_error_change_j"]) > 1.0
+            outcome["samples"][index + 1]["reset_changed"]
             for index,sample in enumerate(runtime_signed_samples)
+            if abs(sample["signed_error_change_j"]) > 1.0
         ), outcome
         print("R9I_REAL_NATIVE_PUBLIC_BATTERY_RESET_BARRIER:"+json.dumps(
             outcome,sort_keys=True,allow_nan=False,
