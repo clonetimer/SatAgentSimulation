@@ -66,3 +66,13 @@
 - 这些参数确实被 `unified_native.py` 消费：分别设置官方 Basilisk HR16 RW 的初始 Omega，单位 rad/s，并在 `rwFactory.create(Omega=...)` 前转换为 RPM。它们属于正式用户参数，不是测试专用参数，因此正确修复是补 Capability schema，而不是删除测试值或绕过 parameter audit。
 - 已将 RW1-RW3 初始速度及 RW4 初始速度（仅 pyramid_4）加入 Capability parameters，约束 -500～500 rad/s；新增运行时检查，三轮构型显式设置 RW4 初始速度时 fail closed，避免被静默忽略。
 - paired test 文件增加 ADCS/propulsion baseline 参数消费审计；官方 native workflow 增加 RW4 ghost-parameter rejection JUnit 检查。下一次 CI 应先验证 planning PASS，再进入八个 Basilisk sealed A/B。
+
+
+## O3-B ADCS 二值电机失效语义回归修正（2026-11-19）
+
+- PR #190 首轮官方 native workflow 在旧 `test_p9n5_adcs_guided_event_catalog.py` 失败：实际向导给 `adcs_rw_motor_failure` 暴露了 `torque_scale`，而已冻结的产品合同要求它只有 `wheel_index`。这不是测试过时；历史 N5-E 决策明确要求 binary motor failure 与 partial torque-authority degradation 分开。
+- 修复：`adcs_rw_motor_failure` guided schema 仅保留 wheel_index；whole 与 subsystem 两个正式 evidence profile 都断言 `effective_torque_ratio_{wheel_index} == 0`，不再引用 value_parameter；whole formal/paired tests 不再传 torque_scale。
+- 参数准入同时收紧：`parameter_consumption` 不再接受 motor failure 的 torque_scale / remaining_torque_ratio；新增 planner-level 测试确认 advanced TaskSpec 传入 torque_scale=0.25 时以 PARAMETER_PATH_UNCONSUMED 拒绝。独立 `adcs_rw_torque_authority_loss` 仍允许 torque_scale=0.25 等部分退化。
+- 运行时 `ProjectNativeRWCommandModel` 对 `adcs_rw_motor_failure` 固定施加 0 力矩；旧通用 alias `rw_motor_failure` 的兼容行为单独保留。这样即使直接绕过 guided form，也不会把 whole motor failure 变成部分力矩事件。
+- 同步更新 fault catalog 与 whole-spacecraft 数据集生成器：motor failure 只采样目标轮号；部分力矩样本属于独立 degradation 条件。
+- 原失败是旧契约回归，不是 Basilisk 物理失败。修复后的官方 Basilisk 2.11.0 native workflow 尚待最终 PR head 重跑，不提前记 PASS。
