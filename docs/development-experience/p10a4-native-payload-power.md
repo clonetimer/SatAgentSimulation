@@ -6,12 +6,13 @@ Status: implementation candidate; same-head official Basilisk 2.11.0 acceptance 
 
 ## What changed
 
-- Replaced the active whole-spacecraft Payload `DataActivityPowerBridge` with a status-only `PayloadActivityStatusAdapter` and official Basilisk `SimplePowerSink`.
+- Replaced the active composite whole-spacecraft Payload `DataActivityPowerBridge` with a status-only `PayloadActivityStatusAdapter` and official Basilisk `SimplePowerSink`.
 - The adapter reads the actual `SimpleInstrument.nodeDataOutMsg` and EPS Payload PDU status. It publishes a fail-closed activity status and owns no electrical-power equation.
 - The official power node connects to the native battery and the existing payload thermal node heat-input bridge.
 - Added independent recorders for payload active status and actual payload power.
 - Updated resource-closure QoI to use the native payload power recorder instead of the removed custom bridge trace.
 - Added paired native payload power A/B and PDU load-shed tests.
+- The separate `whole_spacecraft.unified_native.v1` runtime still contains its own Payload activity bridge. It is not silently counted as migrated; a dedicated P10-A4B parity slice remains.
 
 ## Engineering decision
 
