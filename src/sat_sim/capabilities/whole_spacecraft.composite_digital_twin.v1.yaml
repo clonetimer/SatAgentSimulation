@@ -444,7 +444,7 @@ outputs:
   - name: comm_control_power_w
     unit: W
     dtype: number
-    description: Comm/Data electrical load summed from the official Basilisk AntennaPower TX node and the composite runtime's official 2 W idle SimplePowerSink.
+    description: Comm/Data electrical load summed from the official Basilisk AntennaPower RF node, PDU-gated non-RF base SimplePowerSink and composite-only 2 W idle SimplePowerSink.
   - name: propulsion_power_w
     unit: W
     dtype: number
