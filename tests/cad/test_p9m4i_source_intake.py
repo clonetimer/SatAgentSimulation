@@ -242,3 +242,10 @@ def test_public_source_intake_workflow_uploads_metadata_receipt_only():
     assert upload["name"] == "p9m4i-nasa-star-tracker-intake-receipt"
     assert upload["path"] == "reports/p9m4i/source-intake/source-intake.json"
     assert upload["retention-days"] == 7
+
+    cleanup_step = next(
+        step for step in steps
+        if step.get("name") == "Verify superseded public artifacts are deleted when marked deleted"
+    )
+    assert "actions/artifacts/" in cleanup_step["run"]
+    assert 'status == "delete_required"' in cleanup_step["run"]
