@@ -69,3 +69,9 @@ The first PR run exposed that the new adapter was defined only inside the Basili
 
 - The first full native run exposed a module-scope `NameError`: the Comm health helper converted adapter nanoseconds with `macros.NANO2SEC` even though `macros` is imported locally inside the runtime builder. Use the exact SI conversion constant `1e-9 s/ns` in the pure audit helper so it remains independent of Basilisk module globals.
 - The composite battery is intentionally scheduled before PDU and Comm power nodes to break the battery/PDU/power feedback cycle. Therefore the battery's recorded bus balance at sample `i+1` reflects the power-node output published at sample `i`. The RF A/B test now compares the 30 W battery difference one feedback tick after the TX power-node sample; it still checks same-tick RF and native power-node telemetry separately.
+
+
+## Final same-head count and terminal-sample corrections
+
+- The project-native inventory increased by one because the new status-only Comm adapter is a real project-owned Basilisk module. The verified whole-spacecraft counts are now 28 project-native modules with propulsion enabled and 27 without propulsion; official module counts remain 29 and 27 respectively.
+- A final TX sample at the stop time has no subsequent battery recorder sample in which to observe the one-tick load feedback. The A/B test now skips only that terminal sample and requires at least one valid following battery sample; it does not weaken the 30 W comparison.
