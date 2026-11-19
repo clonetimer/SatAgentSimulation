@@ -45,8 +45,11 @@ def _execute_graph(cfg: WholeSpacecraftConfig, duration_s: float) -> Any:
     return graph
 
 
-def _max_power(bridge: Any) -> float:
-    return max((float(row.electrical_power_w) for row in getattr(bridge, "trace", ())), default=0.0)
+def _max_power(source: Any) -> float:
+    """Return maximum electrical draw from a native recorder or legacy trace."""
+    if hasattr(source, "netPower"):
+        return max((max(0.0, -float(value)) for value in getattr(source, "netPower", ())), default=0.0)
+    return max((float(row.electrical_power_w) for row in getattr(source, "trace", ())), default=0.0)
 
 
 def _max_native_adcs_power(graph: Any) -> float:
@@ -210,8 +213,8 @@ def run_resource_closure_profiles() -> dict[str, Any]:
 
     payload_on_graph = _execute_graph(WholeSpacecraftConfig(initial_soc=0.62, propulsion_enabled=False), 120.0)
     payload_off_graph = _execute_graph(WholeSpacecraftConfig(initial_soc=0.40, propulsion_enabled=False), 120.0)
-    payload_on_power = _max_power(payload_on_graph.component_registry["payload_power_bridge"])
-    payload_off_power = _max_power(payload_off_graph.component_registry["payload_power_bridge"])
+    payload_on_power = _max_power(payload_on_graph.recorders["payload_power"])
+    payload_off_power = _max_power(payload_off_graph.recorders["payload_power"])
     payload_on_temp = _thermal_payload_temp(payload_on_graph)
     payload_off_temp = _thermal_payload_temp(payload_off_graph)
     _check(
