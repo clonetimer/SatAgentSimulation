@@ -220,3 +220,13 @@
 - 首轮 P10-A1B 专项测试在两个拓扑以外的旧 composite graph 上失败，根因不是 ReactionWheelPower 物理方程，而是 `WholeSpacecraftConfig.recorder_step_s` 默认 10 s、测试仿真只有 8 s，导致功率 recorder 只有一个初始化样本。不能把“recorders 字段存在”误当成“已取得运行样本”。
 - 修复：composite 原生功率 A/B 显式设置 `recorder_step_s=0.2 s`；资源闭环 QoI 的 idle/slew 8 s 图也显式使用 0.2 s 采样，保证它比较的是运行期功率，而不是首帧/静态基础功耗。
 - 经验：凡是将工程 bridge trace 改成 Basilisk message recorder，必须同步检查 recorder cadence、仿真时长和有效样本数量；测试应断言最小样本数，并跳过初始化样本。
+
+
+### P10-A2 原生通信功耗迁移经验（2026-11-19）
+
+- P10-A2 在 unified-native 与 active composite 两条整星路径中，均将下行功耗从 `DownlinkActivityPowerBridge` 迁移到官方 Basilisk `AntennaPower`。TX 使能由 PDU Comm 状态、`DownlinkHandling.linkActive` 和 `attemptedDataRate > 0` 联合决定；不能使用 `deliveredDataRate`，因为实际发射但丢包仍然消耗 RF/PA 功率。
+- 两条运行路径必须保留不同的既有功耗语义：unified-native 为 16 W TX / 0 W idle；composite 为 30 W TX / 2 W PDU-enabled idle。composite 的 2 W idle 使用官方 `SimplePowerSink`，不能把待机功耗重新塞回项目自定义功耗桥。
+- `AntennaPower.basePowerNeed` 只表示非 RF 基础开销，实际 RF 发射功率仍从官方 `SimpleAntenna.antennaOutMsg.P_Tx` 读取；当前示例参数对应 unified 11+5=16 W、composite 25+5=30 W。该模型仍是恒定 TX 模式功耗，不代表 PA 效率或速率相关电路模型已校准。
+- 真实运行的首个 t=0 记录可能遇到 DownlinkHandling 尚未写出的 `NOT_READY`。只允许将这一初始化样本从状态一致性审计中排除；后续 `ERROR`、未连接或非有限输入必须继续 fail closed。
+- 移除代理后，不能只修改实现：必须同步更新工程代理数量、Run Bundle 断言、Capability trace/QoI、adapter output schema 和 CI 触发路径。P10-A2 完成后，unified-native 基础代理数从 3 降为 2，推进开启时从 4 降为 3；composite 也按同一 native-downlink 分支减少一个通信代理。
+- 验收不能只检查功耗曲线：同一配置下将 TX 功率节点单独关闭，RF LinkBudget、CNR、BER/PER 和 DownlinkHandling 数据必须保持不变；Battery 净功率应相差 30 W，thermal electronics 输入应只在启用功率节点的运行中累积相应热量。
