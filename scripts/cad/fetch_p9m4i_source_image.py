@@ -32,6 +32,7 @@ SOURCE_IMAGE_URI = (
 USAGE_POLICY_URI = "https://www.nasa.gov/nasa-brand-center/images-and-media/"
 SOURCE_CREDIT = "NASA/JPL-Caltech"
 MAX_SOURCE_BYTES = 20 * 1024 * 1024
+EXPECTED_SOURCE_SHA256 = "458cd3da892e5d0e75272fc9ee3b931b2c73f8eedecb03caa8d6bd21409fdfad"
 USER_AGENT = "SatAgentSimulation-P9M4I-source-intake/1.0"
 
 
@@ -123,6 +124,7 @@ def fetch_nasa_star_tracker_source(
     output_dir: str | Path,
     *,
     opener: Callable[..., Any] = urlopen,
+    expected_sha256: str = EXPECTED_SOURCE_SHA256,
 ) -> dict[str, Any]:
     """Fetch the exact NASA media asset and preserve a hash-backed intake receipt.
 
@@ -144,6 +146,8 @@ def fetch_nasa_star_tracker_source(
         data, content_type, final_url = _read_response(response)
     width, height = jpeg_dimensions(data)
     digest = sha256_bytes(data)
+    if digest != expected_sha256:
+        raise ValueError("P9M4I_SOURCE_SHA256_NOT_PINNED")
 
     receipt = {
         "schema_version": "p9m4i-source-intake.v1",
@@ -164,6 +168,7 @@ def fetch_nasa_star_tracker_source(
         "width_px": width,
         "height_px": height,
         "sha256": digest,
+        "sha256_pinned": True,
         "source_rights_assessment": {
             "status": "policy_basis_found_pending_project_owner_signoff",
             "usage_policy_uri": USAGE_POLICY_URI,
