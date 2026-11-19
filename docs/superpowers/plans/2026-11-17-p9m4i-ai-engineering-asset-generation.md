@@ -158,3 +158,29 @@ The GLB audit now validates the actual embedded BIN payload rather than trusting
 - reject byteStride on index accessors and validate every index against the POSITION vertex count.
 
 This remains a bounded structural audit, not a replacement for the Khronos glTF Validator or an engineering geometry acceptance review. The audit deliberately fails closed on unsupported accessor forms rather than silently interpreting incomplete data.
+## 2026-11-19：KSST-01 来源/许可复核与本地模型选型修订
+
+### KSST-01 CAD 获取结果：仍未获得可用原件
+- KAIROSPACE 官方产品页 `https://www.kairo.space/products/ksst-01-star-tracker` 提供公开规格，并链接 1 页官方 datasheet `https://www.kairo.space/_files/ugd/dca4f9_cdd20d924ed24d76b6ff17cfba81dbaf.pdf`。官方 datasheet 给出 56 × 60 × 92.8 mm、175 g（不含线缆、MLI 和保护盖）、18.6 mm aperture、20.44 mm focal length、22° FOV、10 Hz 更新率等参数。
+- 官方页面明确声明材料不得在未取得 KAIROSPACE 事先书面许可的情况下复制、分发、传输、缓存或以其他方式使用；datasheet 页脚也标明 All rights reserved。不得将官方产品照片/机械图直接送入生成模型或随项目资产再分发，除非取得书面授权。
+- satsearch 产品页仍列出 2.88 MB CAD model，但下载入口实际为资源图标/供应商请求流程，不是可直接获取的 STEP 字节；请求表单明确把 CAD model 作为向供应商提出的资料请求。当前没有 CAD 原件、SHA-256、文件格式或再使用许可。
+- 因此 KSST-01 状态维持 `CAD_listed_bytes_unavailable_license_unverified_target_identity_unconfirmed`。公开 datasheet 的规格事实只作为采购/身份核验线索，不作为项目目标星敏尺寸或可复用几何输入；没有模型生成。
+
+### 开源替代资料筛查
+- `oresat/oresat-star-tracker-hardware`（default branch `master`，审查 commit `316fb85958342417e69128ae95b5106b145cec22`）含 KiCad PCB/原理图和若干 DXF/板卡 release ZIP，但仓库树没有 STEP/STL/FCStd/IGES/GLB，也未发现 LICENSE 文件。它不能作为完整星敏机械外壳 CAD，且不能在未确认许可前复制其文件。
+- `spel-uchile/Star_Tracker` 使用 GPL-3.0，公开内容是 SOST 软件、样例数据和集成照片；仓库文件清单没有机械 CAD。其 RPi Zero W + RPi V2.1 camera 集成方案也不是 KSST-01 的同型号替代物。
+
+### 图像到 3D 模型重新排序
+- **本地 G1 首选改为 TripoSR**：官方仓库 `https://github.com/VAST-AI-Research/TripoSR` 的代码与预训练权重均为 MIT；官方 README 说明单图默认约 6 GB VRAM，支持 GLB 输出，`--chunk-size` 可降低显存峰值（代价是更慢）。这比 TRELLIS.2 的官方 ≥24 GB 显存门槛更适合先在本地 NVIDIA GPU 上做受控 G1 试验。
+- **TRELLIS.2 保留为高质量远端候选**：官方 README 要求 Linux、NVIDIA GPU ≥24 GB、推荐 CUDA 12.4；不作为 RTX 5060 本地默认执行路线。
+- **Stable Fast 3D 暂不作为默认**：虽报告约 6 GB VRAM，但模型权重需要 Hugging Face gated access，许可证是 Stability AI Community License，包含分发署名/Powered by 等义务；Windows 支持仍标为 experimental。
+- **Hunyuan3D-2.1 暂不作为默认**：官方 README 报告 shape generation 约 10 GB VRAM，shape + texture 总计约 29 GB；使用 Tencent Hunyuan 3D 2.1 Community License，包含地域、分发及商业使用限制，需先做适用地域和组织用途审查。
+- TripoSR 仍只用于 G1 外观预览，不是精密机械重建器；单张图无法可靠恢复遮挡面、安装孔、内部结构、光轴/接口位置或真实尺度。必须使用经许可的原始输入图，并由来源/许可清单、GLB audit 和人工视觉审查共同准入。
+
+### 当前执行门禁与下一步
+1. 先取得 KSST-01 CAD 原件及供应商对本项目内部模型生成、预览展示和交付的书面许可；若无法取得，需由项目负责人明确选择一个许可清晰的开源替代型号。
+2. 输入图必须是用户提供、供应商明确许可，或许可明确允许衍生模型生成的公开资料；保留原始字节、SHA-256、来源定位和许可文本。未通过许可门禁时，TripoSR runner 必须拒绝执行。
+3. 有许可输入后，先以 TripoSR 生成 G1 GLB；用本仓库 GLB binary audit 检查结构、POSITION 数据、bounds 和 SHA-256，再进行多视角人工检查。未取得源尺寸/接口图前，不登记 G2。
+4. 电池组和反作用轮继续作为 BIRDS-4 真实 STEP ground-truth controls；不再将它们计入缺失 CAD 的 AI 生成对象。
+
+经验：产品页出现 CAD 下载标记不等于原始 CAD 已可下载，更不等于拥有再使用权；开源星敏软件/PCB 也不等于完整机械 CAD。模型选型必须同时核对显存、输出格式、Windows/Linux 支持和模型/权重许可证。
