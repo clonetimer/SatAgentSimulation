@@ -1816,6 +1816,10 @@ def test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events(
                 "payload_instrument_off",
                 "comm_data_downlink_link_loss",
                 "eps_battery_capacity_loss",
+                "adcs_rw_jamming",
+                "adcs_rw_motor_failure",
+                "gyro_bias_step",
+                "propulsion_thruster_ignition_failure",
             }
 
             page.locator('#wizardOptions [data-wizard-fault="payload_instrument_off"]').click()
@@ -1830,17 +1834,28 @@ def test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events(
                     "payload_instrument_off",
                     "comm_data_downlink_link_loss",
                     "eps_battery_capacity_loss",
+                    "adcs_rw_jamming",
+                    "adcs_rw_motor_failure",
+                    "gyro_bias_step",
+                    "propulsion_thruster_ignition_failure",
                 },
                 "degradation": {
                     "solar_panel_efficiency_loss",
                     "thermal_radiator_rejection_loss",
+                    "gyro_noise_increase",
+                    "rw_friction_degradation",
+                    "propulsion_burn_impulse_loss",
                 },
-                "constraint": {"power_safe_mode_threshold"},
+                "constraint": {
+                    "power_safe_mode_threshold",
+                    "adcs_reaction_wheel_speed_limit",
+                },
             }
             for kind, expected_effects in expected.items():
                 page.locator("#effectKind").select_option(kind)
                 actual = set(page.locator("#effectSelect option").evaluate_all("(items) => items.map((item) => item.value)"))
                 assert actual == expected_effects, (kind, actual)
+                assert "adcs_imu_signal_loss" not in actual
             assert page.locator("#eventList .event-card").count() == 1
             assert not errors, errors
             page.close()
