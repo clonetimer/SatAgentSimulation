@@ -97,3 +97,11 @@
 - 当前主候选 PR #190，branch `feat/p9-o3-b-whole-spacecraft-event-evidence-20261119`；较早 PR #189 覆盖相近范围，待 #190 最终通过后合并/关闭重复候选，避免两套重复交付。
 - O3-B 当前 14 个整星 effect profile 与 operator evidence fields / observability evidence fields 的静态集合审计为 14/14 一致。
 - 最新字段修复 head `232021432da171810f199098e20129c6dc527ebe` 的官方 native workflow `44437771461` 正在运行；不能将静态一致性审计等同于 8 个 paired sealed A/B 通过。
+
+
+## O3-B 推进命令直接证据补齐（2026-11-19）
+
+- 对 PR #190 的实现说明进行源码逐项核对，发现原先代码只有燃料、推力与燃烧状态 recorder，尚未记录 `THRArrayOnTimeCmdMsg.OnTimeRequest`。已补上官方命令消息 recorder，并输出 `propulsion.burn_command_on_time_s` 与 `propulsion.nominal_burn_command_on_time_s`。
+- 两个推进 effect profiles 现在将命令请求字段纳入 evidence_fields 和 runtime_assertions；paired A/B 明确断言 nominal 8 s、点火失败 0 s、冲量退化 2 s（0.25 ratio），并继续核对推进剂、推力和轨道响应。
+- operator effects、capability trace_fields、observability.effect_evidence 与 evidence registry 已同步；14 个整星 profile 的三方 evidence field 集合静态审计仍为 14/14 一致。
+- 最新 PR #190 head `20093933c2f8fb915ec5e059951009be06e46235` 的官方 native workflow `44439100609` 正在执行；只有此 head 全部 applicable checks 完成后才判断 O3-B。
