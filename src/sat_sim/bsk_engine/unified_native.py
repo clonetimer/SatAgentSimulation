@@ -175,10 +175,13 @@ def _native_comm_antenna_power_health(
     powers: list[float] = []
     tx_count = 0
     idle_count = 0
+    runtime_pdu_states: list[bool] = []
+    runtime_tx_states: list[bool] = []
     errors: list[str] = []
     violations: list[dict[str, Any]] = []
     for row in rows:
         try:
+            time_s = float(row.get("time_s", 0.0))
             actual = float(row["eps.loads.comm_power_w"])
             pdu_enabled = bool(int(row["eps.pdu.comm_enabled"]))
             link_active = bool(int(row["comm.active"]))
@@ -189,38 +192,56 @@ def _native_comm_antenna_power_health(
             errors.append(f"COMM_ANTENNA_POWER_TELEMETRY_INVALID:{type(exc).__name__}:{exc}")
             continue
         if (
-            not math.isfinite(actual) or not math.isfinite(attempted)
-            or actual < -tolerance_w or attempted < 0.0
+            not math.isfinite(time_s)
+            or not math.isfinite(actual)
+            or not math.isfinite(attempted)
+            or actual < -tolerance_w
+            or attempted < 0.0
         ):
             errors.append("COMM_ANTENNA_POWER_TELEMETRY_NON_FINITE_OR_NEGATIVE")
             continue
+
+        # Basilisk's t=0 recorder row is an initialization barrier: the
+        # DownlinkHandling output may not yet have been written when the
+        # status-only adapter first resets. The adapter correctly fails
+        # closed (TX=0, idle=0) for that one sample. All later samples must
+        # match the PDU/downlink-derived state exactly.
+        initialization_sample = time_s <= 0.0
         expected_tx = bool(pdu_enabled and link_active and attempted > 0.0)
-        expected_idle = bool(pdu_enabled and not expected_tx)
+        expected_idle = bool(
+            not initialization_sample and pdu_enabled and not expected_tx
+        )
         expected_power = expected_tx_power_w if expected_tx else 0.0
         powers.append(actual)
         tx_count += int(tx_enabled)
         idle_count += int(idle_enabled)
+        if not initialization_sample:
+            runtime_pdu_states.append(pdu_enabled)
+            runtime_tx_states.append(tx_enabled)
+
         if tx_enabled is not expected_tx:
             violations.append({
-                "time_s": float(row.get("time_s", 0.0)),
+                "time_s": time_s,
                 "reason": "tx_status_mismatch",
                 "expected": expected_tx,
                 "actual": tx_enabled,
             })
         if idle_enabled is not expected_idle:
             violations.append({
-                "time_s": float(row.get("time_s", 0.0)),
+                "time_s": time_s,
                 "reason": "idle_status_mismatch",
                 "expected": expected_idle,
                 "actual": idle_enabled,
             })
         if abs(actual - expected_power) > tolerance_w:
             violations.append({
-                "time_s": float(row.get("time_s", 0.0)),
+                "time_s": time_s,
                 "reason": "native_antenna_power_mismatch",
                 "expected_power_w": expected_power,
                 "actual_power_w": actual,
             })
+
+    directional_pass = bool(powers) and not errors and not violations
     return {
         "status": "FAIL" if errors or violations else ("PASS" if powers else "NOT_READY"),
         "sample_count": len(rows),
@@ -229,6 +250,13 @@ def _native_comm_antenna_power_health(
         "errors": errors[:10],
         "violation_count": len(violations),
         "violations": violations[:10],
+        "directional_violation_count": len(violations),
+        "directional_violations": violations[:10],
+        "directional_response_pass": directional_pass,
+        "enabled_transition_observed": len(set(runtime_pdu_states)) > 1,
+        "stimulus_observed": any(runtime_tx_states),
+        "pdu_enabled_sample_count": sum(runtime_pdu_states),
+        "pdu_disabled_sample_count": len(runtime_pdu_states) - sum(runtime_pdu_states),
         "tx_enabled_sample_count": tx_count,
         "idle_enabled_sample_count": idle_count,
         "power_min_w": min(powers) if powers else 0.0,
@@ -241,7 +269,6 @@ def _native_comm_antenna_power_health(
         "antenna_input": "SimpleAntenna.antennaOutMsg",
         "status_adapter": "DownlinkAntennaStatusAdapter",
     }
-
 
 def _native_adcs_power_health(rows: list[dict[str, Any]], cfg: "UnifiedRuntimeConfig") -> dict[str, Any]:
     """Audit official ReactionWheelPower outputs against actual RW state telemetry."""
@@ -2832,9 +2859,38 @@ class _BaseUnifiedAdapter:
         )
 
     def output_schema(self, capability: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        summary_fields = [
+            "status",
+            "runtime_truth_status",
+            "official_module_count",
+            "project_native_module_count",
+            "external_or_proxy_module_count",
+        ]
+        trace_fields = [
+            "time_s",
+            "adcs.pointing_error_deg",
+            "adcs.rw.speed_rad_s_*",
+            "propulsion.*",
+        ]
+        if not self.adcs_only:
+            summary_fields.extend([
+                "resource_feedback_closure_status",
+                "comm_dynamic_power_observed",
+                "comm_power_model",
+                "resource_feedback_bridge_health",
+            ])
+            trace_fields.extend([
+                "eps.pdu.comm_enabled",
+                "eps.loads.comm_power_w",
+                "comm.active",
+                "comm.tx_enabled",
+                "comm.idle_enabled",
+                "comm.attempted_rate_bps",
+                "thermal.comm_heat_input_w",
+            ])
         return {
-            "summary": ["status", "runtime_truth_status", "official_module_count", "project_native_module_count", "external_or_proxy_module_count"],
-            "trace_fields": ["time_s", "adcs.pointing_error_deg", "adcs.rw.speed_rad_s_*", "propulsion.*"],
+            "summary": summary_fields,
+            "trace_fields": trace_fields,
             "metadata": ["runtime_manifest", "model_source_boundary", "fault_environment"],
         }
 
