@@ -2691,7 +2691,7 @@ class UnifiedNativeRuntime:
                         "project_eps_pdu.commStatusOutMsg",
                         "SimpleAntenna.antennaOutMsg.P_Tx",
                     ],
-                    "tx_enable_condition": "PDU_Comm_enabled && linkActive && attemptedDataRate > 0",
+                    "tx_enable_condition": "PDU_Comm_enabled && linkActive && attemptedDataRate > 0 && antennaState in {TX,RXTX} && P_Tx > 0",
                     "antenna_tx_power_w": whole_modules["comm_antenna_tx_power_w"],
                     "base_power_w": whole_modules["comm_antenna_base_power_w"],
                     "base_power_is_separate_pdu_gated_sink": True,
