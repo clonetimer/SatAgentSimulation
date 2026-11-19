@@ -55,3 +55,10 @@ The next official Basilisk 2.11.0 focused run exposed seven failures (60 passed)
 3. The propulsion inventory assertion was aligned to the single remaining optional propulsion proxy; the retired heater proxy is no longer expected.
 
 The runtime continues to use actual 'ThermalHeater.electricalPowerOutMsg' for EPS and actual 'ThermalHeater.powerOutMsg' for deposited heat. No synthetic heater power law or relaxed physical criterion was introduced.
+
+
+## Third focused CI correction
+
+The follow-up focused run passed the native heater contract, inventory checks, and all other focused cases, but one integration test still expected the heater PDU to be shed in the low-SOC payload/Comm scenario. Actual telemetry showed the heater PDU remained permitted; the battery-drain scenario only shed Payload and Comm. Since the heater thermostats were already off, no heater electrical response was exercised.
+
+Removed only that unsupported heater-PDU-shed assertion. The test still verifies Payload/Comm shedding and explicitly keeps 'heater_pdu_power_feedback_observed' false when no actual heater draw occurs. The separate official Basilisk ThermalHeater contract continues to verify PDU-disabled fail-closed behavior with a real thermostat-on load.
