@@ -1270,6 +1270,8 @@ operator:
     evidence_fields:
     - propulsion.burn_active
     - propulsion.burn_permitted
+    - propulsion.burn_command_on_time_s
+    - propulsion.nominal_burn_command_on_time_s
     - propulsion.total_thrust_n
     - propulsion.fuel_mass_kg
     - propulsion.initial_propellant_kg
@@ -1319,6 +1321,8 @@ operator:
     evidence_fields:
     - propulsion.burn_active
     - propulsion.burn_permitted
+    - propulsion.burn_command_on_time_s
+    - propulsion.nominal_burn_command_on_time_s
     - propulsion.total_thrust_n
     - propulsion.fuel_mass_kg
     - propulsion.initial_propellant_kg
@@ -1396,6 +1400,8 @@ operator:
       propulsion_thruster_ignition_failure:
       - propulsion.burn_active
       - propulsion.burn_permitted
+      - propulsion.burn_command_on_time_s
+      - propulsion.nominal_burn_command_on_time_s
       - propulsion.total_thrust_n
       - propulsion.fuel_mass_kg
       - propulsion.initial_propellant_kg
@@ -1404,6 +1410,8 @@ operator:
       propulsion_burn_impulse_loss:
       - propulsion.burn_active
       - propulsion.burn_permitted
+      - propulsion.burn_command_on_time_s
+      - propulsion.nominal_burn_command_on_time_s
       - propulsion.total_thrust_n
       - propulsion.fuel_mass_kg
       - propulsion.initial_propellant_kg
