@@ -190,6 +190,7 @@ def _run_case(
 def nominal_runs(tmp_path_factory):
     root = tmp_path_factory.mktemp("p9o3_whole_nominal")
     adcs, adcs_integrity, adcs_bundle = _run_case(root, "adcs", "p9o3_whole_adcs_nominal")
+    assert adcs.summary["adcs_closed_loop_improved"] is True
     propulsion, propulsion_integrity, propulsion_bundle = _run_case(root, "propulsion", "p9o3_whole_propulsion_nominal")
     assert propulsion.summary["propulsion_burn_observed"] is True
     assert propulsion.summary["propellant_used_kg"] > 0.0
