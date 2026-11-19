@@ -63,3 +63,10 @@ The two fixes and this record are committed to the P9-M4-I feature branch. Final
 - CROSS Space star-tracker-core 是算法代码；AstroTracker / OG-Star / OpenAstroTracker 是地面天文摄影跟踪架。它们不能作为航天器星敏感器几何替代品。
 - 因此不伪造 StarBerry-Sense 或目标设备的三维结构；继续等待目标型号 CAD/许可，NASA mock-up 的 G1 推理门禁保持关闭。
 - 经验：按“代码、CAD、照片、规格数据”分别核对许可和物理语义，不能用软件仓库许可证推断硬件设计权利。
+## 最小权限清理作业与同 head 验收（2026-11-19）
+
+- 最初将 `actions: write` 放在整个 workflow 顶层，权限范围过宽。改为独立 `delete-superseded-public-source-artifacts` job，仅该 job 授予 `actions: write`；同仓库 PR 才执行清理，fork PR 跳过该 job 与来源采集 job。
+- `nasa-source-intake` 显式依赖清理 job，权限仅为 `contents: read`；跨平台合同测试 job 不获得 Actions 写权限。这样先完成清理，再生成 receipt，且不把删除权限扩散给普通测试步骤。
+- 最新 source-intake workflow `44492705499`：Ubuntu 24.04 与 Windows 2022 各 45 passed；cleanup job PASS；来源 SHA-256、4,124,658 bytes、4032×3024 与固定 benchmark 一致。新 artifact `14513457559` 为 1,370 bytes，只含 `source-intake.json`。
+- cleanup job 在同一 head 对历史 artifact `14509376634` 与 `14510716115` 均记录 `P9M4I_LEGACY_ARTIFACT_VERIFIED_ABSENT`；若 `getArtifact` 仍可访问则 job 失败。
+- 经验：清理权限必须独立成 job、最小化授权，并将清理作为来源采集的前置依赖；不能仅凭旧 artifact 列表为空就认为新流程具备防复发能力。
