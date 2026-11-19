@@ -1,5 +1,6 @@
 """Guided task workspace prioritizes common actions and preserves task history."""
 import hashlib
+import shutil
 import json
 import os
 import zipfile
@@ -1233,6 +1234,27 @@ def test_guided_native_subsystem_workbench_runs_adcs_and_exports_verified_run_bu
                 assert seal["bundle_manifest_sha256"] == hashlib.sha256(manifest_bytes).hexdigest()
                 for relative, entry in manifest["files"].items():
                     assert hashlib.sha256(archive.read(f"{prefix}{relative}")).hexdigest() == entry["sha256"]
+
+            browser_bundle_dir = Path("reports/native_whole_spacecraft_events/browser_run_bundles")
+            browser_bundle_dir.mkdir(parents=True, exist_ok=True)
+            browser_bundle_archive = browser_bundle_dir / f"{case_id}.zip"
+            shutil.copy2(bundle_path, browser_bundle_archive)
+            browser_bundle_sha256 = hashlib.sha256(browser_bundle_archive.read_bytes()).hexdigest()
+            assert browser_bundle_sha256 == hashlib.sha256(bundle_path.read_bytes()).hexdigest()
+            browser_bundle_metadata = {
+                "case_id": case_id,
+                "run_id": run_id,
+                "event_kind": event_kind,
+                "event_effect": event_effect,
+                "bundle_zip_sha256": browser_bundle_sha256,
+                "bundle_manifest_sha256": seal["bundle_manifest_sha256"],
+                "sealed": durable["sealed"],
+                "integrity_ok": durable["integrity"]["ok"],
+            }
+            browser_bundle_archive.with_suffix(".json").write_text(
+                json.dumps(browser_bundle_metadata, ensure_ascii=False, indent=2) + "\\n",
+                encoding="utf-8",
+            )
 
             page.locator('[data-result-tab="charts"]').click()
             page.wait_for_function(
