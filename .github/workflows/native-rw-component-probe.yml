@@ -12,6 +12,7 @@ on:
       - "src/sat_sim/adapters/subsystem_comm_data_unified_native.py"
       - "src/sat_sim/capabilities/subsystem.eps.unified_native.v1.yaml"
       - "src/sat_sim/capabilities/subsystem.comm_data.unified_native.v1.yaml"
+      - "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml"
       - "src/subsystems/event_severity.py"
       - "src/sat_sim/form_schema.py"
       - "configs/acceptance/scenario_baseline.json"
@@ -19,6 +20,7 @@ on:
       - "tests/test_eps_unified_effects.py"
       - "tests/test_comm_data_unified_effects.py"
       - "tests/test_native_eps_comm_data_effects_bundle.py"
+      - "tests/test_native_whole_spacecraft_event_effects_bundle.py"
       - "tests/test_p9o2_eps_comm_data_guided_event_catalog.py"
       - "tests/test_p9o3_whole_spacecraft_guided_event_catalog.py"
       - "tests/test_multi_rate_fmea_unified_subsystems.py"
@@ -151,6 +153,13 @@ jobs:
         run: |
           python -m pytest -q -s --junitxml=reports/native_subsystem_eps_comm_data/effect_ab.xml \
             tests/test_native_eps_comm_data_effects_bundle.py
+      - name: Verify eight whole-spacecraft event effects with paired sealed Basilisk Run Bundles
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          mkdir -p reports/native_whole_spacecraft_events
+          python -m pytest -q -s --junitxml=reports/native_whole_spacecraft_events/effect_ab.xml \
+            tests/test_native_whole_spacecraft_event_effects_bundle.py
       - name: Verify ADCS sensor-frame transformations and native closed-loop Run Bundle
         env:
           PYTHONPATH: "src:."
@@ -267,6 +276,8 @@ jobs:
             reports/native_subsystem_eps_comm_data/effect_ab.xml
             reports/native_subsystem_eps_comm_data/effect_ab.json
             reports/native_subsystem_eps_comm_data/formal_effects.xml
+            reports/native_whole_spacecraft_events/effect_ab.xml
+            reports/native_whole_spacecraft_events/effect_ab.json
             reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml
             reports/native_rw_component_probe/physical_ab.json
             reports/native_rw_cluster/physics_ab.json
