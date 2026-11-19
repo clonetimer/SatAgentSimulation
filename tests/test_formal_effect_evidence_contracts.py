@@ -141,13 +141,13 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
         (WHOLE_ID, "constraint", _event("adcs_reaction_wheel_speed_limit", target="whole_spacecraft", wheel_index=0, max_speed_rad_s=5.0), {}),
         (WHOLE_ID, "fault", _event("propulsion_thruster_ignition_failure", target="whole_spacecraft"), {
             "initial_soc": 0.9, "propulsion_enabled": True, "propulsion_burn_start_s": 5.0,
-            "propulsion_burn_on_time_s": [8.0], "propulsion_thrust_n": 5.0,
+            "propulsion_burn_on_time_s": 8.0, "propulsion_thrust_n": 5.0,
             "propulsion_isp_s": 200.0, "propulsion_initial_propellant_kg": 1.0,
             "propulsion_tank_capacity_kg": 2.0, "propulsion_min_burn_soc": 0.05,
         }),
         (WHOLE_ID, "degradation", _event("propulsion_burn_impulse_loss", target="whole_spacecraft", remaining_impulse_ratio=0.25), {
             "initial_soc": 0.9, "propulsion_enabled": True, "propulsion_burn_start_s": 5.0,
-            "propulsion_burn_on_time_s": [8.0], "propulsion_thrust_n": 5.0,
+            "propulsion_burn_on_time_s": 8.0, "propulsion_thrust_n": 5.0,
             "propulsion_isp_s": 200.0, "propulsion_initial_propellant_kg": 1.0,
             "propulsion_tank_capacity_kg": 2.0, "propulsion_min_burn_soc": 0.05,
         }),
