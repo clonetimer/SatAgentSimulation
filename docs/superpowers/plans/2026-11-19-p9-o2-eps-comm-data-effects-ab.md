@@ -2,7 +2,7 @@
 
 日期：2026-11-19  
 基线：P9-O1 merge commit `5f61e73aa4cdb952ee927090f6c995255088984b`  
-状态：O2-A/B/C 已通过官方 Basilisk 2.11.0 同 head CI（4/4 配对 A/B、17/17 formal runtime、注册与事件目录测试通过）；O2-D Chromium 故障/退化旅程正在实施，O2-E 最终交付收尾待完成。普通向导入口在 O2-D 浏览器旅程通过前仍保持关闭。
+状态：P9-O2 A/B/C/D/E 已完成并合入 main。EPS 与 Comm/Data 的四类受控事件已通过官方 Basilisk 2.11.0 配对 sealed Run Bundle、formal effect evidence 与六条真实 Chromium 用户旅程；交付证据归档于 Artifact `14484456607`。
 
 ## 主线目标
 
@@ -143,3 +143,15 @@ EPS 与 Comm/Data 各执行 nominal、fault、degradation 三类用户旅程：
 - 六条目标旅程逐条执行：向导对象选择、故障/退化白名单隔离、时间窗/magnitude 编辑、正式 TaskSpec 校验、异步 Basilisk Run、validation/effect evidence、直接遥测与曲线、FMEA、sealed Run Bundle 下载和逐文件 SHA-256、Run Center 同一 Run 重开。
 - 本轮原 artifact `native-component-physical-evidence` ID `14480197134`，SHA-256 `42c906c993499f6a365d4919d5d20a39735dad5760b74ddd38ef0c1720735c9a`，大小 38,264 bytes。原 artifact 包含 O2-B / O2-C JUnit 与结构化 A/B 证据，但未包含 O2-D browser JUnit；因此不把该 artifact 作为最终 O2-E 完整归档。
 - O2-E 补充：CI 现在将浏览器测试输出到 `reports/native_subsystem_eps_comm_data/guided_browser_journeys.xml`，并在上传前断言 JUnit 中恰有 6 条 EPS/Comm-Data 旅程和 1 条 ADCS 旅程，且无 failure/skipped；同一 artifact 将包含该报告。此补强提交后必须在新 head 重跑完整官方工作流，最终 artifact ID/SHA 以新 head 为准。
+
+
+## P9-O2 正式收尾（2026-11-19）
+
+- PR #187 `P9-O2: native EPS/Comm-Data event evidence and guided journeys` 已合并，merge commit `7207244a660db732ea321a0c9c64b28df0912c08`。
+- O2-A：TaskSpec magnitude 严重度语义、EPS PDU 真实通道注入、Comm/Data 事件准确命名与 native SimpleTransmitter.nodeBaudRate 映射完成。
+- O2-B：官方 Basilisk 2.11.0 下四组 EPS/Comm-Data nominal/injected sealed Run Bundle 配对 4/4 PASS；故障恢复、退化持续性、direct recorder 与 integrity 均通过。
+- O2-C：四个 `VERIFIED_NATIVE_EFFECT` profiles 与 operator observability evidence bindings 完成；formal runtime 17 passed、1 deselected，EPS/Comm-Data guided catalog 2 passed。
+- O2-D：六条真实 Chromium 用户旅程（EPS nominal/fault/degradation，Comm/Data nominal/fault/degradation）已纳入官方 native workflow。PR #187 的浏览器用户旅程在合并前通过；随后 O3-A 同头回归 workflow `44424648554` success，JUnit 共 13 tests、0 failures、0 skipped，其中包含 O2 六条旅程与 O3-A 整星目录测试。
+- O2-E：最终可移交证据 Artifact `14484456607`（`native-component-physical-evidence`，39,263 bytes，未过期），由官方 Basilisk 2.11.0 workflow `44424648554` 上传；O3-A 验收包复用并保留 O2 六条 Chromium 旅程的 JUnit 证据。PR #187 的合并 diff 同时保留 O2 原始代码、测试、capability/evidence profile 与开发经验。
+- 边界保持：EPS 故障为受控组合场景；Comm/Data 只验证 SimpleTransmitter 数据率，不扩张为 RF 功率/链路/BER/PER/存储故障模型；不声称整星跨分系统联合故障闭环。
+- 下一条主线已转入 P9-O3：整星统一运行图 14 类事件的独立物理证据与真实 Chromium 用户旅程；O2 不再重复开发。
