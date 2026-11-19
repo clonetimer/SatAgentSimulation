@@ -76,3 +76,11 @@
 - 扩展 test_formal_effect_evidence_contracts.py：整星 formal runtime 用例由 6 增至 14，并增加 direct TaskSpec boundary test，确认 runtime 内部已实现但 whole capability 未声明的 adcs_imu_signal_loss 不能通过高级 TaskSpec 规划。
 - 新增 test_native_whole_spacecraft_event_bundles.py：2 个 nominal 基线（ADCS、推进）复用，8 个 injected case 分别要求官方 Basilisk 2.11.0、SUCCEEDED、validation PASS、sealed、integrity PASS、直接 recorder A/B、整星资源反馈闭环；推进事件另比较推进剂消耗与轨道响应。
 - 当前分支：feat/p9-o3-b-whole-spacecraft-event-evidence-20261119。上述新增 profile 和测试尚未经过官方 CI；在 CI 通过前，不扩展 O3-A guided allowlist，也不宣称 O3-B 完成。
+
+
+## O3-B formal contract failure and correction (2026-11-19)
+
+- PR #190 first official native run `44435542565` failed in `test_unified_effect_contracts_are_declared_and_registered`, not in Basilisk physics or the eight paired Run Bundles. The assertion compared operator effect `evidence_fields` with profile fields as exact sets.
+- The only mismatch across all 14 whole-spacecraft profiles was `solar_panel_efficiency_loss`: the operator effect contract and direct observability contract already exposed `eps.battery_soc` as contextual telemetry, while the profile omitted it. The runtime trace records `eps.battery_soc` directly from the official battery recorder.
+- Corrected the formal evidence contract by adding `eps.battery_soc` to that profile's evidence_fields, keeping the existing operator and observability declarations aligned. No physical assertion or effect semantics were weakened; battery SOC remains contextual evidence, while the effect-specific assertions still target solar efficiency ratio and solar-array output power.
+- A small set-based audit across all 14 profiles found this was the sole operator/profile evidence-field mismatch. The updated PR head must rerun formal tests and the full official Basilisk workflow before O3-B can be accepted.
