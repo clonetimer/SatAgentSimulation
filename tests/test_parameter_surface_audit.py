@@ -50,7 +50,10 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert whole["continuous_initial_field_count"] == 165
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 16
-    assert whole["registered_parameter_count"] == 162
+    assert whole["registered_parameter_count"] == 166
+    for key in (f"rw_initial_speed_rad_s_{i}" for i in range(4)):
+        assert key not in whole["native_source_keys_missing_whole_registry"]
+        assert key not in whole["whole_registry_keys_without_direct_lookup"]
     for key in ("star_tracker_mount_yaw_deg", "star_tracker_mount_pitch_deg", "star_tracker_mount_roll_deg"):
         assert key in whole["continuous_groups"]["adcs"]
         assert key not in whole["native_source_keys_missing_whole_registry"]
