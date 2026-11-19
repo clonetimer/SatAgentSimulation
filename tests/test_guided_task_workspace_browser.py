@@ -2196,7 +2196,7 @@ def test_guided_whole_spacecraft_event_run_bundle(
                 assert durable["validation_outcome"]["injection_evidence"] == []
 
             summary = durable["summary"]
-            expected_proxy_count = 4 if case_id.startswith("propulsion_") else 3
+            expected_proxy_count = 3 if case_id.startswith("propulsion_") else 2
             assert summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
             assert summary["external_or_proxy_module_count"] == expected_proxy_count
 

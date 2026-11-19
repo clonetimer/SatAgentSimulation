@@ -206,7 +206,7 @@ def test_unified_native_payload_power_node_is_official_and_data_path_invariant()
         "Basilisk.simulation.simplePowerSink.SimplePowerSink"
     )
     assert on.summary["payload_dynamic_power_observed"] is True
-    assert on.summary["engineering_proxy_module_count"] == 1
+    assert on.summary["engineering_proxy_module_count"] == 0
     assert "project_payload_activity_power_bridge" not in on.metadata["model_source_boundary"]["external_or_proxy"]
     assert "native_payload_power" in on.metadata["model_source_boundary"]["official_basilisk_native"]
 

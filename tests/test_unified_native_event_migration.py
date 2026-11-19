@@ -156,6 +156,32 @@ def test_whole_spacecraft_events_propagate_before_state_integration(category, ef
     assert result.summary["external_or_proxy_module_count"] == 0
 
 
+def test_unified_native_heater_power_matches_native_thermal_outputs_without_proxy() -> None:
+    result = get_adapter_for_capability(WHOLE_ID).run(
+        _spec(
+            WHOLE_ID,
+            category="fault",
+            event=_event("thermal_heater_stuck_on", target="whole_spacecraft"),
+            duration_s=16.0,
+            values={"initial_soc": 0.80},
+        )
+    )
+    rows = _during(result)
+    assert rows
+    assert any(float(row["eps.loads.heater_power_w"]) > 0.0 for row in rows)
+    assert result.summary["resource_feedback_bridge_health"]["heater"]["status"] == "PASS"
+    assert result.summary["resource_feedback_bridge_health"]["heater"]["source"] == "ThermalHeater.electricalPowerOutMsg"
+    assert result.summary["external_or_proxy_module_count"] == 0
+    assert "project_heater_status_power_bridge" not in result.metadata["model_source_boundary"]["external_or_proxy"]
+    for row in result.trace_rows:
+        component_sum = sum(
+            float(row.get(f"eps.loads.{name}_thermostat_power_w", 0.0))
+            for name in ("battery", "electronics", "payload", "adcs", "structure", "solar_panel", "comm", "propulsion")
+        )
+        assert float(row["eps.loads.heater_power_w"]) == pytest.approx(component_sum, abs=1e-6)
+        if int(row["eps.pdu.heater_enabled"]) == 0:
+            assert float(row["eps.loads.heater_power_w"]) == pytest.approx(0.0, abs=1e-9)
+
 def test_thermal_degradation_changes_recorder_temperature_against_nominal() -> None:
     adapter = get_adapter_for_capability(WHOLE_ID)
     nominal = adapter.run(
