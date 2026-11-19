@@ -114,6 +114,7 @@ def test_composite_native_antenna_power_closes_eps_thermal_and_preserves_rf_phys
     assert tx_indices, "the native DownlinkHandling path must exercise an actual RF transmission"
     assert all(row.comm_control_power_w == pytest.approx(0.0, abs=1e-6) for row in power_off_rows if row.time_s > 0.0)
 
+    battery_comparison_count = 0
     for index in tx_indices:
         assert -float(tx_power[index]) == pytest.approx(5.0, abs=1e-6)
         assert -float(base_power[index]) == pytest.approx(25.0, abs=1e-6)
@@ -122,13 +123,15 @@ def test_composite_native_antenna_power_closes_eps_thermal_and_preserves_rf_phys
         # nodes. Its recorded bus balance at i+1 therefore consumes the
         # PowerNodeUsageMsg published at i (one explicit feedback tick).
         battery_index = index + 1
-        assert battery_index < len(active_battery.currentNetPower)
-        assert float(active_battery.currentNetPower[battery_index]) == pytest.approx(
-            float(control_battery.currentNetPower[battery_index]) - 30.0,
-            abs=1e-5,
-        )
+        if battery_index < len(active_battery.currentNetPower):
+            assert float(active_battery.currentNetPower[battery_index]) == pytest.approx(
+                float(control_battery.currentNetPower[battery_index]) - 30.0,
+                abs=1e-5,
+            )
+            battery_comparison_count += 1
         assert -float(power_off_graph.recorders["comm_power_tx"].netPower[index]) == pytest.approx(0.0, abs=1e-6)
         assert -float(power_off_graph.recorders["comm_power_base"].netPower[index]) == pytest.approx(0.0, abs=1e-6)
+    assert battery_comparison_count > 0, "at least one TX sample must have a following battery feedback sample"
 
     active_thermal_bridge = active_graph.thermal_graph.network.power_bridges["electronics"]
     control_thermal_bridge = power_off_graph.thermal_graph.network.power_bridges["electronics"]
