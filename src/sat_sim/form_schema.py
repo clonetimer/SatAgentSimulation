@@ -1195,13 +1195,25 @@ def _explicit_output_rows(contract: Any, key: str) -> list[Any]:
     for alias in aliases:
         value = outputs.get(alias)
         if isinstance(value, list) and value:
-            # Wildcard placeholders are not physical quantities. Expand only
-            # the exact fields declared by the capability observability contract.
+            # Keep trace patterns as expansion instructions. Only patterns
+            # registered in _TRACE_PATTERN_EXPANSIONS become selectable fields;
+            # unknown patterns remain visible in unresolved_trace_patterns.
+            include_trace_patterns = key == "trace"
             return [
                 item for item in value
-                if (isinstance(item, Mapping) and item.get("name")
-                    and not any(token in str(item.get("name")) for token in ("*", "?", "[")))
-                or (isinstance(item, str) and not any(token in item for token in ("*", "?", "[")))
+                if (
+                    isinstance(item, Mapping)
+                    and item.get("name")
+                    and (
+                        include_trace_patterns
+                        or not any(token in str(item.get("name")) for token in ("*", "?", "["))
+                    )
+                )
+                or (
+                    isinstance(item, str)
+                    and item.strip()
+                    and (include_trace_patterns or not any(token in item for token in ("*", "?", "[")))
+                )
             ]
     return []
 
