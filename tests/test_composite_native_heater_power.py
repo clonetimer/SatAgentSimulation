@@ -1,4 +1,4 @@
-"""P10-A3: native SimplePowerSink coupling for thermal heaters."""
+"""P10-A3: direct native thermal-heater electrical power coupling."""
 
 from __future__ import annotations
 
