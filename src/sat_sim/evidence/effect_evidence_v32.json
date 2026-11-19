@@ -470,13 +470,12 @@
       ],
       "runtime_assertions": [
         {
-          "id": "motor_failure_applies_requested_torque_ratio",
+          "id": "motor_failure_removes_all_selected_wheel_torque_authority",
           "field": "adcs.rw.effective_torque_ratio_{wheel_index}",
           "operator": "eq",
-          "value_parameter": "torque_scale",
-          "default_value": 0,
           "scope": "active_all",
-          "tolerance": 1e-9
+          "tolerance": 1e-9,
+          "value": 0
         }
       ],
       "claim_limitations": [
@@ -1047,13 +1046,12 @@
       ],
       "runtime_assertions": [
         {
-          "id": "whole_rw_motor_failure_matches_requested_remaining_torque",
+          "id": "motor_failure_removes_all_selected_wheel_torque_authority",
           "field": "adcs.rw.effective_torque_ratio_{wheel_index}",
           "operator": "eq",
-          "value_parameter": "torque_scale",
-          "default_value": 0,
           "scope": "active_all",
-          "tolerance": 1e-9
+          "tolerance": 1e-9,
+          "value": 0
         }
       ],
       "claim_limitations": [
