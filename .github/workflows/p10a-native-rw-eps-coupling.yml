@@ -20,6 +20,8 @@ on:
       - "tests/test_composite_native_comm_antenna_power.py"
       - "tests/test_composite_native_heater_power.py"
       - "tests/test_composite_native_payload_power.py"
+      - "tests/test_native_thermal_heater_power_contract.py"
+      - "tests/test_unified_native_event_migration.py"
       - "tests/test_runtime_evidence_status_thermal_rf.py"
       - "tests/test_resource_closure_agent_trust.py"
       - "tests/test_unified_native_migration.py"
@@ -102,6 +104,7 @@ jobs:
             tests/test_composite_native_comm_antenna_power.py \
             tests/test_composite_native_heater_power.py \
             tests/test_composite_native_payload_power.py \
+            tests/test_native_thermal_heater_power_contract.py \
             tests/test_runtime_evidence_status_thermal_rf.py \
             tests/test_unified_native_event_migration.py \
             tests/test_native_whole_spacecraft_event_bundles.py \

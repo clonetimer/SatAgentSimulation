@@ -127,11 +127,11 @@ def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> N
     result = adapter.run(_short_spec(WHOLE_ID))
     assert result.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
     # ADCS, Comm/Data and Payload power are official Basilisk nodes;
-    # only auxiliary heater activity remains an explicit proxy.
+    # heater, Payload, ADCS and Comm/Data power are accounted by native message outputs.
     assert result.summary["official_module_count"] >= 21
     assert result.summary["project_native_module_count"] >= 16
-    assert result.summary["engineering_proxy_module_count"] == 1
-    assert result.summary["external_or_proxy_module_count"] == 1
+    assert result.summary["engineering_proxy_module_count"] == 0
+    assert result.summary["external_or_proxy_module_count"] == 0
     assert result.summary["adcs_power_model"]["implementation"] == "Basilisk.simulation.ReactionWheelPower"
     assert result.summary["comm_power_model"]["implementation"] == "Basilisk.simulation.antennaPower.AntennaPower"
     assert result.summary["comm_power_model"]["total_active_tx_power_w"] == pytest.approx(16.0)
@@ -140,6 +140,7 @@ def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> N
     assert result.summary["comm_power_model"]["base_power_node"] == "Basilisk.simulation.simplePowerSink.SimplePowerSink"
     assert result.summary["resource_feedback_bridge_health"]["comm"]["status"] == "PASS"
     assert result.summary["resource_feedback_bridge_health"]["payload"]["status"] == "PASS"
+    assert result.summary["resource_feedback_bridge_health"]["heater"]["status"] == "PASS"
     assert result.summary["payload_dynamic_power_observed"] is True
     assert result.summary["connected_message_count"] >= 36
     assert result.summary["energy_bounds_pass"] is True
@@ -166,8 +167,9 @@ def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> N
     }.issubset(project_modules)
     assert result.summary["resource_feedback_closure_status"] == "PASS"
     assert result.summary["heater_pdu_power_feedback_observed"] is False
-    assert set(result.metadata["model_source_boundary"]["external_or_proxy"]) == {
-        "project_heater_status_power_bridge",
+    assert set(result.metadata["model_source_boundary"]["external_or_proxy"]) == set()
+    assert "project_heater_status_power_bridge" not in {
+        item["tag"] for item in result.metadata["runtime_manifest"]["instantiated_modules"]
     }
     assert "native_payload_power" in result.metadata["model_source_boundary"]["official_basilisk_native"]
     assert "project_payload_activity_status_adapter" in result.metadata["model_source_boundary"]["basilisk_project_native"]
@@ -204,7 +206,7 @@ def test_unified_native_payload_power_node_is_official_and_data_path_invariant()
         "Basilisk.simulation.simplePowerSink.SimplePowerSink"
     )
     assert on.summary["payload_dynamic_power_observed"] is True
-    assert on.summary["engineering_proxy_module_count"] == 1
+    assert on.summary["engineering_proxy_module_count"] == 0
     assert "project_payload_activity_power_bridge" not in on.metadata["model_source_boundary"]["external_or_proxy"]
     assert "native_payload_power" in on.metadata["model_source_boundary"]["official_basilisk_native"]
 
@@ -251,6 +253,7 @@ def test_low_soc_gate_changes_power_data_and_thermal_runtime_inputs() -> None:
     assert all(row["payload.active"] == 0 for row in active_rows)
     assert all(row["comm.active"] == 0 for row in active_rows)
     assert all(row["payload.generated_bps"] == pytest.approx(0.0) for row in active_rows)
+    assert all(row["eps.loads.heater_power_w"] == pytest.approx(0.0, abs=1e-9) for row in active_rows)
     assert all(row["eps.loads.payload_power_w"] == pytest.approx(0.0) for row in active_rows)
     assert all(row["comm.downlink_bps"] == pytest.approx(0.0) for row in active_rows)
     assert all(int(row["eps.pdu.comm_enabled"]) == 0 for row in active_rows)

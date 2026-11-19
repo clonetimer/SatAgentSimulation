@@ -20,7 +20,6 @@ from integration.resource_feedback import (
     DownlinkAntennaStatusAdapter,
     PayloadActivityStatusAdapter,
     InputReadStatus,
-    StatusPowerBridge,
     ThrusterActivityPowerBridge,
 )
 
@@ -221,6 +220,79 @@ def _native_payload_power_health(
         "directional_violations": violations[:10],
         "source": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
         "input_source": "simpleInstrument.nodeDataOutMsg + project_eps_pdu.payloadStatusOutMsg",
+    }
+
+def _native_heater_power_health(
+    rows: list[dict[str, Any]],
+    *,
+    heater_names: tuple[str, ...],
+    pdu_status_recorder: Any | None = None,
+) -> dict[str, Any]:
+    """Audit PDU permission against actual ThermalHeater electrical output recorders."""
+    tolerance_w = 1.0e-6
+    powers: list[float] = []
+    pdu_states: list[bool] = []
+    violations: list[dict[str, Any]] = []
+    for row in rows:
+        pdu_enabled = bool(int(row.get("eps.pdu.heater_enabled", 0)))
+        actual = max(0.0, float(row.get("eps.loads.heater_power_w", 0.0)))
+        component_sum = sum(
+            max(0.0, float(row.get(f"eps.loads.{name}_thermostat_power_w", 0.0)))
+            for name in heater_names
+        )
+        powers.append(actual)
+        pdu_states.append(pdu_enabled)
+        if abs(actual - component_sum) > tolerance_w:
+            violations.append({
+                "time_s": float(row.get("time_s", 0.0)),
+                "reason": "heater_total_does_not_match_native_thermal_heater_outputs",
+                "reported_power_w": actual,
+                "component_power_sum_w": component_sum,
+            })
+        if not pdu_enabled and actual > tolerance_w:
+            violations.append({
+                "time_s": float(row.get("time_s", 0.0)),
+                "reason": "pdu_disabled_with_positive_native_heater_power",
+                "actual_power_w": actual,
+            })
+    positive_power_count = sum(1 for value in powers if value > tolerance_w)
+    power_span = max(powers, default=0.0) - min(powers, default=0.0)
+    if pdu_status_recorder is not None:
+        pdu_states = [bool(int(value)) for value in pdu_status_recorder.deviceStatus]
+    pdu_transition_observed = len(set(pdu_states)) > 1
+    # A PDU bit changing while the thermostats are already off is not an
+    # observed electrical feedback response. Require real heater draw and
+    # a changing load before claiming the PDU-to-power edge was exercised.
+    power_response_transition = bool(
+        pdu_transition_observed and positive_power_count > 0 and power_span > tolerance_w
+    )
+    status = "NOT_READY" if not rows or not heater_names else ("FAIL" if violations else "PASS")
+    return {
+        "status": status,
+        "sample_count": len(rows),
+        "valid_sample_count": len(rows),
+        "not_ready_sample_count": 0,
+        "error_count": 0,
+        "errors": [],
+        "power_min_w": min(powers, default=0.0),
+        "power_max_w": max(powers, default=0.0),
+        "power_span_w": power_span,
+        "activity_min": min(powers, default=0.0),
+        "activity_max": max(powers, default=0.0),
+        "activity_span": power_span,
+        "positive_activity_sample_count": positive_power_count,
+        "positive_power_sample_count": positive_power_count,
+        "enabled_transition_observed": power_response_transition,
+        "pdu_state_transition_observed": pdu_transition_observed,
+        "stimulus_observed": bool(positive_power_count),
+        "directional_response_pass": not violations,
+        "directional_violation_count": len(violations),
+        "directional_violations": violations[:10],
+        "source": "ThermalHeater.electricalPowerOutMsg",
+
+        "input_source": "project_eps_pdu.heaterStatusOutMsg -> ThermalHeater.enableInMsg",
+
+        "heater_names": list(heater_names),
     }
 
 def _native_comm_antenna_power_health(
@@ -857,7 +929,6 @@ def _build_unified_rows(
                     max(0.0, -float(recorder_map["downlink_power"].netPower[index]))
                     + max(0.0, -float(recorder_map["comm_base_power"].netPower[index]))
                 ),
-                "eps.loads.heater_power_w": max(0.0, -float(recorder_map["heater_power"].netPower[index])),
                 "eps.pdu.payload_enabled": int(recorder_map["pdu_payload_status"].deviceStatus[index]),
                 "eps.pdu.adcs_enabled": int(recorder_map["pdu_adcs_status"].deviceStatus[index]),
                 "eps.pdu.comm_enabled": int(recorder_map["pdu_comm_status"].deviceStatus[index]),
@@ -887,16 +958,21 @@ def _build_unified_rows(
                 "thermal.payload_temp_k": float(recorder_map["thermal_temp_payload"].deviceStatus[index]),
                 "thermal.payload_temp_c": float(recorder_map["thermal_temp_payload"].deviceStatus[index]) - 273.15,
             })
+            heater_electrical_power_w = 0.0
             for thermal_node_name in ("battery", "electronics", "payload", "adcs", "structure", "solar_panel", "comm", "propulsion"):
                 heater_key = f"thermal_heater_electrical_{thermal_node_name}"
                 if heater_key in recorder_map:
-                    row[f"eps.loads.{thermal_node_name}_thermostat_power_w"] = max(
-                        0.0, -float(recorder_map[heater_key].netPower[index]))
+                    heater_power_w = max(0.0, -float(recorder_map[heater_key].netPower[index]))
+                    row[f"eps.loads.{thermal_node_name}_thermostat_power_w"] = heater_power_w
+                    heater_electrical_power_w += heater_power_w
                 temp_key = f"thermal_temp_{thermal_node_name}"
                 safe_key = f"thermal_safe_{thermal_node_name}"
                 if temp_key in recorder_map:
                     row[f"thermal.{thermal_node_name}_temp_k"] = float(recorder_map[temp_key].deviceStatus[index])
                     row[f"thermal.{thermal_node_name}_safe"] = int(recorder_map[safe_key].deviceStatus[index])
+            # Heater electrical load is the sum of the actual thermal heater
+            # electricalPowerOutMsg recorders, not a parallel PDU-status proxy.
+            row["eps.loads.heater_power_w"] = heater_electrical_power_w
             if "propulsion_fuel" in recorder_map:
                 fuel_rec = recorder_map["propulsion_fuel"]
                 thrust_forces = []
@@ -1893,14 +1969,6 @@ class UnifiedNativeRuntime:
             connected("project_comm_downlink_status_adapter.txStatusOutMsg", comm_base_power_node.ModelTag)
             connected(f"{comm_power_node.ModelTag}.nodePowerOutMsg", "battery")
             connected(f"{comm_base_power_node.ModelTag}.nodePowerOutMsg", "battery")
-            heater_power_bridge = StatusPowerBridge(
-                "project_heater_status_power_bridge",
-                active_power_w=float(values.get("heater_power_w", 15.0)),
-                enable_status_msg=pdu.heaterStatusOutMsg,
-            )
-            add(heater_power_bridge, heater_power_bridge.ModelTag, "engineering_proxy", 54)
-            battery.addPowerNodeToModel(heater_power_bridge.powerOutMsg)
-            connected(f"{heater_power_bridge.ModelTag}.powerOutMsg", "battery")
             whole_modules.update({
                 "adcs_power_nodes": adcs_power_nodes,
                 "payload_power_node": payload_power_node,
@@ -1910,7 +1978,6 @@ class UnifiedNativeRuntime:
                 "comm_status_adapter": comm_status_adapter,
                 "comm_antenna_base_power_w": comm_antenna_base_power_w,
                 "comm_antenna_tx_power_w": comm_antenna_tx_power_w,
-                "heater_power_bridge": heater_power_bridge,
                 "rf_access": rf_access,
                 "rf_gate": rf_gate,
                 "native_downlink": native_downlink,
@@ -2132,7 +2199,6 @@ class UnifiedNativeRuntime:
                 (payload_power_node.nodePowerOutMsg, 0.95, "payload", "payload.instrument_active"),
                 (comm_power_node.nodePowerOutMsg, 0.90, "comm", "comm_antenna_tx"),
                 (comm_base_power_node.nodePowerOutMsg, 0.90, "comm", "comm_base_tx"),
-                (heater_power_bridge.powerOutMsg, 1.00, "battery", "pdu_heater"),
             ]
             for wheel_index, power_node in enumerate(whole_modules["adcs_power_nodes"]):
                 thermal_inputs.append((power_node.nodePowerOutMsg, 0.90, "adcs", f"adcs_rw_{wheel_index}"))
@@ -2230,7 +2296,6 @@ class UnifiedNativeRuntime:
                 "comm_base_power": whole_modules["comm_base_power_node"].nodePowerOutMsg,
                 "comm_tx_status": whole_modules["comm_status_adapter"].txStatusOutMsg,
                 "comm_idle_status": whole_modules["comm_status_adapter"].idleStatusOutMsg,
-                "heater_power": whole_modules["heater_power_bridge"].powerOutMsg,
                 "instrument": whole_modules["instrument"].nodeDataOutMsg,
                 "storage": whole_modules["storage"].storageUnitDataOutMsg,
                 "temperature": whole_modules["thermal_graph"].nodes["payload"].tempOutMsg,
@@ -2271,6 +2336,16 @@ class UnifiedNativeRuntime:
             sim.AddModelToTask(task_name, recorder, None, 1)
             recorder_map[name] = recorder
             record_sources.append(name)
+        if not cfg.adcs_only and "pdu" in whole_modules:
+            # Preserve fast PDU transition evidence even when output telemetry
+            # is sampled more slowly than the native simulation task. Reduced
+            # ADCS/event fixtures may not instantiate an EPS PDU.
+            pdu_heater_status_fast = whole_modules["pdu"].heaterStatusOutMsg.recorder(
+                macros.sec2nano(cfg.step_s)
+            )
+            sim.AddModelToTask(task_name, pdu_heater_status_fast, None, 1)
+            recorder_map["pdu_heater_status_fast"] = pdu_heater_status_fast
+            record_sources.append("pdu_heater_status_fast")
 
         from sat_sim.basilisk_recorder_groups import attach_grouped_message_recorders, group_manifest
         recorder_groups = attach_grouped_message_recorders(
@@ -2609,12 +2684,15 @@ class UnifiedNativeRuntime:
         runtime_read_errors: list[str] = []
         causal_evidence: dict[str, Any] = {"status": "PASS", "requirements": []}
         if not cfg.adcs_only:
-            bridge_objects = {
-                "heater": whole_modules["heater_power_bridge"],
-            }
+            bridge_objects = {}
             if "propulsion_power_bridge" in whole_modules:
                 bridge_objects["propulsion"] = whole_modules["propulsion_power_bridge"]
             bridge_health = {
+                "heater": _native_heater_power_health(
+                    rows,
+                    heater_names=tuple(whole_modules["thermal_graph"].heaters),
+                    pdu_status_recorder=recorder_map.get("pdu_heater_status_fast"),
+                ),
                 "payload": _native_payload_power_health(
                     rows,
                     active_power_w=float(values.get("payload_power_w", 38.0)),
@@ -2820,7 +2898,7 @@ class UnifiedNativeRuntime:
                                                 "adcs": 3./18., "solar_panel": 5./18.},
                     "housekeeping_source": "actual_bus_power_message",
                     "thermostats": "full_electrical_power_debited_from_native_battery; heat=electrical*efficiency",
-                    "auxiliary_heater": "separate_PDU_controlled_load_heater_power_w",
+                    "heater_power_authority": "ThermalHeater.electricalPowerOutMsg_per_node; deposited_heat=ThermalHeater.powerOutMsg",
                     "boundary": "unallocated_electrical_to_heat_fraction_outside_lumped_nodes; not_full_electromechanical_conservation",
                 },
                 "final_battery_soc": final["eps.battery_soc"],
