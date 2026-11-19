@@ -46,7 +46,9 @@ def test_official_reaction_wheel_power_uses_actual_post_effector_torque_and_spee
 
     # PDU status is available to the official power nodes before their update.
     for run in (reference, limited, disabled):
-        for row in run:
+        # The first recorder row is the native initialization sample; the
+        # PDU/battery outputs become authoritative from the next scheduler tick.
+        for row in run[1:]:
             assert float(row["eps.battery_energy_j"]) > 0.0
             assert float(row["eps.pdu.adcs_enabled"]) == 1.0
             assert 0.0 <= float(row["eps.loads.adcs_power_w"]) <= 120.0 + 1e-6
@@ -61,29 +63,29 @@ def test_official_reaction_wheel_power_uses_actual_post_effector_torque_and_spee
         abs(float(row[f"adcs.rw.command_torque_nm_{i}"])) > 1e-5
         for row in disabled for i in range(3)
     )
-    assert [row["eps.loads.adcs_power_w"] for row in disabled] == pytest.approx(
-        [12.0] * len(disabled), abs=1e-6
+    assert [row["eps.loads.adcs_power_w"] for row in disabled[1:]] == pytest.approx(
+        [12.0] * (len(disabled) - 1), abs=1e-6
     )
 
     # Recompute the official module equation from the actual RW state
     # message fields (Omega and u_current), not the pre-effector command.
-    for row in reference:
+    for row in reference[1:]:
         expected = 12.0 + sum(
             abs(float(row[f"adcs.rw.actual_mechanical_power_w_{i}"])) / 0.75
             for i in range(3)
         )
         assert float(row["eps.loads.adcs_power_w"]) == pytest.approx(expected, abs=1e-5)
 
-    assert max(float(row["eps.loads.adcs_power_w"]) for row in reference) > 12.5
-    assert max(float(row["eps.loads.adcs_power_w"]) for row in limited) < max(
-        float(row["eps.loads.adcs_power_w"]) for row in reference
+    assert max(float(row["eps.loads.adcs_power_w"]) for row in reference[1:]) > 12.5
+    assert max(float(row["eps.loads.adcs_power_w"]) for row in limited[1:]) < max(
+        float(row["eps.loads.adcs_power_w"]) for row in reference[1:]
     ) - 0.1
 
     # The native SimpleBattery consumes each official ReactionWheelPower
     # node; this is not a presentation-only or post-run accounting formula.
     net_deltas = [
         abs(float(a["eps.net_power_w"]) - float(b["eps.net_power_w"]))
-        for a, b in zip(reference, disabled)
+        for a, b in zip(reference[1:], disabled[1:])
     ]
     assert max(net_deltas) > 0.1, net_deltas
 
@@ -101,3 +103,14 @@ def test_native_adcs_eps_graph_records_official_rw_power_message_wiring():
     assert 'messages[f"adcs_power_{wheel_index}"] = power_node.nodePowerOutMsg' in code
     assert "AdcsControlPowerBridge" not in code
     assert "project_adcs_control_power_bridge" not in code
+
+
+
+def test_pdu_load_shedding_disables_official_reaction_wheel_power_nodes():
+    rows, result = _run_basilisk({"initial_soc": 0.05})
+    runtime_rows = rows[1:]
+    assert runtime_rows
+    assert all(float(row["eps.pdu.adcs_enabled"]) == 0.0 for row in runtime_rows)
+    assert all(float(row["eps.loads.adcs_power_w"]) == pytest.approx(0.0, abs=1e-6) for row in runtime_rows)
+    assert result.summary["resource_feedback_closure_status"] == "PASS"
+    assert result.summary["resource_feedback_bridge_health"]["adcs"]["status"] == "PASS"
