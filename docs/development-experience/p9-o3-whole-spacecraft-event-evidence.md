@@ -176,3 +176,15 @@
 - 推进冲量退化的最终浏览器测试改在 5–7 s 实际燃烧窗口内取样，artifact telemetry 证实 2 s burn command、峰值推力 10 N、推进剂消耗为正（约 0.00493 kg）。该修复保留了物理断言，纠正的是测试采样窗口，而非放宽通过条件。
 - 经验归纳：① 真实姿态闭环必须基于官方 Spacecraft 状态，不能只看估计反馈误差；② 瞬态故障/退化要在实际物理作用窗口取样，事件标签持续时间不等于执行器持续作用时间；③ 浏览器必须执行真实异步 Run 并归档原始 ZIP，不能用目录渲染或 fixture 代替；④ sidecar 状态必须绑定真实 Run integrity 结果；⑤ 能力作用域与事件执行器 owner 必须分开校验。
 - 维持声明边界：整星 Capability 仍为 `engineering_preview` / `agent_ready_candidate`；四个（推进时五个）工程代理功率桥、项目自有 ADCS 注入 SysModel、单次推进脉冲模型等限制继续披露，不升级为 flight validation 或全官方原生耦合声明。
+
+
+## P10-A1 反作用轮原生功率节点接入与真实 Basilisk 验收（2026-11-19）
+
+- 将整星 ADCS 功率从项目自有 `AdcsControlPowerBridge` 替换为每个实际反作用轮一个官方 `Basilisk.simulation.ReactionWheelPower`。输入直接订阅 `reactionWheelStateEffector.rwOutMsgs[i]`，使用实际 `Omega` 和施加力矩 `u_current`；输出 `PowerNodeUsageMsg` 直接接入官方 `SimpleBattery` 与热网络 ADCS 节点。
+- 保留既有总基础功耗假设并按轮均分；显式声明电机电到机械效率；关闭能量回收，保持原功率桥的非回收语义。没有把 `P_max` 写入 RW Factory，避免“功率计量替换”暗中改变真实轮系动力学。
+- `adcs_max_power_w` 作为 fail-closed 监测上限，不是轮系执行器限幅。超限应导致资源反馈验收失败，而不是修改物理力矩或轮速。
+- P10-A1 专项 workflow 使用公开上游 Basilisk 2.11.0，离线轨道环境预检 PASS；真实 A/B、PDU 负载切除、原生电池耦合与整星代理计数测试同头 4 passed / 0 failed / 0 skipped。Artifact `p10a-native-rw-eps-evidence` ID `14518316870`。
+- 参数表面审计、静态检查、脚本治理、组件/分系统物理与 Run Bundle 验收、P9-H 和 P9-N3 同头门禁均通过。不能把专项 P10-A1 PASS 等同于整星全量回归或 PR 合并 PASS。
+- 全量 native regression 为 195 passed、2 failed；失败集中于 R9-I 两个拓扑的电池 public-Reset 负面对照。持续初始参数测试已在首帧取样修正后通过。进一步检查发现：R9-I 源仿真配置了 `adcs_power_w=60`，但独立子进程的 fresh graph 只复制 `rw_configuration`，未复制源功率配置，导致对照组初始条件不一致。下一步必须将源运行参数显式写入实验输入，并由子进程按相同参数重建；同时检查源 checkpoint 电池能量是否确实偏离初始电量，避免做“无激励 A/B”。
+- 经验：① 原生功率计量模块替换不得改写执行器本体参数；② 初始化 recorder 首帧不能当作稳定电池/PDU状态；③ paired/negative-control 子进程必须复用源图完整物理配置，只传拓扑或部分参数会破坏对照实验；④ 若因果指标无差异，先核对输入条件与激励是否存在，不得删断言或把不显著误报为 PASS。
+- 保留声明边界：目前只移除 ADCS 一项工程代理；payload、comm、heater 仍为 3 项代理，启用推进后为 4 项。该模型仍是机械功率到电功率的工程模型，不代表绕组电阻、电压、铜损、逆变器损耗、硬件标定或飞行验证。
