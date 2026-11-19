@@ -43,6 +43,9 @@ def test_native_odh_is_the_only_production_downlink_and_nominal_statuses_pass() 
     assert max(float(row["comm.downlink_bps"]) for row in result.trace_rows) > 0.0
     assert result.summary["comm_power_model"]["implementation"] == "Basilisk.simulation.antennaPower.AntennaPower"
     assert result.summary["comm_power_model"]["total_active_tx_power_w"] == pytest.approx(16.0)
+    assert result.summary["comm_power_model"]["antenna_tx_power_w"] == pytest.approx(5.0)
+    assert result.summary["comm_power_model"]["base_power_w"] == pytest.approx(11.0)
+    assert result.summary["comm_power_model"]["base_power_node"] == "Basilisk.simulation.simplePowerSink.SimplePowerSink"
     assert result.summary["resource_feedback_bridge_health"]["comm"]["status"] == "PASS"
     assert result.summary["comm_dynamic_power_observed"] is True
     tx_rows = [
