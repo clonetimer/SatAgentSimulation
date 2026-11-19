@@ -9048,6 +9048,9 @@
     if ((!host && !qoiHost) || !state.schema || !state.formData) return;
     if (host) host.replaceChildren();
     if (qoiHost) qoiHost.replaceChildren();
+    const advancedOutputs = ensureAdvancedOutputs();
+    const fmeaToggle = el('wizardFmeaEnabled');
+    if (fmeaToggle && advancedOutputs) fmeaToggle.checked = Boolean(advancedOutputs.fmea.enabled);
     const qoiOptions = (state.schema.outputs?.summary_options || []).map(normalizedOutputOption);
     const traceOptions = (state.schema.outputs?.trace_options || []).map(normalizedOutputOption);
     const selectedQoi = new Set(state.formData.outputs?.qoi || []);
@@ -9413,6 +9416,7 @@
         ['采样间隔', String(getPath(state.formData, 'simulation.sample_s')) + ' s'],
         ['故障事件', String((state.formData.events.faults || []).length) + ' 个'],
         ['输出曲线', String((state.formData.outputs.plots || []).length) + ' 条'],
+        ['FMEA 输出', state.formData.outputs.fmea?.enabled ? '已启用' : '未启用'],
       ];
       rows.forEach((item) => { const row = document.createElement('div'); row.className = 'wizard-review-row'; const name = document.createElement('span'); name.textContent = item[0]; const value = document.createElement('strong'); value.textContent = item[1]; row.append(name, value); review.appendChild(row); });
       options.appendChild(review);
@@ -11707,6 +11711,14 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       try { await Promise.all([loadCapabilities(), loadScenarioTemplates()]); } catch (error) { showNotice(error.message, 'error'); } finally { hideBusy(); }
     });
     el('addTelemetryStreamBtn').addEventListener('click', addTelemetryStream);
+    el('wizardFmeaEnabled')?.addEventListener('change', (event) => {
+      const outputs = ensureAdvancedOutputs(); if (!outputs) return;
+      outputs.fmea.enabled = Boolean(event.target.checked);
+      markOutputChanged();
+      state.wizard.validated = false;
+      state.wizard.validatedForm = null;
+      renderSimulationWizard();
+    });
     el('fmeaEnabled').addEventListener('change', (event) => {
       const outputs = ensureAdvancedOutputs(); if (!outputs) return;
       outputs.fmea.enabled = Boolean(event.target.checked); markOutputChanged();
