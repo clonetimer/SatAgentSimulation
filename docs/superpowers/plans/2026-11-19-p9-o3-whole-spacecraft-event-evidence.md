@@ -105,3 +105,11 @@
 - 两个推进 effect profiles 现在将命令请求字段纳入 evidence_fields 和 runtime_assertions；paired A/B 明确断言 nominal 8 s、点火失败 0 s、冲量退化 2 s（0.25 ratio），并继续核对推进剂、推力和轨道响应。
 - operator effects、capability trace_fields、observability.effect_evidence 与 evidence registry 已同步；14 个整星 profile 的三方 evidence field 集合静态审计仍为 14/14 一致。
 - 最新 PR #190 head `20093933c2f8fb915ec5e059951009be06e46235` 的官方 native workflow `44439100609` 正在执行；只有此 head 全部 applicable checks 完成后才判断 O3-B。
+
+
+## O3-B 参数准入修复（2026-11-19）
+
+- 首轮 native run `44439252234` 在 O3-B 八组 sealed A/B 的 nominal fixture planning 阶段失败，错误为 `PARAMETER_PATH_UNCONSUMED`；ADCS/propulsion 组件及 O2 回归已先通过。
+- 根因是 `whole_spacecraft.unified_native.v1` Capability 未声明实际被 unified runtime 消费的 `rw_initial_speed_rad_s_0/1/2`，导致 canonical parameters.values 与 model.config 兼容镜像各产生 3 个未知路径。
+- 已补齐 RW1-RW3 初始速度参数及 RW4 pyramid-only 参数声明，单位 rad/s、范围 [-500,500]；runtime 对三轮构型显式 RW4 speed 采用 fail-closed；增加参数消费审计和官方 native workflow JUnit 检查。
+- 最新代码 head 需以 PR #190 当前分支查询为准；重新执行完整官方 Basilisk workflow 后，才可将 O3-B 八项 sealed A/B 标记为通过。
