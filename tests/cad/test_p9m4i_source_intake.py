@@ -249,12 +249,6 @@ def test_public_source_intake_workflow_uploads_metadata_receipt_only():
         step for step in steps
         if step.get("name") == "Delete and verify superseded public raw-source artifacts"
     )
-    assert step.get("uses") == "actions/github-script@v7"
-
-
-    cleanup_step = next(
-        step for step in steps
-        if step.get("name") == "Verify superseded public artifacts are deleted when marked deleted"
-    )
-    assert "actions/artifacts/" in cleanup_step["run"]
-    assert 'status == "delete_required"' in cleanup_step["run"]
+    assert cleanup_step.get("uses") == "actions/github-script@v7"
+    assert "deleteArtifact" in cleanup_step["with"]["script"]
+    assert "getArtifact" in cleanup_step["with"]["script"]
