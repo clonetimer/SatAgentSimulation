@@ -1,7 +1,7 @@
 # P10-A1B: ADCS power parity for the active composite whole-spacecraft capability
 
 Date: 2026-11-19
-Status: implementation candidate in PR #192; same-head native A/B pending
+Status: implementation and same-head native A/B accepted in PR #192; merge gate PASS
 
 ## Why this exists
 
@@ -50,3 +50,8 @@ Bring the active composite capability into physical-interface parity with P10-A1
 ## Boundary
 
 P10-A1B is a separate migration slice. It must not be represented as already completed by P10-A1A's PASS.
+
+
+### Legacy 120 W envelope preservation
+
+The old composite `AdcsControlPowerBridge` clamped its output to 120 W. The official `ReactionWheelPower` nodes must not be clamped or assigned a new RW `P_max`, because that would change physical wheel dynamics. The composite graph therefore retains 120 W as a run-level fail-closed monitoring envelope: any recorded native ADCS draw above the limit rejects the run. A unit test covers exact-limit acceptance, over-limit rejection and non-finite telemetry rejection.
