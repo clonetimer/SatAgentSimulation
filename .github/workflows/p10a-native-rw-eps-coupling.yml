@@ -1,15 +1,24 @@
-name: P10-A1 native RW to EPS power coupling
+name: P10-A native RW and Comm/Data to EPS power coupling
 
 on:
   pull_request:
     paths:
       - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/integration/resource_feedback.py"
       - "src/whole_spacecraft/builder.py"
+      - "src/whole_spacecraft/schemas.py"
+      - "src/subsystems/eps/builder.py"
+      - "src/subsystems/payload/builder.py"
+      - "src/subsystems/comm_data/builder.py"
+      - "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml"
       - "src/whole_spacecraft/runner.py"
       - "src/integration/qoi_profiles/resource_closure.py"
       - "src/sat_sim/capabilities/whole_spacecraft.composite_digital_twin.v1.yaml"
       - "tests/test_native_rw_power_consistency.py"
       - "tests/test_composite_native_adcs_power.py"
+      - "tests/test_downlink_antenna_status_adapter.py"
+      - "tests/test_composite_native_comm_antenna_power.py"
+      - "tests/test_runtime_evidence_status_thermal_rf.py"
       - "tests/test_resource_closure_agent_trust.py"
       - "tests/test_unified_native_migration.py"
       - "tests/test_unified_native_event_migration.py"
@@ -19,6 +28,8 @@ on:
       - "tests/interactive/test_native_whole_first_tick_diagnostics.py"
       - "docs/development-experience/p9-o3-whole-spacecraft-event-evidence.md"
       - "docs/superpowers/plans/2026-11-19-p10a-native-rw-eps-coupling.md"
+      - "docs/superpowers/plans/2026-11-19-p10a2-native-comm-antenna-power.md"
+      - "docs/development-experience/p10a2-native-comm-antenna-power.md"
       - ".github/workflows/p10a-native-rw-eps-coupling.yml"
   workflow_dispatch:
 
@@ -32,7 +43,7 @@ concurrency:
 jobs:
   native-rw-eps-coupling:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -68,7 +79,7 @@ jobs:
           )
           print("P10A_OFFLINE_ENVIRONMENT_PREFLIGHT:PASS")
           PY
-      - name: Run actual RW state to ReactionWheelPower to SimpleBattery A/B
+      - name: Run native RW and Comm/Data antenna power to SimpleBattery and thermal A/B
         env:
           PYTHONPATH: "src:."
         run: |
@@ -76,14 +87,21 @@ jobs:
           python -m pytest -q -s \
             tests/test_native_rw_power_consistency.py \
             tests/test_unified_native_migration.py::test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds \
+            tests/test_unified_native_migration.py::test_low_soc_gate_changes_power_data_and_thermal_runtime_inputs \
             tests/test_composite_native_adcs_power.py \
+            tests/test_downlink_antenna_status_adapter.py \
+            tests/test_composite_native_comm_antenna_power.py \
+            tests/test_runtime_evidence_status_thermal_rf.py \
+            tests/test_unified_native_event_migration.py \
+            tests/test_native_whole_spacecraft_event_bundles.py \
+            tests/test_propulsion_whole_coupling.py \
             tests/test_resource_closure_agent_trust.py::test_resource_closure_profiles_close_all_seven_p1_links \
             tests/interactive/test_native_battery_reset_barrier.py \
-            --junitxml=reports/p10a/native-rw-eps-junit.xml
-      - name: Upload focused P10-A1 evidence
+            --junitxml=reports/p10a/native-rw-comm-eps-junit.xml
+      - name: Upload focused P10-A native power evidence
         uses: actions/upload-artifact@v4
         with:
-          name: p10a-native-rw-eps-evidence
-          path: reports/p10a/native-rw-eps-junit.xml
+          name: p10a-native-rw-comm-eps-evidence
+          path: reports/p10a/native-rw-comm-eps-junit.xml
           if-no-files-found: error
           retention-days: 30

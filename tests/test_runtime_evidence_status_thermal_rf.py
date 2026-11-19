@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from sat_sim.capability_registry import get_adapter_for_capability, get_capability
 
 CAPABILITY_ID = "whole_spacecraft.unified_native.v1"
@@ -39,6 +41,26 @@ def test_native_odh_is_the_only_production_downlink_and_nominal_statuses_pass() 
     assert result.summary["runtime_message_read_error_count"] == 0
     assert max(float(row["comm.native_cnr"]) for row in result.trace_rows) > 0.0
     assert max(float(row["comm.downlink_bps"]) for row in result.trace_rows) > 0.0
+    assert result.summary["comm_power_model"]["implementation"] == "Basilisk.simulation.antennaPower.AntennaPower"
+    assert result.summary["comm_power_model"]["total_active_tx_power_w"] == pytest.approx(16.0)
+    assert result.summary["comm_power_model"]["antenna_tx_power_w"] == pytest.approx(5.0)
+    assert result.summary["comm_power_model"]["base_power_w"] == pytest.approx(11.0)
+    assert result.summary["comm_power_model"]["base_power_node"] == "Basilisk.simulation.simplePowerSink.SimplePowerSink"
+    assert result.summary["resource_feedback_bridge_health"]["comm"]["status"] == "PASS"
+    assert result.summary["comm_dynamic_power_observed"] is True
+    tx_rows = [
+        row for row in result.trace_rows
+        if int(row.get("comm.tx_enabled", 0)) == 1
+    ]
+    assert tx_rows
+    assert all(int(row["eps.pdu.comm_enabled"]) == 1 for row in tx_rows)
+    assert all(int(row["comm.active"]) == 1 and float(row["comm.attempted_rate_bps"]) > 0.0 for row in tx_rows)
+    assert all(float(row["eps.loads.comm_power_w"]) == pytest.approx(16.0, abs=1e-6) for row in tx_rows)
+    assert max(float(row["thermal.comm_heat_input_w"]) for row in result.trace_rows) > 0.0
+    assert "native_comm_antenna_power" in result.metadata["model_source_boundary"]["official_basilisk_native"]
+    assert "native_comm_base_power" in result.metadata["model_source_boundary"]["official_basilisk_native"]
+    assert "project_comm_downlink_status_adapter" in result.metadata["model_source_boundary"]["basilisk_project_native"]
+    assert "project_comm_activity_power_bridge" not in result.metadata["model_source_boundary"]["external_or_proxy"]
 
 
 def test_thermal_reset_is_valid_and_overtemp_gates_payload_and_comm() -> None:

@@ -72,6 +72,132 @@ class ActivityPowerSample:
     error: str | None = None
 
 
+@dataclass(frozen=True)
+class DownlinkAntennaStatusSample:
+    time_ns: int
+    pdu_enabled: bool
+    link_active: bool
+    attempted_rate_bps: float
+    delivered_rate_bps: float
+    antenna_tx_power_w: float
+    antenna_state: int
+    tx_enabled: bool
+    idle_enabled: bool
+    input_status: InputReadStatus = InputReadStatus.VALID
+    error: str | None = None
+
+
+if sysModel is not None:
+    class DownlinkAntennaStatusAdapter(sysModel.SysModel):
+        """Translate PDU/downlink/antenna telemetry into power-side TX and idle state.
+
+        This module owns no electrical-power equation. It publishes status for
+        official base/idle SimplePowerSink nodes and a separate gated AntennaLogMsg
+        for official AntennaPower. The physical SimpleAntenna message is untouched.
+        """
+
+        def __init__(
+            self,
+            model_tag: str,
+            *,
+            downlink_msg: Any,
+            enable_status_msg: Any,
+            antenna_msg: Any,
+        ) -> None:
+            super().__init__()
+            if downlink_msg is None or enable_status_msg is None or antenna_msg is None:
+                raise ValueError("DOWNLINK_ANTENNA_STATUS_INPUTS_REQUIRED")
+            self.ModelTag = str(model_tag)
+            self.downlinkInMsg = messaging.DownlinkHandlingMsgReader()
+            self.downlinkInMsg.subscribeTo(downlink_msg)
+            self.enableInMsg = messaging.DeviceStatusMsgReader()
+            self.enableInMsg.subscribeTo(enable_status_msg)
+            self.antennaInMsg = messaging.AntennaLogMsgReader()
+            self.antennaInMsg.subscribeTo(antenna_msg)
+            self.txStatusOutMsg = messaging.DeviceStatusMsg()
+            self.idleStatusOutMsg = messaging.DeviceStatusMsg()
+            # A power-only AntennaLogMsg copy gates the official AntennaPower
+            # module without modifying the physical SimpleAntenna used by RF.
+            self.antennaPowerOutMsg = messaging.AntennaLogMsg()
+            self.trace: list[DownlinkAntennaStatusSample] = []
+
+        def Reset(self, CurrentSimNanos: int) -> None:
+            self.trace.clear()
+            self.UpdateState(CurrentSimNanos)
+
+        def UpdateState(self, CurrentSimNanos: int) -> None:
+            pdu_enabled, pdu_status, pdu_error = _status_enabled(
+                self.enableInMsg, CurrentSimNanos, default=False,
+            )
+            payload, downlink_status, downlink_error = _read_payload(
+                self.downlinkInMsg, CurrentSimNanos,
+            )
+            antenna_payload, antenna_status, antenna_error = _read_payload(
+                self.antennaInMsg, CurrentSimNanos,
+            )
+            link_active = bool(getattr(payload, "linkActive", 0)) if payload is not None else False
+            attempted = float(getattr(payload, "attemptedDataRate", 0.0)) if payload is not None else 0.0
+            delivered = float(getattr(payload, "deliveredDataRate", 0.0)) if payload is not None else 0.0
+            antenna_tx_power = float(getattr(antenna_payload, "P_Tx", 0.0)) if antenna_payload is not None else 0.0
+            antenna_rx_power = float(getattr(antenna_payload, "P_Rx", 0.0)) if antenna_payload is not None else 0.0
+            antenna_state = int(getattr(antenna_payload, "antennaState", 0)) if antenna_payload is not None else 0
+            antenna_tx_available = antenna_state in (2, 3)  # TX or RXTX
+            statuses = (pdu_status, downlink_status, antenna_status)
+            status = (
+                InputReadStatus.ERROR
+                if InputReadStatus.ERROR in statuses
+                else InputReadStatus.NOT_READY
+                if InputReadStatus.NOT_READY in statuses
+                else InputReadStatus.VALID
+            )
+            error = pdu_error or downlink_error or antenna_error
+            if (
+                not math.isfinite(attempted) or attempted < 0.0
+                or not math.isfinite(delivered) or delivered < 0.0
+                or not math.isfinite(antenna_tx_power) or antenna_tx_power < 0.0
+                or not math.isfinite(antenna_rx_power) or antenna_rx_power < 0.0
+            ):
+                status = InputReadStatus.ERROR
+                error = error or "downlink or antenna power telemetry is non-finite or negative"
+            valid = status is InputReadStatus.VALID
+            tx_enabled = bool(
+                valid and pdu_enabled and link_active and attempted > 0.0
+                and antenna_tx_available and antenna_tx_power > 0.0
+            )
+            idle_enabled = bool(valid and pdu_enabled and not tx_enabled)
+
+            tx_payload = messaging.DeviceStatusMsgPayload()
+            tx_payload.deviceStatus = 1 if tx_enabled else 0
+            idle_payload = messaging.DeviceStatusMsgPayload()
+            idle_payload.deviceStatus = 1 if idle_enabled else 0
+            self.txStatusOutMsg.write(tx_payload, CurrentSimNanos, self.moduleID)
+            self.idleStatusOutMsg.write(idle_payload, CurrentSimNanos, self.moduleID)
+
+            # AntennaPower consumes only the physical antenna state and RF
+            # transmit/receive powers. Gate a copy for electrical accounting;
+            # never change the SimpleAntenna message used by LinkBudget.
+            power_antenna_payload = messaging.AntennaLogMsgPayload()
+            power_antenna_payload.antennaState = 2 if tx_enabled else 0  # TX / OFF
+            power_antenna_payload.P_Tx = antenna_tx_power if valid else 0.0
+            power_antenna_payload.P_Rx = antenna_rx_power if valid else 0.0
+            self.antennaPowerOutMsg.write(
+                power_antenna_payload, CurrentSimNanos, self.moduleID,
+            )
+            self.trace.append(DownlinkAntennaStatusSample(
+                time_ns=int(CurrentSimNanos),
+                pdu_enabled=bool(pdu_enabled),
+                link_active=link_active,
+                attempted_rate_bps=attempted if math.isfinite(attempted) else 0.0,
+                delivered_rate_bps=delivered if math.isfinite(delivered) else 0.0,
+                antenna_tx_power_w=antenna_tx_power if math.isfinite(antenna_tx_power) else 0.0,
+                antenna_state=antenna_state,
+                tx_enabled=tx_enabled,
+                idle_enabled=idle_enabled,
+                input_status=status,
+                error=error,
+            ))
+
+
 if sysModel is not None:
     class DataActivityPowerBridge(sysModel.SysModel):
         """Convert a DataNodeUsage rate into an electrical power sink."""
@@ -359,12 +485,19 @@ if sysModel is not None:
 
 
 else:  # pragma: no cover
+    # Keep imports of the unified runtime available in lightweight environments
+    # that intentionally do not install Basilisk. These placeholders are never
+    # instantiated by a native run; the official Basilisk dependency remains
+    # mandatory at execution time.
+    DownlinkAntennaStatusAdapter = None
     DataActivityPowerBridge = DownlinkActivityPowerBridge = AdcsControlPowerBridge = StatusPowerBridge = ThrusterActivityPowerBridge = PowerToThermalAggregationBridge = None
 
 
 __all__ = [
     "ActivityPowerSample",
+    "DownlinkAntennaStatusSample",
     "InputReadStatus",
+    "DownlinkAntennaStatusAdapter",
     "DataActivityPowerBridge",
     "DownlinkActivityPowerBridge",
     "AdcsControlPowerBridge",

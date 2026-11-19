@@ -220,3 +220,21 @@
 - 首轮 P10-A1B 专项测试在两个拓扑以外的旧 composite graph 上失败，根因不是 ReactionWheelPower 物理方程，而是 `WholeSpacecraftConfig.recorder_step_s` 默认 10 s、测试仿真只有 8 s，导致功率 recorder 只有一个初始化样本。不能把“recorders 字段存在”误当成“已取得运行样本”。
 - 修复：composite 原生功率 A/B 显式设置 `recorder_step_s=0.2 s`；资源闭环 QoI 的 idle/slew 8 s 图也显式使用 0.2 s 采样，保证它比较的是运行期功率，而不是首帧/静态基础功耗。
 - 经验：凡是将工程 bridge trace 改成 Basilisk message recorder，必须同步检查 recorder cadence、仿真时长和有效样本数量；测试应断言最小样本数，并跳过初始化样本。
+
+
+### P10-A2 原生通信功耗迁移经验（2026-11-19）
+
+- P10-A2 在 unified-native 与 active composite 两条整星路径中，均将下行功耗从 `DownlinkActivityPowerBridge` 迁移到官方 Basilisk `AntennaPower`。TX 使能由 PDU Comm 状态、`DownlinkHandling.linkActive` 和 `attemptedDataRate > 0` 联合决定；不能使用 `deliveredDataRate`，因为实际发射但丢包仍然消耗 RF/PA 功率。
+- 两条运行路径必须保留不同的既有功耗语义：unified-native 为 16 W TX / 0 W idle；composite 为 30 W TX / 2 W PDU-enabled idle。composite 的 2 W idle 使用官方 `SimplePowerSink`，不能把待机功耗重新塞回项目自定义功耗桥。
+- `AntennaPower.basePowerNeed` 只表示非 RF 基础开销，实际 RF 发射功率仍从官方 `SimpleAntenna.antennaOutMsg.P_Tx` 读取；当前示例参数对应 unified 11+5=16 W、composite 25+5=30 W。该模型仍是恒定 TX 模式功耗，不代表 PA 效率或速率相关电路模型已校准。
+- 真实运行的首个 t=0 记录可能遇到 DownlinkHandling 尚未写出的 `NOT_READY`。只允许将这一初始化样本从状态一致性审计中排除；后续 `ERROR`、未连接或非有限输入必须继续 fail closed。
+- 移除代理后，不能只修改实现：必须同步更新工程代理数量、Run Bundle 断言、Capability trace/QoI、adapter output schema 和 CI 触发路径。P10-A2 完成后，unified-native 基础代理数从 3 降为 2，推进开启时从 4 降为 3；composite 也按同一 native-downlink 分支减少一个通信代理。
+- 验收不能只检查功耗曲线：同一配置下将 TX 功率节点单独关闭，RF LinkBudget、CNR、BER/PER 和 DownlinkHandling 数据必须保持不变；Battery 净功率应相差 30 W，thermal electronics 输入应只在启用功率节点的运行中累积相应热量。
+
+
+### P10-A2 AntennaPower 接入方式修正（2026-11-19）
+
+- 同头 CI 显示：状态适配器报告 TX=true，但官方 AntennaPower 节点仍为 0 W。不能用“状态已使能”推断 PowerNodeUsageMsg 已产生真实负载。
+- 改为让 DownlinkAntennaStatusAdapter 同时读取真实 SimpleAntenna.antennaOutMsg，并输出一个只供功耗模型使用的 gated AntennaLogMsg：实际发射尝试时为 TX，其余为 OFF；P_Tx/P_Rx 从原始天线消息复制。原始 SimpleAntenna 消息保持不变，RF LinkBudget 不受影响。
+- AntennaPower.basePowerNeed 固定为 0，仅计算真实 RF 天线功率；非 RF 基础功耗改用官方 PDU/TX 状态控制的 SimplePowerSink。composite 继续用独立 SimplePowerSink 保留 2 W idle。
+- 该设计将 RF 发射功率与 PA/电子学基础功耗拆成两个可独立观测的官方功率节点，验收分别核对 5 W RF、11/25 W base 和 16/30 W 总负载。

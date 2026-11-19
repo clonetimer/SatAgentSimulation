@@ -126,13 +126,19 @@ def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> N
     adapter = get_adapter_for_capability(WHOLE_ID)
     result = adapter.run(_short_spec(WHOLE_ID))
     assert result.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
-    # ADCS power is now computed by official ReactionWheelPower nodes;
-    # payload, communication and auxiliary heater loads remain explicit proxies.
+    # ADCS and Comm/Data power are now official Basilisk nodes;
+    # only payload and auxiliary heater activity remain explicit proxies.
     assert result.summary["official_module_count"] >= 21
     assert result.summary["project_native_module_count"] >= 16
-    assert result.summary["engineering_proxy_module_count"] == 3
-    assert result.summary["external_or_proxy_module_count"] == 3
+    assert result.summary["engineering_proxy_module_count"] == 2
+    assert result.summary["external_or_proxy_module_count"] == 2
     assert result.summary["adcs_power_model"]["implementation"] == "Basilisk.simulation.ReactionWheelPower"
+    assert result.summary["comm_power_model"]["implementation"] == "Basilisk.simulation.antennaPower.AntennaPower"
+    assert result.summary["comm_power_model"]["total_active_tx_power_w"] == pytest.approx(16.0)
+    assert result.summary["comm_power_model"]["antenna_tx_power_w"] == pytest.approx(5.0)
+    assert result.summary["comm_power_model"]["base_power_w"] == pytest.approx(11.0)
+    assert result.summary["comm_power_model"]["base_power_node"] == "Basilisk.simulation.simplePowerSink.SimplePowerSink"
+    assert result.summary["resource_feedback_bridge_health"]["comm"]["status"] == "PASS"
     assert result.summary["connected_message_count"] >= 36
     assert result.summary["energy_bounds_pass"] is True
     assert result.summary["data_bounds_pass"] is True
@@ -151,6 +157,7 @@ def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> N
         "project_eps_pdu",
         "project_power_data_mode_gate",
         "project_native_rf_downlink_gate",
+        "project_comm_downlink_status_adapter",
         "thermal_network",
         "project_whole_parameter_event_controller",
     }.issubset(project_modules)
@@ -158,12 +165,17 @@ def test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds() -> N
     assert result.summary["heater_pdu_power_feedback_observed"] is False
     assert set(result.metadata["model_source_boundary"]["external_or_proxy"]) == {
         "project_payload_activity_power_bridge",
-        "project_comm_activity_power_bridge",
         "project_heater_status_power_bridge",
     }
     assert {
-        "reaction_wheel_power_0", "reaction_wheel_power_1", "reaction_wheel_power_2"
+        "reaction_wheel_power_0", "reaction_wheel_power_1", "reaction_wheel_power_2",
+        "native_comm_antenna_power",
+        "native_comm_base_power",
     }.issubset(set(result.metadata["model_source_boundary"]["official_basilisk_native"]))
+    assert "spacecraft_antenna.antennaOutMsg->project_comm_downlink_status_adapter" in manifest["connections"]
+    assert "project_comm_downlink_status_adapter.antennaPowerOutMsg->native_comm_antenna_power" in manifest["connections"]
+    assert "project_comm_downlink_status_adapter.txStatusOutMsg->native_comm_base_power" in manifest["connections"]
+    assert "native_downlink.downlinkOutMsg->project_comm_downlink_status_adapter" in manifest["connections"]
 
 
 def test_low_soc_gate_changes_power_data_and_thermal_runtime_inputs() -> None:
@@ -182,6 +194,10 @@ def test_low_soc_gate_changes_power_data_and_thermal_runtime_inputs() -> None:
     assert all(row["comm.active"] == 0 for row in active_rows)
     assert all(row["payload.generated_bps"] == pytest.approx(0.0) for row in active_rows)
     assert all(row["comm.downlink_bps"] == pytest.approx(0.0) for row in active_rows)
+    assert all(int(row["eps.pdu.comm_enabled"]) == 0 for row in active_rows)
+    assert all(int(row["comm.tx_enabled"]) == 0 for row in active_rows)
+    assert all(int(row["comm.idle_enabled"]) == 0 for row in active_rows)
+    assert all(float(row["eps.loads.comm_power_w"]) == pytest.approx(0.0, abs=1e-9) for row in active_rows)
     assert result.trace_rows[-1]["data.storage_bits"] == pytest.approx(0.0)
 
 

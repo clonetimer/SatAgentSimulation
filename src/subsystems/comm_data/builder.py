@@ -157,9 +157,22 @@ def build_comm_data_basilisk_assembly_graph(
     return CommDataBasiliskAssemblyGraph(storage=storage, transmitter=transmitter)
 
 
-def attach_comm_data_basilisk_graph_to_task(sim: Any, task_name: str, graph: CommDataBasiliskAssemblyGraph) -> None:
-    sim.AddModelToTask(task_name, graph.storage)
-    sim.AddModelToTask(task_name, graph.transmitter)
+def attach_comm_data_basilisk_graph_to_task(
+    sim: Any,
+    task_name: str,
+    graph: CommDataBasiliskAssemblyGraph,
+    *,
+    storage_priority: int | None = None,
+    transmitter_priority: int | None = None,
+) -> None:
+    if storage_priority is None:
+        sim.AddModelToTask(task_name, graph.storage)
+    else:
+        sim.AddModelToTask(task_name, graph.storage, None, int(storage_priority))
+    if transmitter_priority is None:
+        sim.AddModelToTask(task_name, graph.transmitter)
+    else:
+        sim.AddModelToTask(task_name, graph.transmitter, None, int(transmitter_priority))
 
 
 def build_comm_data_config(

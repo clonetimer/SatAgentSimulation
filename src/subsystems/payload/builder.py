@@ -78,8 +78,17 @@ def build_payload_basilisk_assembly_graph(
     return PayloadBasiliskAssemblyGraph(instrument=instrument)
 
 
-def attach_payload_basilisk_graph_to_task(sim: Any, task_name: str, graph: PayloadBasiliskAssemblyGraph) -> None:
-    sim.AddModelToTask(task_name, graph.instrument)
+def attach_payload_basilisk_graph_to_task(
+    sim: Any,
+    task_name: str,
+    graph: PayloadBasiliskAssemblyGraph,
+    *,
+    model_priority: int | None = None,
+) -> None:
+    if model_priority is None:
+        sim.AddModelToTask(task_name, graph.instrument)
+    else:
+        sim.AddModelToTask(task_name, graph.instrument, None, int(model_priority))
 
 @dataclass(frozen=True)
 class PayloadBasiliskSimContext:

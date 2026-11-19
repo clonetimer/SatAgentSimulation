@@ -6,7 +6,7 @@ It assembles the simulation graph but does not execute it.
 from __future__ import annotations
 
 from dataclasses import replace
-from math import cos, pi, sin
+from math import cos, isfinite, pi, sin
 from typing import Any
 
 try:
@@ -27,7 +27,7 @@ from integration.whole_spacecraft_links import (  # noqa: E402
 )
 from integration.resource_feedback import (  # noqa: E402
     DataActivityPowerBridge,
-    DownlinkActivityPowerBridge,
+    DownlinkAntennaStatusAdapter,
     ThrusterActivityPowerBridge,
 )
 from subsystems.adcs.builder import (  # noqa: E402
@@ -433,7 +433,18 @@ def build_whole_spacecraft_graph(
             sink_subsystem="eps",
             interface="SunMsg + SCStatesMsg + EclipseMsg -> solar generation",
         )
-    attach_eps_basilisk_graph_to_task(sim, sim_task_name, eps_graph)
+    attach_eps_basilisk_graph_to_task(
+        sim,
+        sim_task_name,
+        eps_graph,
+        model_priorities={
+            "requests": 53,
+            "solar_source": 55,
+            "battery": 50,
+            "pdu": 49,
+            "load_sinks": 48,
+        },
+    )
     battery = eps_graph.battery
 
     payload_graph = build_payload_basilisk_assembly_graph(
@@ -441,7 +452,9 @@ def build_whole_spacecraft_graph(
         data_name=cfg.payload_data_name,
         model_tag=cfg.payload_model_tag,
     )
-    attach_payload_basilisk_graph_to_task(sim, sim_task_name, payload_graph)
+    attach_payload_basilisk_graph_to_task(
+        sim, sim_task_name, payload_graph, model_priority=40,
+    )
     instrument = payload_graph.instrument
 
     comm_graph = build_comm_data_basilisk_assembly_graph(
@@ -451,7 +464,9 @@ def build_whole_spacecraft_graph(
         storage_model_tag=cfg.storage_model_tag,
         transmitter_model_tag=cfg.transmitter_model_tag,
     )
-    attach_comm_data_basilisk_graph_to_task(sim, sim_task_name, comm_graph)
+    attach_comm_data_basilisk_graph_to_task(
+        sim, sim_task_name, comm_graph, storage_priority=39,
+    )
     storage = comm_graph.storage
     transmitter = comm_graph.transmitter
 
@@ -522,13 +537,13 @@ def build_whole_spacecraft_graph(
                 planet_msgs=orb_env_graph.planet_msgs,
                 eclipse_msg=orb_env_graph.eclipse_msg,
             )
-            for model in (
-                rf_access_graph.ground_location,
-                rf_access_graph.spacecraft_antenna,
-                rf_access_graph.ground_antenna,
-                rf_access_graph.link_budget,
+            for model, priority in (
+                (rf_access_graph.ground_location, 58),
+                (rf_access_graph.spacecraft_antenna, 57),
+                (rf_access_graph.ground_antenna, 57),
+                (rf_access_graph.link_budget, 56),
             ):
-                sim.AddModelToTask(sim_task_name, model)
+                sim.AddModelToTask(sim_task_name, model, None, priority)
             coupling_matrix["ground_access_rf_link_budget"] = _coupling_record(
                 name="ground_access_rf_link_budget",
                 source_subsystem="comm_data",
@@ -568,7 +583,7 @@ def build_whole_spacecraft_graph(
                 bandwidth_hz=float(cfg.native_downlink_bandwidth_hz),
                 frequency_hz=float(cfg.native_downlink_frequency_hz),
             )
-            sim.AddModelToTask(sim_task_name, native_downlink)
+            sim.AddModelToTask(sim_task_name, native_downlink, None, 38)
         except Exception as exc:
             raise RuntimeError("Failed to build whole-spacecraft native DownlinkHandling chain") from exc
         coupling_matrix["comm_native_odh_to_storage_drain"] = _coupling_record(
@@ -632,7 +647,7 @@ def build_whole_spacecraft_graph(
         data_msg=instrument.nodeDataOutMsg,
         enable_status_msg=payload_status_msg,
     )
-    sim.AddModelToTask(sim_task_name, payload_power_bridge)
+    sim.AddModelToTask(sim_task_name, payload_power_bridge, None, 39)
     battery.addPowerNodeToModel(payload_power_bridge.powerOutMsg)
     resource_feedback_bridges["payload"] = payload_power_bridge
     power_inputs.append((payload_power_bridge.powerOutMsg, 0.95, "payload", "payload.actual_activity"))
@@ -673,6 +688,10 @@ def build_whole_spacecraft_graph(
         power_node.rwStateInMsg.subscribeTo(rw_state_msg)
         if adcs_status_msg is not None:
             power_node.nodeStatusInMsg.subscribeTo(adcs_status_msg)
+        # Same-task insertion order is deliberate: the spacecraft and RW
+        # state effector were attached earlier at priority 0. Run the power
+        # node after them so Omega/u_current are from this dynamics tick, but
+        # before the recorder models attached later at the same priority.
         sim.AddModelToTask(sim_task_name, power_node)
         battery.addPowerNodeToModel(power_node.nodePowerOutMsg)
         adcs_power_nodes.append(power_node)
@@ -689,37 +708,117 @@ def build_whole_spacecraft_graph(
         ),
     )
 
-    if native_downlink is not None:
-        comm_power_bridge = DownlinkActivityPowerBridge(
-            "commDownlinkPowerBridge",
-            nominal_rate_bps=max(1.0, float(cfg.comm_power_reference_rate_bps)),
-            active_power_w=30.0, idle_power_w=2.0,
-            downlink_msg=native_downlink.downlinkOutMsg, enable_status_msg=comm_status_msg,
+    comm_power_nodes: list[Any] = []
+    comm_status_adapter = None
+    comm_antenna_base_power_w = 0.0
+    comm_antenna_tx_power_w = 0.0
+    comm_idle_power_node = None
+    comm_power_bridge = None
+    if native_downlink is not None and rf_access_graph is not None:
+        comm_antenna_tx_power_w = float(rf_access_graph.spacecraft_antenna.getAntennaP_Tx())
+        comm_active_power_w = 30.0
+        if (
+            not isfinite(comm_antenna_tx_power_w) or comm_antenna_tx_power_w <= 0.0
+            or not isfinite(comm_active_power_w) or comm_active_power_w <= 0.0
+            or comm_active_power_w + 1e-9 < comm_antenna_tx_power_w
+        ):
+            raise ValueError("COMPOSITE_COMM_ANTENNA_POWER_PROFILE_INVALID")
+        comm_antenna_base_power_w = comm_active_power_w - comm_antenna_tx_power_w
+        comm_status_adapter = DownlinkAntennaStatusAdapter(
+            "commDownlinkAntennaStatusAdapter",
+            downlink_msg=native_downlink.downlinkOutMsg,
+            enable_status_msg=comm_status_msg,
+            antenna_msg=rf_access_graph.spacecraft_antenna.antennaOutMsg,
+        )
+        sim.AddModelToTask(sim_task_name, comm_status_adapter, None, 37)
+
+        from Basilisk.simulation import antennaPower, simplePowerSink
+        comm_antenna_power_node = antennaPower.AntennaPower()
+        comm_antenna_power_node.ModelTag = "commAntennaPower"
+        # The RF node consumes a PDU/downlink-gated copy of the real antenna
+        # log; non-RF electronics overhead is a separate official power sink.
+        comm_antenna_power_node.basePowerNeed = 0.0
+        comm_antenna_power_node.antennaSetStateInMsg.subscribeTo(comm_status_adapter.antennaPowerOutMsg)
+        sim.AddModelToTask(sim_task_name, comm_antenna_power_node, None, 36)
+        battery.addPowerNodeToModel(comm_antenna_power_node.nodePowerOutMsg)
+        comm_power_nodes.append(comm_antenna_power_node)
+        power_inputs.append((
+            comm_antenna_power_node.nodePowerOutMsg, 0.90, "electronics", "comm.antenna_tx",
+        ))
+
+        comm_base_power_node = simplePowerSink.SimplePowerSink()
+        comm_base_power_node.ModelTag = "commBasePower"
+        comm_base_power_node.nodePowerOut = -comm_antenna_base_power_w
+        comm_base_power_node.powerStatus = 0
+        comm_base_power_node.nodeStatusInMsg.subscribeTo(comm_status_adapter.txStatusOutMsg)
+        sim.AddModelToTask(sim_task_name, comm_base_power_node, None, 36)
+        battery.addPowerNodeToModel(comm_base_power_node.nodePowerOutMsg)
+        comm_power_nodes.append(comm_base_power_node)
+        power_inputs.append((
+            comm_base_power_node.nodePowerOutMsg, 0.90, "electronics", "comm.base_tx",
+        ))
+
+        # The composite runtime's historical bridge had a 2 W idle draw while
+        # Comm PDU was enabled. Preserve it with an official, separately gated
+        # SimplePowerSink; unified-native has zero idle draw and does not need it.
+        comm_idle_power_node = simplePowerSink.SimplePowerSink()
+        comm_idle_power_node.ModelTag = "commIdlePower"
+        comm_idle_power_node.nodePowerOut = -2.0
+        comm_idle_power_node.powerStatus = 0
+        comm_idle_power_node.nodeStatusInMsg.subscribeTo(comm_status_adapter.idleStatusOutMsg)
+        sim.AddModelToTask(sim_task_name, comm_idle_power_node, None, 36)
+        battery.addPowerNodeToModel(comm_idle_power_node.nodePowerOutMsg)
+        comm_power_nodes.append(comm_idle_power_node)
+        power_inputs.append((
+            comm_idle_power_node.nodePowerOutMsg, 0.90, "electronics", "comm.idle",
+        ))
+        coupling_matrix["eps_pdu_to_comm_activity"] = _coupling_record(
+            name="eps_pdu_to_comm_activity", source_subsystem="eps", sink_subsystem="comm_data",
+            coupling_status="coupled",
+            interface="PDU commStatusOutMsg + native DownlinkHandling + physical SimpleAntenna log -> DownlinkAntennaStatusAdapter -> gated AntennaLogMsg/AntennaPower and TX/idle SimplePowerSink",
+            evidence=(
+                "TX status requires PDU permission, linkActive and attemptedDataRate > 0",
+                "the power-side AntennaLogMsg preserves physical P_Tx without changing the RF LinkBudget message",
+                "the base SimplePowerSink is enabled only during actual TX",
+                "idle status preserves the composite 2 W PDU-enabled no-TX draw",
+            ),
+        )
+        coupling_matrix["comm_activity_to_eps_thermal"] = _coupling_record(
+            name="comm_activity_to_eps_thermal", source_subsystem="comm_data", sink_subsystem="eps,thermal",
+            coupling_status="coupled",
+            interface="SimpleAntenna.antennaOutMsg -> DownlinkAntennaStatusAdapter gated AntennaLogMsg -> official AntennaPower; official base/idle SimplePowerSink -> battery + electronics thermal node",
+            evidence=(
+                "AntennaPower consumes the real antenna P_Tx through a power-only gated log; the RF LinkBudget antenna remains untouched",
+                "the non-RF TX base load uses a PDU-gated official SimplePowerSink",
+                "the idle SimplePowerSink uses a separate PDU-enabled/no-TX status",
+            ),
         )
     else:
+        # Preserve the legacy non-native transmitter fallback as an explicit
+        # proxy only when the native DownlinkHandling/RF chain is disabled.
         comm_power_bridge = DataActivityPowerBridge(
             "commTransmitterPowerBridge",
             nominal_rate_bps=max(1.0, float(transmitter_baud_bps)),
             active_power_w=30.0, idle_power_w=2.0,
             data_msg=transmitter.nodeDataOutMsg, enable_status_msg=comm_status_msg,
         )
-    sim.AddModelToTask(sim_task_name, comm_power_bridge)
-    battery.addPowerNodeToModel(comm_power_bridge.powerOutMsg)
-    resource_feedback_bridges["comm"] = comm_power_bridge
-    power_inputs.append((comm_power_bridge.powerOutMsg, 0.9, "electronics", "comm.actual_activity"))
-    coupling_matrix["eps_pdu_to_comm_activity"] = _coupling_record(
-        name="eps_pdu_to_comm_activity", source_subsystem="eps", sink_subsystem="comm_data",
-        coupling_status="coupled",
-        interface="PDU commStatusOutMsg -> MissionGate/CommPowerBridge -> downlink and power",
-        evidence=("comm PDU status is consumed by mission gate and communication power bridge",),
-    )
-    coupling_matrix["comm_activity_to_eps_thermal"] = _coupling_record(
-        name="comm_activity_to_eps_thermal", source_subsystem="comm_data", sink_subsystem="eps,thermal",
-        coupling_status="proxy_coupled_verified",
-        interface="native downlink/DataNodeUsage activity -> CommPowerBridge -> battery + electronics thermal node",
-        evidence=("communication electrical power scales with actual delivered/native downlink activity",),
-        notes=("The power-to-heat mapping is an engineering proxy and requires paired-run causal validation for quantitative claims.",),
-    )
+        sim.AddModelToTask(sim_task_name, comm_power_bridge, None, 36)
+        battery.addPowerNodeToModel(comm_power_bridge.powerOutMsg)
+        resource_feedback_bridges["comm"] = comm_power_bridge
+        power_inputs.append((comm_power_bridge.powerOutMsg, 0.9, "electronics", "comm.fallback_activity"))
+        coupling_matrix["eps_pdu_to_comm_activity"] = _coupling_record(
+            name="eps_pdu_to_comm_activity", source_subsystem="eps", sink_subsystem="comm_data",
+            coupling_status="proxy_coupled_verified",
+            interface="PDU commStatusOutMsg -> legacy DataActivityPowerBridge -> transmitter power",
+            evidence=("non-native transmitter fallback remains explicitly proxy-coupled",),
+        )
+        coupling_matrix["comm_activity_to_eps_thermal"] = _coupling_record(
+            name="comm_activity_to_eps_thermal", source_subsystem="comm_data", sink_subsystem="eps,thermal",
+            coupling_status="proxy_coupled_verified",
+            interface="transmitter DataNodeUsage activity -> DataActivityPowerBridge -> battery + electronics thermal node",
+            evidence=("non-native transmitter fallback remains an activity-to-power proxy",),
+            notes=("Only the native DownlinkHandling/RF path is migrated to official AntennaPower.",),
+        )
 
     if propulsion_graph is not None:
         thruster_power_bridge = ThrusterActivityPowerBridge(
@@ -727,7 +826,7 @@ def build_whole_spacecraft_graph(
             thruster_output_msgs=tuple(propulsion_graph.thruster_effector.thrusterOutMsgs),
             active_power_per_thruster_w=20.0,
         )
-        sim.AddModelToTask(sim_task_name, thruster_power_bridge)
+        sim.AddModelToTask(sim_task_name, thruster_power_bridge, None, 36)
         battery.addPowerNodeToModel(thruster_power_bridge.powerOutMsg)
         resource_feedback_bridges["propulsion"] = thruster_power_bridge
         power_inputs.append((thruster_power_bridge.powerOutMsg, 0.85, "structure", "propulsion.actual_activity"))
@@ -934,7 +1033,7 @@ def build_whole_spacecraft_graph(
             payload_power_status_msg=payload_status_msg,
             comm_power_status_msg=comm_status_msg,
         )
-        sim.AddModelToTask(sim_task_name, mission_gate)
+        sim.AddModelToTask(sim_task_name, mission_gate, None, 45)
         coupling_matrix["adcs_pointing_to_payload_comm_gate"] = _coupling_record(
             name="adcs_pointing_to_payload_comm_gate",
             source_subsystem="adcs",
@@ -977,6 +1076,16 @@ def build_whole_spacecraft_graph(
     for wheel_index, (rw_state_msg, power_node) in enumerate(zip(rw_state_messages, adcs_power_nodes)):
         recorders[f"rw_state_{wheel_index}"] = rw_state_msg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         recorders[f"adcs_power_{wheel_index}"] = power_node.nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+    if comm_power_nodes:
+        recorders["comm_power_tx"] = comm_power_nodes[0].nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+        if len(comm_power_nodes) >= 2:
+            recorders["comm_power_base"] = comm_power_nodes[1].nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+        if comm_idle_power_node is not None:
+            recorders["comm_power_idle"] = comm_idle_power_node.nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+        recorders["comm_tx_status"] = comm_status_adapter.txStatusOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+        recorders["comm_idle_status"] = comm_status_adapter.idleStatusOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+    elif comm_power_bridge is not None:
+        recorders["comm_power_bridge"] = comm_power_bridge.powerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
     if resource_feedback_bridges.get("propulsion") is not None:
         recorders["propulsion_power"] = resource_feedback_bridges["propulsion"].powerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
     if orb_env_graph.eclipse_msg is not None:
@@ -1024,6 +1133,7 @@ def build_whole_spacecraft_graph(
         recorders["fuel_tank"] = fuel_tank.fuelTankOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         sim.AddModelToTask(recorder_task_name, recorders["fuel_tank"])
     for rec_name in (
+        "comm_power_tx", "comm_power_base", "comm_power_idle", "comm_tx_status", "comm_idle_status", "comm_power_bridge",
         "battery", "storage", "instrument", "transmitter", "solar_power", "gated_downlink_link_budget",
         "conservation_battery", "conservation_storage", "conservation_instrument", "conservation_downlink",
         "downlink_node", "downlink", "ground_access", "rf_link_budget",
@@ -1055,6 +1165,12 @@ def build_whole_spacecraft_graph(
         "eps_pdu": eps_graph.pdu,
         "payload_power_bridge": resource_feedback_bridges.get("payload"),
         "comm_power_bridge": resource_feedback_bridges.get("comm"),
+        "comm_power_nodes": tuple(comm_power_nodes),
+        "comm_status_adapter": comm_status_adapter,
+        "comm_base_power_node": comm_power_nodes[1] if len(comm_power_nodes) >= 2 else None,
+        "comm_idle_power_node": comm_idle_power_node,
+        "comm_antenna_base_power_w": comm_antenna_base_power_w,
+        "comm_antenna_tx_power_w": comm_antenna_tx_power_w,
         "adcs_power_nodes": tuple(adcs_power_nodes),
         "adcs_power_monitoring_limit_w": adcs_power_monitoring_limit_w,
         "propulsion_power_bridge": resource_feedback_bridges.get("propulsion"),

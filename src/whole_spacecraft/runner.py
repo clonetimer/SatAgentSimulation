@@ -58,6 +58,7 @@ def _finite_rows_ok(rows: list[WholeSpacecraftTraceRow]) -> bool:
         "battery_storage_j",
         "battery_soc",
         "net_power_w",
+        "comm_control_power_w",
         "data_storage_bits",
         "thermal_temp_c",
         "thermal_margin_c",
@@ -148,6 +149,7 @@ TRACE_FIELDS: tuple[str, ...] = (
     "tank_pressure_pa",
     "tank_pressure_available",
     "adcs_control_power_w",
+    "comm_control_power_w",
     "propulsion_power_w",
     "propulsion_activity",
     "propulsion_cumulative_energy_j",
@@ -426,11 +428,12 @@ def _whole_spacecraft_native_modules(graph: WholeSpacecraftGraph) -> tuple[str, 
         "simplePowerSink.SimplePowerSink",
         "simpleSolarPanel.SimpleSolarPanel",
         "ReactionWheelPower.ReactionWheelPower",
-        "antennaPower.AntennaPower",
         "simpleInstrument.SimpleInstrument",
         "simpleStorageUnit.SimpleStorageUnit",
         "simpleTransmitter.SimpleTransmitter",
     ]
+    if graph.component_registry.get("comm_power_nodes"):
+        modules.append("antennaPower.AntennaPower")
     if graph.component_registry.get("native_downlink") is not None:
         modules.extend([
             "groundLocation.GroundLocation",
@@ -658,6 +661,11 @@ def _execute_whole_spacecraft_graph(
                 adcs_control_power_w=sum(
                     max(0.0, -_rec_value(recorders.get(name), "netPower", i, 0.0))
                     for name in adcs_power_recorder_names
+                ),
+                comm_control_power_w=sum(
+                    max(0.0, -_rec_value(recorders.get(name), "netPower", i, 0.0))
+                    for name in ("comm_power_tx", "comm_power_base", "comm_power_idle", "comm_power_bridge")
+                    if recorders.get(name) is not None
                 ),
                 propulsion_power_w=max(0.0, -_rec_value(recorders.get("propulsion_power"), "netPower", i, float(getattr(propulsion_sample, "electrical_power_w", 0.0)))),
                 propulsion_activity=float(getattr(propulsion_sample, "activity", 0.0)),
@@ -983,6 +991,10 @@ def _execute_whole_spacecraft_graph(
             "ThermalStatusEvaluator(SysModel)",
             "ConstantHeatInput(SysModel)",
             "WholeSpacecraftMissionGate(SysModel)",
+        ) + (
+            ("DownlinkAntennaStatusAdapter(SysModel)",)
+            if graph.component_registry.get("comm_status_adapter") is not None
+            else ()
         ),
         included_subsystems=included_subsystems,
         excluded_subsystems=() if propulsion_enabled else ("propulsion",),
@@ -1032,6 +1044,7 @@ def _execute_whole_spacecraft_graph(
         max_downlink_dropped_bps=max((r.downlink_dropped_bps for r in rows), default=0.0),
         max_adcs_control_power_w=max_native_adcs_power_w,
         adcs_power_monitoring_limit_w=adcs_power_monitoring_limit_w,
+        max_comm_control_power_w=max((row.comm_control_power_w for row in rows), default=0.0),
         final_attitude_error_deg=rows[-1].attitude_error_deg if rows else 0.0,
         runtime_unsupported_count=runtime_unsupported_count,
         runtime_fault_event_status=(runtime_fault_audit.get("runtime_event_status") if runtime_fault_audit is not None else "not_applicable"),

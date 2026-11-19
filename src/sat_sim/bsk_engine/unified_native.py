@@ -18,7 +18,7 @@ from sat_sim.task_validator import ValidationIssue
 from sat_sim.fault_environment import BSKRLStyleFaultAdapter
 from integration.resource_feedback import (
     DataActivityPowerBridge,
-    DownlinkActivityPowerBridge,
+    DownlinkAntennaStatusAdapter,
     InputReadStatus,
     StatusPowerBridge,
     ThrusterActivityPowerBridge,
@@ -165,6 +165,159 @@ def _bridge_health_payload(bridge: Any) -> dict[str, Any]:
         "directional_violations": directional_violations[:10],
     }
 
+
+def _native_comm_antenna_power_health(
+    rows: list[dict[str, Any]], *,
+    base_power_w: float,
+    tx_power_w: float,
+    adapter_trace: list[Any] | tuple[Any, ...] = (),
+) -> dict[str, Any]:
+    """Verify native Comm power follows PDU, RF attempt and physical antenna state."""
+    tolerance_w = 1.0e-6
+    expected_nominal_tx_power_w = float(base_power_w) + float(tx_power_w)
+    powers: list[float] = []
+    antenna_tx_powers: list[float] = []
+    tx_count = 0
+    idle_count = 0
+    runtime_pdu_states: list[bool] = []
+    runtime_tx_states: list[bool] = []
+    errors: list[str] = []
+    violations: list[dict[str, Any]] = []
+
+    def _adapter_sample_at(time_s: float):
+        if not adapter_trace:
+            return None
+        return min(
+            adapter_trace,
+            key=lambda sample: abs(float(getattr(sample, "time_ns", 0)) * 1.0e-9 - time_s),
+        )
+
+    for sample in adapter_trace:
+        sample_time_s = float(getattr(sample, "time_ns", 0)) * 1.0e-9
+        sample_status = getattr(sample, "input_status", None)
+        if sample_time_s > 0.0 and sample_status in {
+            InputReadStatus.ERROR, InputReadStatus.NOT_READY,
+        }:
+            errors.append(
+                f"COMM_ANTENNA_ADAPTER_INPUT_INVALID:t={sample_time_s:.9g}:"
+                f"{getattr(sample, 'error', None) or sample_status}"
+            )
+
+    for row in rows:
+        try:
+            time_s = float(row.get("time_s", 0.0))
+            actual = float(row["eps.loads.comm_power_w"])
+            pdu_enabled = bool(int(row["eps.pdu.comm_enabled"]))
+            link_active = bool(int(row["comm.active"]))
+            attempted = float(row["comm.attempted_rate_bps"])
+            tx_enabled = bool(int(row["comm.tx_enabled"]))
+            idle_enabled = bool(int(row["comm.idle_enabled"]))
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            errors.append(f"COMM_ANTENNA_POWER_TELEMETRY_INVALID:{type(exc).__name__}:{exc}")
+            continue
+        if (
+            not math.isfinite(time_s)
+            or not math.isfinite(actual)
+            or not math.isfinite(attempted)
+            or actual < -tolerance_w
+            or attempted < 0.0
+        ):
+            errors.append("COMM_ANTENNA_POWER_TELEMETRY_NON_FINITE_OR_NEGATIVE")
+            continue
+
+        # t=0 is a reset/scheduler barrier, not a physical power sample.
+        if time_s <= 0.0:
+            continue
+
+        adapter_sample = _adapter_sample_at(time_s)
+        if adapter_sample is None:
+            errors.append(f"COMM_ANTENNA_ADAPTER_SAMPLE_MISSING:t={time_s:.9g}")
+            continue
+        adapter_status = getattr(adapter_sample, "input_status", None)
+        antenna_state = int(getattr(adapter_sample, "antenna_state", 0))
+        antenna_tx_power = float(getattr(adapter_sample, "antenna_tx_power_w", 0.0))
+        if adapter_status is not InputReadStatus.VALID:
+            errors.append(
+                f"COMM_ANTENNA_ADAPTER_SAMPLE_INVALID:t={time_s:.9g}:"
+                f"{getattr(adapter_sample, 'error', None) or adapter_status}"
+            )
+            continue
+        if not math.isfinite(antenna_tx_power) or antenna_tx_power < 0.0:
+            errors.append("COMM_ANTENNA_RF_POWER_NON_FINITE_OR_NEGATIVE")
+            continue
+
+        expected_tx = bool(
+            pdu_enabled and link_active and attempted > 0.0
+            and antenna_state in (2, 3) and antenna_tx_power > 0.0
+        )
+        expected_idle = bool(pdu_enabled and not expected_tx)
+        expected_power = (
+            float(base_power_w) + antenna_tx_power
+            if expected_tx else 0.0
+        )
+        powers.append(actual)
+        antenna_tx_powers.append(antenna_tx_power)
+        tx_count += int(tx_enabled)
+        idle_count += int(idle_enabled)
+        runtime_pdu_states.append(pdu_enabled)
+        runtime_tx_states.append(tx_enabled)
+
+        if tx_enabled is not expected_tx:
+            violations.append({
+                "time_s": time_s,
+                "reason": "tx_status_mismatch",
+                "expected": expected_tx,
+                "actual": tx_enabled,
+                "antenna_state": antenna_state,
+                "antenna_tx_power_w": antenna_tx_power,
+            })
+        if idle_enabled is not expected_idle:
+            violations.append({
+                "time_s": time_s,
+                "reason": "idle_status_mismatch",
+                "expected": expected_idle,
+                "actual": idle_enabled,
+            })
+        if abs(actual - expected_power) > tolerance_w:
+            violations.append({
+                "time_s": time_s,
+                "reason": "native_antenna_power_mismatch",
+                "expected_power_w": expected_power,
+                "actual_power_w": actual,
+            })
+
+    directional_pass = bool(powers) and not errors and not violations
+    return {
+        "status": "FAIL" if errors or violations else ("PASS" if powers else "NOT_READY"),
+        "sample_count": len(rows),
+        "valid_sample_count": len(powers),
+        "error_count": len(errors),
+        "errors": errors[:10],
+        "violation_count": len(violations),
+        "violations": violations[:10],
+        "directional_violation_count": len(violations),
+        "directional_violations": violations[:10],
+        "directional_response_pass": directional_pass,
+        "enabled_transition_observed": len(set(runtime_pdu_states)) > 1,
+        "stimulus_observed": any(runtime_tx_states),
+        "pdu_enabled_sample_count": sum(runtime_pdu_states),
+        "pdu_disabled_sample_count": len(runtime_pdu_states) - sum(runtime_pdu_states),
+        "tx_enabled_sample_count": tx_count,
+        "idle_enabled_sample_count": idle_count,
+        "power_min_w": min(powers) if powers else 0.0,
+        "power_max_w": max(powers) if powers else 0.0,
+        "antenna_tx_power_min_w": min(antenna_tx_powers) if antenna_tx_powers else 0.0,
+        "antenna_tx_power_max_w": max(antenna_tx_powers) if antenna_tx_powers else 0.0,
+        "expected_tx_power_w": expected_nominal_tx_power_w,
+        "base_power_w": float(base_power_w),
+        "antenna_tx_power_w": float(tx_power_w),
+        "tx_enable_condition": "pdu_comm_enabled && linkActive && attemptedDataRate > 0 && physical_antenna_state in {TX,RXTX} && P_Tx > 0",
+        "source": "Basilisk.simulation.antennaPower.AntennaPower",
+        "antenna_input": "DownlinkAntennaStatusAdapter.antennaPowerOutMsg",
+        "antenna_source": "SimpleAntenna.antennaOutMsg",
+        "base_power_node": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+        "status_adapter": "DownlinkAntennaStatusAdapter",
+    }
 
 def _native_adcs_power_health(rows: list[dict[str, Any]], cfg: "UnifiedRuntimeConfig") -> dict[str, Any]:
     """Audit official ReactionWheelPower outputs against actual RW state telemetry."""
@@ -458,7 +611,7 @@ def _build_unified_rows(
         position = state.r_BN_N[index]
         attitude_truth = _attitude_truth_from_mrp(state.sigma_BN[index])
         row: dict[str, Any] = {
-            "time_s": float(nanos) * macros.NANO2SEC,
+            "time_s": float(nanos) * 1.0e-9,
             "orbit.radius_m": _norm3(position),
             "orbit.phase_rad": math.atan2(float(position[1]), float(position[0])),
             "orbit.eclipse_factor": float(recorder_map["eclipse"].shadowFactor[index]),
@@ -643,7 +796,10 @@ def _build_unified_rows(
                     for wheel_index in range(rw_power_wheel_count)
                 ),
                 "eps.loads.payload_power_w": max(0.0, -float(recorder_map["payload_power"].netPower[index])),
-                "eps.loads.comm_power_w": max(0.0, -float(recorder_map["downlink_power"].netPower[index])),
+                "eps.loads.comm_power_w": (
+                    max(0.0, -float(recorder_map["downlink_power"].netPower[index]))
+                    + max(0.0, -float(recorder_map["comm_base_power"].netPower[index]))
+                ),
                 "eps.loads.heater_power_w": max(0.0, -float(recorder_map["heater_power"].netPower[index])),
                 "eps.pdu.payload_enabled": int(recorder_map["pdu_payload_status"].deviceStatus[index]),
                 "eps.pdu.adcs_enabled": int(recorder_map["pdu_adcs_status"].deviceStatus[index]),
@@ -657,6 +813,8 @@ def _build_unified_rows(
                 "comm.native_cnr": max(float(recorder_map["native_link_budget"].CNR1[index]), float(recorder_map["native_link_budget"].CNR2[index])),
                 "comm.gated_cnr": max(float(recorder_map["gated_link_budget"].CNR1[index]), float(recorder_map["gated_link_budget"].CNR2[index])),
                 "comm.active": int(recorder_map["downlink_handling"].linkActive[index]),
+                "comm.tx_enabled": int(recorder_map["comm_tx_status"].deviceStatus[index]),
+                "comm.idle_enabled": int(recorder_map["comm_idle_status"].deviceStatus[index]),
                 "comm.downlink_bps": max(float(recorder_map["downlink_handling"].deliveredDataRate[index]), 0.0),
                 "comm.downlink_rate_bps": max(float(recorder_map["downlink_handling"].deliveredDataRate[index]), 0.0),
                 "comm.attempted_rate_bps": max(float(recorder_map["downlink_handling"].attemptedDataRate[index]), 0.0),
@@ -764,7 +922,7 @@ class UnifiedNativeRuntime:
         "mrp_feedback", "rw_motor_torque",
     )
     WHOLE_OFFICIAL_MODULES = (
-        "solar_panel", "bus_power", "reaction_wheel_power", "payload_power", "downlink_power",
+        "solar_panel", "bus_power", "reaction_wheel_power", "antenna_power",
         "battery", "payload_instrument", "transmitter", "storage", "payload_thermal",
     )
     PROJECT_MODULES = (
@@ -772,6 +930,7 @@ class UnifiedNativeRuntime:
         "project_adcs_sensor_fusion", "project_rw_command_fault_manager",
         "project_star_tracker_fault_injector", "project_sun_vector_fault_injector",
         "project_power_data_mode_gate", "project_whole_parameter_event_controller",
+        "project_comm_downlink_status_adapter",
     )
 
     def __init__(
@@ -1620,26 +1779,67 @@ class UnifiedNativeRuntime:
                 data_msg=instrument.nodeDataOutMsg,
                 enable_status_msg=pdu.payloadStatusOutMsg,
             )
-            comm_power_bridge = DownlinkActivityPowerBridge(
-                "project_comm_activity_power_bridge",
-                nominal_rate_bps=max(1.0, float(values.get("downlink_rate_bps", 1_500_000.0))),
-                active_power_w=float(values.get("downlink_power_w", 16.0)),
+            comm_active_power_w = float(values.get("downlink_power_w", 16.0))
+            comm_antenna_tx_power_w = float(rf_access.spacecraft_antenna.getAntennaP_Tx())
+            if (
+                not math.isfinite(comm_active_power_w)
+                or not math.isfinite(comm_antenna_tx_power_w)
+                or comm_active_power_w <= 0.0
+                or comm_antenna_tx_power_w <= 0.0
+                or comm_active_power_w + 1e-9 < comm_antenna_tx_power_w
+            ):
+                raise ValueError("NATIVE_COMM_ANTENNA_POWER_PROFILE_INVALID")
+            comm_antenna_base_power_w = comm_active_power_w - comm_antenna_tx_power_w
+            comm_status_adapter = DownlinkAntennaStatusAdapter(
+                "project_comm_downlink_status_adapter",
                 downlink_msg=native_downlink.downlinkOutMsg,
                 enable_status_msg=pdu.commStatusOutMsg,
+                antenna_msg=rf_access.spacecraft_antenna.antennaOutMsg,
             )
+            add(comm_status_adapter, comm_status_adapter.ModelTag, "basilisk_project_native", 37)
+            from Basilisk.simulation import antennaPower, simplePowerSink
+            comm_power_node = antennaPower.AntennaPower()
+            comm_power_node.ModelTag = "native_comm_antenna_power"
+            # The official AntennaPower node consumes a power-only gated copy
+            # of the physical SimpleAntenna log. Keep its own base draw at zero;
+            # non-RF electronics overhead is a separate PDU-gated official sink.
+            comm_power_node.basePowerNeed = 0.0
+            comm_power_node.antennaSetStateInMsg.subscribeTo(comm_status_adapter.antennaPowerOutMsg)
+            add(comm_power_node, comm_power_node.ModelTag, "basilisk_official_native", 36)
+            battery.addPowerNodeToModel(comm_power_node.nodePowerOutMsg)
+
+            comm_base_power_node = simplePowerSink.SimplePowerSink()
+            comm_base_power_node.ModelTag = "native_comm_base_power"
+            comm_base_power_node.nodePowerOut = -comm_antenna_base_power_w
+            comm_base_power_node.powerStatus = 0
+            comm_base_power_node.nodeStatusInMsg.subscribeTo(comm_status_adapter.txStatusOutMsg)
+            add(comm_base_power_node, comm_base_power_node.ModelTag, "basilisk_official_native", 36)
+            battery.addPowerNodeToModel(comm_base_power_node.nodePowerOutMsg)
+
+            connected("spacecraft_antenna.antennaOutMsg", "project_comm_downlink_status_adapter")
+            connected("native_downlink.downlinkOutMsg", "project_comm_downlink_status_adapter")
+            connected("project_eps_pdu.commStatusOutMsg", "project_comm_downlink_status_adapter")
+            connected("project_comm_downlink_status_adapter.antennaPowerOutMsg", comm_power_node.ModelTag)
+            connected("project_comm_downlink_status_adapter.txStatusOutMsg", comm_base_power_node.ModelTag)
+            connected(f"{comm_power_node.ModelTag}.nodePowerOutMsg", "battery")
+            connected(f"{comm_base_power_node.ModelTag}.nodePowerOutMsg", "battery")
             heater_power_bridge = StatusPowerBridge(
                 "project_heater_status_power_bridge",
                 active_power_w=float(values.get("heater_power_w", 15.0)),
                 enable_status_msg=pdu.heaterStatusOutMsg,
             )
-            for bridge in (payload_power_bridge, comm_power_bridge, heater_power_bridge):
+            for bridge in (payload_power_bridge, heater_power_bridge):
                 add(bridge, bridge.ModelTag, "engineering_proxy", 54)
                 battery.addPowerNodeToModel(bridge.powerOutMsg)
                 connected(f"{bridge.ModelTag}.powerOutMsg", "battery")
             whole_modules.update({
                 "adcs_power_nodes": adcs_power_nodes,
                 "payload_power_bridge": payload_power_bridge,
-                "comm_power_bridge": comm_power_bridge,
+                "comm_power_node": comm_power_node,
+                "comm_base_power_node": comm_base_power_node,
+                "comm_status_adapter": comm_status_adapter,
+                "comm_antenna_base_power_w": comm_antenna_base_power_w,
+                "comm_antenna_tx_power_w": comm_antenna_tx_power_w,
                 "heater_power_bridge": heater_power_bridge,
                 "rf_access": rf_access,
                 "rf_gate": rf_gate,
@@ -1860,7 +2060,8 @@ class UnifiedNativeRuntime:
                 (sink.nodePowerOutMsg, 3./18., "adcs", "bus_adcs"),
                 (sink.nodePowerOutMsg, 5./18., "solar_panel", "bus_solar_panel"),
                 (payload_power_bridge.powerOutMsg, 0.95, "payload", "payload_activity"),
-                (comm_power_bridge.powerOutMsg, 0.90, "comm", "comm_downlink"),
+                (comm_power_node.nodePowerOutMsg, 0.90, "comm", "comm_antenna_tx"),
+                (comm_base_power_node.nodePowerOutMsg, 0.90, "comm", "comm_base_tx"),
                 (heater_power_bridge.powerOutMsg, 1.00, "battery", "pdu_heater"),
             ]
             for wheel_index, power_node in enumerate(whole_modules["adcs_power_nodes"]):
@@ -1955,7 +2156,10 @@ class UnifiedNativeRuntime:
                 "panel": whole_modules["panel"].nodePowerOutMsg,
                 "bus_power": whole_modules["bus_power"].nodePowerOutMsg,
                 "payload_power": whole_modules["payload_power_bridge"].powerOutMsg,
-                "downlink_power": whole_modules["comm_power_bridge"].powerOutMsg,
+                "downlink_power": whole_modules["comm_power_node"].nodePowerOutMsg,
+                "comm_base_power": whole_modules["comm_base_power_node"].nodePowerOutMsg,
+                "comm_tx_status": whole_modules["comm_status_adapter"].txStatusOutMsg,
+                "comm_idle_status": whole_modules["comm_status_adapter"].idleStatusOutMsg,
                 "heater_power": whole_modules["heater_power_bridge"].powerOutMsg,
                 "instrument": whole_modules["instrument"].nodeDataOutMsg,
                 "storage": whole_modules["storage"].storageUnitDataOutMsg,
@@ -2337,15 +2541,30 @@ class UnifiedNativeRuntime:
         if not cfg.adcs_only:
             bridge_objects = {
                 "payload": whole_modules["payload_power_bridge"],
-                "comm": whole_modules["comm_power_bridge"],
                 "heater": whole_modules["heater_power_bridge"],
             }
             if "propulsion_power_bridge" in whole_modules:
                 bridge_objects["propulsion"] = whole_modules["propulsion_power_bridge"]
-            bridge_health = {"adcs": _native_adcs_power_health(rows, cfg)}
+            bridge_health = {
+                "adcs": _native_adcs_power_health(rows, cfg),
+                "comm": _native_comm_antenna_power_health(
+                    rows,
+                    base_power_w=whole_modules["comm_antenna_base_power_w"],
+                    tx_power_w=whole_modules["comm_antenna_tx_power_w"],
+                    adapter_trace=whole_modules["comm_status_adapter"].trace,
+                ),
+            }
             bridge_health.update({name: _bridge_health_payload(bridge) for name, bridge in bridge_objects.items()})
             for name, health in bridge_health.items():
                 runtime_read_errors.extend(f"{name}: {item}" for item in health.get("errors", []))
+            runtime_read_errors.extend(
+                f"comm_status_adapter: {sample.error}"
+                for sample in whole_modules["comm_status_adapter"].trace
+                if sample.error and (
+                    sample.input_status is InputReadStatus.ERROR
+                    or (sample.time_ns > 0 and sample.input_status is InputReadStatus.NOT_READY)
+                )
+            )
             runtime_read_errors.extend(f"rf_gate: {item}" for item in getattr(whole_modules["rf_gate"], "read_errors", ()))
             runtime_read_errors.extend(f"thermal: {item}" for item in getattr(whole_modules["thermal"], "read_errors", ()))
             causal_evidence = _required_coupling_evidence(cfg.required_couplings, bridge_health, rows)
@@ -2460,6 +2679,34 @@ class UnifiedNativeRuntime:
         if not cfg.adcs_only:
             resource_status = "FAIL" if any(health.get("status") == "FAIL" for health in bridge_health.values()) else "PASS"
             summary.update({
+                "comm_power_model": {
+                    "implementation": "Basilisk.simulation.antennaPower.AntennaPower",
+                    "antenna_input_message": "DownlinkAntennaStatusAdapter.antennaPowerOutMsg (gated copy of SimpleAntenna.antennaOutMsg)",
+                    "antenna_source_message": "SimpleAntenna.antennaOutMsg",
+                    "status_adapter": "DownlinkAntennaStatusAdapter",
+                    "base_power_node": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+                    "status_inputs": [
+                        "DownlinkHandling.downlinkOutMsg.linkActive",
+                        "DownlinkHandling.downlinkOutMsg.attemptedDataRate",
+                        "project_eps_pdu.commStatusOutMsg",
+                        "SimpleAntenna.antennaOutMsg.P_Tx",
+                    ],
+                    "tx_enable_condition": "PDU_Comm_enabled && linkActive && attemptedDataRate > 0 && antennaState in {TX,RXTX} && P_Tx > 0",
+                    "antenna_tx_power_w": whole_modules["comm_antenna_tx_power_w"],
+                    "base_power_w": whole_modules["comm_antenna_base_power_w"],
+                    "base_power_is_separate_pdu_gated_sink": True,
+                    "total_active_tx_power_w": (
+                        whole_modules["comm_antenna_tx_power_w"]
+                        + whole_modules["comm_antenna_base_power_w"]
+                    ),
+                    "idle_power_w": 0.0,
+                    "failed_packet_transmissions_consume_tx_power": True,
+                    "limitations": [
+                        "constant TX-mode draw while an RF attempt is active",
+                        "does not model RF PA efficiency, output-power control or rate-dependent DC draw",
+                        "antenna P_Tx remains the RF link-budget transmit power, not a DC bus measurement",
+                    ],
+                },
                 "adcs_power_model": {
                     "implementation": "Basilisk.simulation.ReactionWheelPower",
                     "input_message": "reactionWheelStateEffector.rwOutMsgs[i]",
@@ -2689,9 +2936,38 @@ class _BaseUnifiedAdapter:
         )
 
     def output_schema(self, capability: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        summary_fields = [
+            "status",
+            "runtime_truth_status",
+            "official_module_count",
+            "project_native_module_count",
+            "external_or_proxy_module_count",
+        ]
+        trace_fields = [
+            "time_s",
+            "adcs.pointing_error_deg",
+            "adcs.rw.speed_rad_s_*",
+            "propulsion.*",
+        ]
+        if not self.adcs_only:
+            summary_fields.extend([
+                "resource_feedback_closure_status",
+                "comm_dynamic_power_observed",
+                "comm_power_model",
+                "resource_feedback_bridge_health",
+            ])
+            trace_fields.extend([
+                "eps.pdu.comm_enabled",
+                "eps.loads.comm_power_w",
+                "comm.active",
+                "comm.tx_enabled",
+                "comm.idle_enabled",
+                "comm.attempted_rate_bps",
+                "thermal.comm_heat_input_w",
+            ])
         return {
-            "summary": ["status", "runtime_truth_status", "official_module_count", "project_native_module_count", "external_or_proxy_module_count"],
-            "trace_fields": ["time_s", "adcs.pointing_error_deg", "adcs.rw.speed_rad_s_*", "propulsion.*"],
+            "summary": summary_fields,
+            "trace_fields": trace_fields,
             "metadata": ["runtime_manifest", "model_source_boundary", "fault_environment"],
         }
 

@@ -177,7 +177,7 @@ def _run_case(
     archived_integrity = verify_run_bundle(archived_bundle)
     assert archived_integrity["ok"] is True, archived_integrity
     assert executed.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
-    assert executed.summary["external_or_proxy_module_count"] == (4 if group == "propulsion" else 3)
+    assert executed.summary["external_or_proxy_module_count"] == (3 if group == "propulsion" else 2)
     assert executed.summary["resource_feedback_closure_status"] == "PASS"
     assert executed.summary["energy_bounds_pass"] is True
     assert executed.summary["data_bounds_pass"] is True
