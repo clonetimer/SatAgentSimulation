@@ -176,13 +176,12 @@ def test_image_to_3d_manifest_pins_model_revision_and_license(tmp_path, monkeypa
 
 def test_triposr_worker_emits_unregistered_g1_candidate_and_audited_glb(tmp_path, monkeypatch):
     manifest_path, _, _, _ = _fixture(tmp_path, monkeypatch)
-    monkeypatch.setattr(
-        triposr_g1,
-        "probe_cuda",
-        lambda minimum: {"device": "test GPU", "total_vram_gb": 8.0, "free_vram_gb": 7.0},
-    )
     output_dir = tmp_path / "output"
-    receipt = triposr_g1.run_triposr_g1(manifest_path, output_dir)
+    receipt = triposr_g1.run_triposr_g1(
+        manifest_path,
+        output_dir,
+        gpu_probe=lambda minimum: {"device": "test GPU", "total_vram_gb": 8.0, "free_vram_gb": 7.0},
+    )
     assert receipt["quality_grade"] == "G1"
     assert receipt["glb_audit"]["status"] == "structurally_valid"
     assert receipt["scale_status"] == "unknown_from_single_image"
@@ -205,6 +204,8 @@ def test_image_to_3d_manifest_schema_requires_permission_for_generation(tmp_path
     )
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
+    manifest["model"]["revision"] = triposr_g1.TRIPOSR_REVISION
+    manifest["model"]["license_blob_sha1"] = triposr_g1.TRIPOSR_LICENSE_BLOB_SHA1
     Draft202012Validator(schema).validate(manifest)
     manifest["source_image"]["license"]["permitted_uses"] = ["model_generation"]
     with pytest.raises(Exception):
