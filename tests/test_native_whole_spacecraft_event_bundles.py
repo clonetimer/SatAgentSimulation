@@ -278,8 +278,15 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_sealed_run_bundles(
         assert injected.summary["propellant_used_kg"] == pytest.approx(0.0, abs=1e-12)
         assert injected_active["propulsion.total_thrust_n"] == pytest.approx(0.0, abs=1e-12)
         assert injected_active["propulsion.propellant_used_kg"] == pytest.approx(0.0, abs=1e-12)
+        assert nominal_active["propulsion.burn_command_on_time_s"] == pytest.approx(8.0)
+        assert injected_active["propulsion.burn_command_on_time_s"] == pytest.approx(0.0, abs=1e-12)
+        assert injected_active["propulsion.nominal_burn_command_on_time_s"] == pytest.approx(8.0)
     elif effect == "propulsion_burn_impulse_loss":
         assert nominal.summary["propellant_used_kg"] > 0.0
+        assert nominal_active["propulsion.burn_command_on_time_s"] == pytest.approx(8.0)
+        assert injected_active["propulsion.burn_command_on_time_s"] == pytest.approx(2.0)
+        assert injected_active["propulsion.nominal_burn_command_on_time_s"] == pytest.approx(8.0)
+        assert injected_active["propulsion.burn_command_on_time_s"] / nominal_active["propulsion.burn_command_on_time_s"] == pytest.approx(0.25)
         assert 0.0 < injected.summary["propellant_used_kg"] < 0.5 * nominal.summary["propellant_used_kg"]
         nominal_burn_samples = sum(bool(row["propulsion.burn_active"]) for row in nominal.trace_rows)
         injected_burn_samples = sum(bool(row["propulsion.burn_active"]) for row in injected.trace_rows)
@@ -297,6 +304,8 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_sealed_run_bundles(
         if group == "adcs"
         else [
             "propulsion.burn_active",
+            "propulsion.burn_command_on_time_s",
+            "propulsion.nominal_burn_command_on_time_s",
             "propulsion.total_thrust_n",
             "propulsion.fuel_mass_kg",
             "propulsion.propellant_used_kg",
