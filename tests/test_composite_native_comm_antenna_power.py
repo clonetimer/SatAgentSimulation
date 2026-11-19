@@ -1,4 +1,4 @@
-"""P10-A2: native SimpleAntenna -> AntennaPower -> EPS/thermal integration."""
+"""P10-A2: native SimpleAntenna -> gated AntennaPower/base nodes -> EPS/thermal."""
 
 from __future__ import annotations
 
