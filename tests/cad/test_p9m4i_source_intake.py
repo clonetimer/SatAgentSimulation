@@ -1,0 +1,148 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import pytest
+
+from scripts.cad.fetch_p9m4i_source_image import (
+    MAX_SOURCE_BYTES,
+    fetch_nasa_star_tracker_source,
+    jpeg_dimensions,
+)
+
+
+def _minimal_jpeg(width: int = 16, height: int = 12) -> bytes:
+    # SOI + one baseline SOF0 segment + EOI; enough for deterministic
+    # signature/dimension tests without checking in a NASA source image.
+    frame = (
+        bytes([8])
+        + height.to_bytes(2, "big")
+        + width.to_bytes(2, "big")
+        + bytes([1, 1, 0x11, 0])
+    )
+    return (
+        b"\xff\xd8"
+        + b"\xff\xc0"
+        + (len(frame) + 2).to_bytes(2, "big")
+        + frame
+        + b"\xff\xd9"
+    )
+
+
+class _Response:
+    def __init__(self, payload: bytes, *, content_type: str = "image/jpeg", url: str | None = None):
+        self.payload = payload
+        self.headers = {"Content-Type": content_type}
+        self.status = 200
+        self.url = url or (
+            "https://assets.science.nasa.gov/content/dam/science/missions/"
+            "europa-clipper/images/Star-Tracker-3D-Print-Full.JPG"
+        )
+        self.offset = 0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def geturl(self):
+        return self.url
+
+    def read(self, size: int = -1) -> bytes:
+        if size < 0:
+            size = len(self.payload) - self.offset
+        block = self.payload[self.offset : self.offset + size]
+        self.offset += len(block)
+        return block
+
+
+def test_jpeg_dimensions_reads_sof0_dimensions():
+    assert jpeg_dimensions(_minimal_jpeg(640, 480)) == (640, 480)
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (b"not-a-jpeg", "P9M4I_SOURCE_JPEG_SIGNATURE_INVALID"),
+        (b"\xff\xd8\xff\xd9", "P9M4I_SOURCE_JPEG_SOF_NOT_FOUND"),
+    ],
+)
+def test_jpeg_dimensions_rejects_invalid_or_incomplete_payload(payload, message):
+    with pytest.raises(ValueError, match=message):
+        jpeg_dimensions(payload)
+
+
+def test_fetch_nasa_star_tracker_source_writes_original_bytes_and_receipt(tmp_path):
+    payload = _minimal_jpeg(1000, 750)
+
+    def opener(request, timeout):
+        assert request.full_url.endswith("Star-Tracker-3D-Print-Full.JPG")
+        assert request.get_header("User-agent").startswith("SatAgentSimulation-P9M4I")
+        assert timeout == 45
+        return _Response(payload)
+
+    receipt = fetch_nasa_star_tracker_source(tmp_path, opener=opener)
+    image = tmp_path / "nasa-europa-clipper-star-tracker-mockup.jpg"
+    metadata = json.loads((tmp_path / "source-intake.json").read_text(encoding="utf-8"))
+
+    assert image.read_bytes() == payload
+    assert receipt == metadata
+    assert receipt["size_bytes"] == len(payload)
+    assert receipt["width_px"] == 1000
+    assert receipt["height_px"] == 750
+    assert receipt["sha256"] == hashlib.sha256(payload).hexdigest()
+    assert receipt["source_credit"] == "NASA/JPL-Caltech"
+    assert receipt["source_rights_assessment"]["status"] == (
+        "policy_basis_found_pending_project_owner_signoff"
+    )
+    assert receipt["source_rights_assessment"]["candidate_permitted_uses"] == [
+        "model_generation",
+        "internal_preview",
+    ]
+    assert receipt["source_rights_assessment"]["external_distribution_allowed"] is False
+    assert receipt["preprocessing"]["background_removed"] is False
+    assert receipt["inference_eligible"] is False
+
+
+def test_fetch_rejects_non_jpeg_content_type(tmp_path):
+    def opener(_request, timeout):
+        return _Response(_minimal_jpeg(), content_type="application/octet-stream")
+
+    with pytest.raises(ValueError, match="P9M4I_SOURCE_CONTENT_TYPE_INVALID"):
+        fetch_nasa_star_tracker_source(tmp_path, opener=opener)
+    assert not list(tmp_path.iterdir())
+
+
+def test_fetch_rejects_redirect_outside_pinned_nasa_asset_host(tmp_path):
+    def opener(_request, timeout):
+        return _Response(
+            _minimal_jpeg(),
+            url="https://example.invalid/Star-Tracker-3D-Print-Full.JPG",
+        )
+
+    with pytest.raises(ValueError, match="P9M4I_SOURCE_REDIRECT_HOST_INVALID"):
+        fetch_nasa_star_tracker_source(tmp_path, opener=opener)
+
+
+def test_fetch_rejects_source_larger_than_limit(tmp_path):
+    payload = _minimal_jpeg() + (b"x" * (MAX_SOURCE_BYTES + 1))
+
+    def opener(_request, timeout):
+        return _Response(payload)
+
+    with pytest.raises(ValueError, match="P9M4I_SOURCE_IMAGE_TOO_LARGE"):
+        fetch_nasa_star_tracker_source(tmp_path, opener=opener)
+    assert not list(tmp_path.iterdir())
+
+
+def test_fetch_refuses_to_overwrite_existing_source_evidence(tmp_path):
+    (tmp_path / "source-intake.json").write_text("{}", encoding="utf-8")
+
+    def opener(_request, timeout):
+        raise AssertionError("network must not be called when output exists")
+
+    with pytest.raises(ValueError, match="P9M4I_SOURCE_INTAKE_OUTPUT_ALREADY_EXISTS"):
+        fetch_nasa_star_tracker_source(tmp_path, opener=opener)
