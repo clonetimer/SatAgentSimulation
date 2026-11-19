@@ -346,13 +346,13 @@ u_{drag,j}=-c_j\omega_j
 - 轮卡死/电机失效/力矩下降 → 已施加力矩偏离命令 → 姿态误差增大 → 任务门控变化。
 - 轮摩擦/轮速限制 → 轮动态与可用控制裕度下降 → 姿态闭环性能退化。
 
-重要边界：当前 `AdcsControlPowerBridge` 读取的是 `rwMotorTorque` 的**故障前原始命令**和轮速，不是故障管理器后的已施加力矩。因此轮故障对 EPS 的影响主要通过姿态/任务门控及轮速演化间接传播；不能把现有结果解释为电机卡死电流或摩擦热的高保真电气传播。电机电流字段同样由原始命令和力矩常数换算：
+**P10-A1 后的功率耦合边界（2026-11-19）**：
 
-\[
-I_j=\operatorname{clip}\left(\frac{u_j^{cmd}}{K_t},-I_{max},I_{max}\right)
-\]
+- 推荐整星 `whole_spacecraft.unified_native.v1` 与 active composite `whole_spacecraft.composite_digital_twin.v1` 的 ADCS→EPS 功率核算，现均使用官方 Basilisk `ReactionWheelPower`，逐轮直接读取 `reactionWheelStateEffector.rwOutMsgs[i]` 的实际 `u_current` 与 `Omega`；每个原生 `nodePowerOutMsg` 直接接入 `SimpleBattery` 和 ADCS 热网络。它不再按故障前 FSW 原始请求计算 ADCS 电池负载。
+- 当前功率模型为机械功率到电功率的工程模型：固定基础功耗 + `abs(u_current * Omega) / efficiency`；能量回收关闭。基础功耗和效率仍是工程假设，尚无目标轮组硬件标定。
+- 数据集中的逐轮电流字段仍需区分“由力矩常数换算的估计电流”与真实绕组电流测量；不能把估计电流解释为硬件遥测。
 
-若要研究卡死过流和局部发热，应把已施加力矩、电机效率、堵转电流及摩擦耗散显式接入 EPS/热控。
+因此，轮故障对 EPS 的动态功率影响现在能通过实际施加力矩与轮速直接传播；但这**不等于**已建立电机完整电气模型。电机绕组电阻、母线电压、铜损、逆变器损耗、堵转电流、摩擦耗散和局部热源仍未建模或标定。若要研究卡死过流和局部发热，仍需把电机电路/驱动器模型及经确认的硬件参数显式接入 EPS/热控。
 
 ## 11. 整星输出字段
 
