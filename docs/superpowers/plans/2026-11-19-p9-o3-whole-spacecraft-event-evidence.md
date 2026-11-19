@@ -145,3 +145,9 @@
 - 已修改 O3-B `_run_case`：每个 Run 在原目录 integrity PASS 后复制到 `reports/native_whole_spacecraft_events/run_bundles/{run_id}`，并对复制件再次执行 `verify_run_bundle`。
 - 已修改 O3-C Chromium journey：将浏览器下载的 9 个 ZIP 保存到 `browser_run_bundles/`，同时写 sidecar JSON，记录 case_id、run_id、事件类别/ID、ZIP SHA-256、bundle manifest SHA-256、sealed 与 integrity 状态。
 - 官方 Artifact 上传路径现在包含物理 Run Bundle 目录和浏览器下载 ZIP/sidecar；此归档实现尚待最新同头 CI 验证。
+
+## O3-C 首轮 Chromium 失败与参数面板修复（2026-11-19）
+
+- Official native workflow `44455172008` on head `91566bb19efd97d8afdd29cd49b0d299638d07a2` failed only in the browser job `135328351418`; the whole-spacecraft run journeys repeatedly timed out waiting for `simulation.step_s` to become visible. Test summary: 10 failed, 12 passed, 4 deselected. The failure was a browser interaction/fixture issue, not a Basilisk physical A/B failure.
+- `simulation.step_s` is deliberately declared `importance=advanced`; opening arbitrary nested `<details>` nodes is not a robust substitute for the product's parameter-mode control. The browser test now opens `#wizardParametersPanel`, clicks the real `data-wizard-parameter-mode="all"` control, and asserts the solver-step input is visible before filling it.
+- Fix commit: `cca76913d01f7758fb6de13fa194715f32be6c84`. The new PR head must rerun the full official native workflow. O3-C/D remain unaccepted until all nine whole-spacecraft browser Run journeys pass and the archive audit succeeds on the same head.
