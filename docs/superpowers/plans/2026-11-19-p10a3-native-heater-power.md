@@ -2,7 +2,7 @@
 
 Date: 2026-11-19
 
-Status: implementation candidate on `feat/p10a3-native-heater-power-20261119`; same-head Basilisk 2.11.0 acceptance pending.
+Status: COMPLETE — merged in PR #194 as `d40761eb7c1f478301fccd6b510e0136c2e28fd6` (2026-11-19); focused P10-A and full native Basilisk 2.11.0 regression passed.
 
 ## Objective
 
@@ -37,3 +37,12 @@ Remove the project-owned `HeaterPowerFeedback` aggregation bridge from the activ
 ## Model boundary
 
 The configured heater wattage and power scaling remain engineering-model parameters. This migration uses the thermal component's actual electrical output but does not qualify the heater hardware, resistance, PWM electronics, or flight thermal design.
+
+
+## Merge and acceptance evidence
+
+- PR #194 squash-merged to `main` as `d40761eb7c1f478301fccd6b510e0136c2e28fd6`.
+- Focused P10-A run: 62 passed; official upstream Basilisk 2.11.0 provenance and offline environment preflight passed.
+- Full native whole-spacecraft workflow: all jobs passed, including native whole-spacecraft, Windows job lifecycle, and Basilisk battery C++ contract.
+- Static checks and project script/dependency governance passed on the accepted PR head.
+- The paired test exercised heater ON/OFF, `power_scale=0.5`, actual electrical output recorder values, battery response, and energy accounting.
