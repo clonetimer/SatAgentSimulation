@@ -96,3 +96,14 @@
 - 当前 whole-spacecraft 统一图有 4 个 engineering-proxy power bridges（ADCS、payload、comm、heater）；启用推进时增加第 5 个 propulsion power bridge。它们参与电源活动耦合，不是官方 Basilisk 模块。
 - O3-B 可以验证八种事件在官方 Basilisk 统一运行图中的直接命令/物理效果，但不得宣称整星所有功率桥均为官方 Basilisk 物理模型。
 - 每个 profile 的 claim limitations 必须说明 project-native event controller 与 engineering-proxy power bridge 的边界；整星 Capability 继续保持 `agent_ready_candidate` / `engineering_preview`。
+
+
+## O3-B 首轮实现已提交，等待官方 Basilisk CI（2026-11-19）
+
+- 新增 8 个 whole-spacecraft `VERIFIED_NATIVE_EFFECT` profiles，覆盖 6 个 ADCS 事件与 2 个推进事件；正式 evidence field 与 operator contract 逐项对齐。
+- 新增 `propulsion.burn_command_on_time_s`、`propulsion.nominal_burn_on_time_s`、`propulsion.initial_fuel_mass_kg` 逐样本字段。burn command 来自项目原生 `PropulsionBurnController.commandOutMsg` 的官方消息 recorder；燃料和推力仍来自官方 Basilisk fuel tank / thruster recorder。
+- 新增 `tests/test_native_whole_spacecraft_event_effects_bundle.py`：2 个可复用 nominal sealed Run Bundle + 8 个 injected Run Bundle，共 10 次 official Basilisk 2.11.0 执行。
+- 配对 A/B 检查事件特定直接 recorder、事件结束恢复、推进 on-time 缩短、燃料消耗与轨道半径响应；每个 injected Run 要求 SUCCEEDED、PASS、sealed、integrity.ok、单事件 injection evidence PASS。
+- 新增正式 workflow step 和 Artifact：`reports/native_whole_spacecraft_events/effect_ab.xml` / `effect_ab.json`。
+- 扩展 formal effect runtime 用例，WHOLE_ID 从 6 个事件增至 14 个；同时检查 operator evidence_fields 与 profile evidence_fields 一致。
+- 该提交仍是 O3-B 候选实现；在当前分支官方 Basilisk CI 完成前，不把 8 个事件标记为通过，也不扩展普通用户向导 allowlist。
