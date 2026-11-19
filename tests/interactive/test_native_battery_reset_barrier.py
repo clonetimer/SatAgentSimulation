@@ -144,20 +144,38 @@ def test_r9i_genuine_basilisk_battery_public_reset_must_not_be_called_recovery(
             reset_error=float(reset_measurement["eps"]["battery_energy_j"])-source_energy
             signed_energy_samples.append({
                 "time_ns":stops[index],
+                "source_energy_j":source_energy,
+                "baseline_energy_j":float(baseline_measurement["eps"]["battery_energy_j"]),
+                "reset_energy_j":float(reset_measurement["eps"]["battery_energy_j"]),
                 "baseline_signed_error_j":baseline_error,
                 "reset_signed_error_j":reset_error,
                 "signed_error_change_j":reset_error-baseline_error,
                 "absolute_error_equal":abs(abs(reset_error)-abs(baseline_error))<=1e-9,
             })
-        assert signed_energy_samples
-        assert abs(signed_energy_samples[0]["reset_signed_error_j"]) > 1.0, signed_energy_samples
-        assert abs(signed_energy_samples[0]["signed_error_change_j"]) > 1.0, signed_energy_samples
-        # The original boolean is explicitly the change in *absolute* error.
-        # It may be false when the signed error changes sign symmetrically.
-        assert outcome["samples"][0]["reset_changed"] is False, outcome
         print("R9I_SIGNED_ENERGY_ERROR_AUDIT:"+json.dumps(
             signed_energy_samples,sort_keys=True,allow_nan=False,
         ),flush=True)
+        # The first post-import scheduler tick can still have an unwritten
+        # PowerNodeUsageMsg and SimpleBattery consequently emits a zero
+        # storageStatusMsg. Only compare the later, initialized battery samples.
+        runtime_signed_samples=signed_energy_samples[1:]
+        assert runtime_signed_samples
+        assert all(sample["baseline_energy_j"] > 0.0 for sample in runtime_signed_samples), signed_energy_samples
+        assert all(sample["reset_energy_j"] > 0.0 for sample in runtime_signed_samples), signed_energy_samples
+        # The original boolean measures change in *absolute* error only.
+        # At least one valid runtime sample must show equal absolute residuals
+        # but a materially different signed residual (the reset arm can
+        # over/under-shoot in the opposite direction).
+        assert any(
+            sample["absolute_error_equal"]
+            and abs(sample["signed_error_change_j"]) > 1.0
+            for sample in runtime_signed_samples
+        ), signed_energy_samples
+        assert any(
+            not outcome["samples"][index + 1]["reset_changed"]
+            and abs(sample["signed_error_change_j"]) > 1.0
+            for index,sample in enumerate(runtime_signed_samples)
+        ), outcome
         print("R9I_REAL_NATIVE_PUBLIC_BATTERY_RESET_BARRIER:"+json.dumps(
             outcome,sort_keys=True,allow_nan=False,
         ),flush=True)
