@@ -7,9 +7,9 @@ import pytest
 
 def _run(force_heaters: bool):
     pytest.importorskip("Basilisk", reason="requires official Basilisk 2.11.0")
-    from Basilisk.utilities import macros
     from whole_spacecraft.builder import build_whole_spacecraft_graph
-    from whole_spacecraft.schemas import WholeSpacecraftConfig
+    from whole_spacecraft.runner import _execute_whole_spacecraft_graph
+    from whole_spacecraft.schemas import WholeSpacecraftConfig, WholeSpacecraftRunConfig
 
     cfg = WholeSpacecraftConfig(
         initial_soc=0.80,
@@ -24,15 +24,14 @@ def _run(force_heaters: bool):
     for heater in heaters.values():
         heater.forced_state = bool(force_heaters)
 
-    graph.sim.InitializeSimulation()
-    graph.sim.ConfigureStopTime(macros.sec2nano(3.0))
-    graph.sim.ExecuteSimulation()
-    return graph
+    run_cfg = WholeSpacecraftRunConfig(duration_s=3.0, sample_s=0.2, structure=cfg)
+    summary, rows = _execute_whole_spacecraft_graph(graph, run_cfg)
+    return graph, summary, rows
 
 
 def test_native_heater_status_drives_official_power_nodes_and_battery() -> None:
-    active = _run(True)
-    idle = _run(False)
+    active, active_summary, active_rows = _run(True)
+    idle, idle_summary, idle_rows = _run(False)
 
     active_nodes = active.component_registry["heater_power_nodes"]
     idle_nodes = idle.component_registry["heater_power_nodes"]
@@ -41,10 +40,7 @@ def test_native_heater_status_drives_official_power_nodes_and_battery() -> None:
     assert set(idle_nodes) == set(heaters)
     assert active.component_registry.get("heater_eps_feedback") is None
 
-    coupling = {
-        item.name: item
-        for item in active.coupling_matrix
-    }["thermal_heaters_to_eps_load"]
+    coupling = active.coupling_matrix["thermal_heaters_to_eps_load"]
     assert coupling.coupling_status == "coupled"
     assert "SimplePowerSink.nodeStatusInMsg" in coupling.interface
 
@@ -77,5 +73,5 @@ def test_native_heater_status_drives_official_power_nodes_and_battery() -> None:
             break
     assert comparisons == 1
 
-    assert max(row.heater_eps_load_w for row in active.trace_rows) == pytest.approx(expected_total_w, abs=1e-6)
-    assert max(row.heater_eps_load_w for row in idle.trace_rows) == pytest.approx(0.0, abs=1e-9)
+    assert max(row.heater_eps_load_w for row in active_rows) == pytest.approx(expected_total_w, abs=1e-6)
+    assert max(row.heater_eps_load_w for row in idle_rows) == pytest.approx(0.0, abs=1e-9)
