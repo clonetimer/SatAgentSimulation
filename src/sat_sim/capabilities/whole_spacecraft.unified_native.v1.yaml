@@ -1400,6 +1400,7 @@ operator:
     - time_s
     - orbit.*
     - adcs.*
+    - attitude.truth.pointing_error_deg
     - eps.*
     - payload.*
     - comm.*
