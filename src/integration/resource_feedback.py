@@ -557,14 +557,17 @@ else:  # pragma: no cover
     # instantiated by a native run; the official Basilisk dependency remains
     # mandatory at execution time.
     DownlinkAntennaStatusAdapter = None
+    PayloadActivityStatusAdapter = None
     DataActivityPowerBridge = DownlinkActivityPowerBridge = AdcsControlPowerBridge = StatusPowerBridge = ThrusterActivityPowerBridge = PowerToThermalAggregationBridge = None
 
 
 __all__ = [
     "ActivityPowerSample",
     "DownlinkAntennaStatusSample",
+    "PayloadActivityStatusSample",
     "InputReadStatus",
     "DownlinkAntennaStatusAdapter",
+    "PayloadActivityStatusAdapter",
     "DataActivityPowerBridge",
     "DownlinkActivityPowerBridge",
     "AdcsControlPowerBridge",
