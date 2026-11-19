@@ -152,7 +152,7 @@ def test_whole_spacecraft_events_propagate_before_state_integration(category, ef
     assert field in rows[0]
     assert result.summary["energy_bounds_pass"] is True
     assert result.summary["data_bounds_pass"] is True
-    assert result.summary["external_or_proxy_module_count"] == 4
+    assert result.summary["external_or_proxy_module_count"] == 3
 
 
 def test_thermal_degradation_changes_recorder_temperature_against_nominal() -> None:
