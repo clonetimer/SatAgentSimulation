@@ -159,3 +159,13 @@
 ### 本轮结论
 
 NASA 资料为 TripoSR G1 提供了一个比 KSST-01 厂商照片更有希望的公开候选，但目前只完成来源与政策层面的筛查。**原始媒体字节、hash、source-specific permission review 和真实 GPU inference 均未完成**；因此 benchmark 状态继续保持 `pilot_specification_not_yet_executed`。
+## 2026-11-19 NASA 星敏 mock-up 来源权利复核与字节准入
+
+- 重新打开精确 NASA Science 源页面及原始媒体链接，确认页面说明该图是 Europa Clipper stellar reference unit 的 3D-printed mock-up（optical head + shielding），用于 fit/tool-access 检查；发布资源为 2025-05-29 的 JPEG，页面 credit 为 NASA/JPL-Caltech。
+- NASA 当前 Images and Media Usage Guidelines 明确把“用于 3D model rendition 的 media files”纳入 NASA 内容范围，并允许教育/信息用途（包括 computer graphical simulations）；页面只显示 NASA/JPL-Caltech credit，没有单独第三方 copyright 标记。该依据支持非商业、教育/信息用途的 G1 派生预览候选，但不等于 NASA/JPL 对本项目输出作出审查或背书。
+- 当前只记录 `policy_basis_found_pending_project_owner_signoff`：候选用途限 `model_generation` + `internal_preview`，`external_distribution_allowed=false`。不得使用 NASA/JPL 标识，不得暗示 NASA/JPL/Caltech 背书，输出需标记 AI-generated 并归因 TripoSR。若后续用于商业/推广或对外分发，必须重新审查。
+- 图像是单视角现场照片，画面含手/前臂与工作台背景；模型输入必须人工裁切/去背景，只保留星敏 mock-up。不能把照片中的人体/环境作为生成对象。
+- 新增 `scripts/cad/fetch_p9m4i_source_image.py`：只从固定的 `assets.science.nasa.gov` 原始 URL 下载，限制重定向主机、MIME、JPEG SOI/EOI、文件大小与 SOF 尺寸；原始 JPEG 与包含 bytes/尺寸/来源/权利审查状态的 `source-intake.json` 原子写入，不覆盖已有证据。
+- 新增来源准入测试：校验 JPEG 尺寸解析、SHA-256、错误 MIME、非 JPEG、越权重定向、超限文件和禁止覆盖。CI 增加独立 `nasa-source-intake` job，将原始字节和 intake receipt 作为 artifact 保存。
+- 当前原始媒体字节与 SHA-256 仍待最新 CI artifact 实际获取；`source_bytes_obtained=false`、`source_sha256=null`、`eligible_for_inference=false` 保持不变。项目负责人 sign-off、背景分割人工复核、TripoSR 权重本地哈希与 CUDA preflight 完成前，不运行推理。
+- 经验：权利政策依据、项目用途批准、原始字节完整性、预处理验收和 GPU 可执行性是五个独立门禁；不能用其中一个 PASS 代替其他门禁。
