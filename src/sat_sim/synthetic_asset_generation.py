@@ -256,6 +256,16 @@ def validate_synthetic_asset(record: Mapping[str, Any], glb_path: str | Path) ->
     for source in provenance["source_inputs"]:
         if not isinstance(source, Mapping) or not source.get("source_uri") or not source.get("sha256"):
             raise ValueError("P9M4I_SOURCE_INPUT_UNTRACEABLE")
+    if record.get("generation_method") in ("image_to_3d", "multiview_reconstruction"):
+        for source in provenance["source_inputs"]:
+            license_record = source.get("license")
+            if not isinstance(license_record, Mapping) or license_record.get("status") != "approved":
+                raise ValueError("P9M4I_SOURCE_LICENSE_NOT_APPROVED")
+            permitted_uses = set(license_record.get("permitted_uses") or [])
+            if not {"model_generation", "internal_preview"}.issubset(permitted_uses):
+                raise ValueError("P9M4I_SOURCE_LICENSE_SCOPE_INSUFFICIENT")
+            if not license_record.get("evidence_uri") or not license_record.get("reviewer") or not license_record.get("review_date"):
+                raise ValueError("P9M4I_SOURCE_LICENSE_EVIDENCE_REQUIRED")
     audit = audit_glb(glb_path)
     expected = record.get("geometry", {}).get("sha256")
     if expected != audit["sha256"]:
