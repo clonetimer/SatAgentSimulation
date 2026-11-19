@@ -89,12 +89,11 @@ class DownlinkAntennaStatusSample:
 
 if sysModel is not None:
     class DownlinkAntennaStatusAdapter(sysModel.SysModel):
-        """Translate native PDU/downlink telemetry into antenna TX and idle status.
+        """Translate PDU/downlink/antenna telemetry into power-side TX and idle state.
 
-        This module owns no electrical-power equation. It only gates official
-        Basilisk power nodes: TX when the PDU permits communication and the
-        native DownlinkHandling module is actually attempting RF transmission;
-        idle when the PDU permits communication but no TX attempt is active.
+        This module owns no electrical-power equation. It publishes status for
+        official base/idle SimplePowerSink nodes and a separate gated AntennaLogMsg
+        for official AntennaPower. The physical SimpleAntenna message is untouched.
         """
 
         def __init__(
