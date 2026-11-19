@@ -2017,6 +2017,7 @@ class UnifiedNativeRuntime:
                 (sink.nodePowerOutMsg, 5./18., "solar_panel", "bus_solar_panel"),
                 (payload_power_bridge.powerOutMsg, 0.95, "payload", "payload_activity"),
                 (comm_power_node.nodePowerOutMsg, 0.90, "comm", "comm_antenna_tx"),
+                (comm_base_power_node.nodePowerOutMsg, 0.90, "comm", "comm_base_tx"),
                 (heater_power_bridge.powerOutMsg, 1.00, "battery", "pdu_heater"),
             ]
             for wheel_index, power_node in enumerate(whole_modules["adcs_power_nodes"]):
