@@ -244,14 +244,21 @@ def test_public_source_intake_workflow_uploads_metadata_receipt_only():
     assert upload["retention-days"] == 7
 
     permissions = workflow.get("permissions", {})
-    assert permissions.get("actions") == "write"
+    assert permissions.get("actions") != "write"
+    cleanup_job = workflow["jobs"]["delete-superseded-public-source-artifacts"]
+    assert cleanup_job["permissions"] == {"actions": "write"}
+    assert "github.event.pull_request.head.repo.full_name == github.repository" in cleanup_job["if"]
     cleanup_step = next(
-        step for step in steps
+        step for step in cleanup_job["steps"]
         if step.get("name") == "Delete and verify superseded public raw-source artifacts"
     )
     assert cleanup_step.get("uses") == "actions/github-script@v7"
     assert "deleteArtifact" in cleanup_step["with"]["script"]
     assert "getArtifact" in cleanup_step["with"]["script"]
+
+    source_job = workflow["jobs"]["nasa-source-intake"]
+    assert source_job["needs"] == "delete-superseded-public-source-artifacts"
+    assert source_job["permissions"] == {"contents": "read"}
 
     benchmark_path = (
         Path(__file__).resolve().parents[2]
