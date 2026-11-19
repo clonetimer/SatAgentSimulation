@@ -634,6 +634,7 @@ def build_whole_spacecraft_graph(
     power_inputs: list[tuple[Any, float, str, str]] = []
     shadow_factor_msg = None
     heater_feedback = None
+    heater_power_sources: dict[str, Any] = {}
     resource_feedback_bridges: dict[str, Any] = {}
 
     payload_status_msg = eps_graph.status_messages.get("payload")
@@ -945,21 +946,24 @@ def build_whole_spacecraft_graph(
             )
 
         if coupling.enable_thermal_heaters_to_eps_load and thermal_graph.network.heaters:
-            heater_feedback = build_heater_power_feedback_bridge([
-                (heater.heaterOutMsg, heater.params.power_w)
-                for heater in thermal_graph.network.heaters.values()
-            ])
-            if heater_feedback.heaterInMsgs:
-                sim.AddModelToTask(thermal_task_name, heater_feedback)
-                battery.addPowerNodeToModel(heater_feedback.powerOutMsg)
+            # P10-A3: the thermal heater already publishes its actual
+            # electrical load, including thermostat state and power_scale.
+            # Connect that native subsystem output directly to SimpleBattery;
+            # do not reconstruct a second nominal-wattage estimate.
+            for name, heater in thermal_graph.network.heaters.items():
+                battery.addPowerNodeToModel(heater.electricalPowerOutMsg)
+                heater_power_sources[str(name)] = heater
+            if heater_power_sources:
                 coupling_matrix["thermal_heaters_to_eps_load"] = _coupling_record(
                     name="thermal_heaters_to_eps_load",
                     source_subsystem="thermal",
                     sink_subsystem="eps",
-                    coupling_status="proxy_coupled_verified",
-                    interface="heater status/output -> HeaterPowerFeedback.PowerNodeUsageMsg -> battery.addPowerNodeToModel",
-                    evidence=tuple(f"{name}.heaterOutMsg power_w={heater.params.power_w}" for name, heater in thermal_graph.network.heaters.items()),
-                    notes=("Heater electrical load is bridged back to EPS as a power sink.",),
+                    coupling_status="coupled",
+                    interface="ThermalHeater.electricalPowerOutMsg -> battery.addPowerNodeToModel",
+                    evidence=tuple(
+                        f"{name}.electricalPowerOutMsg tracks heater state and power_scale; rated_power_w={heater.params.power_w}"
+                        for name, heater in heater_power_sources.items()
+                    ),
                 )
         elif not coupling.enable_thermal_heaters_to_eps_load:
             coupling_matrix["thermal_heaters_to_eps_load"] = _disabled_coupling_record(
@@ -1128,6 +1132,8 @@ def build_whole_spacecraft_graph(
     if heater_feedback is not None:
         recorders["heater_eps_feedback"] = heater_feedback.powerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         sim.AddModelToTask(recorder_task_name, recorders["heater_eps_feedback"])
+    for heater_name, heater in heater_power_sources.items():
+        recorders[f"heater_eps_power_{heater_name}"] = heater.electricalPowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
 
     if fuel_tank is not None:
         recorders["fuel_tank"] = fuel_tank.fuelTankOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
@@ -1172,6 +1178,7 @@ def build_whole_spacecraft_graph(
         "comm_antenna_base_power_w": comm_antenna_base_power_w,
         "comm_antenna_tx_power_w": comm_antenna_tx_power_w,
         "adcs_power_nodes": tuple(adcs_power_nodes),
+        "heater_power_sources": dict(heater_power_sources),
         "adcs_power_monitoring_limit_w": adcs_power_monitoring_limit_w,
         "propulsion_power_bridge": resource_feedback_bridges.get("propulsion"),
         "rw_cluster": adcs_graph.rw_closed_loop.rw_state_effector,
