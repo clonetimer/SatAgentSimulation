@@ -133,3 +133,4 @@
 | `build_parametric_synthetic_asset.FCMacro` | P9-M4-I 参数化几何基线 | active | 用途：在 FreeCAD 中按来源约束构造简化几何；输入：p9m4i-parametric-input.v1 JSON；输出：FCStd + STEP；缺少尺寸或位置来源即拒绝构建，不输出 GLB 或实装坐标 |
 | `audit_synthetic_asset.py` | P9-M4-I AI 合成几何审计 | active | 用途：审计 synthetic reference GLB 的结构、网格、包围盒和来源摘要；参数：--manifest、--glb、--output；输出：仅限 synthetic_preview 的质量报告，不批准工程尺寸、安装坐标或 as-built 身份 |
 | `run_triposr_g1.py` | P9-M4-I 许可门控图像到 3D | active | 用途：在许可明确的原始图像、固定 TripoSR commit/权重和显存预检通过后生成 G1 GLB；参数：--manifest、--output-dir、--preflight-only；输出：未注册的 GLB 候选与 provenance receipt，不分配物理尺度、安装坐标或 as-built 身份 |
+| `fetch_p9m4i_source_image.py` | P9-M4-I NASA 来源采集 | active | 用途：从固定 NASA 媒体 URI 下载星敏 mock-up 原始 JPEG 并记录字节数、尺寸、来源与 SHA-256；参数：--output-dir；输出：原始来源文件与 rights/intake receipt，不执行预处理或模型推理 |
