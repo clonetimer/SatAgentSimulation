@@ -33,3 +33,14 @@ The electrical output is `P_e = P_rated × power_scale` when the thermostat is o
 - Official Basilisk 2.11.0 focused heater and P10-A regressions.
 - Full native Basilisk, static, unit-only import and governance CI on the exact PR head.
 - Whole-spacecraft event and sealed Run Bundle proxy inventory regressions.
+
+
+## First focused CI repair round
+
+The first official Basilisk 2.11.0 P10-A focused run reached 67 tests and reported 3 failures, 64 passed:
+
+1. The new PDU-disabled component test used a NumPy recorder array directly in an assertion. NumPy correctly rejects ambiguous truth-value conversion; assert its length instead, then check all samples are zero.
+2. The drained-run PDU transition regression used a 0.5 s recorder cadence while the native task period was 0.1 s. The short-lived heater-PDU transition was not represented in the coarse telemetry samples. The test now opts into 0.1 s sampling for that transition scenario; it does not weaken the transition assertion.
+3. The propulsion inventory test still expected 'project_heater_status_power_bridge'. It now asserts the heater bridge is absent and the only remaining proxy is the optional propulsion activity bridge (count 1).
+
+These are test-contract and observation-cadence corrections; the runtime model is unchanged in this repair round. Re-run the exact PR head before treating them as resolved.
