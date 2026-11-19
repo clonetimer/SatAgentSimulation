@@ -20,7 +20,6 @@ from integration.resource_feedback import (
     DownlinkAntennaStatusAdapter,
     PayloadActivityStatusAdapter,
     InputReadStatus,
-    StatusPowerBridge,
     ThrusterActivityPowerBridge,
 )
 
@@ -857,7 +856,6 @@ def _build_unified_rows(
                     max(0.0, -float(recorder_map["downlink_power"].netPower[index]))
                     + max(0.0, -float(recorder_map["comm_base_power"].netPower[index]))
                 ),
-                "eps.loads.heater_power_w": max(0.0, -float(recorder_map["heater_power"].netPower[index])),
                 "eps.pdu.payload_enabled": int(recorder_map["pdu_payload_status"].deviceStatus[index]),
                 "eps.pdu.adcs_enabled": int(recorder_map["pdu_adcs_status"].deviceStatus[index]),
                 "eps.pdu.comm_enabled": int(recorder_map["pdu_comm_status"].deviceStatus[index]),
@@ -887,16 +885,21 @@ def _build_unified_rows(
                 "thermal.payload_temp_k": float(recorder_map["thermal_temp_payload"].deviceStatus[index]),
                 "thermal.payload_temp_c": float(recorder_map["thermal_temp_payload"].deviceStatus[index]) - 273.15,
             })
+            heater_electrical_power_w = 0.0
             for thermal_node_name in ("battery", "electronics", "payload", "adcs", "structure", "solar_panel", "comm", "propulsion"):
                 heater_key = f"thermal_heater_electrical_{thermal_node_name}"
                 if heater_key in recorder_map:
-                    row[f"eps.loads.{thermal_node_name}_thermostat_power_w"] = max(
-                        0.0, -float(recorder_map[heater_key].netPower[index]))
+                    heater_power_w = max(0.0, -float(recorder_map[heater_key].netPower[index]))
+                    row[f"eps.loads.{thermal_node_name}_thermostat_power_w"] = heater_power_w
+                    heater_electrical_power_w += heater_power_w
                 temp_key = f"thermal_temp_{thermal_node_name}"
                 safe_key = f"thermal_safe_{thermal_node_name}"
                 if temp_key in recorder_map:
                     row[f"thermal.{thermal_node_name}_temp_k"] = float(recorder_map[temp_key].deviceStatus[index])
                     row[f"thermal.{thermal_node_name}_safe"] = int(recorder_map[safe_key].deviceStatus[index])
+            # Heater electrical load is the sum of the actual thermal heater
+            # electricalPowerOutMsg recorders, not a parallel PDU-status proxy.
+            row["eps.loads.heater_power_w"] = heater_electrical_power_w
             if "propulsion_fuel" in recorder_map:
                 fuel_rec = recorder_map["propulsion_fuel"]
                 thrust_forces = []
@@ -1893,14 +1896,6 @@ class UnifiedNativeRuntime:
             connected("project_comm_downlink_status_adapter.txStatusOutMsg", comm_base_power_node.ModelTag)
             connected(f"{comm_power_node.ModelTag}.nodePowerOutMsg", "battery")
             connected(f"{comm_base_power_node.ModelTag}.nodePowerOutMsg", "battery")
-            heater_power_bridge = StatusPowerBridge(
-                "project_heater_status_power_bridge",
-                active_power_w=float(values.get("heater_power_w", 15.0)),
-                enable_status_msg=pdu.heaterStatusOutMsg,
-            )
-            add(heater_power_bridge, heater_power_bridge.ModelTag, "engineering_proxy", 54)
-            battery.addPowerNodeToModel(heater_power_bridge.powerOutMsg)
-            connected(f"{heater_power_bridge.ModelTag}.powerOutMsg", "battery")
             whole_modules.update({
                 "adcs_power_nodes": adcs_power_nodes,
                 "payload_power_node": payload_power_node,
@@ -1910,7 +1905,6 @@ class UnifiedNativeRuntime:
                 "comm_status_adapter": comm_status_adapter,
                 "comm_antenna_base_power_w": comm_antenna_base_power_w,
                 "comm_antenna_tx_power_w": comm_antenna_tx_power_w,
-                "heater_power_bridge": heater_power_bridge,
                 "rf_access": rf_access,
                 "rf_gate": rf_gate,
                 "native_downlink": native_downlink,
@@ -2132,7 +2126,6 @@ class UnifiedNativeRuntime:
                 (payload_power_node.nodePowerOutMsg, 0.95, "payload", "payload.instrument_active"),
                 (comm_power_node.nodePowerOutMsg, 0.90, "comm", "comm_antenna_tx"),
                 (comm_base_power_node.nodePowerOutMsg, 0.90, "comm", "comm_base_tx"),
-                (heater_power_bridge.powerOutMsg, 1.00, "battery", "pdu_heater"),
             ]
             for wheel_index, power_node in enumerate(whole_modules["adcs_power_nodes"]):
                 thermal_inputs.append((power_node.nodePowerOutMsg, 0.90, "adcs", f"adcs_rw_{wheel_index}"))
@@ -2230,7 +2223,6 @@ class UnifiedNativeRuntime:
                 "comm_base_power": whole_modules["comm_base_power_node"].nodePowerOutMsg,
                 "comm_tx_status": whole_modules["comm_status_adapter"].txStatusOutMsg,
                 "comm_idle_status": whole_modules["comm_status_adapter"].idleStatusOutMsg,
-                "heater_power": whole_modules["heater_power_bridge"].powerOutMsg,
                 "instrument": whole_modules["instrument"].nodeDataOutMsg,
                 "storage": whole_modules["storage"].storageUnitDataOutMsg,
                 "temperature": whole_modules["thermal_graph"].nodes["payload"].tempOutMsg,
@@ -2609,12 +2601,14 @@ class UnifiedNativeRuntime:
         runtime_read_errors: list[str] = []
         causal_evidence: dict[str, Any] = {"status": "PASS", "requirements": []}
         if not cfg.adcs_only:
-            bridge_objects = {
-                "heater": whole_modules["heater_power_bridge"],
-            }
+            bridge_objects = {}
             if "propulsion_power_bridge" in whole_modules:
                 bridge_objects["propulsion"] = whole_modules["propulsion_power_bridge"]
             bridge_health = {
+                "heater": _native_heater_power_health(
+                    rows,
+                    heater_names=tuple(whole_modules["thermal_graph"].heaters),
+                ),
                 "payload": _native_payload_power_health(
                     rows,
                     active_power_w=float(values.get("payload_power_w", 38.0)),
