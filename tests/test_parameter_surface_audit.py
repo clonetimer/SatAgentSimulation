@@ -50,7 +50,9 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert whole["continuous_initial_field_count"] == 165
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 16
-    assert whole["registered_parameter_count"] == 172
+    assert whole["registered_parameter_count"] == 175
+    for key in ("srp_model", "srp_reference_area_m2", "srp_coefficient_reflection"):
+        assert key not in whole["native_source_keys_missing_whole_registry"]
     assert "propulsion_power_w" not in whole["native_source_keys_missing_whole_registry"]
     assert "propulsion_power_w" in whole["continuous_groups"]["propulsion"]
     for key in (f"rw_initial_speed_rad_s_{i}" for i in range(4)):

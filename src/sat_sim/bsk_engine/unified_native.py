@@ -971,6 +971,17 @@ def _build_unified_rows(
             row[f'orbit.velocity_m_s_{component}'] = float(state.v_BN_N[index][axis])
             if 'sun_ephemeris' in recorder_map:
                 row[f'orbit.sun_position_m_{component}'] = float(recorder_map['sun_ephemeris'].PositionVector[index][axis])
+        if "srp_force" in recorder_map:
+            srp_n = np.asarray(recorder_map["srp_force"].forceExternal_N[index], dtype=float).reshape(3)
+            sun_n = np.asarray(recorder_map["sun_ephemeris"].PositionVector[index], dtype=float).reshape(3)
+            spacecraft_n = np.asarray(position, dtype=float).reshape(3)
+            row.update({
+                "orbit.srp_force_norm_n": float(np.linalg.norm(srp_n)),
+                "orbit.srp_force_n_x": float(srp_n[0]),
+                "orbit.srp_force_n_y": float(srp_n[1]),
+                "orbit.srp_force_n_z": float(srp_n[2]),
+                "orbit.srp_sun_distance_m": float(np.linalg.norm(sun_n - spacecraft_n)),
+            })
         if "atmosphere" in recorder_map:
             atmosphere_sample = recorder_map["atmosphere"]
             row["environment.atmosphere_density_kg_m3"] = float(atmosphere_sample.neutralDensity[index])
@@ -1244,6 +1255,13 @@ class UnifiedNativeRuntime:
 
     def run(self) -> SimulationResult:
         from .orbital_environment import NativeOrbitalEnvironment
+        from .srp_environment import NativeSrpSelection
+        # Reject unsupported SRP selections before scheduling any native physics.
+        self._srp_selection = NativeSrpSelection.from_values(
+            self.config.values,
+            environment_profile=str(self.config.values.get("environment_profile", "simplified")),
+            adcs_only=self.config.adcs_only,
+        )
         with NativeOrbitalEnvironment(self.config.values, self.config.duration_s) as environment:
             self._orbital_environment = environment
             return self._run()
@@ -1275,6 +1293,7 @@ class UnifiedNativeRuntime:
             magneticFieldCenteredDipole,
             magnetometer,
             reactionWheelStateEffector,
+            radiationPressure,
             simpleBattery,
             simpleInstrument,
             simplePowerSink,
@@ -1618,8 +1637,26 @@ class UnifiedNativeRuntime:
         eclipse_model.sunInMsg.subscribeTo(sun_msg)
         eclipse_model.addPlanetToModel(earth_msg)
         eclipse_model.addSpacecraftToModel(sc.scStateOutMsg)
-        add(eclipse_model, "eclipse", "basilisk_official_native", 95)
+        # When SRP is explicitly enabled, eclipse must publish before the
+        # SRP effector (and spacecraft dynamics) execute on the current tick.
+        # The previous R0 update order is unchanged when SRP is disabled.
+        add(eclipse_model, "eclipse", "basilisk_official_native",
+            105 if self._srp_selection.enabled else 95)
         connected("spacecraft.scStateOutMsg", "eclipse")
+
+        srp_effector = None
+        if self._srp_selection.enabled:
+            srp_effector = radiationPressure.RadiationPressure()
+            srp_effector.setUseCannonballModel()
+            srp_effector.area = self._srp_selection.reference_area_m2
+            srp_effector.coefficientReflection = self._srp_selection.coefficient_reflection
+            srp_effector.sunEphmInMsg.subscribeTo(sun_msg)
+            srp_effector.sunEclipseInMsg.subscribeTo(eclipse_model.eclipseOutMsgs[0])
+            sc.addDynamicEffector(srp_effector)
+            add(srp_effector, "spice_eclipse_cannonball_srp", "basilisk_official_native", 101)
+            connected("spice_ephemeris.sun", "spice_eclipse_cannonball_srp.sunEphmInMsg")
+            connected("eclipse.eclipseOutMsgs[0]", "spice_eclipse_cannonball_srp.sunEclipseInMsg")
+            connected("spice_eclipse_cannonball_srp", "spacecraft.dynamicEffectors")
 
         # Guard the shared random seed before the native star tracker, IMU
         # and project event injectors consume it. The SWIG RNGSeed is unsigned;
@@ -2592,6 +2629,13 @@ class UnifiedNativeRuntime:
             sim.AddModelToTask(task_name, drag_log, None, 1)
             recorder_map["drag_force"] = drag_log
             record_sources.append("drag_force")
+        if srp_effector is not None:
+            # RadiationPressure writes inherited forceExternal_N (inertial
+            # Newtons), NOT the DragDynamicEffector body-frame force field.
+            srp_log = srp_effector.logger(["forceExternal_N"], macros.sec2nano(cfg.sample_s))
+            sim.AddModelToTask(task_name, srp_log, None, 1)
+            recorder_map["srp_force"] = srp_log
+            record_sources.append("srp_force")
         if not cfg.adcs_only and "pdu" in whole_modules:
             # Preserve fast PDU transition evidence even when output telemetry
             # is sampled more slowly than the native simulation task. Reduced
@@ -3287,6 +3331,35 @@ class UnifiedNativeRuntime:
                     },
                 })
 
+        if self._srp_selection.enabled:
+            srp_forces = [float(row["orbit.srp_force_norm_n"]) for row in rows]
+            srp_illuminations = [float(row["orbit.eclipse_factor"]) for row in rows]
+            srp_distances = [float(row["orbit.srp_sun_distance_m"]) for row in rows]
+            if (not srp_forces or len(srp_forces) != len(rows)
+                    or any(not math.isfinite(force) or force < 0. for force in srp_forces)
+                    or any(not math.isfinite(factor) or not 0. <= factor <= 1. for factor in srp_illuminations)
+                    or any(not math.isfinite(distance) or distance <= 0. for distance in srp_distances)
+                    or (any(factor > 0.9 for factor in srp_illuminations) and max(srp_forces) <= 0.)):
+                raise RuntimeError("NATIVE_SRP_RUNTIME_OUTPUT_INVALID")
+            summary["solar_radiation_pressure"] = {
+                "status": "PASS",
+                "model": "Basilisk.simulation.radiationPressure.RadiationPressure",
+                "model_mode": "cannonball",
+                "sun_source": "JPL_DE430_SPICE",
+                "eclipse_source": "Basilisk.simulation.eclipse.Eclipse",
+                "reference_area_m2": self._srp_selection.reference_area_m2,
+                "coefficient_reflection": self._srp_selection.coefficient_reflection,
+                "force_frame": "N_INERTIAL",
+                "force_max_n": max(srp_forces),
+                "force_min_n": min(srp_forces),
+                "illumination_min": min(srp_illuminations),
+                "illumination_max": max(srp_illuminations),
+                "sun_distance_min_m": min(srp_distances),
+                "sample_count": len(rows),
+                "engineering_assumption_only": True,
+                "flight_calibrated": False,
+                "surface_attitude_dependency": False,
+            }
         fault_environment = BSKRLStyleFaultAdapter().summarize(cfg.events, tuple(rows))
         summary.update({
             "runtime_event_count": len(cfg.events),
