@@ -84,6 +84,12 @@ jobs:
           python scripts/dt2_cross_leo_001.py gmat \
             --output reports/dt2-cross-leo-001 \
             --executable "$GMAT_BIN" --timeout-s 600
+      - name: Execute genuine GMAT matched Earth-Mu control using same initial state
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py gmat-mu-control \
+            --output reports/dt2-cross-leo-001 \
+            --executable "$GMAT_BIN" --timeout-s 600
       - name: Compare genuine dual-engine state traces without claiming flight PASS
         shell: bash
         run: |
@@ -111,6 +117,35 @@ jobs:
           assert 0. <= result["reported_gmat_time_skew_max_abs_s"] <= result["input_representation_budget_s"]
           print("DT2_REAL_GMAT_EXECUTED rows=91 status=INCONCLUSIVE "
                 "flight_validation=false independent_time_frame_mu_alignment=false")
+          PY
+      - name: Diagnose actual GMAT constant-sensitivity without declaring V-and-V PASS
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py compare-mu-control \
+            --output reports/dt2-cross-leo-001
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          m=json.loads((root/"case_manifest.json").read_text())
+          c=json.loads((root/"gmat_mu_control_execution.json").read_text())
+          d=json.loads((root/"mu_control_diagnostic.json").read_text())
+          assert m["evidence"]["gmat_executed"]
+          assert m["evidence"]["gmat_mu_control_executed"]
+          assert c["status"]=="GMAT_MU_CONTROL_EXECUTED_UNQUALIFIED_ALIGNMENT"
+          assert c["rows"]==91
+          assert c["return_code"]==0
+          assert c["release_r2026a_verified"]
+          assert hashlib.sha256((root/"gmat_mu_control_raw.txt").read_bytes()).hexdigest()==c["report_sha256"]
+          assert d["status"]=="INCONCLUSIVE" and d["paired_samples"]==91
+          assert d["approved_aligned_samples"]==0
+          assert d["mu_actual_basilisk_m3_s2"]==d["mu_overridden_in_actual_gmat_m3_s2"]
+          assert not d["model_acceptance_limits_approved"]
+          assert not d["independent_frame_time_alignment_approved"]
+          print("DT2_REAL_GMAT_MU_CONTROL "
+                f"original_final_m={d['original_final_pos_m']:.9e} "
+                f"matched_final_m={d['matched_mu_final_pos_m']:.9e} "
+                "status=INCONCLUSIVE approval=false")
           PY
       - name: Upload all acquired raw provenance and engine outputs including failure logs
         if: always()

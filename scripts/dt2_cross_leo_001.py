@@ -129,13 +129,18 @@ def _assert_grid(rows: list[dict], *, tick_skew_budget_s: float = 1e-5) -> None:
                 raise ValueError(f"CROSS_LEO_MISSING_FIELD: {key}")
 
 
-def _gmat_script(initial_state: dict, *, report_path: str) -> str:
+def _gmat_script(initial_state: dict, *, report_path: str,
+                 earth_mu_km3_s2: float | None = None) -> str:
     """Official GMAT syntax; *not* an executed GMAT result or syntax certification.
 
     GMAT states are km and km/s in EarthMJ2000Eq, Basilisk records SI m/m/s
     in Earth-centered inertial N. No cross-engine coordinate equivalence is
     asserted until a genuinely executed GMAT report is checked.
     """
+    if earth_mu_km3_s2 is not None:
+        if (type(earth_mu_km3_s2) not in (int, float) or not math.isfinite(earth_mu_km3_s2)
+                or earth_mu_km3_s2 <= 0):
+            raise ValueError("CROSS_LEO_INVALID_GMAT_MU_CONTROL")
     vals = [initial_state[key] for key in FIELDNAMES[2:]]
     if any(not math.isfinite(float(v)) for v in vals):
         raise ValueError("CROSS_LEO_BAD_GMAT_INITIAL_STATE")
@@ -153,6 +158,11 @@ def _gmat_script(initial_state: dict, *, report_path: str) -> str:
         "CrossSat.CoordinateSystem = EarthMJ2000Eq;",
         "CrossSat.DisplayStateType = Cartesian;",
     ]
+    if earth_mu_km3_s2 is not None:
+        # Explicit built-in celestial-body constant override, BEFORE the
+        # force model is constructed. Proven GMAT approach in Stanford-NavLab
+        # LuPNT's independent cross-validation generator.
+        items.insert(3, f"GMAT Earth.Mu = {earth_mu_km3_s2:.15g};")
     for key, value in zip(("X", "Y", "Z", "VX", "VY", "VZ"), posvel_km):
         items.append(f"CrossSat.{key} = {float(value):.16g};")
     items += [
@@ -312,7 +322,8 @@ def _read_gmat_report(raw: Path, epoch: str) -> list[dict]:
     return rows
 
 
-def run_gmat(out: Path, binary: Path, *, timeout_s: int = 180) -> dict:
+def run_gmat(out: Path, binary: Path, *, timeout_s: int = 180,
+             matched_mu: bool = False) -> dict:
     """Invoke a real GMATConsole; never accept an unverified report by itself."""
     manifest_path = out / "case_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -325,20 +336,42 @@ def run_gmat(out: Path, binary: Path, *, timeout_s: int = 180) -> dict:
     executable = binary.expanduser().resolve(strict=True)
     if not executable.is_file():
         raise ValueError("CROSS_LEO_GMAT_BINARY_INVALID")
-    raw = (out / "gmat_raw.txt").resolve()
-    if raw.exists():
-        raise FileExistsError("CROSS_LEO_REFUSES_STALE_GMAT_REPORT")
-    script = (out / "gmat_executed.script").resolve()
-    script.write_text(_gmat_script(manifest["actual_initial_state_SI"], report_path=str(raw)), encoding="utf-8")
+    mode = "gmat_mu_control" if matched_mu else "gmat"
+    mu_override = None
+    if matched_mu:
+        original = json.loads((out / "gmat_execution.json").read_text(encoding="utf-8"))
+        if (original.get("status") != "GMAT_EXECUTED_UNQUALIFIED_ALIGNMENT"
+            or not manifest["evidence"].get("gmat_executed")
+            or _sha256(out / "gmat_raw.txt") != original.get("report_sha256")
+            or _sha256(out / "gmat_state.csv") != original.get("normalized_csv_sha256")):
+            raise ValueError("CROSS_LEO_ORIGINAL_GMAT_PROVENANCE_REQUIRED")
+        if _sha256(executable) != original.get("binary_sha256"):
+            raise ValueError("CROSS_LEO_MU_CONTROL_DIFFERENT_GMAT_BINARY")
+        mu_override = float(manifest["gravity"]["mu_m3_s2"]) / 1e9
+        if not math.isfinite(mu_override) or mu_override <= 0:
+            raise ValueError("CROSS_LEO_MU_CONTROL_INVALID_BASILISK_CONSTANT")
+    raw = (out / f"{mode}_raw.txt").resolve()
+    script = (out / f"{mode}_executed.script").resolve()
+    stdout_path, stderr_path = out / f"{mode}_stdout.log", out / f"{mode}_stderr.log"
+    normalized = out / f"{mode}_state.csv"
+    record_path = out / f"{mode}_execution.json"
+    for path in (raw, script, stdout_path, stderr_path, normalized, record_path):
+        if path.exists():
+            raise FileExistsError(f"CROSS_LEO_REFUSES_OVERWRITE: {path.name}")
+    script.write_text(_gmat_script(manifest["actual_initial_state_SI"],
+                                   report_path=str(raw), earth_mu_km3_s2=mu_override),
+                      encoding="utf-8")
     version_probe = subprocess.run([str(executable), "--version"], cwd=executable.parent,
                                    text=True, capture_output=True, timeout=30, check=False)
-    stdout_path, stderr_path = out / "gmat_stdout.log", out / "gmat_stderr.log"
     run = subprocess.run([str(executable), "--run", str(script)], cwd=executable.parent,
                          text=True, capture_output=True, timeout=timeout_s, check=False)
     stdout_path.write_text(run.stdout, encoding="utf-8")
     stderr_path.write_text(run.stderr, encoding="utf-8")
     record = {
         "schema": SCHEMA, "engine": "GMATConsole", "binary_path": str(executable),
+        "execution_mode": "BASILISK_MU_MATCHED_CONTROL" if matched_mu else "ORIGINAL_GMAT_DEFAULT_MU",
+        "explicit_earth_mu_override_km3_s2": mu_override,
+        "gm_engine_constant_independently_confirmed": False,
         "binary_sha256": _sha256(executable), "command": [str(executable), "--run", str(script)],
         "script_sha256": _sha256(script), "version_return_code": version_probe.returncode,
         "version_stdout": version_probe.stdout[:4000], "version_stderr": version_probe.stderr[:2000],
@@ -351,24 +384,35 @@ def run_gmat(out: Path, binary: Path, *, timeout_s: int = 180) -> dict:
     if run.returncode == 0 and raw.is_file():
         try:
             rows = _read_gmat_report(raw, CASE["epoch_utc"])
-            _write_state_csv(out / "gmat_state.csv", rows)
-            record["normalized_csv_sha256"] = _sha256(out / "gmat_state.csv")
+            _write_state_csv(normalized, rows)
+            record["normalized_csv_sha256"] = _sha256(normalized)
             record["rows"] = len(rows)
             record["max_abs_time_skew_s"] = max(abs(row["time_s"] - idx*CASE["sample_s"])
                                                 for idx,row in enumerate(rows))
             record["report_time_representation_budget_s"] = GMAT_REPORT_FLOAT_TIME_SKEW_BUDGET_S
             record["time_frame_alignment_approved"] = False
-            record["status"] = "GMAT_EXECUTED_UNQUALIFIED_ALIGNMENT"
+            record["status"] = ("GMAT_MU_CONTROL_EXECUTED_UNQUALIFIED_ALIGNMENT"
+                                if matched_mu else "GMAT_EXECUTED_UNQUALIFIED_ALIGNMENT")
         except (ValueError, OverflowError) as exc:
             record["parse_error"] = f"{type(exc).__name__}: {exc}"
-    _write_json(out / "gmat_execution.json", record)
-    if record["status"] == "GMAT_EXECUTED_UNQUALIFIED_ALIGNMENT":
-        # The initial manifest correctly starts NOT_RUN. Change its state
-        # only after a real console run AND a valid, hashed 91-row report.
-        manifest["evidence"]["gmat_executed"] = True
-        manifest["evidence"]["gmat_report_sha256"] = record["report_sha256"]
-        manifest["evidence"]["gmat_normalized_csv_sha256"] = record["normalized_csv_sha256"]
-        manifest["evidence"]["gmat_binary_sha256"] = record["binary_sha256"]
+    _write_json(record_path, record)
+    if record["status"] in (
+        "GMAT_EXECUTED_UNQUALIFIED_ALIGNMENT",
+        "GMAT_MU_CONTROL_EXECUTED_UNQUALIFIED_ALIGNMENT",
+    ):
+        # Only a real console run with a valid, hashed 91-row report qualifies.
+        ev = manifest["evidence"]
+        if matched_mu:
+            ev["gmat_mu_control_executed"] = True
+            ev["gmat_mu_control_raw_sha256"] = record["report_sha256"]
+            ev["gmat_mu_control_state_sha256"] = record["normalized_csv_sha256"]
+            ev["gmat_mu_control_script_sha256"] = record["script_sha256"]
+            ev["gmat_mu_control_requested_mu_km3_s2"] = mu_override
+        else:
+            ev["gmat_executed"] = True
+            ev["gmat_report_sha256"] = record["report_sha256"]
+            ev["gmat_normalized_csv_sha256"] = record["normalized_csv_sha256"]
+            ev["gmat_binary_sha256"] = record["binary_sha256"]
         manifest["external_vv_status"] = "INCONCLUSIVE"
         manifest["acceptance_limits_status"] = "NOT_APPROVED"
         _write_json(manifest_path, manifest)
@@ -449,6 +493,95 @@ def compare(out: Path) -> dict:
     return result
 
 
+
+def compare_mu_control(out: Path) -> dict:
+    """Isolate real Earth-Mu defaults in two executed GMAT trajectories.
+
+    This is an unqualified index-paired diagnostic, NOT frame/time V&V PASS.
+    It never alters the original GMAT, Basilisk or time columns.
+    """
+    manifest = json.loads((out / "case_manifest.json").read_text(encoding="utf-8"))
+    base = json.loads((out / "gmat_execution.json").read_text(encoding="utf-8"))
+    control = json.loads((out / "gmat_mu_control_execution.json").read_text(encoding="utf-8"))
+    ev = manifest.get("evidence", {})
+    if (not ev.get("basilisk_executed") or not ev.get("gmat_executed")
+            or not ev.get("gmat_mu_control_executed")
+            or base.get("status") != "GMAT_EXECUTED_UNQUALIFIED_ALIGNMENT"
+            or control.get("status") != "GMAT_MU_CONTROL_EXECUTED_UNQUALIFIED_ALIGNMENT"
+            or base.get("binary_sha256") != control.get("binary_sha256")):
+        raise ValueError("CROSS_LEO_MU_CONTROL_REQUIRES_TWO_REAL_GMAT_RUNS")
+    for filename, expected in (
+        ("basilisk_state.csv", ev.get("basilisk_state_csv_sha256")),
+        ("gmat_raw.txt", base.get("report_sha256")),
+        ("gmat_state.csv", base.get("normalized_csv_sha256")),
+        ("gmat_mu_control_raw.txt", control.get("report_sha256")),
+        ("gmat_mu_control_state.csv", control.get("normalized_csv_sha256")),
+        ("gmat_mu_control_executed.script", control.get("script_sha256")),
+    ):
+        if not expected or _sha256(out / filename) != expected:
+            raise ValueError(f"CROSS_LEO_MU_CONTROL_HASH_INVALID: {filename}")
+    mu_actual = float(manifest["gravity"]["mu_m3_s2"])
+    mu_requested = float(control["explicit_earth_mu_override_km3_s2"]) * 1e9
+    if not math.isclose(mu_actual, mu_requested, rel_tol=1e-14, abs_tol=0.0):
+        raise ValueError("CROSS_LEO_MU_CONTROL_CONSTANT_NOT_MATCHED")
+    expected_cmd = f"GMAT Earth.Mu = {mu_actual / 1e9:.15g};"
+    if expected_cmd not in (out / "gmat_mu_control_executed.script").read_text(encoding="ascii"):
+        raise ValueError("CROSS_LEO_MU_CONTROL_SCRIPT_NOT_VERIFIED")
+
+    bsk = _read_states(out / "basilisk_state.csv", CASE["epoch_utc"])
+    default = _read_states(out / "gmat_state.csv", CASE["epoch_utc"],
+                           tick_skew_budget_s=GMAT_REPORT_FLOAT_TIME_SKEW_BUDGET_S)
+    matched = _read_states(out / "gmat_mu_control_state.csv", CASE["epoch_utc"],
+                           tick_skew_budget_s=GMAT_REPORT_FLOAT_TIME_SKEW_BUDGET_S)
+    out_rows = []
+    for a,b,c in zip(bsk, default, matched):
+        def diff(row):
+            dp = [row[k] - a[k] for k in ("x_m", "y_m", "z_m")]
+            dv = [row[k] - a[k] for k in ("vx_m_s", "vy_m_s", "vz_m_s")]
+            return (math.sqrt(sum(v*v for v in dp)),
+                    math.sqrt(sum(v*v for v in dv)))
+        dp_orig,dv_orig = diff(b)
+        dp_ctrl,dv_ctrl = diff(c)
+        out_rows.append({
+            "basilisk_time_s":a["time_s"],
+            "gmat_original_reported_s":b["time_s"],
+            "gmat_matched_mu_reported_s":c["time_s"],
+            "default_position_delta_m":dp_orig,
+            "matched_mu_position_delta_m":dp_ctrl,
+            "default_velocity_delta_m_s":dv_orig,
+            "matched_mu_velocity_delta_m_s":dv_ctrl,
+        })
+    with (out / "mu_control_difference_rows.csv").open("w", newline="", encoding="utf-8") as stream:
+        w = csv.DictWriter(stream, fieldnames=list(out_rows[0]))
+        w.writeheader()
+        w.writerows(out_rows)
+    result = {
+        "schema":SCHEMA, "case_id":CASE_ID, "status":"INCONCLUSIVE",
+        "reason":"REAL_MATCHED_GMAT_MU_SENSITIVITY_NOT_APPROVED_FRAME_TIME_OR_ACCURACY",
+        "sample_pairing":"index_only__raw_clocks_retained",
+        "paired_samples":len(out_rows), "approved_aligned_samples":0,
+        "mu_actual_basilisk_m3_s2":mu_actual,
+        "mu_overridden_in_actual_gmat_m3_s2":mu_requested,
+        "default_gmat_mu_from_independent_documentation_not_runtime_measurement_km3_s2":398600.4415,
+        "original_max_pos_m":max(x["default_position_delta_m"] for x in out_rows),
+        "matched_mu_max_pos_m":max(x["matched_mu_position_delta_m"] for x in out_rows),
+        "original_final_pos_m":out_rows[-1]["default_position_delta_m"],
+        "matched_mu_final_pos_m":out_rows[-1]["matched_mu_position_delta_m"],
+        "original_final_vel_m_s":out_rows[-1]["default_velocity_delta_m_s"],
+        "matched_mu_final_vel_m_s":out_rows[-1]["matched_mu_velocity_delta_m_s"],
+        "maximum_reported_time_skew_s":max(
+            abs(t["gmat_matched_mu_reported_s"] - t["basilisk_time_s"])
+            for t in out_rows),
+        "original_gmat_report_sha256":base["report_sha256"],
+        "matched_mu_report_sha256":control["report_sha256"],
+        "basilisk_state_sha256":ev["basilisk_state_csv_sha256"],
+        "model_acceptance_limits_approved":False,
+        "independent_frame_time_alignment_approved":False,
+    }
+    _write_json(out / "mu_control_diagnostic.json", result)
+    return result
+
+
 def main(argv: list[str] | None = None) -> int:
     parser=argparse.ArgumentParser(description=__doc__)
     sub=parser.add_subparsers(dest="action",required=True)
@@ -459,15 +592,24 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--output",type=Path,required=True)
     g.add_argument("--executable",type=Path,required=True)
     g.add_argument("--timeout-s",type=int,default=180)
+    m=sub.add_parser("gmat-mu-control",help="Actually rerun GMAT with Earth.Mu fixed to real Basilisk value")
+    m.add_argument("--output",type=Path,required=True)
+    m.add_argument("--executable",type=Path,required=True)
+    m.add_argument("--timeout-s",type=int,default=180)
     c=sub.add_parser("compare",help="Only compute real dual-engine residual diagnostics; no PASS claim")
     c.add_argument("--output",type=Path,required=True)
+    t=sub.add_parser("compare-mu-control",help="Unqualified real GMAT Earth-Mu sensitivity, no PASS")
+    t.add_argument("--output",type=Path,required=True)
     args=parser.parse_args(argv)
     if args.action=="basilisk":
         result=run_basilisk(args.output,args.checkout_sha)
-    elif args.action=="gmat":
-        result=run_gmat(args.output,args.executable,timeout_s=args.timeout_s)
-    else:
+    elif args.action in {"gmat", "gmat-mu-control"}:
+        result=run_gmat(args.output,args.executable,timeout_s=args.timeout_s,
+                        matched_mu=(args.action=="gmat-mu-control"))
+    elif args.action=="compare":
         result=compare(args.output)
+    else:
+        result=compare_mu_control(args.output)
     print(json.dumps({"case_id":CASE_ID,"action":args.action,"result":result.get("external_vv_status",result.get("status","BASILISK_EXECUTED"))},sort_keys=True))
     return 0
 

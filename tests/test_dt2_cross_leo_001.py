@@ -129,6 +129,45 @@ def test_real_gmat_float_elapsed_seconds_are_preserved_and_bounded(tmp_path):
         cross._read_gmat_report(raw, cross.CASE["epoch_utc"])
 
 
+
+def test_gmat_mu_control_preserves_original_and_overrides_only_constant():
+    base = cross._gmat_script(make_zero_sample(), report_path="original_raw.txt")
+    matched = cross._gmat_script(
+        make_zero_sample(), report_path="control_raw.txt",
+        earth_mu_km3_s2=398600.436)
+    assert "GMAT Earth.Mu =" not in base
+    assert "GMAT Earth.Mu = 398600.436;" in matched
+    assert matched.index("GMAT Earth.Mu =") < matched.index("Create Spacecraft")
+    assert "CrossGravity.PointMasses = {Earth}" in matched
+    assert "CrossGravity.SRP = Off" in matched
+    assert matched.count("Propagate CrossProp(CrossSat)") == 90
+    assert matched.count("Report CrossState CrossSat.ElapsedSecs") == 91
+    assert matched.isascii()
+    for bad in [0, -1, float("nan"), float("inf"), True]:
+        with pytest.raises(ValueError,match="INVALID_GMAT_MU_CONTROL"):
+            cross._gmat_script(make_zero_sample(), report_path="control.txt",
+                               earth_mu_km3_s2=bad)
+
+
+def test_mu_control_cannot_be_faked_or_run_without_original_real_execution(tmp_path):
+    # A successful Basilisk export or synthetic CSV can never qualify as a
+    # real GMAT Earth-Mu control run, nor can it be used to assert PASS.
+    with pytest.raises(FileNotFoundError):
+        cross.compare_mu_control(tmp_path)
+    (tmp_path/"case_manifest.json").write_text(
+        json.dumps({"schema":cross.SCHEMA, "gravity":{"mu_m3_s2":3.98600436e14},
+                    "evidence":{"basilisk_executed":True}}),encoding="utf-8")
+    (tmp_path/"gmat_execution.json").write_text(json.dumps({
+        "status":"NOT_RUN", "binary_sha256":"no_real_binary"
+    }),encoding="utf-8")
+    (tmp_path/"gmat_mu_control_execution.json").write_text(json.dumps({
+        "status":"GMAT_MU_CONTROL_EXECUTED_UNQUALIFIED_ALIGNMENT",
+        "binary_sha256":"no_real_binary"
+    }),encoding="utf-8")
+    with pytest.raises(ValueError,match="MU_CONTROL_REQUIRES_TWO_REAL_GMAT_RUNS"):
+        cross.compare_mu_control(tmp_path)
+
+
 def test_no_external_engine_data_cannot_be_marked_pass(tmp_path):
     with pytest.raises(FileNotFoundError):
         cross.compare(tmp_path)

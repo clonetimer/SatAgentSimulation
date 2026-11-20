@@ -133,3 +133,16 @@ For the **next run only**, a separate and explicit **20 microsecond GMAT input-r
 
 The evolving manifest will mark GMAT executed only after the actual 91-row raw report is verified; absent/invalid GMAT outputs keep `NOT_RUN`/failed execution status and may not be promoted to comparison acceptance.
 
+## Earth-Mu matched genuine GMAT control (independent second execution)
+
+The first genuine GMAT-versus-Basilisk data on exact #215 head 6cad46b1 provides **91 real state pairs** and a **1.151936372 m final position difference**. An independent high-precision pure-central-gravity integration from the *recorded, true shared initial state* predicts **1.153071928 m** final relative position if the only model difference is **Basilisk's measured Earth mu 398600.436 km^3/s^2** versus the GMAT documented default **398600.4415 km^3/s^2**. This leaves **~1.14 mm** in the *vector residual after removing the theoretical constant-induced difference*; it is not a physically approved correction or a synthetic substitute for running GMAT.
+
+The exact constants and method are grounded in GMAT's CelestialBody and Propagator documentation (point masses use `Earth.Mu`), and the mature open-source Stanford-NavLab **LuPNT/GMAT cross-validation** explicitly uses `GMAT Earth.Mu = ...` to ensure constant alignment. References:
+- https://documentation.help/GMAT/CelestialBody.html
+- https://documentation.help/GMAT/Propagator.html
+- https://github.com/Stanford-NavLab/LuPNT/blob/main/cpp/test/gmat/gen_gmat_reference.py
+
+The new `gmat-mu-control` CLI will actually invoke **the same verified R2026a executable a second time** with the same original measured Cartesian initial state and 90x60s propagation commands; the *only intentional force-model change* is an **explicit `GMAT Earth.Mu` override** from the actual Basilisk `case_manifest.json` mu, before force model initialization. The first default-GMAT original raw CSV and all SHA hashes remain untouched. The second real GMAT output is recorded separately as `gmat_mu_control_raw.txt`, `gmat_mu_control_state.csv`, full stdout/stderr, binary/script/report hashes and an auditable execution JSON.
+
+The `compare-mu-control` path **requires both genuine GMAT executions and the Basilisk source evidence**, checks exact file SHA identities and two independent 91-point grids, then produces an `INCONCLUSIVE` diagnostic and side-by-side raw residual CSV. Even if observed residuals become millimeter-scale, no PASS threshold is inferred from the result, **0 samples are marked independently frame/time aligned**, and no UTC/TT frame certification or flight grade correlation is asserted. The separate time-readability bound stays 20 microseconds; raw elapsed values are never modified. This is a limited one-variable sensitivity control, not a new physical model or a general-purpose validation framework.
+
