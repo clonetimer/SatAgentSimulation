@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """CROSS-LEO-001: real Basilisk two-body state export and GMAT input handoff.
 
+用途：执行真实 Basilisk 二体六维状态导出；准备 GMAT 输入并保守计算独立轨迹残差，不伪造外部观测。
+参数：basilisk --output --checkout-sha；gmat --output --executable --timeout-s；compare --output。
+输出：真实 basilisk_state.csv、case_manifest.json、gmat_two_body.script；仅执行 GMAT 后才输出真实 gmat_raw.txt、gmat_state.csv 和比较诊断报告。
+
 No fabricated external-engine output. A GMAT CSV is usable only when an actual
 GMATConsole executable has been invoked and its hash/logs have been retained.
 The comparison remains INCONCLUSIVE until independent alignment and a frozen
