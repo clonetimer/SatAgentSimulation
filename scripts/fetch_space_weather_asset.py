@@ -1,16 +1,9 @@
 #!/usr/bin/env python3
 """Stage an offline CelesTrak space-weather snapshot for Basilisk NRLMSISE-00.
 
-Purpose:
-    Download or validate a local SW-Last5Years.csv snapshot for Basilisk.
-Parameters:
-    --output: destination CSV path; defaults to third_party/space_weather.
-    --url: source CSV URL; defaults to the official CelesTrak endpoint.
-    --refresh: explicitly download a replacement snapshot.
-    --offline: validate an existing snapshot without network access.
-Outputs:
-    The validated CSV and adjacent space_weather_manifest.json with SHA-256,
-    observed date range, source URL, retrieval time, and validation time.
+用途：下载或校验 Basilisk NRLMSISE-00 所需的本地 SW-Last5Years.csv。
+参数：--output 指定 CSV 路径；--url 指定来源；--refresh 显式刷新；--offline 仅离线校验。
+输出：已校验的 CSV 和相邻 space_weather_manifest.json，记录 SHA-256、有效日期、来源与检索时间。
 The runtime never downloads or refreshes this asset.
 """
 from __future__ import annotations
