@@ -1,5 +1,8 @@
 from datetime import datetime, timezone
+import json
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
@@ -78,3 +81,19 @@ def test_space_weather_asset_resolver_fails_closed_without_local_asset(monkeypat
     monkeypatch.setattr(assets, "_candidate_dirs", lambda *args, **kwargs: [tmp_path / "empty"])
     with pytest.raises(FileNotFoundError, match="SPACE_WEATHER_ASSET_NOT_FOUND"):
         assets.resolve_space_weather_asset(strict=True)
+
+def test_offline_space_weather_setup_command_writes_manifest(tmp_path):
+    target = tmp_path / "SW-Last5Years.csv"
+    target.write_bytes(FIXTURE.read_bytes())
+    script = Path(__file__).parents[1] / "scripts" / "fetch_space_weather_asset.py"
+    subprocess.run(
+        [sys.executable, str(script), "--offline", "--output", str(target)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    manifest = json.loads((tmp_path / "space_weather_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["status"] == "PASS"
+    assert manifest["runtime_network_required"] is False
+    assert manifest["asset"]["sha256"] == inspect_space_weather_file(target)["sha256"]
+    assert manifest["retrieval_time_unknown"] is True
