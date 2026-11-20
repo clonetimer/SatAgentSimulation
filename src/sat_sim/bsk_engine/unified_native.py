@@ -978,6 +978,8 @@ def _build_unified_rows(
         if "drag_force" in recorder_map:
             drag_force_b = np.asarray(recorder_map["drag_force"].forceExternal_B[index], dtype=float).reshape(3)
             drag_force_n = np.asarray(recorder_map["drag_force"].forceExternal_N[index], dtype=float).reshape(3)
+            drag_velocity_b = np.asarray(recorder_map["drag_force"].v_B[index], dtype=float).reshape(3)
+            drag_direction_b = np.asarray(recorder_map["drag_force"].v_hat_B[index], dtype=float).reshape(3)
             drag_force_norm = float(np.linalg.norm(drag_force_n))
             spacecraft_mass = float(cfg.values.get("spacecraft_mass_kg", 100.0))
             row.update({
@@ -988,6 +990,13 @@ def _build_unified_rows(
                 "orbit.drag_force_b_x": float(drag_force_b[0]),
                 "orbit.drag_force_b_y": float(drag_force_b[1]),
                 "orbit.drag_force_b_z": float(drag_force_b[2]),
+                "orbit.drag_relative_velocity_b_m_s_x": float(drag_velocity_b[0]),
+                "orbit.drag_relative_velocity_b_m_s_y": float(drag_velocity_b[1]),
+                "orbit.drag_relative_velocity_b_m_s_z": float(drag_velocity_b[2]),
+                "orbit.drag_relative_speed_m_s": float(np.linalg.norm(drag_velocity_b)),
+                "orbit.drag_direction_b_x": float(drag_direction_b[0]),
+                "orbit.drag_direction_b_y": float(drag_direction_b[1]),
+                "orbit.drag_direction_b_z": float(drag_direction_b[2]),
                 "orbit.drag_acceleration_m_s2": drag_force_norm / spacecraft_mass,
             })
         for weather_index, weather_name in enumerate((
@@ -3110,6 +3119,11 @@ class UnifiedNativeRuntime:
                 "projected_area_model": "constant_scalar_engineering_assumption",
                 "projected_area_m2": self._orbital_environment.drag_area_m2,
                 "drag_coefficient": self._orbital_environment.drag_coefficient,
+                "configured_dynamic_effector_area_m2": float(drag_effector.coreParams.projectedArea),
+                "configured_dynamic_effector_cd": float(drag_effector.coreParams.dragCoeff),
+                "relative_speed_max_m_s": max(
+                    float(row["orbit.drag_relative_speed_m_s"]) for row in rows
+                ),
                 "density_min_kg_m3": min(density_values),
                 "density_max_kg_m3": max(density_values),
                 "drag_force_max_n": max(drag_force_values),
