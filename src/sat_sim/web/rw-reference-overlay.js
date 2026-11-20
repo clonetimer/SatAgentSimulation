@@ -231,6 +231,8 @@ function diagnostics() {
     layer_visible:Boolean(layer?.visible), instance_count:mounts.length,
     mesh_count_per_instance:source ? EXPECTED_MESH_COUNT : 0,
     instance_origins:mounts.map(m=>m.userData.origin),
+    installed_b_positions_from_taskspec:approvedGeometry?.positions?.map(p=>[...p]) || [],
+    spin_axes_b_from_taskspec:approvedGeometry?.axes?.map(a=>[...a]) || [],
     axis_source:'validated_TaskSpec_rw_axis_b',
     position_source:'validated_TaskSpec_rw_mount_b',
     world_transform_m_used:false,as_built_approved:false,

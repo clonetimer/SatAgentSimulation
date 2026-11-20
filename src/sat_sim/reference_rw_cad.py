@@ -25,7 +25,8 @@ def verified_reference_rw_glb() -> Path:
         raise FileNotFoundError("DT41_RW_REFERENCE_ASSET_NOT_STAGED")
     if candidate.stat().st_size != RW_EXPECTED_SIZE:
         raise ValueError("DT41_RW_REFERENCE_SIZE_MISMATCH")
-    digest = hashlib.file_digest(candidate.open("rb"), "sha256").hexdigest()
+    with candidate.open("rb") as handle:
+        digest = hashlib.file_digest(handle, "sha256").hexdigest()
     if digest != RW_EXPECTED_SHA256:
         raise ValueError("DT41_RW_REFERENCE_SHA256_MISMATCH")
     return candidate
