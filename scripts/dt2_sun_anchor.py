@@ -156,53 +156,68 @@ def parse_gmat_sun(path: Path) -> list[list[float]]:
 
 
 def same_source_basilisk_sun(kernel_root: Path, epoch: str) -> list[list[float]]:
-    """Actually execute Basilisk 2.11.0 SpiceInterface with the pinned SPK.
+    """Execute native Basilisk 2.11.0 with only the three exact supplied kernels.
 
-    This is a separate real BSK environment run, not a claim that the old
-    central-point-mass simulation was physically tied to these axes.
+    The gravBodyFactory.createSpiceInterface(path=...) helper in v2.11.0
+    currently resolves string filenames against Basilisk's POOCH cache rather
+    than the supplied path; using it here can silently select DE430. The
+    official SpiceInterface exposes addKernelPaths and an opt-out of automatic
+    default kernels. Use both, and verify the loaded CSPICE kernel inventory.
     """
-    from Basilisk.utilities import SimulationBaseClass, macros, simIncludeGravBody
+    from Basilisk.utilities import SimulationBaseClass, macros
+    from Basilisk.simulation import spiceInterface
     import Basilisk
-    if Basilisk.__version__!="2.11.0":
+    if Basilisk.__version__ != "2.11.0":
         raise RuntimeError("DT2_SUN_ANCHOR_WRONG_BASILISK")
-    sc_sim=SimulationBaseClass.SimBaseClass()
-    process=sc_sim.CreateNewProcess("dt2_sun_anchor_process")
-    task="dt2_sun_anchor_task"
-    process.addTask(sc_sim.CreateNewTask(task,macros.sec2nano(2700.0)))
-    factory=simIncludeGravBody.gravBodyFactory()
-    factory.createBodies(["earth","sun"])
-    when=datetime.fromisoformat(epoch.replace("Z","+00:00")).astimezone(timezone.utc)
-    spice_time=when.strftime("%Y %B %d %H:%M:%S.%f")+" (UTC)"
-    spice=factory.createSpiceInterface(
-        str(kernel_root)+os.sep,spice_time,
-        spiceKernelFileNames=[
-            "DE421AllPlanets.bsp","SPICELeapSecondKernel.tls",
-            "SPICEPlanetaryConstantsKernel.tpc"],
-        epochInMsg=False)
-    spice.zeroBase="earth"
-    spice.referenceBase="J2000"
-    sc_sim.AddModelToTask(task,spice)
-    if len(spice.planetStateOutMsgs)!=2:
+    names = (
+        "SPICELeapSecondKernel.tls",
+        "SPICEPlanetaryConstantsKernel.tpc",
+        "DE421AllPlanets.bsp",
+    )
+    kernel_paths = [(kernel_root / name).resolve(strict=True) for name in names]
+    if any(not path.is_file() for path in kernel_paths):
+        raise FileNotFoundError("DT2_SUN_ANCHOR_BSK_KERNEL_MISSING")
+    if spiceInterface.countKernelsLoaded() != 0:
+        raise RuntimeError("DT2_SUN_ANCHOR_BSK_SPICE_POOL_NOT_EMPTY")
+
+    sc_sim = SimulationBaseClass.SimBaseClass()
+    process = sc_sim.CreateNewProcess("dt2_sun_anchor_process")
+    task = "dt2_sun_anchor_task"
+    process.addTask(sc_sim.CreateNewTask(task, macros.sec2nano(2700.0)))
+    when = datetime.fromisoformat(epoch.replace("Z", "+00:00")).astimezone(timezone.utc)
+    spice_time = when.strftime("%Y %B %d %H:%M:%S.%f") + " (UTC)"
+    # Disable Basilisk's automatic DE430/naif0012 default kernel selection.
+    spice = spiceInterface.SpiceInterface(auto_configure_kernels=False)
+    spice.ModelTag = "DT2_DE421_EXPLICIT_SPICE_INTERFACE"
+    spice.addKernelPaths([str(p) for p in kernel_paths])
+    spice.addPlanetNames(["earth", "sun"])
+    spice.zeroBase = "earth"
+    spice.referenceBase = "J2000"
+    spice.UTCCalInit = spice_time
+    sc_sim.AddModelToTask(task, spice)
+    if len(spice.planetStateOutMsgs) != 2:
         raise RuntimeError("DT2_SUN_ANCHOR_BSK_PLANET_MESSAGE_COUNT")
-    recorder=spice.planetStateOutMsgs[1].recorder(macros.sec2nano(2700.0))
-    sc_sim.AddModelToTask(task,recorder)
-    try:
-        sc_sim.InitializeSimulation()
-        sc_sim.ConfigureStopTime(macros.sec2nano(5400.0))
-        sc_sim.ExecuteSimulation()
-        seconds=recorder.times()*macros.NANO2SEC
-        pos=recorder.PositionVector
-        vel=recorder.VelocityVector
-        if len(seconds)!=3 or any(abs(float(t)-i*2700)>1e-6
-                                   for i,t in enumerate(seconds)):
-            raise ValueError("DT2_SUN_ANCHOR_BSK_MESSAGE_TIME_GRID")
-        result=[[float(v)/1000.0 for v in (*pos[i],*vel[i])]
-                for i in range(3)]
-        if not all(all(math.isfinite(x) for x in row) for row in result):
-            raise ValueError("DT2_SUN_ANCHOR_BSK_NONFINITE")
-        return result
-    finally:
-        factory.unloadSpiceKernels()
+    recorder = spice.planetStateOutMsgs[1].recorder(macros.sec2nano(2700.0))
+    sc_sim.AddModelToTask(task, recorder)
+    sc_sim.InitializeSimulation()
+    # Check the genuine Basilisk C++ CSPICE pool, not the Python argument list.
+    if not all(spiceInterface.isKernelLoaded(str(p)) for p in kernel_paths):
+        raise RuntimeError("DT2_SUN_ANCHOR_BSK_PINNED_KERNEL_NOT_LOADED")
+    if spiceInterface.countKernelsLoaded() != len(kernel_paths):
+        raise RuntimeError("DT2_SUN_ANCHOR_BSK_UNEXPECTED_EXTRA_KERNELS")
+    sc_sim.ConfigureStopTime(macros.sec2nano(5400.0))
+    sc_sim.ExecuteSimulation()
+    seconds = recorder.times() * macros.NANO2SEC
+    pos = recorder.PositionVector
+    vel = recorder.VelocityVector
+    if len(seconds) != 3 or any(abs(float(t) - i*2700) > 1e-6
+                               for i, t in enumerate(seconds)):
+        raise ValueError("DT2_SUN_ANCHOR_BSK_MESSAGE_TIME_GRID")
+    result = [[float(v)/1000.0 for v in (*pos[i], *vel[i])]
+              for i in range(3)]
+    if not all(all(math.isfinite(x) for x in row) for row in result):
+        raise ValueError("DT2_SUN_ANCHOR_BSK_NONFINITE")
+    return result
 
 
 def dist(a: list[float], b: list[float]) -> float:
@@ -355,7 +370,9 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         "spice_j2000_frame_semantics":"NAIF SPICE J2000 uses ICRF axes",
         "gmat_solar_ephemeris_declared":"SPICE with packaged DE421 SPK",
         "naif_ephemeris":"same packaged DE421 SPK; independent spiceypy query",
-        "basilisk_spice_interface":"actual model using same explicit SPK and J2000 referenceBase",
+        "basilisk_spice_interface":"actual Basilisk 2.11.0 addKernelPaths, default kernels disabled, J2000, Earth zeroBase",
+        "basilisk_spice_kernel_pool_verified":True,
+        "basilisk_spice_pinned_kernel_count":3,
         "original_pointmass_n_axes_externally_certified":False,
         "status":"REAL_THREE_ENGINE_CELESTIAL_SOURCE_OBSERVED_INCONCLUSIVE",
     })

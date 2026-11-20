@@ -235,6 +235,8 @@ jobs:
           assert r["status"]=="REAL_THREE_ENGINE_CELESTIAL_SOURCE_OBSERVED_INCONCLUSIVE"
           assert r["gmat_exit_code"]==0
           assert r["real_sample_count"]==3
+          assert r["basilisk_spice_kernel_pool_verified"] is True
+          assert r["basilisk_spice_pinned_kernel_count"]==3
           assert r["scientific_verdict"]=="INCONCLUSIVE"
           assert not r["independent_physical_basilisk_n_to_icrf_tie_approved"]
           assert not r["original_pointmass_n_axes_externally_certified"]
