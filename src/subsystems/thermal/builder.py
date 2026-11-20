@@ -20,6 +20,8 @@ class ThermalBasiliskAssemblyGraph:
     config: Any
     shadow_converter: Any | None = None
     nodes: dict[str, Any] = field(default_factory=dict)
+    heaters: dict[str, Any] = field(default_factory=dict)
+    power_bridges: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -182,14 +184,17 @@ def build_thermal_basilisk_assembly_graph(
         duration_s: Simulation duration in seconds
         step_s: Time step in seconds
         heat_power_w: Constant heat power input in watts (used if power_inputs is None)
-        power_inputs: List of (power_message, efficiency_factor) tuples for dynamic power
-        shadow_factor_msg: Optional shadow factor message for eclipse simulation
+        power_inputs: Node-routed (message, efficiency, node, label) tuples;
+            legacy two-tuples go to electronics, or the sole standalone node.
+        shadow_factor_msg: Compatibility argument; electrical heat is independent
+            of eclipse and is never modulated by this message.
         thermal_cfg: Optional thermal configuration with nodes and heaters
     
     Returns:
         ThermalBasiliskAssemblyGraph: Assembly graph containing all thermal components
     """
-    from .basilisk_scheduled import ConstantHeatInput, DynamicThermalPowerInput, ThermalScheduledConfig, ThermalStatusEvaluator, ThermalNodeScheduledSysModel, ThermalNodeScheduledConfig
+    from .basilisk_scheduled import ConstantHeatInput, ThermalScheduledConfig, ThermalStatusEvaluator, ThermalNodeScheduledSysModel, ThermalNodeScheduledConfig
+    from .thermal_network import ThermalPowerBridge
 
     cfg = ThermalScheduledConfig(
         duration_s=float(duration_s),
@@ -199,19 +204,34 @@ def build_thermal_basilisk_assembly_graph(
         ambient_temp_c=float(ambient_temp_c),
     )
     
-    if power_inputs:
-        heat_input = DynamicThermalPowerInput()
+    node_names = tuple(thermal_cfg.nodes) if thermal_cfg and thermal_cfg.nodes else ("thermal",)
+    default_node = "electronics" if "electronics" in node_names else node_names[0]
+    power_bridges: dict[str, Any] = {}
+    if power_inputs is not None:
+        power_bridges = {name: ThermalPowerBridge(name) for name in node_names}
         for item in power_inputs:
-            if len(item) < 2:
-                raise ValueError("power_inputs entries must include a message and efficiency")
-            power_msg, efficiency_factor = item[0], item[1]
-            heat_input.add_power_input(power_msg, efficiency_factor)
-        if shadow_factor_msg is not None:
-            heat_input.set_shadow_factor_input(shadow_factor_msg)
+            if len(item) >= 4:
+                power_msg, efficiency, destination, source_label = item[:4]
+            elif len(item) == 3:
+                power_msg, efficiency, destination = item
+                source_label = str(destination)
+            elif len(item) == 2:
+                power_msg, efficiency = item
+                destination, source_label = default_node, "legacy_power_input"
+            else:
+                raise ValueError(f"invalid thermal power input tuple: {item!r}")
+            destination = str(destination)
+            if destination not in power_bridges:
+                destination = default_node
+            power_bridges[destination].add_power_input(
+                power_msg, efficiency, source_label=str(source_label),
+            )
+        heat_input = power_bridges[node_names[0]]
     else:
         heat_input = ConstantHeatInput(cfg.heat_power_w)
     
     nodes: dict[str, Any] = {}
+    heaters: dict[str, Any] = {}
     
     if thermal_cfg and thermal_cfg.nodes:
         for node_name, node_config in thermal_cfg.nodes.items():
@@ -223,6 +243,8 @@ def build_thermal_basilisk_assembly_graph(
                 max_safe_temp_c=float(thermal_cfg.over_temp_limit_k_by_node.get(node_name, 330.0) - 273.15),
                 thermal_capacity_j_per_c=float(node_config.tau_s * node_config.heat_gain_k_per_w),
                 conductance_w_per_c=float(1.0 / (node_config.tau_s * node_config.heat_gain_k_per_w)),
+                heater_power_w=0.0,
+                heater_hardware_present=node_name in thermal_cfg.heaters,
             )
             
             heater = thermal_cfg.heaters.get(node_name)
@@ -237,8 +259,10 @@ def build_thermal_basilisk_assembly_graph(
                 )
             
             node = ThermalNodeScheduledSysModel(node_sched_cfg)
-            node.heatInMsg.subscribeTo(heat_input.heatOutMsg)
+            node.heatInMsg.subscribeTo(power_bridges[node_name].heatOutMsg if power_bridges else heat_input.heatOutMsg)
             nodes[node_name] = node
+            if heater is not None:
+                heaters[node_name] = node
     
     if nodes:
         evaluator = nodes.get("battery") or list(nodes.values())[0]
@@ -246,10 +270,16 @@ def build_thermal_basilisk_assembly_graph(
         evaluator = ThermalStatusEvaluator(cfg)
         evaluator.heatInMsg.subscribeTo(heat_input.heatOutMsg)
     
-    return ThermalBasiliskAssemblyGraph(heat_input=heat_input, evaluator=evaluator, config=cfg, nodes=nodes)
+    return ThermalBasiliskAssemblyGraph(
+        heat_input=heat_input, evaluator=evaluator, config=cfg,
+        nodes=nodes, heaters=heaters, power_bridges=power_bridges,
+    )
 
 
-def attach_thermal_basilisk_graph_to_task(sim: Any, task_name: str, graph: ThermalBasiliskAssemblyGraph) -> None:
+def attach_thermal_basilisk_graph_to_task(
+    sim: Any, task_name: str, graph: ThermalBasiliskAssemblyGraph, *,
+    power_sampling_task_name: str | None = None,
+) -> None:
     """Attach thermal Basilisk assembly graph to a simulation task.
     
     Args:
@@ -257,7 +287,13 @@ def attach_thermal_basilisk_graph_to_task(sim: Any, task_name: str, graph: Therm
         task_name: Name of the task to attach to
         graph: Thermal Basilisk assembly graph
     """
-    sim.AddModelToTask(task_name, graph.heat_input)
+    if graph.power_bridges:
+        for bridge in graph.power_bridges.values():
+            if power_sampling_task_name is not None:
+                bridge.enable_dynamics_sampling(sim, power_sampling_task_name)
+            sim.AddModelToTask(task_name, bridge, None, 1)
+    else:
+        sim.AddModelToTask(task_name, graph.heat_input)
     if graph.shadow_converter is not None:
         sim.AddModelToTask(task_name, graph.shadow_converter)
     if graph.nodes:
@@ -358,7 +394,10 @@ def build_thermal_network_assembly_graph(
     )
 
 
-def attach_thermal_network_graph_to_task(sim: Any, task_name: str, graph: ThermalNetworkAssemblyGraph) -> None:
+def attach_thermal_network_graph_to_task(
+    sim: Any, task_name: str, graph: ThermalNetworkAssemblyGraph, *,
+    power_sampling_task_name: str | None = None,
+) -> None:
     """Attach thermal network assembly graph to a simulation task.
     
     Args:
@@ -367,6 +406,12 @@ def attach_thermal_network_graph_to_task(sim: Any, task_name: str, graph: Therma
         graph: Thermal network assembly graph
     """
     graph.network.build(sim, task_name)
+    if power_sampling_task_name is not None:
+        for node_name, bridge in graph.power_bridges.items():
+            bridge.enable_dynamics_sampling(
+                sim, power_sampling_task_name,
+                input_count=len(graph.network.external_power_inputs_by_node.get(node_name, ())),
+            )
     sim.AddModelToTask(task_name, graph.network)
 
 @dataclass(frozen=True)

@@ -1,4 +1,14 @@
 capability_id: whole_spacecraft.comm_payload_mission_coupled.v1
+resource_accounting:
+  route_scope: local_electrical_product_model
+  electrical_model: project_local_payload_comm_eps_equations
+  decision: retain_active_local_model_with_explicit_electrical_scope
+  implementation_references:
+  - src/sat_sim/coupled/comm_payload_mission.py
+  evidence_scope: capability_declaration_not_runtime_measurement
+  assumptions:
+  - Configured payload, transmitter, idle and bus loads plus compact solar/battery equations form a local mission resource model.
+  - Local equation-model counts are not native electrical provider-instance counts and do not establish native runtime closure.
 schema_version: 0.1.0
 name: Route-B communication/payload mission-coupled spacecraft model
 level: whole_spacecraft

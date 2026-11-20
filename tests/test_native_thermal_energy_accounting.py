@@ -8,7 +8,9 @@ def run(**values):
         duration_s=10., step_s=.2, sample_s=1., adcs_only=False,
         values={"environment_profile":"spice_wmm", "solar_efficiency":0.,
                 "bus_power_w":0., "adcs_power_w":0., "payload_power_w":0.,
-                "downlink_power_w":0., "heater_power_w":0.,
+                # A2 requires a physically valid RF/base power profile. Disable
+                # Comm through its PDU while isolating thermal loads here.
+                "downlink_power_w":16., "comm_min_soc":.99, "heater_power_w":0.,
                 "controller_k":0., "controller_p":0.,
                 "battery_heater_setpoint_k":310., **values}, events=())
     return UnifiedNativeRuntime(cfg).run()

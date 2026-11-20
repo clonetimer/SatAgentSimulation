@@ -101,7 +101,63 @@ def eps_config_to_basilisk_config(cfg: EpsConfig, mode: str = "nominal", shadow_
     )
 
 
-def build_basilisk_eps_graph(cfg: EpsBasiliskConfig) -> EpsBasiliskModuleGraph:
+def _build_load_shedding(
+    cfg: EpsBasiliskConfig,
+    battery: Any,
+    load_sinks: Mapping[str, Any],
+    *,
+    enable_load_shedding: bool,
+    payload_min_soc: float,
+    comm_min_soc: float,
+    heater_min_soc: float,
+    adcs_min_soc: float,
+    recovery_soc: float,
+) -> tuple[dict[str, Any], Any | None, dict[str, Any]]:
+    """Use the same PDU contract for environment and constant solar sources."""
+    if not enable_load_shedding:
+        return {}, None, {}
+    from components.pdu.builder import ConstantDeviceRequest, PduLoadSheddingConfig, PduLoadSheddingSysModel
+
+    requests = {
+        name: ConstantDeviceRequest(f"wholeSpacecraft{name.title()}PowerRequest", True)
+        for name in ("payload", "adcs", "comm", "heater")
+    }
+    pdu = PduLoadSheddingSysModel(PduLoadSheddingConfig(
+        payload_min_soc=float(payload_min_soc),
+        comm_min_soc=float(comm_min_soc),
+        heater_min_soc=float(heater_min_soc),
+        adcs_min_soc=float(adcs_min_soc),
+        recovery_soc=float(recovery_soc),
+        fallback_initial_soc=float(cfg.initial_soc),
+    ))
+    pdu.batteryStatusInMsg.subscribeTo(battery.batPowerOutMsg)
+    pdu.payloadRequestInMsg.subscribeTo(requests["payload"].deviceCmdOutMsg)
+    pdu.adcsRequestInMsg.subscribeTo(requests["adcs"].deviceCmdOutMsg)
+    pdu.commRequestInMsg.subscribeTo(requests["comm"].deviceCmdOutMsg)
+    pdu.heaterRequestInMsg.subscribeTo(requests["heater"].deviceCmdOutMsg)
+    status_messages = {
+        "payload": pdu.payloadStatusOutMsg,
+        "adcs": pdu.adcsStatusOutMsg,
+        "comm": pdu.commStatusOutMsg,
+        "heater": pdu.heaterStatusOutMsg,
+    }
+    for name, status_msg in status_messages.items():
+        sink = load_sinks.get(name)
+        if sink is not None and hasattr(sink, "nodeStatusInMsg"):
+            sink.nodeStatusInMsg.subscribeTo(status_msg)
+    return requests, pdu, status_messages
+
+
+def build_basilisk_eps_graph(
+    cfg: EpsBasiliskConfig,
+    *,
+    enable_load_shedding: bool = False,
+    payload_min_soc: float = 0.55,
+    comm_min_soc: float = 0.50,
+    heater_min_soc: float = 0.30,
+    adcs_min_soc: float = 0.20,
+    recovery_soc: float = 0.65,
+) -> EpsBasiliskModuleGraph:
     """Create a Basilisk simplePower module graph without running it.
 
     The graph uses component-level factories from ``components/*/builder.py``:
@@ -150,11 +206,21 @@ def build_basilisk_eps_graph(cfg: EpsBasiliskConfig) -> EpsBasiliskModuleGraph:
     except Exception:
         simple_solar_panel_obj = None
 
+    requests, pdu, status_messages = _build_load_shedding(
+        cfg, battery, load_sinks,
+        enable_load_shedding=enable_load_shedding,
+        payload_min_soc=payload_min_soc, comm_min_soc=comm_min_soc,
+        heater_min_soc=heater_min_soc, adcs_min_soc=adcs_min_soc,
+        recovery_soc=recovery_soc,
+    )
     return EpsBasiliskModuleGraph(
         battery=battery,
         solar_source=solar_source,
         load_sinks=load_sinks,
         simple_solar_panel=simple_solar_panel_obj,
+        requests=requests,
+        pdu=pdu,
+        status_messages=status_messages,
         cfg=cfg,
     )
 
@@ -215,37 +281,13 @@ def build_environment_coupled_basilisk_eps_graph(
         battery.addPowerNodeToModel(sink.nodePowerOutMsg)
         load_sinks[str(name)] = sink
 
-    requests: dict[str, Any] = {}
-    status_messages: dict[str, Any] = {}
-    pdu = None
-    if enable_load_shedding:
-        from components.pdu.builder import ConstantDeviceRequest, PduLoadSheddingConfig, PduLoadSheddingSysModel
-
-        for name in ("payload", "adcs", "comm", "heater"):
-            requests[name] = ConstantDeviceRequest(f"wholeSpacecraft{name.title()}PowerRequest", True)
-        pdu = PduLoadSheddingSysModel(PduLoadSheddingConfig(
-            payload_min_soc=float(payload_min_soc),
-            comm_min_soc=float(comm_min_soc),
-            heater_min_soc=float(heater_min_soc),
-            adcs_min_soc=float(adcs_min_soc),
-            recovery_soc=float(recovery_soc),
-            fallback_initial_soc=float(cfg.initial_soc),
-        ))
-        pdu.batteryStatusInMsg.subscribeTo(battery.batPowerOutMsg)
-        pdu.payloadRequestInMsg.subscribeTo(requests["payload"].deviceCmdOutMsg)
-        pdu.adcsRequestInMsg.subscribeTo(requests["adcs"].deviceCmdOutMsg)
-        pdu.commRequestInMsg.subscribeTo(requests["comm"].deviceCmdOutMsg)
-        pdu.heaterRequestInMsg.subscribeTo(requests["heater"].deviceCmdOutMsg)
-        status_messages = {
-            "payload": pdu.payloadStatusOutMsg,
-            "adcs": pdu.adcsStatusOutMsg,
-            "comm": pdu.commStatusOutMsg,
-            "heater": pdu.heaterStatusOutMsg,
-        }
-        for name, status_msg in status_messages.items():
-            sink = load_sinks.get(name)
-            if sink is not None and hasattr(sink, "nodeStatusInMsg"):
-                sink.nodeStatusInMsg.subscribeTo(status_msg)
+    requests, pdu, status_messages = _build_load_shedding(
+        cfg, battery, load_sinks,
+        enable_load_shedding=enable_load_shedding,
+        payload_min_soc=payload_min_soc, comm_min_soc=comm_min_soc,
+        heater_min_soc=heater_min_soc, adcs_min_soc=adcs_min_soc,
+        recovery_soc=recovery_soc,
+    )
 
     return EpsBasiliskModuleGraph(
         battery=battery,

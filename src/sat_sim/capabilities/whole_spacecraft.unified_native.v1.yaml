@@ -1,4 +1,23 @@
 capability_id: whole_spacecraft.unified_native.v1
+resource_accounting:
+  route_scope: native_product_runtime
+  electrical_model: official_basilisk_nodes_and_project_heater_outputs
+  decision: retain_native_runtime_with_measured_authority_inventory
+  implementation_references:
+  - src/sat_sim/bsk_engine/unified_native.py
+  - src/integration/resource_feedback.py
+  - src/subsystems/thermal/thermal_network.py
+  evidence_scope: capability_declaration_not_runtime_measurement
+  runtime_inventory_field: power_authority_inventory
+  runtime_resource_evidence_field: resource_closure_evidence
+  runtime_resource_evidence_scope: electrical authority census and measured internal-heat transfer
+  runtime_battery_balance_audit: not_included_in_this_evidence
+  scheduled_census_field: power_authority_inventory.scheduled_models
+  legacy_module_count_scope: construction_ledger_not_full_scheduled_census
+  assumptions:
+  - Fixed payload and propulsion auxiliary electrical profiles and thermal deposition fractions remain configured engineering assumptions.
+  - Propulsion auxiliary loads represent valve/controller electricity, not chemical or mechanical thrust power.
+  - Project heater electrical outputs are physical subsystem authorities; status adapters and heat conversion do not own additional electrical loads.
 schema_version: 0.1.0
 name: Whole-spacecraft unified Basilisk runtime
 level: whole_spacecraft
@@ -1258,6 +1277,9 @@ outputs:
   - official_module_count
   - project_native_module_count
   - external_or_proxy_module_count
+  - engineering_proxy_module_count
+  - power_authority_inventory
+  - resource_closure_evidence
   - resource_feedback_closure_status
   - comm_dynamic_power_observed
   - pdu_comm_feedback_observed
@@ -1427,6 +1449,9 @@ operator:
   observability:
     qoi:
     - runtime_truth_status
+    - engineering_proxy_module_count
+    - power_authority_inventory
+    - resource_closure_evidence
     - coupling_integrity_pass
     - energy_bounds_pass
     - data_bounds_pass
@@ -1559,7 +1584,9 @@ integration_contract:
   - Communication uses native GroundLocation, SimpleAntenna, LinkBudget and DownlinkHandling; antenna and ground-station parameters
     remain engineering estimates until calibrated.
   - Thermal response uses an eight-node project deterministic network and is not a detailed finite-element thermal model.
-  - Resource activity-to-power and power-to-heat bridges are engineering proxies with explicit provenance.
+  - Electrical authority comes from official Basilisk power nodes and actual project heater outputs; status adapters only select device states.
+  - Fixed electrical profiles, actuator parameters and heat deposition fractions remain engineering assumptions requiring calibration.
+  - power_authority_inventory and resource_closure_evidence are structured runtime JSON; legacy module counts describe a construction ledger, while power_authority_inventory.scheduled_models is the complete scheduled census.
 model_projection:
   schema_version: sat-sim.capability-projection.v1
   projection_id: whole-spacecraft-attitude-projection-v1

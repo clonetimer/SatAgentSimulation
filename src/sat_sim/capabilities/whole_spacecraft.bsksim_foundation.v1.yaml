@@ -1,4 +1,13 @@
 capability_id: whole_spacecraft.bsksim_foundation.v1
+resource_accounting:
+  route_scope: explicit_adapter_only
+  electrical_model: no_electrical_resource_model
+  decision: retain_hidden_explicit_native_foundation_scope
+  implementation_references:
+  - src/sat_sim/bsk_engine/master.py
+  - src/sat_sim/bsk_engine/dynamics.py
+  - src/sat_sim/bsk_engine/fsw.py
+  evidence_scope: capability_declaration_not_runtime_measurement
 schema_version: 0.1.0
 name: Basilisk-native orbit-attitude foundation
 level: whole_spacecraft

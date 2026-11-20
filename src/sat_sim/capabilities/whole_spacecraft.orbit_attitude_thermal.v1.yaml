@@ -1,4 +1,14 @@
 capability_id: whole_spacecraft.orbit_attitude_thermal.v1
+resource_accounting:
+  route_scope: explicit_adapter_only
+  electrical_model: prescribed_thermal_inputs_without_eps_model
+  decision: retain_hidden_thermal_boundary_adapter_without_electrical_closure_claim
+  implementation_references:
+  - src/sat_sim/coupled/orbit_attitude_thermal.py
+  - src/subsystems/thermal/network.py
+  evidence_scope: capability_declaration_not_runtime_measurement
+  assumptions:
+  - Prescribed internal and heater watts are thermal boundary inputs; this route does not close them against a battery or electrical bus.
 schema_version: 0.1.0
 name: Whole-spacecraft orbit-attitude-thermal reduced-order coupling
 level: whole_spacecraft

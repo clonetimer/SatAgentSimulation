@@ -39,6 +39,7 @@ from .schemas import (
     WholeSpacecraftTraceRow,
 )
 from .builder import build_whole_spacecraft_graph
+from .battery_evidence import check_native_battery_evidence, check_public_battery_samples
 from .task_cadence import evaluate_task_cadence
 from .degradation import DegradationScenario, WholeSpacecraftDegradation, get_degradation_scenario_config
 from .faults import runtime_fault_specs_for_scenario
@@ -57,6 +58,8 @@ def _finite_rows_ok(rows: list[WholeSpacecraftTraceRow]) -> bool:
     critical_fields = (
         "battery_storage_j",
         "battery_soc",
+        "battery_capacity_j",
+        "battery_source_time_s",
         "net_power_w",
         "comm_control_power_w",
         "data_storage_bits",
@@ -118,6 +121,8 @@ TRACE_FIELDS: tuple[str, ...] = (
     "time_s",
     "battery_storage_j",
     "battery_soc",
+    "battery_capacity_j",
+    "battery_source_time_s",
     "net_power_w",
     "battery_temp_c",
     "shunt_dissipated_w",
@@ -489,9 +494,6 @@ def _execute_whole_spacecraft_graph(
     thermal = graph.thermal_graph.evaluator
     thermal_cfg = graph.thermal_graph.config
 
-    eps_cfg = graph.eps_graph.cfg
-    nominal_net_power = abs(eps_cfg.solar_power_w) - sum(abs(float(v)) for v in eps_cfg.loads_w.values())
-
     sim.InitializeSimulation()
     sim.ConfigureStopTime(macros.sec2nano(float(cfg.duration_s)))
     sim.ExecuteSimulation()
@@ -505,7 +507,15 @@ def _execute_whole_spacecraft_graph(
     runtime_unsupported_count = _runtime_unsupported_count(runtime_fault_audit)
     open_circuit_windows = _runtime_open_circuit_windows(runtime_fault_audit)
 
-    battery_rec = recorders["battery"]
+    # Only observed native payloads establish battery state. The complete
+    # dynamics-cadence audit must pass before any coarser public row is derived.
+    battery_evidence = check_native_battery_evidence(
+        recorders.get("conservation_battery"),
+        expected_update_times_ns=getattr(graph.task_cadence_probes.get("dynamics"), "update_times_ns", ()),
+    )
+    public_battery_samples = check_public_battery_samples(
+        recorders.get("battery"), native_evidence=battery_evidence,
+    )
     storage_rec = recorders["storage"]
     inst_rec = recorders["instrument"]
     tx_rec = recorders["transmitter"]
@@ -620,11 +630,11 @@ def _execute_whole_spacecraft_graph(
     propulsion_effector_enabled_value = 1.0 if graph.coupling_matrix.get("propulsion_effector_to_spacecraft") and graph.coupling_matrix["propulsion_effector_to_spacecraft"].coupling_status != "disabled_by_schema" else 0.0
 
     rows: list[WholeSpacecraftTraceRow] = []
-    times = list(battery_rec.times())
-    for i, t_ns in enumerate(times):
-        time_s = float(t_ns) * macros.NANO2SEC
-        cap = float(battery_rec.storageCapacity[i])
-        storage_j = float(battery_rec.storageLevel[i])
+    for battery_sample in public_battery_samples:
+        # Keep the original public index after the single startup exclusion;
+        # all other channels still refer to that same recorder activation.
+        i = battery_sample.record_index
+        time_s = float(battery_sample.recorder_time_ns) * macros.NANO2SEC
         data_level = float(storage_rec.storageLevel[i]) if hasattr(storage_rec, "storageLevel") else 0.0
         sigma_vec = [float(x) for x in att_sigma[i]] if i < len(att_sigma) else [0.0, 0.0, 0.0]
         rate_vec = [float(x) for x in att_rate[i]] if i < len(att_rate) else [0.0, 0.0, 0.0]
@@ -643,7 +653,6 @@ def _execute_whole_spacecraft_graph(
         battery_temp_c, thermal_temp_c, thermal_safe, thermal_margin_c = _thermal_sample(time_s)
         downlink = _native_downlink_sample(recorders, i)
         _ground_access = _native_ground_access_sample(recorders, i)
-        net_power_w = _rec_value(battery_rec, "currentNetPower", i, nominal_net_power)
         sc_position = _rec_vector(recorders.get("spacecraft_state"), "r_BN_N", i)
         sc_velocity = _rec_vector(recorders.get("spacecraft_state"), "v_BN_N", i)
         propulsion_power_samples = [_propulsion_power_at(history, time_s) for history in propulsion_power_histories]
@@ -662,9 +671,11 @@ def _execute_whole_spacecraft_graph(
         rows.append(
             WholeSpacecraftTraceRow(
                 time_s=time_s,
-                battery_storage_j=storage_j,
-                battery_soc=storage_j / cap if cap else 0.0,
-                net_power_w=net_power_w,
+                battery_storage_j=battery_sample.energy_j,
+                battery_soc=battery_sample.soc,
+                battery_capacity_j=battery_sample.capacity_j,
+                battery_source_time_s=battery_sample.source_time_ns * macros.NANO2SEC,
+                net_power_w=battery_sample.net_power_w,
                 battery_temp_c=battery_temp_c,
                 shunt_dissipated_w=0.0,
                 data_storage_bits=data_level,
@@ -760,9 +771,6 @@ def _execute_whole_spacecraft_graph(
         adcs_power_monitoring_limit_w,
     )
 
-    conservation_battery_rec = recorders.get("conservation_battery")
-    if conservation_battery_rec is None:
-        conservation_battery_rec = battery_rec
     conservation_storage_rec = recorders.get("conservation_storage")
     if conservation_storage_rec is None:
         conservation_storage_rec = storage_rec
@@ -773,18 +781,11 @@ def _execute_whole_spacecraft_graph(
     if conservation_downlink_rec is None:
         conservation_downlink_rec = recorders.get("downlink")
 
-    battery_initial_j, battery_final_j = _first_last_recorder_value(
-        conservation_battery_rec, "storageLevel"
-    )
-    battery_storage_delta_j = battery_final_j - battery_initial_j
-    integrated_net_power_j = _integrate_recorder_field(
-        conservation_battery_rec, "currentNetPower"
-    )
+    battery_storage_delta_j = battery_evidence.storage_delta_j
+    integrated_net_power_j = battery_evidence.integrated_net_power_j
     energy_balance_residual_j = battery_storage_delta_j - integrated_net_power_j
-    net_power_values = _recorder_values(conservation_battery_rec, "currentNetPower")
-    energy_conservation_interval_s = _max_recorder_interval_s(
-        conservation_battery_rec, float(structure_cfg.adcs_dyn_step_s)
-    )
+    net_power_values = [sample.net_power_w for sample in battery_evidence.samples]
+    energy_conservation_interval_s = battery_evidence.max_interval_s
     energy_balance_tolerance_j = max(
         1.0,
         2.0 * max((abs(value) for value in net_power_values), default=0.0)
@@ -853,7 +854,37 @@ def _execute_whole_spacecraft_graph(
     eps_to_thermal_electrical_energy_j = 0.0
     eps_to_thermal_heat_energy_j = 0.0
     heater_thermal_energy_j = 0.0
-    thermal_power_bridges = getattr(getattr(graph.thermal_graph, "network", None), "power_bridges", {})
+    thermal_power_bridges = graph.component_registry["thermal_power_bridges"]
+    from integration.whole_resource_inventory import composite_power_inventory
+    from integration.thermal_resource_evidence import build_thermal_resource_evidence
+    power_inventory = composite_power_inventory(graph)
+    thermal_evidence = build_thermal_resource_evidence(graph.thermal_graph)
+    disabled_resource_links = [
+        name for name, record in graph.coupling_matrix.items()
+        if name in {"eps_loads_to_thermal_heat", "thermal_heaters_to_eps_load"}
+        and record.coupling_status == "disabled_by_schema"
+    ]
+    closure_status = (
+        "FAIL" if power_inventory["status"] != "PASS" or thermal_evidence["status"] == "FAIL"
+        or energy_conservation_status != "PASS"
+        else "PARTIAL" if disabled_resource_links else "PASS"
+    )
+    resource_evidence = {
+        "schema_version": "sat-sim.whole-resource-evidence.v1",
+        "status": closure_status,
+        "scope": "electrical authority census, measured battery balance and actual internal-heat transfer",
+        "disabled_resource_links": disabled_resource_links,
+        "battery": {
+            "native_evidence_status": "PASS", "balance_status": energy_conservation_status,
+            "observed_start_s": battery_evidence.start_s, "observed_end_s": battery_evidence.end_s,
+            "native_sample_count": len(battery_evidence.samples),
+            "startup_excluded_sample_count": battery_evidence.startup_excluded_sample_count,
+            "storage_delta_j": battery_storage_delta_j, "integrated_net_power_j": integrated_net_power_j,
+            "balance_residual_j": energy_balance_residual_j,
+        },
+        "thermal_transfer": thermal_evidence,
+        "legacy_proxy_coupling_count_unit": "coupling records, not electrical providers",
+    }
     for bridge in thermal_power_bridges.values():
         for label, energy_j in getattr(bridge, "cumulative_source_electrical_energy_j", {}).items():
             if str(label).startswith("eps."):
@@ -867,11 +898,14 @@ def _execute_whole_spacecraft_graph(
         recorder for name, recorder in recorders.items()
         if name.startswith("heater_eps_power_")
     ]
-    heater_electrical_energy_j = (
-        sum(_integrate_recorder_field(recorder, "netPower", absolute=True) for recorder in heater_native_power_recorders)
-        if heater_native_power_recorders
-        else _integrate_recorder_field(recorders.get("heater_eps_feedback"), "netPower", absolute=True)
+    # Actual owner-held outputs retain transitions even when public heater
+    # recorders are coarse. Report electrical input through the observed end;
+    # only heat consumed by a thermal update is counted as deposited.
+    heater_electrical_energy_j = sum(
+        float(item["electrical_energy_j"] or 0.0) + float(item["pending_electrical_energy_j"])
+        for item in thermal_evidence["heaters"]
     )
+    heater_thermal_energy_j = sum(float(item["deposited_heat_energy_j"] or 0.0) for item in thermal_evidence["heaters"])
     thermal_power_bridge_count = len(thermal_power_bridges)
     thermal_power_bridge_exercised_count = sum(
         1
@@ -919,16 +953,9 @@ def _execute_whole_spacecraft_graph(
 
     proxy_checks: list[bool] = []
     if _coupling_requires_runtime_evidence("eps_loads_to_thermal_heat"):
-        if thermal_power_bridges:
-            proxy_checks.append(
-                bool(
-                    eps_to_thermal_electrical_energy_j > 0.0
-                    and eps_to_thermal_heat_energy_j > 0.0
-                )
-            )
-        else:
-            reduced_heat_input = getattr(graph.thermal_graph, "heat_input", None)
-            proxy_checks.append(bool(getattr(reduced_heat_input, "powerInMsgs", ())))
+        # A zero-load experiment can be valid. Conversely, existing wiring and
+        # positive bridge counters do not prove that a node consumed the heat.
+        proxy_checks.append(thermal_evidence["status"] == "PASS")
     if _coupling_requires_runtime_evidence("adcs_pointing_to_payload_comm_gate"):
         proxy_checks.append(bool(graph.mission_gate is not None and mission_trace))
     if _coupling_requires_runtime_evidence("thermal_heaters_to_eps_load"):
@@ -946,9 +973,9 @@ def _execute_whole_spacecraft_graph(
     proxy_coupling_runtime_status = "PASS" if all(proxy_checks) else "FAIL"
 
     min_margin = min((r.thermal_margin_c for r in rows), default=float("nan"))
-    min_soc = min((r.battery_soc for r in rows), default=float("nan"))
+    min_soc = battery_evidence.min_soc
     min_propellant = min((r.propellant_remaining_kg for r in rows), default=float("nan"))
-    all_battery_ok = all(r.battery_soc > 0.0 for r in rows) if rows else False
+    all_battery_ok = min_soc > 0.0
     all_thermal_ok = all(r.thermal_safe for r in rows) if rows else False
     all_storage_ok = all(r.data_storage_bits >= 0.0 for r in rows) if rows else False
     all_power_bus_ok = all(r.power_bus_available for r in rows) if rows else False
@@ -986,6 +1013,7 @@ def _execute_whole_spacecraft_graph(
         and data_conservation_status == "PASS"
         and proxy_coupling_runtime_status == "PASS"
         and propulsion_power_inputs_ok
+        and closure_status != "FAIL"
     )
     # A single run can establish wiring, finite numerics, conservation and
     # response observations, but not counterfactual causality.  Reserve plain
@@ -1003,8 +1031,23 @@ def _execute_whole_spacecraft_graph(
         return (sum(1 for row in rows if predicate(row)) / len(rows)) if rows else 0.0
 
     attitude_ok_fraction = _fraction(lambda row: row.attitude_error_deg <= float(cfg.max_pointing_error_deg))
-    power_ok_fraction = _fraction(lambda row: row.power_bus_available and row.battery_soc > 0.0)
+    power_ok_fraction = sum(
+        sample.soc > 0.0 and _power_bus_available_at(sample.source_time_ns * macros.NANO2SEC, open_circuit_windows)
+        for sample in battery_evidence.samples
+    ) / len(battery_evidence.samples)
     thermal_ok_fraction = _fraction(lambda row: row.thermal_safe)
+    # The native t=0 battery sentinel removes that derived public row, but
+    # independent, already-valid Comm power messages at t=0 remain evidence.
+    comm_power_series = [
+        tuple(float(value) for value in recorders[name].netPower)
+        for name in ("comm_power_tx", "comm_power_base", "comm_power_idle", "comm_power_bridge")
+        if name in recorders and recorders[name] is not None
+    ]
+    max_native_comm_power_w = max(
+        (sum(abs(values[index]) for values in comm_power_series)
+         for index in range(min((len(values) for values in comm_power_series), default=0))),
+        default=0.0,
+    )
     payload_enabled_fraction = _fraction(lambda row: row.payload_enabled)
     data_delivery_ratio = min(1.0, delivered_bits / generated_bits) if generated_bits > 0.0 else 0.0
     mission_success_score = max(0.0, min(1.0, (
@@ -1033,19 +1076,15 @@ def _execute_whole_spacecraft_graph(
         basilisk_simbase_used=True,
         execute_simulation_used=True,
         unified_simbase=True,
-        native_modules=_whole_spacecraft_native_modules(graph),
-        scheduled_custom_modules=(
-            "ThermalStatusEvaluator(SysModel)",
-            "ConstantHeatInput(SysModel)",
-            "WholeSpacecraftMissionGate(SysModel)",
-        ) + (
-            ("DownlinkAntennaStatusAdapter(SysModel)",)
-            if graph.component_registry.get("comm_status_adapter") is not None
-            else ()
-        ) + (
-            ("ThrusterActivityStatusAdapter(SysModel)",)
-            if propulsion_status_adapters else ()
-        ),
+        native_modules=tuple(sorted({
+            ".".join(item["model_class"].split(".")[-2:])
+            for item in power_inventory["scheduled_models"]
+            if item["kind"] == "model" and item["model_class"].startswith("Basilisk.")
+        })),
+        scheduled_custom_modules=tuple(sorted({
+            item["model_class"] for item in power_inventory["scheduled_models"]
+            if item["kind"] == "model" and not item["model_class"].startswith("Basilisk.")
+        })),
         included_subsystems=included_subsystems,
         excluded_subsystems=() if propulsion_enabled else ("propulsion",),
         duration_s=float(cfg.duration_s),
@@ -1057,7 +1096,7 @@ def _execute_whole_spacecraft_graph(
         recorder_step_s=float(structure_cfg.recorder_step_s),
         step_semantics="output_sample_interval_not_physics_integration_step",
         sample_count=len(rows),
-        final_soc=rows[-1].battery_soc if rows else 0.0,
+        final_soc=battery_evidence.samples[-1].soc,
         min_soc=min_soc,
         final_data_storage_bits=rows[-1].data_storage_bits if rows else 0.0,
         min_thermal_margin_c=min_margin,
@@ -1094,7 +1133,7 @@ def _execute_whole_spacecraft_graph(
         max_downlink_dropped_bps=max((r.downlink_dropped_bps for r in rows), default=0.0),
         max_adcs_control_power_w=max_native_adcs_power_w,
         adcs_power_monitoring_limit_w=adcs_power_monitoring_limit_w,
-        max_comm_control_power_w=max((row.comm_control_power_w for row in rows), default=0.0),
+        max_comm_control_power_w=max_native_comm_power_w,
         propulsion_power_input_status=propulsion_power_input_status,
         propulsion_power_input_error_count=propulsion_power_input_error_count,
         propulsion_power_model={
@@ -1149,6 +1188,11 @@ def _execute_whole_spacecraft_graph(
         energy_balance_relative_error=energy_balance_relative_error,
         energy_balance_tolerance_j=energy_balance_tolerance_j,
         energy_conservation_status=energy_conservation_status,
+        battery_evidence_status="PASS",
+        battery_evidence_sample_count=len(battery_evidence.samples),
+        battery_startup_excluded_sample_count=battery_evidence.startup_excluded_sample_count,
+        battery_evidence_start_s=battery_evidence.start_s,
+        battery_evidence_end_s=battery_evidence.end_s,
         data_storage_delta_bits=data_storage_delta_bits,
         integrated_payload_generated_bits=integrated_payload_generated_bits,
         data_balance_removed_bits=data_balance_removed_bits,
@@ -1175,6 +1219,8 @@ def _execute_whole_spacecraft_graph(
         rf_environment_wiring_count=rf_environment_wiring_count,
         runtime_task_cadence_status=str(runtime_task_cadence.get("status", "UNKNOWN")),
         runtime_task_cadence=runtime_task_cadence,
+        power_authority_inventory=power_inventory,
+        resource_closure_evidence=resource_evidence,
     )
     return summary, tuple(rows)
 

@@ -1,10 +1,10 @@
-"""Cross-subsystem resource feedback bridges for whole-spacecraft runs.
+"""Cross-subsystem status adapters and compatibility resource bridges.
 
-These Basilisk-scheduled Python modules translate *actual runtime activity*
-(data rate, reaction-wheel mechanical work and thruster output) into
-``PowerNodeUsageMsg`` values.  The same messages can be attached to the EPS
-battery and to the thermal network, which avoids static mode-power proxies for
-loads whose activity is already available as a Basilisk message.
+Status adapters select electrical states from actual native activity; official
+Basilisk power nodes own the resulting watts. Legacy activity-to-power classes
+remain available for compatibility and explicit proxy tests. Thermal conversion
+bridges deposit heat from existing electrical messages without owning a second
+electrical load.
 """
 from __future__ import annotations
 
@@ -104,6 +104,98 @@ class ThrusterActivityStatusSample:
     thruster_active: bool
     input_status: InputReadStatus = InputReadStatus.VALID
     error: str | None = None
+
+
+@dataclass(frozen=True)
+class TransmitterActivityStatusSample:
+    time_ns: int
+    pdu_enabled: bool
+    baud_rate_bps: float
+    transmitter_active: bool
+    idle_enabled: bool
+    input_status: InputReadStatus = InputReadStatus.VALID
+    error: str | None = None
+
+
+if sysModel is not None:
+    class TransmitterActivityStatusAdapter(sysModel.SysModel):
+        """Select fixed active/idle electrical states from native transmitter output.
+
+        Basilisk transmitters publish a negative baud rate while draining data.
+        Any finite negative value selects the active state; magnitude is not an
+        electrical-power model. Official SimplePowerSink nodes own the watts.
+        """
+
+        def __init__(self, model_tag: str, *, data_msg: Any, enable_status_msg: Any) -> None:
+            super().__init__()
+            if data_msg is None or enable_status_msg is None:
+                raise ValueError("TRANSMITTER_ACTIVITY_STATUS_INPUTS_REQUIRED")
+            self.ModelTag = str(model_tag)
+            self.dataInMsg = messaging.DataNodeUsageMsgReader()
+            self.dataInMsg.subscribeTo(data_msg)
+            self.enableInMsg = messaging.DeviceStatusMsgReader()
+            self.enableInMsg.subscribeTo(enable_status_msg)
+            self.activeStatusOutMsg = messaging.DeviceStatusMsg()
+            # Common Comm recorder interface shared with the antenna adapter.
+            self.txStatusOutMsg = self.activeStatusOutMsg
+            self.idleStatusOutMsg = messaging.DeviceStatusMsg()
+            self.trace: list[TransmitterActivityStatusSample] = []
+            self.input_error_count = 0
+            self.input_errors: list[str] = []
+            self.not_ready_sample_count = 0
+            self.sample_count = 0
+
+        def Reset(self, CurrentSimNanos: int) -> None:
+            self.trace.clear()
+            self.input_error_count = 0
+            self.input_errors.clear()
+            self.not_ready_sample_count = 0
+            self.sample_count = 0
+            self.UpdateState(CurrentSimNanos)
+
+        def UpdateState(self, CurrentSimNanos: int) -> None:
+            permit, permit_status, permit_error = _read_payload(self.enableInMsg, CurrentSimNanos)
+            data, data_status, data_error = _read_payload(self.dataInMsg, CurrentSimNanos)
+            rate = float(data.baudRate) if data is not None else 0.0
+            permission = int(permit.deviceStatus) if permit is not None else 0
+            statuses = (permit_status, data_status)
+            status = (
+                InputReadStatus.ERROR if InputReadStatus.ERROR in statuses
+                else InputReadStatus.NOT_READY if InputReadStatus.NOT_READY in statuses
+                else InputReadStatus.VALID
+            )
+            error = permit_error or data_error
+            if not math.isfinite(rate) or rate > 0.0:
+                status = InputReadStatus.ERROR
+                error = "transmitter baud rate is non-finite or positive"
+            if permission not in (0, 1):
+                status = InputReadStatus.ERROR
+                error = "transmitter PDU status is outside {0, 1}"
+            permitted = bool(status is InputReadStatus.VALID and permission == 1)
+            active = bool(permitted and rate < 0.0)
+            idle = bool(permitted and rate == 0.0)
+            for output, enabled in ((self.activeStatusOutMsg, active), (self.idleStatusOutMsg, idle)):
+                payload = messaging.DeviceStatusMsgPayload()
+                payload.deviceStatus = int(enabled)
+                output.write(payload, CurrentSimNanos, self.moduleID)
+            self.sample_count += 1
+            if status is InputReadStatus.NOT_READY:
+                self.not_ready_sample_count += 1
+            if status is InputReadStatus.ERROR:
+                self.input_error_count += 1
+                if len(self.input_errors) < 10:
+                    self.input_errors.append(f"{int(CurrentSimNanos)}ns: {error or status.value}")
+            self.trace.append(TransmitterActivityStatusSample(
+                time_ns=int(CurrentSimNanos),
+                pdu_enabled=permission == 1,
+                baud_rate_bps=rate if math.isfinite(rate) else 0.0,
+                transmitter_active=active,
+                idle_enabled=idle,
+                input_status=status,
+                error=error,
+            ))
+            if len(self.trace) > 256:
+                del self.trace[:-256]
 
 
 if sysModel is not None:
@@ -631,6 +723,7 @@ else:  # pragma: no cover
     DownlinkAntennaStatusAdapter = None
     PayloadActivityStatusAdapter = None
     ThrusterActivityStatusAdapter = None
+    TransmitterActivityStatusAdapter = None
     DataActivityPowerBridge = DownlinkActivityPowerBridge = AdcsControlPowerBridge = StatusPowerBridge = ThrusterActivityPowerBridge = PowerToThermalAggregationBridge = None
 
 
@@ -639,10 +732,12 @@ __all__ = [
     "DownlinkAntennaStatusSample",
     "PayloadActivityStatusSample",
     "ThrusterActivityStatusSample",
+    "TransmitterActivityStatusSample",
     "InputReadStatus",
     "DownlinkAntennaStatusAdapter",
     "PayloadActivityStatusAdapter",
     "ThrusterActivityStatusAdapter",
+    "TransmitterActivityStatusAdapter",
     "DataActivityPowerBridge",
     "DownlinkActivityPowerBridge",
     "AdcsControlPowerBridge",

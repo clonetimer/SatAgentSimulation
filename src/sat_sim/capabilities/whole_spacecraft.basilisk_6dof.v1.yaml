@@ -1,4 +1,12 @@
 capability_id: whole_spacecraft.basilisk_6dof.v1
+resource_accounting:
+  route_scope: explicit_adapter_only
+  electrical_model: no_electrical_resource_model
+  decision: retain_hidden_explicit_native_dynamics_scope
+  implementation_references:
+  - src/sat_sim/spacecraft/basilisk_6dof.py
+  - src/sat_sim/adapters/whole_spacecraft_basilisk_6dof.py
+  evidence_scope: capability_declaration_not_runtime_measurement
 schema_version: 0.1.0
 name: Basilisk-native 6-DOF spacecraft graph adapter
 level: whole_spacecraft

@@ -60,7 +60,7 @@ V15 的建模画布只负责建模。普通物理模块不会叠加曲线或大�
 | 通信数据分系统 | `subsystem.comm_data.unified_native.v1` |
 | 推进分系统 | `subsystem.propulsion.unified_native.v1` |
 
-**整星资源功耗主线（P10-A6，2026-11-20）**：两条活动整星路径均按实际推进器活动接入逐推进器官方电负载节点，补齐燃烧启动许可撤销后的持续功耗和短脉冲证据。推荐整星路径在启用推进时也不再实例化工程功率代理；配置的辅助电负载仍是工程假设。验收证据、实现边界及后续 Composite 冷启动电池报告问题见 [P10-A6 开发记录](docs/development-experience/p10a6-native-propulsion-power.md)；本阶段不代表整个平台发布验收完成。
+**整星资源闭环复查（P10-A7，2026-11-20）**：承接 [P10-A6](docs/development-experience/p10a6-native-propulsion-power.md)，消除 Composite 可选通信/简化热控分支剩余的两类电功率重算代理。Unified 与 Composite 的 10 个公开配置实测均为 0 个此类代理；官方电功率节点、项目加热器、状态适配与热转换分别计数。修复加热器缩放/PDU/启停时序、短脉冲入热、重复及无供电热源和 Composite 冷启动电池报告；实际电功率与热节点接收量均留证。13 项整星能力已逐项声明资源范围，仍明确保留 2 项活动本地电气模型和 4 项废弃兼容入口。Unified 新证据覆盖功率源与入热，Composite 另含原生电池区间守恒；固定设备功率、热份额和加热器参数仍是工程假设。见[能力与来源清单](docs/whole-spacecraft-power-authority.md)、[10 案例运行证据](reports/p10a7-resource-closure-evidence.json)及[阶段开发记录](docs/development-experience/p10a7-whole-resource-closure.md)。本阶段不代表整个平台发布验收完成。
 
 V15 适合作为：
 

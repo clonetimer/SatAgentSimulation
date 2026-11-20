@@ -26,10 +26,10 @@ from integration.whole_spacecraft_links import (  # noqa: E402
     wire_payload_to_comm_storage,
 )
 from integration.resource_feedback import (  # noqa: E402
-    DataActivityPowerBridge,
     DownlinkAntennaStatusAdapter,
     PayloadActivityStatusAdapter,
     ThrusterActivityStatusAdapter,
+    TransmitterActivityStatusAdapter,
 )
 from subsystems.adcs.builder import (  # noqa: E402
     attach_adcs_closed_loop_graph,
@@ -71,9 +71,7 @@ from subsystems.thermal.builder import (  # noqa: E402
     build_nominal_thermal_config,
     build_thermal_basilisk_assembly_graph,
     build_thermal_network_assembly_graph,
-    build_eclipse_shadow_factor_bridge,
     build_mode_thermal_input_bridge,
-    build_heater_power_feedback_bridge,
 )
 from whole_spacecraft._runtime_fault_injector import FaultInjector
 from whole_spacecraft._mission_gate import WholeSpacecraftMissionGate
@@ -430,7 +428,7 @@ def build_whole_spacecraft_graph(
             notes=("Solar generation is no longer a constant positive power node in the recommended whole-spacecraft path.",),
         )
     else:
-        eps_graph = build_basilisk_eps_graph(eps_basilisk_cfg)
+        eps_graph = build_basilisk_eps_graph(eps_basilisk_cfg, enable_load_shedding=True)
         coupling_matrix["orbit_sun_attitude_eclipse_to_eps_solar_power"] = _disabled_coupling_record(
             name="orbit_sun_attitude_eclipse_to_eps_solar_power",
             source_subsystem="orbit_environment,spacecraft_dynamics,adcs",
@@ -637,7 +635,6 @@ def build_whole_spacecraft_graph(
 
     power_inputs: list[tuple[Any, float, str, str]] = []
     shadow_factor_msg = None
-    heater_feedback = None
     heater_power_sources: dict[str, Any] = {}
     resource_feedback_bridges: dict[str, Any] = {}
 
@@ -731,6 +728,7 @@ def build_whole_spacecraft_graph(
     comm_status_adapter = None
     comm_antenna_base_power_w = 0.0
     comm_antenna_tx_power_w = 0.0
+    comm_base_power_node = None
     comm_idle_power_node = None
     comm_power_bridge = None
     if native_downlink is not None and rf_access_graph is not None:
@@ -813,30 +811,41 @@ def build_whole_spacecraft_graph(
             ),
         )
     else:
-        # Preserve the legacy non-native transmitter fallback as an explicit
-        # proxy only when the native DownlinkHandling/RF chain is disabled.
-        comm_power_bridge = DataActivityPowerBridge(
-            "commTransmitterPowerBridge",
-            nominal_rate_bps=max(1.0, float(transmitter_baud_bps)),
-            active_power_w=30.0, idle_power_w=2.0,
+        # The compatibility transmitter has no RF power model. Its documented
+        # electrical profile is a fixed 32 W active / 2 W idle / 0 W off.
+        comm_status_adapter = TransmitterActivityStatusAdapter(
+            "commTransmitterStatusAdapter",
             data_msg=transmitter.nodeDataOutMsg, enable_status_msg=comm_status_msg,
         )
-        sim.AddModelToTask(sim_task_name, comm_power_bridge, None, 36)
-        battery.addPowerNodeToModel(comm_power_bridge.powerOutMsg)
-        resource_feedback_bridges["comm"] = comm_power_bridge
-        power_inputs.append((comm_power_bridge.powerOutMsg, 0.9, "electronics", "comm.fallback_activity"))
+        sim.AddModelToTask(sim_task_name, comm_status_adapter, None, 37)
+        from Basilisk.simulation import simplePowerSink
+
+        for tag, watts, status_msg, source_label in (
+            ("commTransmitterActivePower", 32.0, comm_status_adapter.activeStatusOutMsg, "comm.fallback_activity"),
+            ("commIdlePower", 2.0, comm_status_adapter.idleStatusOutMsg, "comm.idle"),
+        ):
+            power_node = simplePowerSink.SimplePowerSink()
+            power_node.ModelTag = tag
+            power_node.nodePowerOut = -watts
+            power_node.powerStatus = 0
+            power_node.nodeStatusInMsg.subscribeTo(status_msg)
+            sim.AddModelToTask(sim_task_name, power_node, None, 36)
+            battery.addPowerNodeToModel(power_node.nodePowerOutMsg)
+            comm_power_nodes.append(power_node)
+            power_inputs.append((power_node.nodePowerOutMsg, 0.90, "electronics", source_label))
+        comm_idle_power_node = comm_power_nodes[1]
         coupling_matrix["eps_pdu_to_comm_activity"] = _coupling_record(
             name="eps_pdu_to_comm_activity", source_subsystem="eps", sink_subsystem="comm_data",
-            coupling_status="proxy_coupled_verified",
-            interface="PDU commStatusOutMsg -> legacy DataActivityPowerBridge -> transmitter power",
-            evidence=("non-native transmitter fallback remains explicitly proxy-coupled",),
+            coupling_status="coupled",
+            interface="PDU commStatusOutMsg + native transmitter DataNodeUsageMsg -> TransmitterActivityStatusAdapter -> active/idle SimplePowerSink",
+            evidence=("status-only adapter selects active, idle or off from actual native transmitter output and PDU permission",),
         )
         coupling_matrix["comm_activity_to_eps_thermal"] = _coupling_record(
             name="comm_activity_to_eps_thermal", source_subsystem="comm_data", sink_subsystem="eps,thermal",
-            coupling_status="proxy_coupled_verified",
-            interface="transmitter DataNodeUsage activity -> DataActivityPowerBridge -> battery + electronics thermal node",
-            evidence=("non-native transmitter fallback remains an activity-to-power proxy",),
-            notes=("Only the native DownlinkHandling/RF path is migrated to official AntennaPower.",),
+            coupling_status="coupled",
+            interface="official fixed active/idle SimplePowerSink outputs -> battery + electronics ThermalPowerBridge",
+            evidence=("active 32 W, PDU-enabled idle 2 W and off 0 W are represented by mutually exclusive official power sinks",),
+            notes=("Fractional negative transmitter baud selects the full active load; the profile is not proportional to data rate.",),
         )
 
     propulsion_power_nodes: list[Any] = []
@@ -906,12 +915,12 @@ def build_whole_spacecraft_graph(
             name="eps_loads_to_thermal_heat",
             source_subsystem="eps",
             sink_subsystem="thermal",
-            coupling_status="proxy_coupled_verified",
+            coupling_status="coupled",
             interface="PowerNodeUsageMsg -> node-specific ThermalPowerBridge -> ThermalNode.heatInMsg",
             evidence=heat_evidence,
             notes=(
                 "Electrical draw is mapped to deposited heat by configured efficiency factors.",
-                "The proxy is audited at runtime through bridge energy counters; it is not a detailed electro-thermal solver.",
+                "ThermalPowerBridge converts existing electrical power to heat; it is not an electrical power authority.",
             ),
         )
     else:
@@ -933,16 +942,13 @@ def build_whole_spacecraft_graph(
                 evidence=("thermal network solar input subscribes directly to orb_env_graph.eclipse_msg",),
             )
         else:
-            shadow_converter = build_eclipse_shadow_factor_bridge(orb_env_graph.eclipse_msg)
-            shadow_factor_msg = shadow_converter.shadowFactorOutMsg
-            sim.AddModelToTask(thermal_task_name, shadow_converter)
             coupling_matrix["orbit_eclipse_to_thermal_shadow"] = _coupling_record(
                 name="orbit_eclipse_to_thermal_shadow",
                 source_subsystem="orbit_environment",
                 sink_subsystem="thermal",
-                coupling_status="proxy_coupled",
-                interface="EclipseMsg -> EclipseShadowFactorConverter -> reduced thermal shadow factor",
-                evidence=("shadow_converter.eclipseInMsg.subscribeTo(orb_env_graph.eclipse_msg)",),
+                coupling_status="not_coupled_no_solar_heat_model",
+                interface="reduced thermal electrical heat is independent of eclipse",
+                evidence=("the reduced thermal branch has no external solar heat model; internal electrical deposition is preserved in eclipse",),
             )
     elif not coupling.enable_orbit_eclipse_to_thermal_shadow:
         coupling_matrix["orbit_eclipse_to_thermal_shadow"] = _disabled_coupling_record(
@@ -972,14 +978,25 @@ def build_whole_spacecraft_graph(
         sim.AddModelToTask(thermal_task_name, mode_thermal_input)
 
     if cfg.thermal_use_network:
+        from subsystems.thermal.network_config import build_nominal_thermal_network_config
+
+        network_cfg = build_nominal_thermal_network_config()
+        network_cfg = replace(network_cfg, nodes={
+            name: replace(node, internal_heat_w=0.0)
+            for name, node in network_cfg.nodes.items()
+        })
         thermal_graph = build_thermal_network_assembly_graph(
             duration_s=max(3600.0, float(cfg.thermal_step_s)),
             step_s=cfg.thermal_step_s,
             power_inputs=power_inputs if power_inputs else None,
             eclipse_msg=(orb_env_graph.eclipse_msg if coupling.enable_orbit_eclipse_to_thermal_shadow else None),
             thermal_degradation=cfg.thermal_degradation,
+            thermal_network_cfg=network_cfg,
         )
-        attach_thermal_network_graph_to_task(sim, thermal_task_name, thermal_graph)
+        attach_thermal_network_graph_to_task(
+            sim, thermal_task_name, thermal_graph, power_sampling_task_name=sim_task_name,
+        )
+        heater_power_sources.update(thermal_graph.heaters)
         heater_status_msg = eps_graph.status_messages.get("heater")
         if heater_status_msg is not None:
             for heater in thermal_graph.network.heaters.values():
@@ -998,7 +1015,6 @@ def build_whole_spacecraft_graph(
             # do not reconstruct a second nominal-wattage estimate.
             for name, heater in thermal_graph.network.heaters.items():
                 battery.addPowerNodeToModel(heater.electricalPowerOutMsg)
-                heater_power_sources[str(name)] = heater
             if heater_power_sources:
                 coupling_matrix["thermal_heaters_to_eps_load"] = _coupling_record(
                     name="thermal_heaters_to_eps_load",
@@ -1027,29 +1043,36 @@ def build_whole_spacecraft_graph(
             shadow_factor_msg=shadow_factor_msg,
             thermal_cfg=thermal_cfg,
         )
-        attach_thermal_basilisk_graph_to_task(sim, thermal_task_name, thermal_graph)
+        attach_thermal_basilisk_graph_to_task(
+            sim, thermal_task_name, thermal_graph, power_sampling_task_name=sim_task_name,
+        )
+        heater_power_sources.update(thermal_graph.heaters)
+        heater_status_msg = eps_graph.status_messages.get("heater")
+        if heater_status_msg is not None:
+            for heater in thermal_graph.heaters.values():
+                heater.subscribe_enable(heater_status_msg)
+            coupling_matrix["eps_pdu_to_thermal_heaters"] = _coupling_record(
+                name="eps_pdu_to_thermal_heaters", source_subsystem="eps", sink_subsystem="thermal",
+                coupling_status="coupled",
+                interface="PDU heaterStatusOutMsg -> ThermalNodeScheduledSysModel.enableInMsg",
+                evidence=("configured reduced heaters apply one PDU permit to their actual heat and electrical consumption",),
+            )
 
-        if coupling.enable_thermal_heaters_to_eps_load and thermal_graph.nodes:
-            heater_inputs: list[tuple[Any, float]] = []
-            heater_evidence: list[str] = []
-            for node_name, node in thermal_graph.nodes.items():
-                heater = thermal_cfg.heaters.get(node_name)
-                if heater:
-                    heater_inputs.append((node.heaterStatusOutMsg, heater.max_power_w))
-                    heater_evidence.append(f"{node_name}.heaterStatusOutMsg power_w={heater.max_power_w}")
-            heater_feedback = build_heater_power_feedback_bridge(heater_inputs)
-            if heater_feedback.heaterInMsgs:
-                sim.AddModelToTask(thermal_task_name, heater_feedback)
-                battery.addPowerNodeToModel(heater_feedback.powerOutMsg)
-                coupling_matrix["thermal_heaters_to_eps_load"] = _coupling_record(
-                    name="thermal_heaters_to_eps_load",
-                    source_subsystem="thermal",
-                    sink_subsystem="eps",
-                    coupling_status="proxy_coupled_verified",
-                    interface="heater status/output -> HeaterPowerFeedback.PowerNodeUsageMsg -> battery.addPowerNodeToModel",
-                    evidence=heater_evidence,
-                    notes=("Heater electrical load is bridged back to EPS as a power sink.",),
-                )
+        if coupling.enable_thermal_heaters_to_eps_load and thermal_graph.heaters:
+            for heater in thermal_graph.heaters.values():
+                battery.addPowerNodeToModel(heater.electricalPowerOutMsg)
+            coupling_matrix["thermal_heaters_to_eps_load"] = _coupling_record(
+                name="thermal_heaters_to_eps_load",
+                source_subsystem="thermal",
+                sink_subsystem="eps",
+                coupling_status="coupled",
+                interface="ThermalNodeScheduledSysModel.electricalPowerOutMsg -> battery.addPowerNodeToModel",
+                evidence=tuple(
+                    f"{name} actual thermostat/forced state, PDU permit and heater_power_scale determine both heat and electrical watts"
+                    for name in thermal_graph.heaters
+                ),
+                notes=("The reduced resistive heater assumes unity electrical-to-heat efficiency.",),
+            )
         elif not coupling.enable_thermal_heaters_to_eps_load:
             coupling_matrix["thermal_heaters_to_eps_load"] = _disabled_coupling_record(
                 name="thermal_heaters_to_eps_load",
@@ -1112,7 +1135,7 @@ def build_whole_spacecraft_graph(
         "storage": storage.storageUnitDataOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s))),
         "instrument": instrument.nodeDataOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s))),
         "transmitter": transmitter.nodeDataOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s))),
-        "conservation_battery": battery.batPowerOutMsg.recorder(macros.sec2nano(conservation_sample_s)),
+        "conservation_battery": battery.batPowerOutMsg.recorder(macros.sec2nano(float(cfg.adcs_dyn_step_s))),
         "conservation_storage": storage.storageUnitDataOutMsg.recorder(macros.sec2nano(conservation_sample_s)),
         "conservation_instrument": instrument.nodeDataOutMsg.recorder(macros.sec2nano(conservation_sample_s)),
         "solar_power": get_eps_solar_power_output_msg(eps_graph).recorder(macros.sec2nano(float(cfg.recorder_step_s))),
@@ -1130,8 +1153,8 @@ def build_whole_spacecraft_graph(
         recorders[f"adcs_power_{wheel_index}"] = power_node.nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
     if comm_power_nodes:
         recorders["comm_power_tx"] = comm_power_nodes[0].nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
-        if len(comm_power_nodes) >= 2:
-            recorders["comm_power_base"] = comm_power_nodes[1].nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+        if comm_base_power_node is not None:
+            recorders["comm_power_base"] = comm_base_power_node.nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         if comm_idle_power_node is not None:
             recorders["comm_power_idle"] = comm_idle_power_node.nodePowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         recorders["comm_tx_status"] = comm_status_adapter.txStatusOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
@@ -1178,14 +1201,10 @@ def build_whole_spacecraft_graph(
         recorders["thermal"] = thermal_graph.evaluator.thermalStatusOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         sim.AddModelToTask(recorder_task_name, recorders["thermal"])
 
-    if cfg.thermal_use_network and hasattr(thermal_graph, "network"):
-        for node_name, bridge in getattr(thermal_graph.network, "power_bridges", {}).items():
-            rec_name = f"thermal_power_bridge_{node_name}"
-            recorders[rec_name] = bridge.heatOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
-            sim.AddModelToTask(recorder_task_name, recorders[rec_name])
-    if heater_feedback is not None:
-        recorders["heater_eps_feedback"] = heater_feedback.powerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
-        sim.AddModelToTask(recorder_task_name, recorders["heater_eps_feedback"])
+    for node_name, bridge in thermal_graph.power_bridges.items():
+        rec_name = f"thermal_power_bridge_{node_name}"
+        recorders[rec_name] = bridge.heatOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+        sim.AddModelToTask(recorder_task_name, recorders[rec_name])
     for heater_name, heater in heater_power_sources.items():
         recorders[f"heater_eps_power_{heater_name}"] = heater.electricalPowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
 
@@ -1196,7 +1215,7 @@ def build_whole_spacecraft_graph(
         "payload_power", "payload_active_status",
         "comm_power_tx", "comm_power_base", "comm_power_idle", "comm_tx_status", "comm_idle_status", "comm_power_bridge",
         "battery", "storage", "instrument", "transmitter", "solar_power", "gated_downlink_link_budget",
-        "conservation_battery", "conservation_storage", "conservation_instrument", "conservation_downlink",
+        "conservation_storage", "conservation_instrument", "conservation_downlink",
         "downlink_node", "downlink", "ground_access", "rf_link_budget",
         "spacecraft_antenna", "ground_antenna", "spacecraft_state", "pdu_adcs_status",
         "pdu_heater_status", "eclipse",
@@ -1204,6 +1223,7 @@ def build_whole_spacecraft_graph(
         rec = recorders.get(rec_name)
         if rec is not None:
             sim.AddModelToTask(recorder_task_name, rec)
+    sim.AddModelToTask(sim_task_name, recorders["conservation_battery"], None, -10)
     for rec_name, rec in recorders.items():
         if rec_name.startswith("propulsion_") and rec is not None:
             sim.AddModelToTask(sim_task_name, rec, None, -10)
@@ -1231,12 +1251,13 @@ def build_whole_spacecraft_graph(
         "comm_power_bridge": resource_feedback_bridges.get("comm"),
         "comm_power_nodes": tuple(comm_power_nodes),
         "comm_status_adapter": comm_status_adapter,
-        "comm_base_power_node": comm_power_nodes[1] if len(comm_power_nodes) >= 2 else None,
+        "comm_base_power_node": comm_base_power_node,
         "comm_idle_power_node": comm_idle_power_node,
         "comm_antenna_base_power_w": comm_antenna_base_power_w,
         "comm_antenna_tx_power_w": comm_antenna_tx_power_w,
         "adcs_power_nodes": tuple(adcs_power_nodes),
         "heater_power_sources": dict(heater_power_sources),
+        "thermal_power_bridges": dict(thermal_graph.power_bridges),
         "adcs_power_monitoring_limit_w": adcs_power_monitoring_limit_w,
         "propulsion_power_nodes": tuple(propulsion_power_nodes),
         "propulsion_status_adapters": tuple(propulsion_status_adapters),
@@ -1258,17 +1279,18 @@ def build_whole_spacecraft_graph(
             component_registry[f"thermal_radiator_{node_name}"] = radiator
         for node_name, bridge in getattr(thermal_graph.network, "power_bridges", {}).items():
             component_registry[f"thermal_power_bridge.{node_name}"] = bridge
-        if heater_feedback is not None:
-            component_registry["heater_eps_feedback"] = heater_feedback
     elif hasattr(thermal_graph, "nodes"):
         for node_name, node in thermal_graph.nodes.items():
             component_registry[f"thermal_node.{node_name}"] = node
             component_registry[f"thermal_node_{node_name}"] = node
-            # The scheduled node owns the heater state internally.
-            component_registry[f"heater.{node_name}"] = node
-            component_registry[f"thermal_heater_{node_name}"] = node
-            if node_name == "battery":
-                component_registry["battery_heater"] = node
+            if node_name in thermal_graph.heaters:
+                # Only configured reduced heaters are physical fault targets.
+                component_registry[f"heater.{node_name}"] = node
+                component_registry[f"thermal_heater_{node_name}"] = node
+                if node_name == "battery":
+                    component_registry["battery_heater"] = node
+        for node_name, bridge in thermal_graph.power_bridges.items():
+            component_registry[f"thermal_power_bridge.{node_name}"] = bridge
     for idx, _wheel in enumerate(getattr(adcs_graph.rw_closed_loop.config, "wheels", ())):
         component_registry[f"rw_{idx}"] = adcs_graph.rw_closed_loop.rw_state_effector
     if fuel_tank is not None:

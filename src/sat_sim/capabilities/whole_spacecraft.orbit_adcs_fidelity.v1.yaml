@@ -1,4 +1,11 @@
 capability_id: whole_spacecraft.orbit_adcs_fidelity.v1
+resource_accounting:
+  route_scope: product_without_eps
+  electrical_model: no_electrical_resource_model
+  decision: retain_orbit_adcs_scope_without_eps_closure_claim
+  implementation_references:
+  - src/sat_sim/coupled/orbit_adcs_fidelity.py
+  evidence_scope: capability_declaration_not_runtime_measurement
 schema_version: 0.1.0
 name: Orbit + ADCS fidelity integration gate
 level: whole_spacecraft

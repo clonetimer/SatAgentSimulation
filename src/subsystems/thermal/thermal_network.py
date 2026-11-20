@@ -13,6 +13,7 @@ from utils.runtime_diagnostics import DiagnosticCategory, record_runtime_diagnos
 
 import csv
 import json
+import math
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
@@ -83,6 +84,7 @@ class ThermalNode(sysModel.SysModel):
         self._radiation_heat_w = 0.0
         self._last_ns: int | None = None
         self.last_heat_input_w = 0.0
+        self.cumulative_external_heat_energy_j = 0.0
         self.input_read_status = "VALID"
         self.input_read_error: str | None = None
 
@@ -99,6 +101,7 @@ class ThermalNode(sysModel.SysModel):
         self._radiation_heat_w = 0.0
         self._last_ns = None
         self.last_heat_input_w = 0.0
+        self.cumulative_external_heat_energy_j = 0.0
         self.input_read_status = "VALID"
         self.input_read_error = None
         self.UpdateState(CurrentSimNanos)
@@ -131,6 +134,9 @@ class ThermalNode(sysModel.SysModel):
             self.input_read_error = f"{type(exc).__name__}: {exc}"
             self._heat_input_w = 0.0
 
+        # This is energy consumed by the receiving integrator, independently of
+        # the bridge's own counters and any standalone internal heat boundary.
+        self.cumulative_external_heat_energy_j += self._heat_input_w * dt
         self._heat_input_w += self.params.internal_heat_w
         self.last_heat_input_w = float(self._heat_input_w)
 
@@ -190,6 +196,11 @@ class ThermalHeater(sysModel.SysModel):
         self.electricalPowerOutMsg = messaging.PowerNodeUsageMsg()
         self.last_electrical_power_w = 0.0
         self.last_heat_power_w = 0.0
+        self._power_last_ns: int | None = None
+        self.cumulative_heater_electrical_energy_j = 0.0
+        self.cumulative_heater_heat_energy_j = 0.0
+        self.input_error_count = 0
+        self.input_errors: list[str] = []
 
     def set_node(self, node: ThermalNode) -> None:
         """Set the target thermal node (direct reference for float precision)."""
@@ -204,9 +215,22 @@ class ThermalHeater(sysModel.SysModel):
         self._heater_on = False
         self.enable_read_status = "VALID"
         self.enable_read_error = None
+        self._power_last_ns = None
+        self.cumulative_heater_electrical_energy_j = 0.0
+        self.cumulative_heater_heat_energy_j = 0.0
+        self.input_error_count = 0
+        self.input_errors.clear()
+        self.last_electrical_power_w = 0.0
+        self.last_heat_power_w = 0.0
         self.UpdateState(CurrentSimNanos)
 
     def UpdateState(self, CurrentSimNanos: int) -> None:
+        # The bridge/node consumed the previously published heater heat for
+        # this completed interval. Publish the next held output only afterward.
+        dt = 0.0 if self._power_last_ns is None else max(0.0, (int(CurrentSimNanos) - self._power_last_ns) * macros.NANO2SEC)
+        self.cumulative_heater_electrical_energy_j += self.last_electrical_power_w * dt
+        self.cumulative_heater_heat_energy_j += self.last_heat_power_w * dt
+        self._power_last_ns = int(CurrentSimNanos)
         node_temp_k = self._node.temp_k if self._node else self.params.setpoint_k
 
         if node_temp_k < self.params.on_below_k:
@@ -229,12 +253,22 @@ class ThermalHeater(sysModel.SysModel):
                     self.enable_read_status = "NOT_READY" if int(CurrentSimNanos) == 0 else "ERROR"
                     self.enable_read_error = "heater enable message has not been written"
                     self._heater_on = False
-                elif not bool(self.enableInMsg().deviceStatus):
-                    self._heater_on = False
+                else:
+                    permit = int(self.enableInMsg().deviceStatus)
+                    if permit not in (0, 1):
+                        self.enable_read_status = "ERROR"
+                        self.enable_read_error = "heater PDU status is outside {0, 1}"
+                        self._heater_on = False
+                    elif permit == 0:
+                        self._heater_on = False
             except Exception as exc:
                 self.enable_read_status = "NOT_READY" if int(CurrentSimNanos) == 0 else "ERROR"
                 self.enable_read_error = f"{type(exc).__name__}: {exc}"
                 self._heater_on = False
+        if self.enable_read_status == "ERROR":
+            self.input_error_count += 1
+            if len(self.input_errors) < 10:
+                self.input_errors.append(f"{int(CurrentSimNanos)}ns: {self.enable_read_error}")
 
         heater_msg = messaging.DeviceStatusMsgPayload()
         heater_msg.deviceStatus = int(self._heater_on)
@@ -390,14 +424,56 @@ class SolarHeatInput(sysModel.SysModel):
 
 
 
+class _ThermalPowerSampler(sysModel.SysModel):
+    """Integrate held native power outputs without retaining a growing history."""
+
+    def __init__(self, bridge, input_count: int):
+        super().__init__()
+        self.ModelTag = f"{bridge.node_name}ThermalPowerSampler"
+        self.bridge = bridge
+        self.input_count = input_count
+        self.held_power_w = [0.0] * input_count
+        self.energy_j = [0.0] * input_count
+        self.sample_count = 0
+        self.last_ns: int | None = None
+
+    def Reset(self, CurrentSimNanos: int) -> None:
+        self.held_power_w = [0.0] * self.input_count
+        self.energy_j = [0.0] * self.input_count
+        self.sample_count = 0
+        self.last_ns = None
+        self.UpdateState(CurrentSimNanos)
+
+    def advance_to(self, now_ns: int) -> None:
+        if self.last_ns is not None:
+            if int(now_ns) < self.last_ns:
+                raise ValueError("THERMAL_POWER_SAMPLER_TIME_REVERSED")
+            dt = float(int(now_ns) - self.last_ns) * macros.NANO2SEC
+            for index, watts in enumerate(self.held_power_w):
+                self.energy_j[index] += watts * dt
+        self.last_ns = int(now_ns)
+
+    def UpdateState(self, CurrentSimNanos: int) -> None:
+        # A message published at t describes the following held interval.  Read
+        # it only after integrating the old value; a short pulse must not be
+        # extended backward to the preceding coarse thermal tick.
+        self.advance_to(CurrentSimNanos)
+        self.held_power_w = [
+            self.bridge._read_power(index, int(CurrentSimNanos))
+            for index in range(self.input_count)
+        ]
+        self.sample_count += 1
+
+
 class ThermalPowerBridge(sysModel.SysModel):
     """Aggregate subsystem electrical loads into one node-specific heat input.
 
     Each input is a Basilisk ``PowerNodeUsageMsg``.  The bridge converts the
     absolute electrical draw into deposited heat through an explicit efficiency
     factor and publishes one message consumed by exactly one thermal node.
-    Runtime counters are retained so whole-spacecraft energy-coupling audits can
-    verify that the proxy was not only wired but also exercised.
+    Dynamics sampling retains short electrical pulses and supplies interval
+    averages before thermal integration. Counters and pending energy let audits
+    compare this transfer with the receiving node's actual consumed heat.
     """
 
     def __init__(self, node_name: str):
@@ -407,24 +483,103 @@ class ThermalPowerBridge(sysModel.SysModel):
         self.powerInMsgs: list[messaging.PowerNodeUsageMsgReader] = []
         self.efficiency_factors: list[float] = []
         self.source_labels: list[str] = []
+        self.source_messages: list[object] = []
         self.heatOutMsg = messaging.PowerNodeUsageMsg()
         self.last_electrical_input_w = 0.0
         self.last_heat_output_w = 0.0
         self.cumulative_electrical_energy_j = 0.0
         self.cumulative_heat_energy_j = 0.0
         self.last_source_power_w: dict[str, float] = {}
+        self.last_source_average_power_w: dict[str, float] = {}
         self.cumulative_source_electrical_energy_j: dict[str, float] = {}
         self.cumulative_source_heat_energy_j: dict[str, float] = {}
         self._last_ns: int | None = None
         self.input_read_status = "VALID"
         self.input_read_errors: list[str] = []
+        self.input_error_count = 0
+        self.read_errors: list[str] = []
+        self.power_sampler: _ThermalPowerSampler | None = None
+        self._sampled_consumed_energy_j: list[float] = []
 
     def add_power_input(self, power_msg, efficiency_factor: float = 1.0, *, source_label: str = "") -> None:
+        if self.power_sampler is not None:
+            raise ValueError("THERMAL_POWER_INPUTS_MUST_PRECEDE_SAMPLING")
+        if not math.isfinite(float(efficiency_factor)) or float(efficiency_factor) < 0.0:
+            raise ValueError("THERMAL_POWER_EFFICIENCY_MUST_BE_FINITE_NONNEGATIVE")
         reader = messaging.PowerNodeUsageMsgReader()
         reader.subscribeTo(power_msg)
         self.powerInMsgs.append(reader)
         self.efficiency_factors.append(max(0.0, float(efficiency_factor)))
         self.source_labels.append(str(source_label or f"source_{len(self.source_labels)}"))
+        self.source_messages.append(power_msg)
+
+    def enable_dynamics_sampling(self, sim, task_name: str, input_count: int | None = None) -> None:
+        """Sample external sources after dynamics; keep local thermal sources local.
+
+        ``input_count`` selects the first N inputs.  Network heater heat is
+        already a thermal-interval output, so callers exclude it from this fast
+        sampler.  The bridge itself remains scheduled once on the thermal task.
+        """
+        if self.power_sampler is not None:
+            raise ValueError("THERMAL_POWER_SAMPLER_ALREADY_SCHEDULED")
+        count = len(self.powerInMsgs) if input_count is None else int(input_count)
+        if count < 0 or count > len(self.powerInMsgs):
+            raise ValueError("THERMAL_POWER_SAMPLER_INPUT_COUNT_INVALID")
+        self.power_sampler = _ThermalPowerSampler(self, count)
+        self._sampled_consumed_energy_j = [0.0] * count
+        sim.AddModelToTask(task_name, self.power_sampler, None, -5)
+
+    @property
+    def pending_source_electrical_energy_j(self) -> dict[str, float]:
+        pending: dict[str, float] = {}
+        if self.power_sampler is not None:
+            for index, energy in enumerate(self.power_sampler.energy_j):
+                label = self.source_labels[index]
+                pending[label] = pending.get(label, 0.0) + max(0.0, energy - self._sampled_consumed_energy_j[index])
+        return pending
+
+    @property
+    def pending_source_heat_energy_j(self) -> dict[str, float]:
+        pending: dict[str, float] = {}
+        if self.power_sampler is not None:
+            for index, energy in enumerate(self.power_sampler.energy_j):
+                label = self.source_labels[index]
+                pending[label] = pending.get(label, 0.0) + max(0.0, energy - self._sampled_consumed_energy_j[index]) * self.efficiency_factors[index]
+        return pending
+
+    @property
+    def pending_heat_energy_j(self) -> float:
+        return sum(self.pending_source_heat_energy_j.values())
+
+    def _read_power(self, index: int, now_ns: int) -> float:
+        reader = self.powerInMsgs[index]
+        label = self.source_labels[index]
+        error: str | None = None
+        status = "ERROR"
+        try:
+            if not reader.isLinked():
+                error = "power message is not linked"
+            elif not reader.isWritten():
+                error = "power message has not been written"
+                status = "NOT_READY" if now_ns == 0 else "ERROR"
+            else:
+                power = float(reader().netPower)
+                if math.isfinite(power):
+                    return abs(power)
+                error = "power message netPower must be finite"
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+        detail = f"{label}: {error}"
+        if len(self.input_read_errors) < 10 and detail not in self.input_read_errors:
+            self.input_read_errors.append(detail)
+        if status == "ERROR":
+            self.input_error_count += 1
+            self.input_read_status = "ERROR"
+            if len(self.read_errors) < 10 and detail not in self.read_errors:
+                self.read_errors.append(detail)
+        elif self.input_read_status != "ERROR":
+            self.input_read_status = status
+        return 0.0
 
     def Reset(self, CurrentSimNanos: int) -> None:
         self.last_electrical_input_w = 0.0
@@ -432,11 +587,16 @@ class ThermalPowerBridge(sysModel.SysModel):
         self.cumulative_electrical_energy_j = 0.0
         self.cumulative_heat_energy_j = 0.0
         self.last_source_power_w.clear()
+        self.last_source_average_power_w.clear()
         self.cumulative_source_electrical_energy_j.clear()
         self.cumulative_source_heat_energy_j.clear()
         self._last_ns = None
         self.input_read_status = "VALID"
         self.input_read_errors.clear()
+        self.input_error_count = 0
+        self.read_errors.clear()
+        if self.power_sampler is not None:
+            self._sampled_consumed_energy_j = [0.0] * self.power_sampler.input_count
         self.UpdateState(CurrentSimNanos)
 
     def UpdateState(self, CurrentSimNanos: int) -> None:
@@ -448,52 +608,34 @@ class ThermalPowerBridge(sysModel.SysModel):
 
         electrical_w = 0.0
         heat_w = 0.0
-        self.input_read_status = "VALID"
+        # A recovered source must not erase an earlier invalid native interval.
+        self.input_read_status = "ERROR" if self.input_error_count else "VALID"
         self.input_read_errors.clear()
         self.last_source_power_w.clear()
-        for reader, efficiency, label in zip(
-            self.powerInMsgs, self.efficiency_factors, self.source_labels
-        ):
-            source_w = 0.0
-            try:
-                linked = bool(reader.isLinked()) if hasattr(reader, "isLinked") else True
-                written = bool(reader.isWritten()) if hasattr(reader, "isWritten") else True
-                if not linked:
-                    self.input_read_status = "ERROR"
-                    self.input_read_errors.append(f"{label}: power message is not linked")
-                elif not written:
-                    status = "NOT_READY" if int(CurrentSimNanos) == 0 else "ERROR"
-                    if status == "ERROR":
-                        self.input_read_status = "ERROR"
-                    elif self.input_read_status != "ERROR":
-                        self.input_read_status = "NOT_READY"
-                    self.input_read_errors.append(f"{label}: power message has not been written")
-                else:
-                    payload = reader()
-                    source_w = abs(float(getattr(payload, "netPower", 0.0)))
-            except Exception as exc:
-                status = "NOT_READY" if int(CurrentSimNanos) == 0 else "ERROR"
-                if status == "ERROR":
-                    self.input_read_status = "ERROR"
-                elif self.input_read_status != "ERROR":
-                    self.input_read_status = "NOT_READY"
-                self.input_read_errors.append(f"{label}: {type(exc).__name__}: {exc}")
-                record_runtime_diagnostic(
-                    code="THERMAL_POWER_BRIDGE_READ_FAILED",
-                    category=DiagnosticCategory.MESSAGE_READ_FAILURE,
-                    location="src/subsystems/thermal/thermal_network.py:ThermalPowerBridge.UpdateState",
-                    exception=exc,
-                    strict=None,
-                )
-            source_heat_w = source_w * efficiency
-            electrical_w += source_w
-            heat_w += source_heat_w
+        self.last_source_average_power_w.clear()
+        sampler = self.power_sampler
+        if sampler is not None:
+            sampler.advance_to(int(CurrentSimNanos))
+        for index, (efficiency, label) in enumerate(zip(self.efficiency_factors, self.source_labels)):
+            if sampler is not None and index < sampler.input_count:
+                source_w = sampler.held_power_w[index]
+                energy_j = sampler.energy_j[index] - self._sampled_consumed_energy_j[index]
+                self._sampled_consumed_energy_j[index] = sampler.energy_j[index]
+                average_w = energy_j / dt if dt > 0.0 else source_w
+            else:
+                source_w = self._read_power(index, int(CurrentSimNanos))
+                energy_j = source_w * dt
+                average_w = source_w
+            source_heat_j = energy_j * efficiency
+            electrical_w += average_w
+            heat_w += average_w * efficiency
             self.last_source_power_w[label] = self.last_source_power_w.get(label, 0.0) + source_w
+            self.last_source_average_power_w[label] = self.last_source_average_power_w.get(label, 0.0) + average_w
             self.cumulative_source_electrical_energy_j[label] = (
-                self.cumulative_source_electrical_energy_j.get(label, 0.0) + source_w * dt
+                self.cumulative_source_electrical_energy_j.get(label, 0.0) + energy_j
             )
             self.cumulative_source_heat_energy_j[label] = (
-                self.cumulative_source_heat_energy_j.get(label, 0.0) + source_heat_w * dt
+                self.cumulative_source_heat_energy_j.get(label, 0.0) + source_heat_j
             )
 
         self.last_electrical_input_w = electrical_w
@@ -584,7 +726,9 @@ class ThermalNetworkSysModel(sysModel.SysModel):
                 bridge.add_power_input(heater.powerOutMsg, 1.0, source_label=f"heater.{node_name}")
             if bridge.powerInMsgs:
                 self.power_bridges[node_name] = bridge
-                sim.AddModelToTask(task_name, bridge)
+                # A node integrates the completed interval on this activation;
+                # its interval-average input must be published before it runs.
+                sim.AddModelToTask(task_name, bridge, None, 1)
                 node.heatInMsg.subscribeTo(bridge.heatOutMsg)
 
     def Reset(self, CurrentSimNanos: int) -> None:

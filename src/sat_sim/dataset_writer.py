@@ -23,6 +23,8 @@ TRACE_UNITS: dict[str, str] = {
     "time_s": "s",
     "battery_storage_j": "J",
     "battery_soc": "1",
+    "battery_capacity_j": "J",
+    "battery_source_time_s": "s",
     "net_power_w": "W",
     "battery_temp_c": "degC",
     "shunt_dissipated_w": "W",
