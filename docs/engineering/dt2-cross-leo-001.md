@@ -314,3 +314,9 @@ Official sources:
 No change to the original 5400-second three-engine raw state data, high-order
 gravity, atmosphere, radiation force, instrument defaults or approval gates.
 
+
+### R2026a authentic three-engine Sun anchor startup-kernel gate
+
+The actual R2026a run [44826078436](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44826078436), preserved in failure artifact **14675775837**, completed all genuine Basilisk/GMAT two-body and Earth-mu controls, but **FAILed** the additional Sun anchor at the GMAT script parser. Exact executable stdout rejected `SolarSystem.LSKFilename` as **deprecated**, requiring the LSK filename to be supplied by the GMAT startup file. No genuine Sun anchor ReportFile existed on that head, and the three-engine vector proof is NOT complete. The residual diagnostics preceding this step remain **INCONCLUSIVE**, not a new physical PASS.
+
+For R2026a, the [official tagged GMAT startup config](https://github.com/nasa/GMAT/blob/R2026a/application/bin/gmat_startup_file.txt) binds `PLANETARY_SPK_FILE`, `LSK_FILE` and `PLANETARY_PCK_FILE` (each to the intended packaged DE421/LSK/PCK). The replacement contract verifies the real installed startup's effective last active assignments resolve to these exact three packaged kernel paths, emits startup-file SHA-256, and **fails closed** for missing or mismatched paths. The generated Sun script selects SPICE but no longer attempts deprecated SolarSystem kernel-filename assignments. Test-only fixtures cover all three mismatch negatives. This changes no orbit state, physical parameters, original raw engine outputs, acceptance thresholds or independent-frame approval status. **The new head requires a genuine R2026a CI run before marking this Sun anchor executed.**

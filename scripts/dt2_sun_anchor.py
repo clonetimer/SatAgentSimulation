@@ -42,8 +42,58 @@ def write_json(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value,indent=2,sort_keys=True,ensure_ascii=False)+"\n",encoding="utf-8")
 
 
-def sun_script(a1_mjd: list[float], *, spk: Path, lsk: Path,
-               pck: Path, report_path: Path) -> str:
+
+def verified_gmat_startup_kernels(root: Path, paths: dict[str, Path]) -> dict:
+    """Verify R2026a startup file binds exactly the three packaged kernels.
+
+    R2026a rejects legacy SolarSystem.LSKFilename script assignment. Its
+    LSK_FILE, PLANETARY_SPK_FILE and PLANETARY_PCK_FILE live in the installed
+    startup file; a mismatched or absent binding must fail before executing
+    GMAT rather than silently falling back to another ephemeris.
+    """
+    startup = (root / "bin" / "gmat_startup_file.txt").resolve()
+    if not startup.is_file():
+        raise FileNotFoundError("DT2_SUN_ANCHOR_GMAT_STARTUP_MISSING")
+    entries = {}
+    for raw_line in startup.read_text(encoding="utf-8").splitlines():
+        line = raw_line.split("#", 1)[0].strip()
+        if "=" not in line:
+            continue
+        key, value = (part.strip() for part in line.split("=", 1))
+        if key:
+            entries[key] = value  # GMAT: the last active assignment wins.
+
+    def resolved(key: str, ancestors: tuple[str, ...] = ()) -> Path:
+        if key not in entries:
+            raise ValueError("DT2_SUN_ANCHOR_STARTUP_FIELD_MISSING: " + key)
+        if key in ancestors:
+            raise ValueError("DT2_SUN_ANCHOR_STARTUP_PATH_CYCLE: " + key)
+        value = entries[key].strip(" '\"")
+        head, slash, tail = value.partition("/")
+        if slash and head in entries:
+            return (resolved(head, ancestors + (key,)) / tail).resolve()
+        if slash and head.isidentifier() and head.upper() == head:
+            raise ValueError("DT2_SUN_ANCHOR_STARTUP_UNRESOLVED_ALIAS: " + head)
+        raw_path = Path(value)
+        return (raw_path if raw_path.is_absolute()
+                else startup.parent / raw_path).resolve()
+
+    fields = {
+        "spk": "PLANETARY_SPK_FILE",
+        "lsk": "LSK_FILE",
+        "pck": "PLANETARY_PCK_FILE",
+    }
+    observed = {name: resolved(key) for name, key in fields.items()}
+    for name, actual in observed.items():
+        if actual != paths[name].resolve():
+            raise ValueError("DT2_SUN_ANCHOR_STARTUP_KERNEL_MISMATCH: " + name)
+    return {
+        "path": str(startup),
+        "sha256": digest(startup),
+        "kernel_paths": {name: str(path) for name, path in observed.items()},
+    }
+
+def sun_script(a1_mjd: list[float], *, report_path: Path) -> str:
     if len(a1_mjd)!=3 or not all(math.isfinite(t) for t in a1_mjd):
         raise ValueError("DT2_SUN_ANCHOR_REQUIRES_THREE_REAL_A1_EPOCHS")
     for a,b in zip(a1_mjd,a1_mjd[1:]):
@@ -57,9 +107,8 @@ def sun_script(a1_mjd: list[float], *, spk: Path, lsk: Path,
     lines=[
         "% Real R2026a Sun geocentric ephemeris, not a fake spacecraft vector.",
         "GMAT SolarSystem.EphemerisSource = 'SPICE';",
-        f"GMAT SolarSystem.SPKFilename = '{q(spk)}';",
-        f"GMAT SolarSystem.LSKFilename = '{q(lsk)}';",
-        f"GMAT SolarSystem.PCKFilename = '{q(pck)}';",
+        # R2026a configures its exact SPK/LSK/PCK via gmat_startup_file.txt;
+        # assignments for these deprecated fields must NOT enter the script.
         "Create ReportFile SunAnchor;",
         f"SunAnchor.Filename = '{q(report_path)}';",
         "SunAnchor.Precision = 16;",
@@ -208,6 +257,7 @@ def run(out: Path, root: Path, binary: Path) -> dict:
     for name,path in paths.items():
         if not path.is_file() or path.stat().st_size<100:
             raise FileNotFoundError("DT2_SUN_ANCHOR_GMAT_OFFICIAL_KERNEL_MISSING: "+name)
+    startup_evidence = verified_gmat_startup_kernels(root, paths)
     outputs={
         "script":out/"gmat_sun_anchor_executed.script",
         "raw":out/"gmat_sun_anchor_raw.txt",
@@ -219,8 +269,7 @@ def run(out: Path, root: Path, binary: Path) -> dict:
     if any(p.exists() for p in outputs.values()):
         raise FileExistsError("DT2_SUN_ANCHOR_IMMUTABLE_OUTPUT_COLLISION")
     outputs["script"].write_text(sun_script(
-        a1_epochs,spk=paths["spk"],lsk=paths["lsk"],pck=paths["pck"],
-        report_path=outputs["raw"]),encoding="ascii")
+        a1_epochs,report_path=outputs["raw"]),encoding="ascii")
     proc=subprocess.run([str(binary),"--run",str(outputs["script"])],
         cwd=binary.parent,capture_output=True,text=True,timeout=240,check=False)
     outputs["stdout"].write_text(proc.stdout,encoding="utf-8")
@@ -234,6 +283,9 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         "gmat_binary_sha256":digest(binary),
         "gmat_stdout_sha256":digest(outputs["stdout"]),
         "kernel_sha256":{k:digest(v) for k,v in paths.items()},
+        "gmat_startup_file":startup_evidence["path"],
+        "gmat_startup_sha256":startup_evidence["sha256"],
+        "gmat_startup_kernel_paths":startup_evidence["kernel_paths"],
         "gmat_sun_report_produced":outputs["raw"].is_file(),
         "gmat_sun_report_sha256":digest(outputs["raw"]) if outputs["raw"].is_file() else None,
         "source_frame_report_sha256":digest(frame),

@@ -16,14 +16,13 @@ spec.loader.exec_module(anchor)
 def test_sun_report_script_has_actual_gmat_source_and_three_epochs(tmp_path):
     s=anchor.sun_script(
         [31104.4,31104.43,31104.46],
-        spk=tmp_path/"DE421AllPlanets.bsp",
-        lsk=tmp_path/"SPICELeapSecondKernel.tls",
-        pck=tmp_path/"SPICEPlanetaryConstantsKernel.tpc",
         report_path=tmp_path/"real_gmat_report.txt",
     )
     assert s.isascii()
     assert "SolarSystem.EphemerisSource = 'SPICE';" in s
-    assert "SolarSystem.SPKFilename" in s
+    assert "SolarSystem.SPKFilename" not in s
+    assert "SolarSystem.LSKFilename" not in s
+    assert "SolarSystem.PCKFilename" not in s
     assert "Sun.EarthICRF.X" in s
     assert "Sun.EarthMJ2000Eq.VZ" in s
     assert s.count("Report SunAnchor ")==3
@@ -36,7 +35,7 @@ def test_sun_report_script_rejects_invalid_epoch_grid(tmp_path):
     for invalid in ([], [31104.4,31104.5], [31104.4,31104.4,31104.6],
                     [31104.4,float("nan"),31104.6]):
         with pytest.raises(ValueError):
-            anchor.sun_script(invalid,spk=f,lsk=f,pck=f,report_path=f)
+            anchor.sun_script(invalid,report_path=f)
 
 
 def test_sun_vector_parser_rejects_invalid_external_records(tmp_path):
@@ -69,3 +68,45 @@ def test_angle_is_stable_for_tiny_nonzero_rotations():
 def test_no_gmat_and_no_real_manifest_cannot_start_anchor(tmp_path):
     with pytest.raises(FileNotFoundError):
         anchor.run(tmp_path,tmp_path,tmp_path/"not-a-genuine-gmat-binary")
+
+def test_real_release_startup_must_resolve_exact_packaged_kernels(tmp_path):
+    root = tmp_path / "GMAT" / "R2026a"
+    entries = {
+        "spk": root / "data/planetary_ephem/spk/DE421AllPlanets.bsp",
+        "lsk": root / "data/time/SPICELeapSecondKernel.tls",
+        "pck": root / "data/planetary_coeff/SPICEPlanetaryConstantsKernel.tpc",
+    }
+    for file in entries.values():
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_bytes(b"X" * 101)  # Path contract only; NOT genuine kernels.
+    startup = root / "bin/gmat_startup_file.txt"
+    startup.parent.mkdir(parents=True)
+    content = (
+        "ROOT_PATH = ../\\n"
+        "DATA_PATH = ROOT_PATH/data/\\n"
+        "PLANETARY_EPHEM_SPK_PATH = DATA_PATH/planetary_ephem/spk/\\n"
+        "PLANETARY_SPK_FILE = PLANETARY_EPHEM_SPK_PATH/DE421AllPlanets.bsp\\n"
+        "PLANETARY_COEFF_PATH = DATA_PATH/planetary_coeff/\\n"
+        "PLANETARY_PCK_FILE = PLANETARY_COEFF_PATH/SPICEPlanetaryConstantsKernel.tpc\\n"
+        "TIME_PATH = DATA_PATH/time/\\n"
+        "LSK_FILE = TIME_PATH/SPICELeapSecondKernel.tls\\n"
+    )
+    startup.write_text(content, encoding="utf-8")
+    observed = anchor.verified_gmat_startup_kernels(root, entries)
+    assert observed["sha256"] == anchor.digest(startup)
+    assert observed["kernel_paths"] == {k: str(v.resolve()) for k, v in entries.items()}
+    for name, old, altered in (
+        ("lsk", "LSK_FILE = TIME_PATH/SPICELeapSecondKernel.tls",
+         "LSK_FILE = TIME_PATH/another.tls"),
+        ("spk", "PLANETARY_SPK_FILE = PLANETARY_EPHEM_SPK_PATH/DE421AllPlanets.bsp",
+         "PLANETARY_SPK_FILE = PLANETARY_EPHEM_SPK_PATH/DE405AllPlanets.bsp"),
+        ("pck", "PLANETARY_PCK_FILE = PLANETARY_COEFF_PATH/SPICEPlanetaryConstantsKernel.tpc",
+         "PLANETARY_PCK_FILE = PLANETARY_COEFF_PATH/alternate.tpc"),
+    ):
+        startup.write_text(content.replace(old, altered), encoding="utf-8")
+        with pytest.raises(ValueError, match="DT2_SUN_ANCHOR_STARTUP_KERNEL_MISMATCH: " + name):
+            anchor.verified_gmat_startup_kernels(root, entries)
+    startup.unlink()
+    with pytest.raises(FileNotFoundError, match="DT2_SUN_ANCHOR_GMAT_STARTUP_MISSING"):
+        anchor.verified_gmat_startup_kernels(root, entries)
+
