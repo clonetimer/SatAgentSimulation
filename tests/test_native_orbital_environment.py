@@ -1,6 +1,9 @@
 """Actual native environment, orbital geometry and integrator verification."""
 from dataclasses import replace
 from pathlib import Path
+import shutil
+import subprocess
+import sys
 import math
 
 import numpy as np
@@ -102,9 +105,22 @@ def test_point_mass_native_integrator_retains_fourth_order_convergence():
     assert 3.5 < math.log(coarse_delta/fine_delta, 2.) < 4.5
     assert fine_delta < 1.
 
-def test_unified_runtime_executes_native_nrlmsise00_and_drag(monkeypatch):
+def test_unified_runtime_executes_native_nrlmsise00_and_drag(monkeypatch, tmp_path):
     fixture = Path(__file__).parent / "fixtures" / "celestrak_space_weather_2026-03-04.csv"
-    monkeypatch.setenv("SAT_SIM_SPACE_WEATHER_PATH", str(fixture))
+    local_asset = tmp_path / "SW-Last5Years.csv"
+    shutil.copyfile(fixture, local_asset)
+    setup_script = Path(__file__).parents[1] / "scripts" / "fetch_space_weather_asset.py"
+    subprocess.run(
+        [
+            sys.executable, str(setup_script), "--offline",
+            "--output", str(local_asset),
+            "--url", "test-fixture://celestrak-compatible-sample",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    monkeypatch.setenv("SAT_SIM_SPACE_WEATHER_PATH", str(local_asset))
     base = config(
         environment_profile="spice_wmm",
         epoch_utc="2026-03-04T21:48:00Z",
@@ -130,6 +146,9 @@ def test_unified_runtime_executes_native_nrlmsise00_and_drag(monkeypatch):
     assert environment["drag_enabled"] is True
     assert environment["space_weather"]["coverage_status"] == "PASS"
     assert environment["space_weather"]["sha256"]
+    assert environment["space_weather"]["provenance_manifest_status"] == "PASS"
+    assert environment["space_weather"]["source_url"] == "test-fixture://celestrak-compatible-sample"
+    assert environment["space_weather"]["retrieval_time_unknown"] is True
     aero = result.summary["aerodynamic_environment"]
     assert aero["status"] == "PASS"
     assert aero["wind_model_scope"] == "earth_co_rotation_zero_thermospheric_wind"
