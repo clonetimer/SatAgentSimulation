@@ -28,7 +28,7 @@
 | BE-03 | NRLMSISE-00 大气密度 | 未实现 | 当前整星 spice_wmm 环境明确不含大气阻力；独立 Basilisk 轨道扩展的 BSK-RUN-4 使用指数大气。ORB-1 本地模型同样使用指数大气代理。 | 增加 NRLMSISE-00 适配、F10.7/Ap 输入、有效时间范围和空间天气来源；保留指数模型作为低保真对照。 |
 | BE-04 | 大气阻力 | 部分实现 | BSK-RUN-4 已有 Basilisk ExponentialAtmosphere + DragDynamicEffector 独立运行烟测路径。 | 该路径不是推荐整星主运行图；需接入统一整星、质量/面积/姿态相关阻力、空间天气驱动，并做独立参考对比。 |
 | BE-05 | 太阳光压 | 部分实现 | BSK-RUN-4 有 Cannonball SRP 动力学效应器烟测。 | 当前独立烟测使用固定太阳位置和 illuminationFactor=1；不是随轨道变化的真实太阳星历/地影耦合，也不是表面光学模型。须与 DE430、Eclipse、航天器几何联动。 |
-| BE-06 | 日月第三体引力与星历 | 部分实现（真实路径） | 推荐整星 spice_wmm 使用离线 DE430、NAIF 时间/行星内核及 Sun/Moon 引力；tests/test_native_orbital_environment.py::test_real_spice_and_wmm_change_with_utc_epoch 实际运行统一整星环境并核对星历随 UTC 历元变化。 | 还需独立量化第三体加速度贡献、参考解残差和星历/时间尺度误差；不能将环境运行通过等同于任务级星历精度合格。 |
+| BE-06 | 日月第三体引力与星历 | 部分实现（真实路径，CI 待接入） | 推荐整星 spice_wmm 使用离线 DE430、NAIF 时间/行星内核及 Sun/Moon 引力；tests/test_native_orbital_environment.py 定义了 UnifiedNativeRuntime 的真实 SPICE/WMM 运行与 UTC 历元对比测试，但当前 continuous-satellite-native.yml 仅做资源 preflight，未执行该测试文件。 | 将真实环境测试纳入官方 native CI；再独立量化第三体加速度贡献、参考解残差和星历/时间尺度误差。不能将资源可加载或测试代码存在等同于已通过。 |
 | BE-07 | 日食/地影 | 部分实现 | 推荐整星图中有 Basilisk Eclipse，热环境也使用太阳/地球几何及阴影输入。 | 对本影、半影、地球遮挡、太阳方向和边界事件建立专门基准；确保 SRP、太阳翼和传感器使用同一时刻的环境。 |
 | BE-08 | 固体潮、海潮 | 未实现 | 当前主干未发现接入整星轨道动力学的固体潮或海潮模型。 | 归入 LEO-Precision 配置；先定义任务精度和潮汐模型来源，再决定是否进入常规 LEO-Engineering。 |
 | BE-09 | 地磁场 | 部分实现 | 推荐整星 spice_wmm 接入 Basilisk MagneticFieldWMM，使用 WMM2025；有效年份限定为 2025–2029。tests/test_native_orbital_environment.py 实际运行 WMM2025 并检查磁场输出量级。简化模式使用中心偶极场。 | 用户要求中的 IGRF 尚未接入；应明确比较 WMM 与 IGRF 的模型选择，不得将二者名称互换。补充坐标、历元、磁场误差和磁强计链路验证。 |
