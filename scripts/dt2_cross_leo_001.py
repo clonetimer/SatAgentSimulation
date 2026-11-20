@@ -174,7 +174,7 @@ def _gmat_script(initial_state: dict, *, report_path: str) -> str:
         "CrossState.Precision = 16;",
         "CrossState.WriteHeaders = false;",
         "CrossState.FixedWidth = false;",
-        "CrossState.Delimiter = Comma;",
+        "CrossState.Delimiter = ',';",
         "CrossState.WriteReport = false;",
         "CrossState.AppendToExistingFile = false;",
         "BeginMissionSequence;",
@@ -183,8 +183,12 @@ def _gmat_script(initial_state: dict, *, report_path: str) -> str:
         f"CrossSat.EarthMJ2000Eq.{v}" for v in ("X", "Y", "Z", "VX", "VY", "VZ")
     )
     items.append(f"Report CrossState {fields};")
-    for t in range(CASE["sample_s"], CASE["duration_s"] + 1, CASE["sample_s"]):
-        items.append(f"Propagate CrossProp(CrossSat) {{CrossSat.ElapsedSecs = {t}}};")
+    # Actual R2026a Console interprets a Propagate ElapsedSecs target
+    # relative to the START OF THIS PROPAGATE command (not mission t=0).
+    # A 60,120,180,... sequence incorrectly yields triangular 0..245700s.
+    # Keep each command at 60 seconds to obtain t=0,60,...5400s.
+    for _ in range(CASE["sample_s"], CASE["duration_s"] + 1, CASE["sample_s"]):
+        items.append(f"Propagate CrossProp(CrossSat) {{CrossSat.ElapsedSecs = {CASE['sample_s']}}};")
         items.append(f"Report CrossState {fields};")
     script = "\n".join(items) + "\n"
     # GMAT R2026a Console deliberately rejects non-ASCII script bytes.

@@ -41,14 +41,18 @@ def test_gmat_script_is_generated_from_explicit_measured_initial_state():
     assert "CrossProp.Type = RungeKutta89" in script
     assert "CrossState.FixedWidth = false" in script
     assert script.isascii()  # genuine R2026a Console rejects Unicode comments
-    assert "CrossState.Delimiter = Comma;" in script
-    assert "CrossState.Delimiter = ',';" not in script
+    # The *actual* GMAT R2026a ReportFile emitted literal 'C' for enum
+    # value Comma; the quoted comma is required for its CSV output.
+    assert "CrossState.Delimiter = ',';" in script
+    assert "CrossState.Delimiter = Comma;" not in script
     assert "CrossSat.X = 6650" in script
     assert "CrossSat.VY = 7.742" in script
     assert "04 Mar 2026 21:48:00.000" in script
     assert script.count("Propagate CrossProp(CrossSat)") == 90
     assert script.count("Report CrossState CrossSat.ElapsedSecs") == 91
-    assert "CrossSat.ElapsedSecs = 5400" in script
+    assert script.count("CrossSat.ElapsedSecs = 60}") == 90
+    assert "CrossSat.ElapsedSecs = 5400" not in script
+    assert "CrossSat.ElapsedSecs = 120" not in script
     assert "GGM03S" not in script and "SRP = On" not in script
 
 

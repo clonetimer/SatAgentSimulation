@@ -113,3 +113,13 @@ Official report-field reference: https://documentation.help/GMAT/ReportFile.html
 - The `_gmat_script` generator now uses ASCII-only source comments and explicitly fails before any GMAT run if future generated text is not ASCII. Unit test asserts `script.isascii()`. This changes no orbital initial state, `earth.mu`, numeric integrator selection, sample cadence or flight-model assumptions.
 - The above is a genuine failed first GMAT script execution, **not** a completed external comparison. The next exact-head native GMAT workflow must actually produce 91 authentic GMAT rows before the result can advance beyond `NOT_RUN`/execution-blocked.
 
+### Real GMAT execution exposed two more input-contract defects (2026-11-21)
+
+[CI 44818023876](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44818023876) **actually invoked** NASA R2026a `GmatConsole-R2026a` and stdout confirms "Successfully interpreted the script", "Mission run completed", and real **0.665-second** console runtime. It wrote a genuine `gmat_raw.txt`, 91 lines. The parser correctly rejected this as invalid: **it was not a 5400 s comma-separated trajectory**.
+
+Measured from authentic `gmat_raw.txt` (artifact **#14670805290**):
+1. The generated `ReportFile.Delimiter = Comma` (an earlier documentation-driven assumption) produced the literal character **`C`** between all 7 fields, e.g. `0C6650C0C0C0C7.742...C0`. The only reliable supported form for this release is `Delimiter = ','`; this restores the original quoted comma character with an explicit regression assertion.
+2. Setting `CrossSat.ElapsedSecs = 60,120,180,...5400` in consecutive `Propagate` commands **does not mean absolute elapsed time**: the real report had approximately `0,60,180,360,600,900,...,245700` seconds. A GMAT propagation stop condition is relative to each Propagate start, so the script now repeats the **60-second** duration exactly 90 times. The new unit regression asserts 90 repeated `= 60` commands, no `= 120` / `= 5400` cumulative request, and unchanged 91 Report commands.
+
+The changed script is still purely ASCII, 5,400 s requested, point-mass-only; the *actual executable version, archive and binary SHA* are the same verified R2026a inputs. No fabricated trajectory or post-hoc tolerance adjustment. A fresh current-head CI must produce 91 true 60-second-spaced GMAT states and an **INCONCLUSIVE** independent diagnostic before the case can move beyond GMAT execution-blocked.
+
