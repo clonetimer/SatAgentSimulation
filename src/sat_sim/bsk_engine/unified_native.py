@@ -1227,8 +1227,10 @@ class UnifiedNativeRuntime:
         from Basilisk.fswAlgorithms import attTrackingError, inertial3D, mrpFeedback, rwMotorTorque  # type: ignore
         from Basilisk.simulation import (  # type: ignore
             coarseSunSensor,
+            dragDynamicEffector,
             eclipse,
             imuSensor,
+            msisAtmosphere,
             magneticFieldCenteredDipole,
             magnetometer,
             reactionWheelStateEffector,
@@ -1237,11 +1239,13 @@ class UnifiedNativeRuntime:
             simplePowerSink,
             simpleSolarPanel,
             simpleStorageUnit,
+            spaceWeatherData,
             spacecraft,
             starTracker,
+            zeroWindModel,
         )
         from Basilisk.utilities import (  # type: ignore
-            RigidBodyKinematics, SimulationBaseClass, macros, orbitalMotion, simIncludeGravBody, simIncludeRW,
+            RigidBodyKinematics, SimulationBaseClass, macros, orbitalMotion, simHelpers, simIncludeGravBody, simIncludeRW,
         )
 
         cfg = self.config
@@ -1509,6 +1513,63 @@ class UnifiedNativeRuntime:
         ephemeris = self._orbital_environment.ephemeris_messages()
         if ephemeris is not None:
             sun_msg, earth_msg = ephemeris
+
+        space_weather = None
+        atmosphere_model = None
+        wind_model = None
+        drag_effector = None
+        if self._orbital_environment.drag_enabled:
+            if cfg.adcs_only:
+                raise ValueError("NRLMSISE00_REQUIRES_WHOLE_SPACECRAFT_RUNTIME")
+            epoch_string = self._orbital_environment.epoch.strftime("%Y %B %d %H:%M:%S.%f")
+            epoch_message = simHelpers.timeStringToGregorianUTCMsg(epoch_string)
+
+            # Official Basilisk CelesTrak publisher. It must update before
+            # MsisAtmosphere reads its 23 input channels in the same task.
+            space_weather = spaceWeatherData.SpaceWeatherData()
+            space_weather.loadSpaceWeatherFile(self._orbital_environment.space_weather_asset.path)
+            space_weather.epochInMsg.subscribeTo(epoch_message)
+            add(space_weather, "space_weather_data", "basilisk_official_native", 98)
+
+            atmosphere_model = msisAtmosphere.MsisAtmosphere()
+            atmosphere_model.planetPosInMsg.subscribeTo(earth_msg)
+            atmosphere_model.epochInMsg.subscribeTo(epoch_message)
+            atmosphere_model.addSpacecraftToModel(sc.scStateOutMsg)
+            for message_index in range(23):
+                atmosphere_model.swDataInMsgs[message_index].subscribeTo(
+                    space_weather.swDataOutMsgs[message_index]
+                )
+                connected(
+                    f"space_weather_data.swDataOutMsgs[{message_index}]",
+                    f"msis_atmosphere.swDataInMsgs[{message_index}]",
+                )
+            add(atmosphere_model, "msis_atmosphere", "basilisk_official_native", 97)
+            connected("spice_ephemeris.earth", "msis_atmosphere.planetPosInMsg")
+            connected("spacecraft.scStateOutMsg", "msis_atmosphere.scStateInMsgs")
+
+            # ZeroWindModel represents atmospheric co-rotation with Earth.
+            # It is not a thermospheric wind model.
+            wind_model = zeroWindModel.ZeroWindModel()
+            wind_model.planetPosInMsg.subscribeTo(earth_msg)
+            wind_model.addSpacecraftToModel(sc.scStateOutMsg)
+            add(wind_model, "zero_wind_model", "basilisk_official_native", 96)
+            connected("spice_ephemeris.earth", "zero_wind_model.planetPosInMsg")
+            connected("spacecraft.scStateOutMsg", "zero_wind_model.scStateInMsgs")
+
+            drag_effector = dragDynamicEffector.DragDynamicEffector()
+            drag_effector.ModelTag = "nrlmsise_drag_effector"
+            drag_parameters = dragDynamicEffector.DragBaseData()
+            drag_parameters.projectedArea = self._orbital_environment.drag_area_m2
+            drag_parameters.dragCoeff = self._orbital_environment.drag_coefficient
+            drag_parameters.comOffset = [0.0, 0.0, 0.0]
+            drag_effector.coreParams = drag_parameters
+            drag_effector.atmoDensInMsg.subscribeTo(atmosphere_model.envOutMsgs[0])
+            drag_effector.windVelInMsg.subscribeTo(wind_model.envOutMsgs[0])
+            sc.addDynamicEffector(drag_effector)
+            add(drag_effector, "nrlmsise_drag_effector", "basilisk_official_native", 94)
+            connected("msis_atmosphere.envOutMsgs[0]", "nrlmsise_drag_effector.atmoDensInMsg")
+            connected("zero_wind_model.envOutMsgs[0]", "nrlmsise_drag_effector.windVelInMsg")
+            connected("nrlmsise_drag_effector", "spacecraft.dynamicEffectors")
 
         eclipse_model = eclipse.Eclipse()
         eclipse_model.sunInMsg.subscribeTo(sun_msg)
