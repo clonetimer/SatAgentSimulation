@@ -176,7 +176,6 @@ def angle_arcsec(a: list[float],b: list[float]) -> float:
 
 
 def run(out: Path, root: Path, binary: Path) -> dict:
-    import spiceypy as spice
     out=out.resolve(strict=True)
     root=root.resolve(strict=True)
     binary=binary.resolve(strict=True)
@@ -248,6 +247,9 @@ def run(out: Path, root: Path, binary: Path) -> dict:
     if proc.returncode!=0 or not outputs["raw"].is_file():
         raise RuntimeError("DT2_SUN_ANCHOR_REAL_GMAT_EXECUTION_FAILED")
     gmats=parse_gmat_sun(outputs["raw"])
+    # Third-party dependency is needed ONLY after actual GMAT execution and
+    # immutable source checks, never to import the CLI or reject missing data.
+    import spiceypy as spice
     epoch=datetime.fromisoformat(manifest["case"]["epoch_utc"].replace("Z","+00:00"))
     spice.furnsh(str(paths["lsk"]))
     spice.furnsh(str(paths["spk"]))
