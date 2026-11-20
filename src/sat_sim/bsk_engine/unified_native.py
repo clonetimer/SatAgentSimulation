@@ -1552,7 +1552,8 @@ class UnifiedNativeRuntime:
         if self._orbital_environment.drag_enabled:
             if cfg.adcs_only:
                 raise ValueError("NRLMSISE00_REQUIRES_WHOLE_SPACECRAFT_RUNTIME")
-            epoch_string = self._orbital_environment.epoch.strftime("%Y %B %d %H:%M:%S.%f")
+            month_name = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")[self._orbital_environment.epoch.month - 1]
+            epoch_string = self._orbital_environment.epoch.strftime(f"%Y {month_name} %d %H:%M:%S.%f")
             epoch_message = simHelpers.timeStringToGregorianUTCMsg(epoch_string)
 
             # Official Basilisk CelesTrak publisher. It must update before
