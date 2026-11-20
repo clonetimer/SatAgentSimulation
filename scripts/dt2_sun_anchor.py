@@ -631,6 +631,99 @@ def audit_native_same_process_clock(
     return summary, results
 
 
+
+def audit_gmat_a1_tt_to_real_et(
+    gmat_frame_rows: list[dict],
+    native_clock: list[dict],
+    naif_utc_et: list[float],
+    spice_gmat_tt_et: list[float],
+    spice_gmat_a1_et: list[float],
+) -> tuple[dict, list[dict]]:
+    """Observe, but never approve, the separate GMAT A1/TT to J2000 ET chains.
+
+    The ET conversions are genuine CSPICE UNITIM results obtained while the
+    EXACT GMAT-packaged LSK is furnished; all GMAT A1/TAI/TT rows and original
+    Basilisk J2000Current messages remain unmodified and are SHA-bound.
+    """
+    if len(gmat_frame_rows)!=91 or any(
+        len(array)!=3 for array in (
+            native_clock,naif_utc_et,spice_gmat_tt_et,spice_gmat_a1_et)
+    ):
+        raise ValueError("DT2_ABSOLUTE_CLOCK_REQUIRES_AUTHENTIC_91_AND_THREE")
+    official_a1_minus_tai_s=0.0343817  # GMAT R2026a GmatConstants.hpp
+    indices=(0,45,90)
+    compared=[]
+    for j,index in enumerate(indices):
+        row=gmat_frame_rows[index]
+        try:
+            a1,tai,tt,utc,elapsed=(
+                float(row[key]) for key in
+                ("a1_mjd","tai_mjd","tt_mjd","utc_mjd","elapsed_s")
+            )
+            task_elapsed=float(native_clock[j]["time_s"])
+            native_et=float(native_clock[j]["et_s"])
+            utc_et=float(naif_utc_et[j])
+            tt_et=float(spice_gmat_tt_et[j])
+            a1_et=float(spice_gmat_a1_et[j])
+        except (KeyError,TypeError,ValueError) as exc:
+            raise ValueError("DT2_ABSOLUTE_CLOCK_MISSING_REAL_REPORT_COLUMN") from exc
+        values=(a1,tai,tt,utc,elapsed,task_elapsed,native_et,utc_et,tt_et,a1_et)
+        if not all(math.isfinite(v) for v in values):
+            raise ValueError("DT2_ABSOLUTE_CLOCK_NONFINITE_REAL_REPORT")
+        if abs(task_elapsed-index*60.0)>1e-6:
+            raise ValueError("DT2_ABSOLUTE_CLOCK_NATIVE_TASK_BAD_GRID")
+        if abs(elapsed-index*60.0)>20e-6:
+            raise ValueError("DT2_ABSOLUTE_CLOCK_GMAT_REPRESENTATION_BAD_GRID")
+        compared.append({
+            "sample_index":index,
+            "gmat_raw_elapsed_s":elapsed,
+            "native_bsk_task_elapsed_s":task_elapsed,
+            "gmat_a1_modjulian":a1,
+            "gmat_tai_modjulian":tai,
+            "gmat_tt_modjulian":tt,
+            "gmat_utc_modjulian":utc,
+            "gmat_reported_A1_minus_TAI_s":(a1-tai)*86400.0,
+            "gmat_A1_TAI_minus_official_R2026a_offset_s":
+                (a1-tai)*86400.0-official_a1_minus_tai_s,
+            "gmat_reported_TT_minus_TAI_s":(tt-tai)*86400.0,
+            "spice_unitim_GMAT_TT_to_ET_s":tt_et,
+            "spice_unitim_GMAT_A1_via_TAI_TT_to_ET_s":a1_et,
+            "independent_naif_str2et_UTC_s":utc_et,
+            "basilisk_same_process_native_J2000Current_s":native_et,
+            "GMAT_TT_ET_minus_naif_UTC_ET_s":tt_et-utc_et,
+            "GMAT_A1_ET_minus_naif_UTC_ET_s":a1_et-utc_et,
+            "GMAT_TT_ET_minus_BSK_native_ET_s":tt_et-native_et,
+            "GMAT_A1_ET_minus_BSK_native_ET_s":a1_et-native_et,
+            "GMAT_TT_ET_minus_A1_ET_s":tt_et-a1_et,
+            "native_BSK_ET_minus_independent_NAIF_UTC_ET_s":native_et-utc_et,
+        })
+    summary={
+        "status":"INCONCLUSIVE",
+        "source_case":"CROSS-LEO-001",
+        "real_samples":len(compared),
+        "gmat_mjd_definition":"GMAT R2026a JD minus 2430000.0",
+        "gmat_A1_minus_TAI_source":"nasa/GMAT tag R2026a src/gmatutil/util/GmatConstants.hpp",
+        "official_gmat_A1_minus_TAI_s":official_a1_minus_tai_s,
+        "NAIF_conversion":"genuine spiceypy 8.4.0 unitim(TDT,ET) with exact packaged LSK",
+        "original_GMAT_clock_and_basilisk_spice_messages_unmodified":True,
+        "max_abs_reported_A1_TAI_offset_error_s":
+            max(abs(x["gmat_A1_TAI_minus_official_R2026a_offset_s"]) for x in compared),
+        "max_abs_GMAT_TT_to_NAIF_ET_delta_s":
+            max(abs(x["GMAT_TT_ET_minus_naif_UTC_ET_s"]) for x in compared),
+        "max_abs_GMAT_A1_to_NAIF_ET_delta_s":
+            max(abs(x["GMAT_A1_ET_minus_naif_UTC_ET_s"]) for x in compared),
+        "max_abs_GMAT_TT_to_native_BSK_ET_delta_s":
+            max(abs(x["GMAT_TT_ET_minus_BSK_native_ET_s"]) for x in compared),
+        "max_abs_GMAT_TT_ET_vs_A1_ET_delta_s":
+            max(abs(x["GMAT_TT_ET_minus_A1_ET_s"]) for x in compared),
+        "GMAT_A1_to_original_Basilisk_absolute_clock_approved":False,
+        "original_Basilisk_spacecraft_N_axes_independently_qualified":False,
+        "aligned_original_two_engine_state_samples":0,
+        "mission_accuracy_budget_approved":False,
+    }
+    return summary,compared
+
+
 def run(out: Path, root: Path, binary: Path) -> dict:
     out=out.resolve(strict=True)
     root=root.resolve(strict=True)
@@ -678,6 +771,8 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         "native_clock_replay":out/"basilisk_same_process_spacecraft.csv",
         "native_clock_raw":out/"basilisk_same_process_clock.csv",
         "native_clock_diagnostic":out/"basilisk_same_process_clock_diagnostic.json",
+        "a1_tt_et_rows":out/"gmat_a1_tt_naif_ET_rows.csv",
+        "a1_tt_et_diagnostic":out/"gmat_a1_tt_naif_ET_diagnostic.json",
         "receipt":out/"sun_anchor_execution.json",
     }
     if any(p.exists() for p in outputs.values()):
@@ -726,11 +821,24 @@ def run(out: Path, root: Path, binary: Path) -> dict:
     naif=[]
     naif_moon=[]
     naif_et=[]
+    gmat_tt_as_et=[]
+    gmat_a1_as_et=[]
     try:
         for index in INDICES:
             at=(epoch+timedelta(seconds=index*60)).isoformat().replace("+00:00","Z")
             et=spice.str2et(at)
             naif_et.append(float(et))
+            # GMAT's R2026a MODJULIAN is JD-2430000; J2000 is day 21545.
+            # Subtract the two day counts BEFORE converting to seconds, to
+            # avoid catastrophic double-precision JD cancellation.
+            frame_time=rows[index]
+            tt_sec=(float(frame_time["tt_mjd"])-21545.0)*86400.0
+            a1_sec=(float(frame_time["a1_mjd"])-21545.0)*86400.0
+            gmat_tt_as_et.append(float(spice.unitim(tt_sec,"TDT","ET")))
+            # GMAT A1 = TAI+0.0343817s; TT = TAI+32.184s.
+            # This separate conversion is NOT an inferred spacecraft fit.
+            tt_from_a1=a1_sec-0.0343817+32.184
+            gmat_a1_as_et.append(float(spice.unitim(tt_from_a1,"TDT","ET")))
             state,_=spice.spkezr("SUN",et,"J2000","NONE","EARTH")
             moon_state,_=spice.spkezr("MOON",et,"J2000","NONE","EARTH")
             naif.append([float(x) for x in state])
@@ -837,6 +945,23 @@ def run(out: Path, root: Path, binary: Path) -> dict:
     clock_diagnostic["original_GMAT_frame_time_csv_sha256"]=digest(frame)
     clock_diagnostic["pinned_GMAT_DE421_LSK_PCK_sha256"]=receipt["kernel_sha256"]
     write_json(outputs["native_clock_diagnostic"],clock_diagnostic)
+    uniform_diag,uniform_rows=audit_gmat_a1_tt_to_real_et(
+        rows,native_clock,naif_et,gmat_tt_as_et,gmat_a1_as_et)
+    with outputs["a1_tt_et_rows"].open("w",newline="",encoding="utf-8") as stream:
+        writer=csv.DictWriter(stream,fieldnames=list(uniform_rows[0]))
+        writer.writeheader()
+        writer.writerows(uniform_rows)
+    uniform_diag["original_GMAT_frame_time_csv_sha256"]=digest(frame)
+    uniform_diag["native_same_process_clock_csv_sha256"]=digest(outputs["native_clock_raw"])
+    uniform_diag["pinned_real_GMAT_LSK_sha256"]=receipt["kernel_sha256"]["lsk"]
+    uniform_diag["three_time_chain_rows_sha256"]=digest(outputs["a1_tt_et_rows"])
+    write_json(outputs["a1_tt_et_diagnostic"],uniform_diag)
+    receipt.update({
+        "a1_tt_to_et_diagnostic_sha256":digest(outputs["a1_tt_et_diagnostic"]),
+        "a1_tt_to_et_rows_sha256":digest(outputs["a1_tt_et_rows"]),
+        "a1_tt_to_et_real_sample_count":3,
+        "GMAT_A1_TT_to_absolute_Basilisk_time_certified":False,
+    })
     receipt.update({
         "same_process_native_clock_diagnostic_sha256":digest(outputs["native_clock_diagnostic"]),
         "same_process_native_clock_rows_sha256":digest(outputs["native_clock_raw"]),

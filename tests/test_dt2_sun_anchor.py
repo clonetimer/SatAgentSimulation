@@ -293,3 +293,44 @@ def test_same_process_native_clock_audit_synthetic_contract_only():
         anchor.audit_native_same_process_clock(
             replay,original,epoch,[810000000.,810002700.,810005400.],gmat)
 
+def test_gmat_a1_tt_to_et_audit_reports_differences_without_certifying_time():
+    # Synthetic column/clock contract ONLY, no fake GMAT or NAIF execution.
+    r=[]
+    for i in range(91):
+        t=i*60
+        tai=21545.+t/86400.
+        r.append({
+            "a1_mjd":tai+0.0343817/86400.,
+            "tai_mjd":tai,
+            "tt_mjd":tai+32.184/86400.,
+            "utc_mjd":tai-37./86400.,
+            "elapsed_s":float(t),
+        })
+    native=[{"time_s":float(t),"et_s":float(t)+100.}
+            for t in (0,2700,5400)]
+    independent=[float(t)+100. for t in (0,2700,5400)]
+    real_conversion_from_unitim=[float(t)+100.5 for t in (0,2700,5400)]
+    diag,data=anchor.audit_gmat_a1_tt_to_real_et(
+        r,native,independent,real_conversion_from_unitim,real_conversion_from_unitim)
+    assert len(data)==3
+    assert [x["sample_index"] for x in data]==[0,45,90]
+    assert diag["max_abs_GMAT_TT_to_NAIF_ET_delta_s"]==pytest.approx(0.5)
+    assert diag["max_abs_GMAT_A1_to_NAIF_ET_delta_s"]==pytest.approx(0.5)
+    assert diag["max_abs_GMAT_TT_ET_vs_A1_ET_delta_s"]==0.0
+    assert diag["official_gmat_A1_minus_TAI_s"]==0.0343817
+    assert diag["status"]=="INCONCLUSIVE"
+    assert not diag["GMAT_A1_to_original_Basilisk_absolute_clock_approved"]
+    assert diag["aligned_original_two_engine_state_samples"]==0
+    with pytest.raises(ValueError,match="DT2_ABSOLUTE_CLOCK_REQUIRES_AUTHENTIC_91_AND_THREE"):
+        anchor.audit_gmat_a1_tt_to_real_et(r[:-1],native,independent,
+                                            real_conversion_from_unitim,real_conversion_from_unitim)
+    r[45]["a1_mjd"]=float("nan")
+    with pytest.raises(ValueError,match="DT2_ABSOLUTE_CLOCK_NONFINITE_REAL_REPORT"):
+        anchor.audit_gmat_a1_tt_to_real_et(r,native,independent,
+                                            real_conversion_from_unitim,real_conversion_from_unitim)
+    r[45]["a1_mjd"]=r[0]["a1_mjd"]
+    r[45]["elapsed_s"]=2700.001
+    with pytest.raises(ValueError,match="DT2_ABSOLUTE_CLOCK_GMAT_REPRESENTATION_BAD_GRID"):
+        anchor.audit_gmat_a1_tt_to_real_et(r,native,independent,
+                                            real_conversion_from_unitim,real_conversion_from_unitim)
+
