@@ -53,18 +53,19 @@ def test_named_native_drag_routes_to_implemented_whole_spacecraft(request_text):
     assert result.selected_capability_id == 'whole_spacecraft.unified_native.v1'
 
 
-@pytest.mark.parametrize('capability_id', [
-    'subsystem.adcs_unified_native.v1',
-    'orbit_environment.medium_fidelity.v1',
+@pytest.mark.parametrize('capability_id,expected_domain', [
+    ('subsystem.adcs_unified_native.v1', 'high_fidelity_orbit'),
+    ('orbit_environment.medium_fidelity.v1', 'capability_routing'),
 ])
-def test_native_drag_is_not_silently_advertised_by_wrong_runtime(capability_id):
-    # A retired orbit capability is not a valid capability_id= override.
-    # Name it as a routing cue, as in the existing SPICE negative-control
-    # test, to exercise the *physics* boundary instead of the ID-error gate.
+def test_native_drag_is_not_silently_advertised_by_wrong_runtime(capability_id, expected_domain):
+    # Force the capability ID. A retired ID must fail the exposure gate;
+    # an ADCS-only runtime must fail the NRLMSISE physical ownership gate.
+    # Without the explicit capability_id=, the planner correctly routes a
+    # positive NRLMSISE request to the supported whole-spacecraft runtime.
     result = plan_capability_for_request(
-        f'{capability_id} 使用 NRLMSISE-00 阻力')
+        f'capability_id={capability_id} 使用 NRLMSISE-00 阻力')
     assert not result.supported
-    assert any(item.domain == 'high_fidelity_orbit' for item in result.unsupported_requirements)
+    assert any(item.domain == expected_domain for item in result.unsupported_requirements)
 
 
 @pytest.mark.parametrize('claim', ['飞行级轨道', 'calibrated force-model tolerances', 'truth ephemeris'])

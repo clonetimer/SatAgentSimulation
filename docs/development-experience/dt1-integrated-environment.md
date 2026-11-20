@@ -88,3 +88,5 @@
 回归覆盖：纯中文/英文正向物理选择、真实模板脚本导出、模型选择字段未丢失、错误能力（ADCS-only / orbit-only）拒绝、飞行级声明不豁免、外部原始草案不得静默降级、否定指令不启用。相关测试明确纳入 Agent/Run CI 路径触发及实际测试列表。**无原生模型、质量/面积、积分步长、空间天气来源或动力学物理门禁改动**。仅在新 exact-head CI 通过后宣告该自然语言输入链验收通过，不从规划测试推断真 LLM 理解准确率。
 
 - 首轮 Agent/Run CI [44808555871](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44808555871) 发现两处真实失败：旧/已退役 `orbit_environment.medium_fidelity.v1` 被新测试通过 `capability_id=` 指定时先触发 `capability_routing` unknown-ID，而不是预期的非 native 物理拒绝分支；将负例输入改为现有测试已采用的能力名称提示，保持物理拒绝断言不变。另一处是现有 high-fidelity 拒绝词中缺少 **`飞行级轨道`**，导致含 NRLMSISE-00 的中文飞行级精度请求错误得到 supported=True。该词现补入 `high_fidelity_orbit` 拒绝域；并未解除任何飞行级、校准容差、外部真值限制。保持 NRLMSISE 仅在 whole-spacecraft native opt-in 中允许。
+
+- 第二轮 Agent/Run CI [44808983199](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44808983199) 中**唯一剩余失败**是新增负例把退役能力名称放在自然语言正文，而不是 `capability_id=` 强约束。真实规划器选择 `whole_spacecraft.unified_native.v1` 的已实现 NRLMSISE 路由，实际上属于正确的正向能力选择，不能误当成错误。已把负例改回显式强约束，并区分 `subsystem.adcs_unified_native.v1` 的物理范围拒绝 `high_fidelity_orbit` 与退役 `orbit_environment.medium_fidelity.v1` 的 `capability_routing` 拒绝。未放宽任何生产运行时判据，也未撤销中文飞行级精度拦截。
