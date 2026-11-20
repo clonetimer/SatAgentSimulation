@@ -4,6 +4,12 @@ on:
   pull_request:
     paths:
       - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/sat_sim/bsk_engine/orbital_environment.py"
+      - "src/sat_sim/orbit/basilisk_hf.py"
+      - "src/sat_sim/benchmarks/basilisk_orbit.py"
+      - "integrated/orbit_environment/**"
+      - "scripts/fetch_environment_assets.py"
+      - "tests/test_native_orbital_environment.py"
       - "src/sat_sim/adapters/whole_spacecraft_composite_digital_twin.py"
       - "src/subsystems/thermal/thermal_network.py"
       - "src/integration/resource_feedback.py"
@@ -127,6 +133,11 @@ jobs:
           )
           print("Strict spice_wmm resource preflight passed; native execution follows.")
           PY
+      - name: Verify actual native SPICE WMM environment and orbit-step convergence
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q tests/test_native_orbital_environment.py --disable-warnings
       - name: Run native continuous and segmented execution regression tests
         env:
           PYTHONPATH: "src:."
