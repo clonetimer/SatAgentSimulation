@@ -110,6 +110,10 @@ jobs:
           assert info["report_sha256"]==hashlib.sha256((root/"gmat_raw.txt").read_bytes()).hexdigest()
           assert manifest["evidence"]["basilisk_executed"]
           assert manifest["evidence"]["gmat_executed"]
+          assert any("actual GMAT executed" in note
+                     for note in manifest["limitations"])
+          assert not any("no external GMAT execution" in note
+                         for note in manifest["limitations"])
           assert manifest["external_vv_status"]=="INCONCLUSIVE"
           assert manifest["evidence"]["gmat_report_sha256"]==info["report_sha256"]
           assert not manifest["frames"]["independent_alignment_approved"]

@@ -417,6 +417,17 @@ def run_gmat(out: Path, binary: Path, *, timeout_s: int = 180,
             ev["gmat_report_sha256"] = record["report_sha256"]
             ev["gmat_normalized_csv_sha256"] = record["normalized_csv_sha256"]
             ev["gmat_binary_sha256"] = record["binary_sha256"]
+            # The original manifest was correctly NOT_RUN before external
+            # execution. Once a genuine GMAT report is hash-verified, do not
+            # leave a contradictory "no GMAT execution" limitation beside the
+            # evidence flag. Frame/time and accuracy remain unapproved.
+            stale = "no external GMAT execution or input-constant/frame alignment"
+            manifest["limitations"] = [
+                ("actual GMAT executed; independent frame/time alignment "
+                 "and mission acceptance limits not approved")
+                if item == stale else item
+                for item in manifest.get("limitations", [])
+            ]
         manifest["external_vv_status"] = "INCONCLUSIVE"
         manifest["acceptance_limits_status"] = "NOT_APPROVED"
         _write_json(manifest_path, manifest)
