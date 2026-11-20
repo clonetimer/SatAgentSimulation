@@ -275,3 +275,137 @@ def test_all_four_effects_one_real_orbit_crosses_eclipse_with_drag_still_active(
         "space_weather_source=test-fixture://celestrak-compatible-sample",
         flush=True,
     )
+
+def test_four_effects_pass_canonical_taskspec_exported_script_and_sealed_run_bundle(tmp_path, monkeypatch):
+    """Product entry regression: opt-in physics cannot vanish after TaskSpec export.
+
+    The LLM itself is deliberately not under test. A deterministic, validated
+    product TaskSpec is exported to runnable Python and executed; the same
+    inputs are separately committed as a real sealed Run Bundle. No dynamics
+    fixture/acceptance threshold is modified for this product-path check.
+    """
+    import json
+    from importlib.metadata import version
+
+    from sat_sim.run_bundle import execute_prepared_run, prepare_run, verify_run_bundle
+    from sat_sim.scenario_templates import instantiate_scenario_template
+    from sat_sim.script_exporter import export_runner_script
+
+    assert version("bsk") == "2.11.0"
+    configure_weather(tmp_path, monkeypatch)
+    epoch = "2026-03-04T21:48:00Z"
+    orbit_radius_m = 6_650_000.0
+    # Source the daylight phase from real DE430 Sun, never a fabricated
+    # ephemeris. This is a test-only fixture, not an approved orbit reference.
+    probe = run_whole({
+        "environment_profile": "spice_wmm",
+        "epoch_utc": epoch,
+        "orbit_radius_m": orbit_radius_m,
+        "eccentricity": 0.0,
+        "inclination_deg": 0.0,
+    }, duration=10.)
+    sun = vector(probe.trace_rows[0], "orbit.sun_position_m")
+    anomaly = math.atan2(float(sun[1]), float(sun[0])) % (2.0 * math.pi)
+
+    task = instantiate_scenario_template(
+        "whole_spacecraft_unified_native", task_id="dt1_product_entry_four_effects")
+    task["simulation"].update(duration_s=30.0, step_s=1.0, sample_s=10.0)
+    task["assurance"]["allow_proxy"] = False
+    selected = task["parameters"]["values"]
+    selected.update({
+        "environment_profile": "spice_wmm",
+        "epoch_utc": epoch,
+        "orbit_radius_m": orbit_radius_m,
+        "eccentricity": 0.0,
+        "inclination_deg": 0.0,
+        "initial_true_anomaly_rad": anomaly,
+        "spacecraft_mass_kg": 100.0,
+        "controller_k": 0.0,
+        "controller_p": 0.0,
+        "earth_gravity_model": "ggm03s_degree4",
+        "magnetic_field_model": "igrf14",
+        "atmosphere_model": "nrlmsise00",
+        "drag_area_m2": 1.0,
+        "drag_coefficient": 2.2,
+        "srp_model": "cannonball",
+        "srp_reference_area_m2": 20.0,
+        "srp_coefficient_reflection": 1.5,
+    })
+    spec_file = tmp_path / "product_taskspec.json"
+    spec_file.write_text(json.dumps(task, ensure_ascii=False), encoding="utf-8")
+    exported = export_runner_script(
+        spec_file, tmp_path / "four_effects_runner.py",
+        kind="capability-python", output_root=tmp_path / "script_outputs")
+    code = exported.output_path.read_text(encoding="utf-8")
+    compile(code, str(exported.output_path), "exec")
+    for item in ("ggm03s_degree4", "igrf14", "nrlmsise00", "cannonball"):
+        assert item in code, f"exported script lost opt-in model: {item}"
+
+    # Run the *exported script*, rather than merely compiling its syntax.
+    child_env = dict(os.environ)
+    source_root = Path(__file__).parents[1]
+    child_env["PYTHONPATH"] = os.pathsep.join((str(source_root / "src"),
+                                              str(source_root),
+                                              child_env.get("PYTHONPATH", "")))
+    script_run = subprocess.run(
+        [sys.executable, str(exported.output_path)],
+        cwd=source_root, env=child_env,
+        text=True, capture_output=True, timeout=180, check=False)
+    assert script_run.returncode == 0, (
+        f"exported runner failed: {script_run.returncode}\n"
+        f"stdout tail={script_run.stdout[-1800:]}\n"
+        f"stderr tail={script_run.stderr[-1800:]}")
+    marker = '{\n  "ok":'
+    start = script_run.stdout.rfind(marker)
+    assert start >= 0, f"generated runner result missing: {script_run.stdout[-1800:]}"
+    script_result = json.loads(script_run.stdout[start:])
+    assert script_result["ok"] is True
+    assert script_result["capability_id"] == "whole_spacecraft.unified_native.v1"
+    assert script_result["validation_outcome"]["result"] == "PASS"
+
+    # Independently execute the same TaskSpec through the product Run Bundle.
+    prepared = prepare_run(
+        task, output_root=tmp_path / "bundles", run_id="dt1_product_four_effects")
+    executed = execute_prepared_run(
+        prepared.bundle_root,
+        expected_plan_sha256=prepared.execution_plan_sha256,
+        max_attempts=1, hard_timeout=True,
+    )
+    assert executed.run_record.status.value == "SUCCEEDED", executed.run_record.model_dump(mode="json")
+    assert executed.validation.result.value == "PASS", executed.validation.model_dump(mode="json")
+    assert verify_run_bundle(prepared.bundle_root)["ok"] is True
+    bundle_spec = json.loads(
+        (Path(prepared.bundle_root) / "input" / "task_spec.json").read_text(encoding="utf-8"))
+    assert all(bundle_spec["parameters"]["values"][key] == selected[key] for key in (
+        "earth_gravity_model", "magnetic_field_model", "atmosphere_model",
+        "drag_area_m2", "drag_coefficient", "srp_model",
+        "srp_reference_area_m2", "srp_coefficient_reflection"))
+
+    for output in (script_result["summary"], executed.summary):
+        env = output["orbital_environment"]
+        assert env["gravity_degree"] == 4
+        assert env["magnetic_field_model_id"] == "IGRF14_2025_2030"
+        assert env["drag_enabled"] is True
+        assert env["space_weather"]["source_url"] == "test-fixture://celestrak-compatible-sample"
+        assert output["aerodynamic_environment"]["status"] == "PASS"
+        assert output["aerodynamic_environment"]["drag_force_max_n"] > 0.0
+        assert output["solar_radiation_pressure"]["status"] == "PASS"
+        assert output["gravity_harmonics"]["degree_and_order"] == 4
+        assert output["runtime_message_read_error_count"] == 0
+    assert max(row["orbit.drag_force_norm_n"] for row in executed.trace_rows[1:]) > 0.0
+    assert max(row["orbit.srp_force_norm_n"] for row in executed.trace_rows[1:]) > 0.0
+
+    # Same submitted physics inputs through both official product routes.
+    script_drag_n = script_result["summary"]["aerodynamic_environment"]["drag_force_max_n"]
+    bundle_drag_n = executed.summary["aerodynamic_environment"]["drag_force_max_n"]
+    assert math.isclose(script_drag_n, bundle_drag_n, rel_tol=1e-6, abs_tol=1e-12)
+    print(
+        "DT1_PRODUCT_SCRIPT_BUNDLE_MEASURED "
+        f"script_drag_max_n={script_drag_n:.9e} "
+        f"bundle_drag_max_n={bundle_drag_n:.9e} "
+        f"bundle_rows={len(executed.trace_rows)} "
+        f"bundle_plan_sha256={prepared.execution_plan_sha256} "
+        "script_executed=true bundle_sealed=true "
+        "fixture_source=test-fixture://celestrak-compatible-sample",
+        flush=True,
+    )

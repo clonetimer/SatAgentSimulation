@@ -64,3 +64,9 @@
 **触发条件限制**：全部只在真实 `main` push 且匹配对应路径时运行，不对每个特性分支 push 重复收费；包含自身工作流文件，以确保本次 #213 合并后该作业必定满足路径匹配。已有 `native-rw-component-probe.yml` 对非 PR 事件会执行真实 Chromium 向导（原 `Determine whether browser...changed` 的 `run=true` 分支），不会悄悄跳过。
 
 **验收口径**：GitHub Actions 的触发配置仅确保能在合并事件之后执行，不保证网络、资产和 runner 一定 PASS，更不等同于 GitHub 分支保护（当前 token 无权读取设置）。维护者批准合并后必须以真实最新 `main` SHA 分别检查原生整星、独立组件/Run Bundle、P10-A、参数审计、治理、静态、非原生单测和 Agent/Run，确认全部 SUCCESS 后才可关闭被 #213 替代的五项原 PR。任何队列中、失败或条件跳过均需明确解释和补验，不能根据旧 PR 的绿色状态推断。
+
+## Product Path 最小闭环验收补强（提交后待 native CI）
+
+此前 #213 的四效应 A/B 确认了 `UnifiedNativeRuntime` 内部物理链，但**不等于**用户选择可选物理模型后经正式 TaskSpec/脚本导出/Run Bundle 路径可运行。现在在原有 `tests/test_native_integrated_environment.py` 增加产品路径测试，复用相同四项显式 opt-in 的工程夹具并在 CI 正式运行：先通过经过验证的模板生成 canonical TaskSpec；导出**真正可执行的 capability-python 脚本并在独立 Python 进程执行**；然后从同一输入创建并执行密封 Run Bundle；检查固定来源空间天气、完整 GGM03S、IGRF14、实际阻力、SRP、计划哈希以及两个产品运行结果的阻力一致性。测试不调用外部 LLM，**不能将模板输入宣称为已验证自然语言理解精度**。
+
+引入这一关只为防止模型已在底层运行而在脚本/任务/证据产品入口丢失；无物理模型、任务默认值、原有判据和积分器改动。此条款只有新的 exact-head GitHub Actions 原生测试成功后才能标为 PASS；失败必须定位哪个产品路径未闭环，不以降低接受标准替代修复。
