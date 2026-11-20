@@ -92,7 +92,7 @@ def test_offline_space_weather_setup_command_writes_manifest(tmp_path):
         [
             sys.executable, str(script), "--offline",
             "--output", str(target),
-            "--url", "test-fixture://celestrak-compatible-sample",
+            "--source-url", "test-fixture://celestrak-compatible-sample",
         ],
         check=True,
         capture_output=True,
