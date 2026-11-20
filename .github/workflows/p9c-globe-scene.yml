@@ -63,7 +63,8 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from io import BytesIO
-          from urllib.request import Request, urlopen
+          from urllib.request import Request, urlopen, build_opener, HTTPRedirectHandler
+          from urllib.error import HTTPError
           import hashlib, os, zipfile
           # Artifact contains the full FM and other independent subassemblies;
           # extract ONLY the standalone RW GLB, never a subtree of the 61 MB FM.
@@ -73,7 +74,20 @@ jobs:
               "Accept": "application/vnd.github+json",
               "X-GitHub-Api-Version": "2022-11-28",
           })
-          with urlopen(req, timeout=90) as response:
+          # GitHub replies with a pre-signed Azure blob URL (302).
+          # Do NOT forward the GitHub Bearer token to that storage URL:
+          # urllib's default redirect may carry it and Azure returns 401.
+          class NoRedirect(HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+          try:
+              with build_opener(NoRedirect).open(req, timeout=90) as response:
+                  raise RuntimeError("Expected GitHub Actions artifact redirect, got HTTP " + str(response.status))
+          except HTTPError as redirect:
+              if redirect.code != 302 or not redirect.headers.get("Location"):
+                  raise
+              blob_url = redirect.headers["Location"]
+          with urlopen(Request(blob_url, headers={"User-Agent":"SatAgentSimulation-CI"}),timeout=90) as response:
               artifact_zip = response.read()
           with zipfile.ZipFile(BytesIO(artifact_zip)) as archive:
               data = archive.read("build/birds4/output/B4_RW_Assembly_v55.glb")
