@@ -106,6 +106,29 @@ def test_parse_only_well_formed_gmat_numeric_report(tmp_path):
         cross._read_gmat_report(raw,cross.CASE["epoch_utc"])
 
 
+def test_real_gmat_float_elapsed_seconds_are_preserved_and_bounded(tmp_path):
+    # Synthetic parser contract only, not a real external reference output.
+    # Reproduce the 10.69 microsecond END skew observed in R2026a. The raw
+    # time values must be retained; the physical V&V remains INCONCLUSIVE.
+    raw = tmp_path / "gmat_raw.txt"
+    rows = []
+    for i in range(91):
+        t = i * 60.0 - i * (1.0686927453207318e-5 / 90.0)
+        rows.append(f"{t:.16g},6650,0,0,0,7.742,0")
+    raw.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    result = cross._read_gmat_report(raw, cross.CASE["epoch_utc"])
+    assert len(result) == 91
+    assert result[-1]["time_s"] < 5400.
+    assert abs(result[-1]["time_s"]-5400.) < cross.GMAT_REPORT_FLOAT_TIME_SKEW_BUDGET_S
+    # Original Basilisk strict parser threshold remains unchanged.
+    with pytest.raises(ValueError, match="TIME_GRID_MISMATCH"):
+        cross._assert_grid(result)
+    rows[45] = "2700.001,6650,0,0,0,7.742,0"
+    raw.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="TIME_GRID_MISMATCH"):
+        cross._read_gmat_report(raw, cross.CASE["epoch_utc"])
+
+
 def test_no_external_engine_data_cannot_be_marked_pass(tmp_path):
     with pytest.raises(FileNotFoundError):
         cross.compare(tmp_path)

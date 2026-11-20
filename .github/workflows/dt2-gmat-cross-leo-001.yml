@@ -101,8 +101,14 @@ jobs:
           assert info["binary_sha256"]==hashlib.sha256(Path(info["binary_path"]).read_bytes()).hexdigest()
           assert info["report_sha256"]==hashlib.sha256((root/"gmat_raw.txt").read_bytes()).hexdigest()
           assert manifest["evidence"]["basilisk_executed"]
+          assert manifest["evidence"]["gmat_executed"]
+          assert manifest["external_vv_status"]=="INCONCLUSIVE"
+          assert manifest["evidence"]["gmat_report_sha256"]==info["report_sha256"]
           assert not manifest["frames"]["independent_alignment_approved"]
-          assert result["aligned_samples"]==91 and result["status"]=="INCONCLUSIVE"
+          assert result["paired_samples"]==91 and result["aligned_samples"]==0
+          assert result["status"]=="INCONCLUSIVE"
+          assert result["time_alignment_status"]=="UNAPPROVED_RAW_ENGINE_TIME_SKEW_RETAINED"
+          assert 0. <= result["reported_gmat_time_skew_max_abs_s"] <= result["input_representation_budget_s"]
           print("DT2_REAL_GMAT_EXECUTED rows=91 status=INCONCLUSIVE "
                 "flight_validation=false independent_time_frame_mu_alignment=false")
           PY

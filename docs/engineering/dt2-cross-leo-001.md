@@ -123,3 +123,13 @@ Measured from authentic `gmat_raw.txt` (artifact **#14670805290**):
 
 The changed script is still purely ASCII, 5,400 s requested, point-mass-only; the *actual executable version, archive and binary SHA* are the same verified R2026a inputs. No fabricated trajectory or post-hoc tolerance adjustment. A fresh current-head CI must produce 91 true 60-second-spaced GMAT states and an **INCONCLUSIVE** independent diagnostic before the case can move beyond GMAT execution-blocked.
 
+### Bounded **input-time representation** pilot (not physics acceptance tolerance)
+
+[Real GMAT CI 44818433025](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44818433025) produced 91 genuine R2026a rows with the intended comma format and 0–5400 s cadence. Its last *original* `ElapsedSecs` was **5399.999989313073 s**, i.e. **-10.686927 microseconds** relative to the nominal 5400-second tick, because the real GMAT Console reports elapsed time after calendar/time-scale round trips. Original 10-microsecond exact-grid parser limit correctly failed at index 85. This is **not** a flight dynamics error.
+
+For the **next run only**, a separate and explicit **20 microsecond GMAT input-representation limit** is frozen by test and source constant. Every *raw GMAT timestamp remains unmodified* and is checked for finite values, monotonic cadence, expected 91 rows, and max 20 microsecond skew. The stricter existing Basilisk exact-grid guard is **unchanged**, and a synthetic negative control at 1 millisecond skew must still FAIL. The real GMAT raw and normalized reports retain timestamps; diagnostic differences include both original engine clocks and `clock_skew_s`, plus the maximum velocity-equivalent positional clock offset. No interpolation/extrapolation or invented samples are introduced.
+
+**This 20 microsecond figure is only a representation/readability bound, selected after an explicit real pilot and predeclared for the upcoming new run; it is NOT a position/velocity error budget, physical tolerance relaxation, independent clock/frame approval, or a retroactive PASS on the pilot.** Even if the next run successfully produces two authentic 91-state datasets, `comparison_diagnostic.json` will stay **INCONCLUSIVE** with `paired_samples=91`, `aligned_samples=0` until frame/GM/time alignment and independent mission tolerances are approved.
+
+The evolving manifest will mark GMAT executed only after the actual 91-row raw report is verified; absent/invalid GMAT outputs keep `NOT_RUN`/failed execution status and may not be promoted to comparison acceptance.
+
