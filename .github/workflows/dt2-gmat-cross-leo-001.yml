@@ -56,9 +56,23 @@ jobs:
               json.dumps(info, indent=2, sort_keys=True)+"\n", encoding="utf-8")
           print("REAL_GMAT_RELEASE_ARCHIVE", json.dumps(info, sort_keys=True))
           PY
+          # Observe the official archive's actual layout instead of assuming
+          # that its launcher is a regular file named exactly GmatConsole.
+          # On failure, the file inventories are uploaded as immutable evidence.
+          tar -tzf "$archive" > reports/dt2-cross-leo-001/gmat_archive_filelist.txt
           tar -xzf "$archive" -C "$RUNNER_TEMP/gmat-release"
-          binary="$(find "$RUNNER_TEMP/gmat-release" -type f -name GmatConsole -print -quit)"
-          if [ -z "$binary" ]; then echo "GMAT_CONSOLE_NOT_FOUND_AFTER_REAL_RELEASE_EXTRACTION"; exit 1; fi
+          find "$RUNNER_TEMP/gmat-release" -maxdepth 8 -print \
+            > reports/dt2-cross-leo-001/gmat_extracted_filelist.txt
+          grep -i 'console' reports/dt2-cross-leo-001/gmat_archive_filelist.txt | head -40 || true
+          binary="$(find "$RUNNER_TEMP/gmat-release" -iname '*gmatconsole*' -print -quit)"
+          if [ -z "$binary" ]; then
+            echo "GMAT_CONSOLE_NOT_FOUND: inspect the archived original file listing"
+            sed -n '1,80p' reports/dt2-cross-leo-001/gmat_archive_filelist.txt
+            exit 1
+          fi
+          if [ -d "$binary" ]; then echo "GMAT_CONSOLE_MATCH_IS_DIRECTORY=$binary"; exit 1; fi
+          binary="$(readlink -f "$binary")"
+          if [ ! -f "$binary" ]; then echo "GMAT_CONSOLE_SYMLINK_TARGET_MISSING=$binary"; exit 1; fi
           chmod +x "$binary"
           printf 'GMAT_BIN=%s\n' "$binary" >> "$GITHUB_ENV"
           echo "ACTUAL_GMAT_BINARY=$binary"
