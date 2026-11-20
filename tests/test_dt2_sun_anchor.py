@@ -115,10 +115,14 @@ def test_sun_triplet_geometry_reports_condition_not_fictitious_frame_certificati
     import numpy as np
     independent = anchor.sun_triplet_condition(np.eye(3).tolist())
     assert math.isclose(independent["sun_triplet_condition_number"], 1.0)
+    assert independent["rotation_information_eigenvalues"] == pytest.approx([2.0, 2.0, 2.0])
+    assert math.isclose(independent["rotation_information_condition_number"], 1.0)
     assert math.isclose(independent["max_pairwise_sun_direction_separation_deg"], 90.0)
     assert independent["absolute_inertial_frame_tie_approved"] is False
     degenerate = anchor.sun_triplet_condition([[1, 0, 0]] * 3)
     assert degenerate["sun_triplet_condition_number"] is None
+    assert degenerate["rotation_information_eigenvalues"] == pytest.approx([0.0, 3.0, 3.0])
+    assert degenerate["rotation_information_condition_number"] is None
     assert degenerate["max_pairwise_sun_direction_separation_deg"] == 0.0
     near = anchor.sun_triplet_condition([
         [1.0, 0.0, 0.0],
@@ -126,11 +130,11 @@ def test_sun_triplet_geometry_reports_condition_not_fictitious_frame_certificati
         [1.0, 0.0010, 1e-11],
     ])
     assert near["sun_triplet_condition_number"] > 1e9
+    assert near["rotation_information_condition_number"] > 1e6
     assert near["absolute_inertial_frame_tie_approved"] is False
 
 
 def test_sun_triplet_geometry_rejects_invalid_vectors():
-    import numpy as np
     invalid = (
         [],
         [[1, 0, 0], [0, 1, 0]],

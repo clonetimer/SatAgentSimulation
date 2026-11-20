@@ -262,9 +262,26 @@ def sun_triplet_condition(positions_km: list[list[float]]) -> dict:
         for i, j in ((0, 1), (0, 2), (1, 2))
     )
     condition = float(sigma[0] / sigma[-1]) if sigma[-1] > 0 else None
+    # A frame rotation belongs to SO(3), not the space of unrestricted 3x3
+    # matrices. Its local Jacobian is the direction cross-product operator;
+    # the information matrix below is J^T J, not unit's matrix condition.
+    # It quantifies weak rotation about the common Sun direction without
+    # pretending that a rank-2 direction set cannot constrain a rotation.
+    information = sum(
+        (np.eye(3) - np.outer(direction, direction) for direction in unit),
+        np.zeros((3, 3), dtype=np.float64),
+    )
+    info_eigenvalues = np.linalg.eigvalsh(information)
+    rotation_condition = (
+        float(info_eigenvalues[-1] / info_eigenvalues[0])
+        if info_eigenvalues[0] > 0 else None
+    )
     return {
         "normalized_sun_direction_singular_values": [float(v) for v in sigma],
         "sun_triplet_condition_number": condition,
+        "rotation_information_eigenvalues": [float(v) for v in info_eigenvalues],
+        "rotation_information_condition_number": rotation_condition,
+        "rotation_information_scope": "linearized SO(3) direction Jacobian, unit-weighted; not a certified rotation or statistical confidence interval",
         "max_pairwise_sun_direction_separation_deg": maximum_separation_deg,
         "absolute_inertial_frame_tie_approved": False,
         "description": "three geocentric Sun directions only; not an independently qualified full inertial frame tie",

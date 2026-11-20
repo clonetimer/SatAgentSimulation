@@ -240,6 +240,9 @@ jobs:
           geometry=r["sun_direction_triplet_geometry"]
           assert geometry["absolute_inertial_frame_tie_approved"] is False
           assert len(geometry["normalized_sun_direction_singular_values"])==3
+          assert len(geometry["rotation_information_eigenvalues"])==3
+          assert all(math.isfinite(v) and v>=0
+                     for v in geometry["rotation_information_eigenvalues"])
           assert all(math.isfinite(v) and v>=0
                      for v in geometry["normalized_sun_direction_singular_values"])
           assert 0<=geometry["max_pairwise_sun_direction_separation_deg"]<=180
@@ -259,6 +262,7 @@ jobs:
                 f"bsk_naif_arcsec={r['max_basilisk_n_vs_naif_j2000_angle_arcsec']:.9e} "
                 f"sun_max_sep_deg={geometry['max_pairwise_sun_direction_separation_deg']:.9e} "
                 f"sun_triplet_condition={geometry['sun_triplet_condition_number']} "
+                f"rotation_information_condition={geometry['rotation_information_condition_number']} "
                 "status=INCONCLUSIVE original_pointmass_n_axis_certified=false")
           PY
       - name: Upload all acquired raw provenance and engine outputs including failure logs
