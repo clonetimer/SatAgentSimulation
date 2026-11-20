@@ -260,3 +260,33 @@ Basilisk 2.11.0 已提供官方 SRP 面片模型和地球反照/红外环境模�
 - 力/力矩 A/B 与理论值及 Basilisk 单元测试一致；
 - EarthRadiationModel 输出与参考输入一致；
 - 未接入的高能粒子辐射效应继续显示为 unsupported。
+
+## CHG-DT0-010：NRLMSISE-00 接入必须采用离线空间天气快照、全时段覆盖检查和真实整星阻力闭环
+
+**日期：** 2026-11-20  
+**触发证据：** Basilisk v2.11.0 MsisAtmosphere、SpaceWeatherData、DragDynamicEffector 和 ZeroWindModel 官方接口审计。
+
+**调整内容：**
+- 在推荐 whole_spacecraft.unified_native.v1 路径中增加显式 opt-in 的 NRLMSISE-00 + drag 模型，不改变 R0 默认运行。
+- 复用 Basilisk 官方 SpaceWeatherData 发布的 23 条消息、MsisAtmosphere 密度/温度模型、ZeroWindModel 地球共转速度和 DragDynamicEffector。
+- 新增离线 CelesTrak 资产获取器、SHA-256 manifest 和仿真全时段日期覆盖检查。
+- 记录实际密度、空间天气输入、阻力矢量/模长和阻力加速度；Run Bundle 保留空间天气资产指纹。
+- 当前第一版使用固定投影面积和 Cd，显式标记为工程假设；CAD 面片气动、姿态相关面积、真实热层风和高阶稀薄气体模型留待后续阶段。
+
+**必要性：**
+官方 SpaceWeatherData 在日期覆盖不足时会保留上次输出值并发出 warning；如果只调用官方模块而不做全时段覆盖检查，运行可能继续使用 stale Ap/F10.7。只记录 density 而不把 DragDynamicEffector 加入同一整星动力学图，也不能证明阻力真实改变了轨道。
+
+**充分性：**
+在运行前检查 CSV schema、严格递增/唯一日期、数值有效性、SHA-256 和 [epoch-3 days, epoch+duration] 连续覆盖；运行时将 23 消息、MSIS、ZeroWind 和 DragDynamicEffector 接入同一 Basilisk Process/Task；对密度、力和轨道响应进行独立 A/B。该路径可证明当前定义范围内的原生 NRLMSISE/阻力链，但不能证明真实气动外形或飞行精度。
+
+**影响：**
+默认 R0 不变；只有显式选择 atmosphere_model=nrlmsise00 才启用。缺少数据文件、UTC 日期覆盖不足或环境模型不匹配时拒绝运行。
+
+**验收条件：**
+- 官方 Basilisk 2.11.0 原生模块在同一 SimBase 中实例化并连接；
+- CelesTrak 文件完整覆盖整个运行窗口和三日回看窗口；
+- 所有 23 条空间天气输入均有记录且来源可追溯；
+- MSIS 密度为有限正值，DragDynamicEffector 实际力为有限且非零；
+- 有/无阻力 A/B 显示可重复的轨道能量/半长轴变化；
+- 步长细化和外部参考对比按任务容差完成；
+- 报告继续注明固定面积/Cd 工程假设，不宣称 as-built 气动精度。
