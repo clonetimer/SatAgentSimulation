@@ -1,0 +1,227 @@
+{
+  "schema_version": "external-simulation-summary.v1",
+  "source": "user_provided_summary_only",
+  "source_kind": "simulation_output_not_hardware_or_flight",
+  "raw_files_received": false,
+  "raw_timeseries_read": false,
+  "raw_timeseries_reconstructed": false,
+  "reported_file_count": 13,
+  "reported_column_count": 65,
+  "reported_window_minutes": [
+    0,
+    59
+  ],
+  "reported_sample_interval_s": 0.3,
+  "reference_numeric_tolerances": null,
+  "reference_column_mapping_complete": false,
+  "statistics": {
+    "1.csv": {
+      "quantity": "轮轴承温度",
+      "column_count": 6,
+      "mean_c_by_reported_order": [
+        7.9,
+        8.8,
+        9.52,
+        10.23,
+        12.52,
+        14.97
+      ],
+      "std_c_range": [
+        1.1,
+        1.9
+      ],
+      "separately_reported_clusters_c": [
+        [
+          8.8,
+          9.5,
+          10.2
+        ],
+        [
+          7.9,
+          11.6,
+          12.5
+        ]
+      ],
+      "cluster_inconsistency_unresolved": true
+    },
+    "2.csv": {
+      "quantity": "轮电机电流",
+      "column_count": 6,
+      "reported_active_mean_a_range": [
+        0.058,
+        0.077
+      ],
+      "last_two_columns_mean_a": [
+        0.01,
+        0.012
+      ],
+      "last_two_columns_classification": "用户判定为纯量化噪声，不作为物理目标"
+    },
+    "3.csv": {
+      "quantity": "陀螺光源温度",
+      "column_count": 4,
+      "reported_mean_c": 25.333,
+      "reported_std_c": 0.004,
+      "use": "setpoint_only"
+    },
+    "4.csv": {
+      "quantity": "陀螺光纤环温度",
+      "column_count": 4,
+      "mean_c_by_reported_order": [
+        17.15,
+        19.0,
+        19.09,
+        20.73
+      ],
+      "std_c_range": [
+        0.03,
+        0.04
+      ],
+      "column_1_small_jumps": {
+        "count": 281,
+        "amplitude_c": 0.01,
+        "policy": "ignore_per_user"
+      }
+    },
+    "5.csv": {
+      "quantity": "充电调节器输出电流",
+      "column_count": 4,
+      "reported_mean_a": 0.58,
+      "reported_range_a": [
+        0,
+        1.88
+      ],
+      "reported_limit_a": 1.88,
+      "reported_duty_fraction": 0.31,
+      "duty_definition": null,
+      "column_aggregation_definition": null
+    },
+    "6.csv": {
+      "quantity": "放电调节器输出电流",
+      "column_count": 4,
+      "reported_mean_a": 0.04,
+      "reported_peak_a": 11.4,
+      "reported_duty_fraction": 0.04,
+      "duty_definition": null,
+      "column_aggregation_definition": null
+    },
+    "7.csv": {
+      "quantity": "电池侧充放电调节器净电流",
+      "column_count": 4,
+      "reported_range_a": [
+        -1.9,
+        15.8
+      ],
+      "reported_mean_description": "约为0，精确数值未给出",
+      "reported_mean_a": null,
+      "voltage_and_sign_convention": null
+    },
+    "8.csv": {
+      "quantity": "太阳板温度",
+      "column_count": 10,
+      "reported_median_c_range": [
+        9.8,
+        69
+      ],
+      "bad_column_count": 6,
+      "bad_column_indices": null,
+      "invalid_or_saturated_values_c": [
+        -273.1,
+        260
+      ],
+      "policy": "需要逐列有效段统计，不整段拟合"
+    },
+    "9.csv": {
+      "quantity": "太阳板阻尼器温度",
+      "column_count": 2,
+      "median_c_by_reported_order": [
+        7.41,
+        11.41
+      ],
+      "reported_low_c": -37.7,
+      "low_value_quality": "unresolved"
+    },
+    "10.csv": {
+      "quantity": "电池温度",
+      "column_count": 5,
+      "mean_c_range": [
+        14.32,
+        15.02
+      ],
+      "std_c_range": [
+        0.68,
+        0.86
+      ]
+    },
+    "11.csv": {
+      "quantity": "固放电流与温度",
+      "column_count": 6,
+      "A": {
+        "mean_current_a": 0.612,
+        "mean_temperature_c": 7.29
+      },
+      "B": {
+        "mean_current_a": 0.621,
+        "mean_temperature_c": 7.7
+      },
+      "excluded_C": {
+        "current_column": 3,
+        "mean_current_a": -0.0026,
+        "temperature_column": 6,
+        "constant_fill_c": -200.8
+      },
+      "A_B_column_mapping": null
+    },
+    "12.csv": {
+      "quantity": "姿态角和角速度",
+      "column_count": 6,
+      "reported_angle_absolute_envelopes_deg": [
+        6.9,
+        23.2,
+        179.3
+      ],
+      "reported_rate_absolute_envelope_range_deg_s": [
+        0.05,
+        0.095
+      ],
+      "reported_rate_order_of_magnitude_deg_s": 0.01,
+      "axis_order_and_frame": null,
+      "euler_sequence": null,
+      "unwrapped_statistics": null
+    },
+    "13.csv": {
+      "quantity": "充放电调节器温度",
+      "column_count": 4,
+      "mean_c_range": [
+        21.16,
+        22.59
+      ],
+      "reported_std_c": 1.3,
+      "column_2_invalid_spikes": {
+        "count": 2,
+        "value_c": 83.8,
+        "reported_median_c": 22.6
+      },
+      "cleaned_statistics_received": false
+    }
+  },
+  "reported_trends": {
+    "temperature_absolute_slope_upper_c_h": 0.027,
+    "current_absolute_slope_upper_a_h": 0.2,
+    "thermal_time_constant_identifiable": false
+  },
+  "frequency_policy": {
+    "reported_common_peak_hz": [
+      0.361,
+      0.0846
+    ],
+    "exclude_from_dynamics_fit_hz": [
+      0.361
+    ],
+    "reference_filter_applied": false,
+    "reference_filter_reason": "原始序列未提供，须由数据持有方返回滤后统计",
+    "retain_as_timing_hypothesis_only_hz": 0.0846,
+    "physical_origin_proven": false
+  },
+  "scope": "只比较统计工作点与波动，不拟合热动态，不改评测口径，不提升标定等级"
+}

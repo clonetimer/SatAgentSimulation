@@ -86,6 +86,7 @@
 | `run_vllm_nl_e2e_matrix.py` | Agent全矩阵验收 | active | 分批执行31对象三模式及中英文/别名变体的真实vLLM端到端矩阵 |
 | `run_vllm_nl_rejection_matrix.py` | Agent拒绝安全矩阵 | active | 在vLLM服务在线时验证歧义、未知、越权、过度声明和提示注入均于模型调用前结构化拒绝 |
 | `sat-experience` (project CLI) | 经验库治理 | active | 从密封 Run Bundle 捕获轨迹，并管理检索、校验、候选 lesson、评测、双人审批、快照、禁用、回滚、备份和恢复 |
+| `run_external_reference_alignment.py` | 外部参考仿真统计对照 | active | 只测量现有原生整星自有运行；保留配置、遥测与统计，不读取参考CSV、不拟造时序、不升级真实标定资格 |
 | `run_reliability_soak.py` | 可靠性耐久 | active | 运行长生命周期 Worker 与周期回收的真实 TaskSpec 耐久矩阵，记录资源增长并支持断点续跑 |
 | `run_rw_fault_scientific_closure.py` | RW 科学验证 | active | 执行配对数据可分性、规则基线和 ML 基准 |
 | `run_task_center_browser_e2e.py` | 浏览器测试 | active | 保留并统一文件头与入口 |

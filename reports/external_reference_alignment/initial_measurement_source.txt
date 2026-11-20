@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""用途：测量现有原生整星模型的统计基线，不读取或重建外部参考 CSV。
+
+参数：--output-dir 指定统计、配置与本模型遥测的输出目录。
+输出：baseline_statistics.json、baseline_task_spec.json、model_telemetry.csv.gz。
+范围：仅 EPS、热稳态和姿态的可比性检查；不改参数默认值或验收阈值。
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import gzip
+import hashlib
+import json
+import math
+from pathlib import Path
+import platform
+import subprocess
+import time
+
+import numpy as np
+
+
+ROOT = Path(__file__).resolve().parents[1]
+THERMAL_NODES = ("battery", "electronics", "payload", "adcs", "structure", "solar_panel", "comm", "propulsion")
+POWER_FIELDS = ("eps.net_power_w", "eps.solar_array_power_w", "eps.battery_energy_j", "eps.battery_capacity_j", "eps.battery_soc")
+RATE_FIELDS = tuple(f"attitude.truth.omega_BN_B_{axis}" for axis in "xyz")
+MRP_FIELDS = tuple(f"attitude.truth.mrp_BN_{axis}" for axis in "xyz")
+THERMAL_FIELDS = tuple(f"thermal.{node}_temp_c" for node in THERMAL_NODES)
+SOURCES = (
+    "src/sat_sim/bsk_engine/unified_native.py",
+    "src/sat_sim/bsk_engine/project_native_modules.py",
+    "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml",
+    "src/subsystems/thermal/network_config.py",
+    "src/subsystems/thermal/thermal_network.py",
+    "src/integration/resource_feedback.py",
+    "scripts/run_external_reference_alignment.py",
+    "configs/reference_alignment/external_reference_statistics.json",
+)
+
+
+def write_json(path: Path, value: object) -> None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def stats(times: np.ndarray, values: np.ndarray) -> dict:
+    if len(times) != len(values) or len(values) < 2 or not np.isfinite(values).all():
+        raise ValueError("统计输入须有相同长度、至少两个有限样本")
+    centered_t = times - times.mean()
+    slope = float(np.dot(centered_t, values - values.mean()) / np.dot(centered_t, centered_t))
+    return {
+        "sample_count": len(values), "start_s": float(times[0]), "end_s": float(times[-1]),
+        "mean": float(values.mean()), "median": float(np.median(values)),
+        "std_population": float(values.std(ddof=0)), "rms": float(np.sqrt(np.mean(values ** 2))),
+        "minimum": float(values.min()), "maximum": float(values.max()),
+        "max_absolute": float(np.abs(values).max()),
+        "p01_p05_p95_p99": np.quantile(values, [.01, .05, .95, .99]).tolist(),
+        "linear_slope_per_hour": slope * 3600.0,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "reports/external_reference_alignment")
+    args = parser.parse_args()
+    output = args.output_dir.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    if (output / "baseline_statistics.json").exists():
+        parser.error("输出目录已有统计结果；使用新目录，保留先前运行证据")
+
+    import Basilisk
+    from Basilisk.utilities import RigidBodyKinematics
+    from sat_sim.capability_registry import get_adapter_for_capability
+    from sat_sim.scenario_templates import instantiate_scenario_template
+    from sat_sim.task_compiler import compile_task_spec
+    from sat_sim.unified_execution import build_execution_request
+
+    spec = instantiate_scenario_template("whole_spacecraft_unified_native", task_id="external_reference_model_baseline")
+    # An independent model observation window, never a reconstruction of reference timing.
+    spec["simulation"].update(duration_s=3540.0, step_s=0.1, sample_s=0.3)
+    write_json(output / "baseline_task_spec.json", spec)
+    compiled = compile_task_spec(spec)
+    request = build_execution_request(compiled, spec)
+    runtime_spec = request.metadata.get("resolved_runtime_task_spec", spec)
+    adapter = get_adapter_for_capability(request.capability_id)
+    errors = [str(issue) for issue in adapter.validate(runtime_spec) if str(issue.severity).lower() == "error"]
+    if errors:
+        raise ValueError(errors)
+    print("开始现有模型基线：3540 仿真秒，0.1 秒步长，0.3 秒记录间隔。", flush=True)
+    start = time.monotonic()
+    result = adapter.run(runtime_spec)
+    elapsed = time.monotonic() - start
+    rows = result.trace_rows
+    times = np.asarray([row["time_s"] for row in rows], dtype=float)
+    if len(rows) != 11801 or not np.allclose(np.diff(times), .3, rtol=0, atol=1e-9):
+        raise ValueError("模型采样网格不符合声明，禁止用不匹配网格报告统计")
+    if times[0] != 0.0 or abs(times[-1] - 3540.0) > 1e-9:
+        raise ValueError("模型观察窗不完整")
+
+    series = {field: np.asarray([row[field] for row in rows], dtype=float)
+              for field in POWER_FIELDS + RATE_FIELDS + MRP_FIELDS + THERMAL_FIELDS}
+    if not all(row.get("attitude.truth.valid") == 1 for row in rows):
+        raise ValueError("存在无效姿态真值")
+    euler321 = np.asarray([RigidBodyKinematics.MRP2Euler321([row[key] for key in MRP_FIELDS]) for row in rows])
+    if np.any(np.abs(euler321[:, 1]) >= math.radians(89.9)):
+        raise ValueError("本模型欧拉角接近奇异点，不能输出普通展开角统计")
+    for index, axis in enumerate(("yaw", "pitch", "roll")):
+        series[f"model.euler321_{axis}_wrapped_deg"] = np.rad2deg(euler321[:, index])
+        series[f"model.euler321_{axis}_unwrapped_deg"] = np.rad2deg(np.unwrap(euler321[:, index]))
+    for axis, field in zip("xyz", RATE_FIELDS):
+        series[f"model.true_body_rate_{axis}_deg_s"] = np.rad2deg(series[field])
+
+    # Keep exact existing invalid-startup semantics; do not erase later invalid battery samples.
+    startup_invalid = ((times == 0) & (series["eps.battery_capacity_j"] == 0)
+                       & (series["eps.battery_energy_j"] == 0) & (series["eps.net_power_w"] == 0))
+    power_mask = ~startup_invalid
+    if np.any(series["eps.battery_capacity_j"][power_mask] <= 0):
+        raise ValueError("首帧以外存在无效电池容量")
+    fields = {}
+    for field, values in series.items():
+        mask = power_mask if field in POWER_FIELDS else np.ones(len(rows), dtype=bool)
+        fields[field] = {"full_window": stats(times[mask], values[mask])}
+        tail = mask & (times >= 2940.0)
+        fields[field]["last_600_s_diagnostic_only"] = stats(times[tail], values[tail])
+
+    trace_path = output / "model_telemetry.csv.gz"
+    with gzip.open(trace_path, "wt", encoding="utf-8", newline="") as stream:
+        writer = csv.writer(stream)
+        writer.writerow(["time_s", *series])
+        for index, time_s in enumerate(times):
+            writer.writerow([float(time_s), *(float(values[index]) for values in series.values())])
+    net_power = series["eps.net_power_w"][power_mask]
+    report = {
+        "schema_version": "external-reference-model-baseline.v1",
+        "purpose": "现有模型自有运行的统计基线，不是参考 CSV 重建或参数标定",
+        "reference_raw_data_accessed": False, "reference_filter_applied": False,
+        "parameter_alignment_applied": False, "production_defaults_changed": False,
+        "comparison_status": "UNALIGNED_MISSING_MAPPING_DEFINITIONS_AND_TOLERANCES",
+        "tolerance_assessment": "NOT_ASSESSED_NO_USER_TOLERANCE",
+        "reference_numeric_tolerances": None,
+        "basilisk_version": Basilisk.__version__, "python_version": platform.python_version(),
+        "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+        "implementation_sha256": {path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest() for path in SOURCES},
+        "task_spec_sha256": hashlib.sha256((output / "baseline_task_spec.json").read_bytes()).hexdigest(),
+        "wall_elapsed_s": elapsed, "simulation": spec["simulation"], "observed_sample_count": len(rows),
+        "parameter_overrides": "仅观察窗和数值步长／记录间隔；无物理参数调整",
+        "environment_scope": "现有模板 simplified 环境；未获参考工况定义，不声明同工况",
+        "model_runtime_summary": result.summary,
+        "model_telemetry": {"file": trace_path.name, "sha256": hashlib.sha256(trace_path.read_bytes()).hexdigest(), "size_bytes": trace_path.stat().st_size},
+        "statistics_definition": "等间隔采样算术均值、总体标准差(ddof=0)、线性分位数、最小二乘线性趋势；末600秒仅诊断，不替代全窗",
+        "eps_scope": {
+            "current_channels_available": False, "voltage_available": False,
+            "power_is_not_current": True, "charge_current_limiter_available": False,
+            "invalid_zero_startup_rows_excluded_from_power_statistics": int(startup_invalid.sum()),
+            "positive_net_power_sample_fraction": float(np.mean(net_power > 0)),
+            "negative_net_power_sample_fraction": float(np.mean(net_power < 0)),
+            "zero_net_power_sample_fraction": float(np.mean(net_power == 0)),
+            "fraction_scope": "功率符号采样比例，不是参考调节器充放电占空比；正净输入不保证满电池仍吸收能量",
+        },
+        "attitude_scope": "本模型B相对N的真实角速度在B系表达；欧拉角由官方MRP2Euler321生成、先弧度展开再转度；参考坐标及旋转顺序未知",
+        "fields": fields,
+    }
+    write_json(output / "baseline_statistics.json", report)
+    print(json.dumps({"模型基线已记录": True, "样本数": len(rows), "仿真末时刻_s": float(times[-1]),
+                      "电池温度均值_C": fields["thermal.battery_temp_c"]["full_window"]["mean"],
+                      "净功率均值_W": fields["eps.net_power_w"]["full_window"]["mean"],
+                      "容差结论": report["tolerance_assessment"]}, ensure_ascii=False), flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
