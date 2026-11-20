@@ -168,6 +168,47 @@ def test_mu_control_cannot_be_faked_or_run_without_original_real_execution(tmp_p
         cross.compare_mu_control(tmp_path)
 
 
+
+def test_closed_form_circle_is_exact_at_quarter_turn():
+    # Mathematical unit case only: not actual GMAT or flight truth data.
+    mu = 3.98600436e14
+    radius = 6650000.0
+    initial = make_zero_sample()
+    initial["vy_m_s"] = math.sqrt(mu / radius)
+    n = math.sqrt(mu / (radius**3))
+    r0,v0 = cross._closed_form_circular_two_body(initial,mu,0.0)
+    assert math.isclose(r0[0],radius,rel_tol=0,abs_tol=1e-9)
+    assert math.isclose(v0[1],initial["vy_m_s"],rel_tol=0,abs_tol=1e-12)
+    r,v = cross._closed_form_circular_two_body(initial,mu,math.pi/(2*n))
+    assert math.isclose(r[0],0,abs_tol=1e-6)
+    assert math.isclose(r[1],radius,rel_tol=0,abs_tol=1e-8)
+    assert math.isclose(v[0],-initial["vy_m_s"],rel_tol=0,abs_tol=1e-9)
+    assert math.isclose(v[1],0,abs_tol=1e-9)
+
+
+def test_closed_form_rejects_invalid_mu_clock_or_non_circular_initial():
+    mu = 3.98600436e14
+    valid = make_zero_sample()
+    valid["vy_m_s"] = math.sqrt(mu/6650000)
+    with pytest.raises(ValueError,match="BAD_MU"):
+        cross._closed_form_circular_two_body(valid,float("nan"),60)
+    with pytest.raises(ValueError,match="BAD_TIME"):
+        cross._closed_form_circular_two_body(valid,mu,-60)
+    noncircular = dict(valid,vy_m_s=valid["vy_m_s"] + 1)
+    with pytest.raises(ValueError,match="REQUIRES_CIRCULAR_SPEED"):
+        cross._closed_form_circular_two_body(noncircular,mu,60)
+    # Preserve circular *speed* while introducing a radial velocity.
+    radial = dict(valid,vx_m_s=1,vy_m_s=math.sqrt(mu/6650000 - 1))
+    with pytest.raises(ValueError,match="REQUIRES_TANGENTIAL_VELOCITY"):
+        cross._closed_form_circular_two_body(radial,mu,60)
+
+
+def test_closed_form_requires_real_hashed_basilisk_and_two_gmat_runs(tmp_path):
+    # An unexecuted draft must not be able to claim analytic V&V.
+    with pytest.raises(FileNotFoundError):
+        cross.analyze_closed_form_two_body(tmp_path)
+
+
 def test_no_external_engine_data_cannot_be_marked_pass(tmp_path):
     with pytest.raises(FileNotFoundError):
         cross.compare(tmp_path)

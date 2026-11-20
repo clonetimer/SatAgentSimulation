@@ -147,6 +147,35 @@ jobs:
                 f"matched_final_m={d['matched_mu_final_pos_m']:.9e} "
                 "status=INCONCLUSIVE approval=false")
           PY
+
+      - name: Independently diagnose real three-state evidence against exact circular two-body solution
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py analytic-reference --output reports/dt2-cross-leo-001
+          python - <<'PY'
+          import csv,json,math
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          d=json.loads((root/"analytic_reference_diagnostic.json").read_text())
+          with (root/"analytic_reference_difference_rows.csv").open() as f:
+              rows=list(csv.DictReader(f))
+          assert d["status"]=="INCONCLUSIVE" and len(rows)==91
+          assert d["paired_samples"]==91 and d["approved_frame_time_aligned_samples"]==0
+          assert not d["independent_frame_mapping_approved"]
+          assert not d["absolute_time_scale_mapping_approved"]
+          assert not d["mission_residual_acceptance_limits_approved"]
+          assert not d["reference_is_flight_measurement"]
+          pos=d["nominal_time_closed_form_position_m"]
+          raw=d["raw_reported_time_closed_form_position_m"]
+          assert all(math.isfinite(pos[name]["max"]) and pos[name]["max"]>=0
+                     for name in ("basilisk","gmat_default_mu","gmat_basilisk_mu_control"))
+          assert math.isfinite(raw["gmat_basilisk_mu_control"]["max"])
+          print("DT2_CLOSED_FORM_ACTUAL_DIAGNOSTIC "
+                f"bsk_nominal_max_m={pos['basilisk']['max']:.9e} "
+                f"gmat_matched_nominal_max_m={pos['gmat_basilisk_mu_control']['max']:.9e} "
+                f"gmat_matched_raw_clock_max_m={raw['gmat_basilisk_mu_control']['max']:.9e} "
+                "status=INCONCLUSIVE frame_time_approved=false")
+          PY
       - name: Upload all acquired raw provenance and engine outputs including failure logs
         if: always()
         uses: actions/upload-artifact@v7

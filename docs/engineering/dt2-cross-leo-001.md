@@ -146,3 +146,59 @@ The new `gmat-mu-control` CLI will actually invoke **the same verified R2026a ex
 
 The `compare-mu-control` path **requires both genuine GMAT executions and the Basilisk source evidence**, checks exact file SHA identities and two independent 91-point grids, then produces an `INCONCLUSIVE` diagnostic and side-by-side raw residual CSV. Even if observed residuals become millimeter-scale, no PASS threshold is inferred from the result, **0 samples are marked independently frame/time aligned**, and no UTC/TT frame certification or flight grade correlation is asserted. The separate time-readability bound stays 20 microseconds; raw elapsed values are never modified. This is a limited one-variable sensitivity control, not a new physical model or a general-purpose validation framework.
 
+
+## Independent exact circular two-body reference (analytic, **not** flight truth)
+
+After two genuinely executed GMAT runs and the actual Basilisk source trace, the
+new command `python scripts/dt2_cross_leo_001.py analytic-reference --output
+reports/dt2-cross-leo-001` checks the original manifest, exact file SHA
+identities, two real GMAT run receipts and a circular Earth point-mass state
+before creating a **mathematical closed-form comparison**. It never generates
+GMAT data or substitutes an analytic solution as externally measured truth.
+
+For this circular-equal-plane case, with the *actual* initial position r0,
+velocity v0 and Earth mu from Basilisk, the unique exact two-body solution is
+
+- n = sqrt(mu / |r0|^3)
+- r(t) = r0*cos(n*t) + (v0/n)*sin(n*t)
+- v(t) = v0*cos(n*t) - n*r0*sin(n*t)
+
+The code strictly rejects non-circular speeds, non-tangential initial states,
+nonfinite mu/epoch inputs and unverified engine data. It evaluates **both**
+(1) the nominal 60-second state index and (2) the unmodified original GMAT
+reported `ElapsedSecs` time. It saves all 91 rows in
+`analytic_reference_difference_rows.csv` and explicit provenance,
+sample pairing and status in `analytic_reference_diagnostic.json`.
+
+An independent local computation of the previously published real #215 artifact
+(#14671573546) yielded **maximum position differences** relative to this
+mathematical reference (all model mu set to the *Basilisk* value):
+
+| Real recorded state vs circular closed-form | Nominal sample ticks | Using each engine's reported ElapsedSecs |
+|---|---:|---:|
+| Basilisk native RK4-like 5s propagation | 0.001159607 m | 0.001159607 m |
+| GMAT R2026a default Earth mu | 1.153072129 m | 1.235811254 m |
+| GMAT R2026a explicitly matched Earth mu | 0.0000003346 m | 0.082739452 m |
+
+This strongly suggests the original GMAT `ElapsedSecs` 10.69 microsecond
+skew is a *reported-time representation* effect for this case: its propagated
+six-state agrees with the nominal 60-second exact solution at sub-micrometer
+level, while treating the raw float column as exact physical epoch introduces
+~8.27 cm apparent positional discrepancy. This does **not** authorize changing
+or overwriting raw time values, certifying UTC/TT offsets, or automatically
+assuming an absolute EarthMJ2000Eq↔Basilisk N rotation.
+
+Scientific guard: GMAT documents `EarthMJ2000Eq` as an MJ2000Eq
+IAU-1976/FK5 inertial axis system, different in definition from `EarthICRF`.
+Our isolated point-mass baseline intentionally injects the SAME numeric
+Cartesian initial state into both tools; that is a case-defined abstract
+common frame, **not** an independently validated physical inertial frame tie
+for real spacecraft data. Official frame description:
+https://documentation.help/GMAT/CoordinateSystem.html .
+
+The diagnostic remains `INCONCLUSIVE` and records
+`approved_frame_time_aligned_samples=0`, `mission_residual_acceptance_limits_approved=false`;
+no post-hoc residual acceptance limit is introduced. This check is an
+independent mathematical interpretation of already authentic outputs, not
+qualification of flight accuracy or replacement of third-party data.
+

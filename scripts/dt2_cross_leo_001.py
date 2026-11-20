@@ -582,6 +582,148 @@ def compare_mu_control(out: Path) -> dict:
     return result
 
 
+
+def _closed_form_circular_two_body(initial: dict, mu_m3_s2: float, time_s: float
+                                  ) -> tuple[tuple[float, ...], tuple[float, ...]]:
+    """Exact circular Earth two-body solution from the *actual* initial 6-state.
+
+    Mathematical solution only, NOT flight reference data or absolute frame tie.
+    Reject non-circular inputs rather than approximating a general Kepler orbit.
+    """
+    if (type(mu_m3_s2) not in (int, float) or not math.isfinite(mu_m3_s2)
+            or mu_m3_s2 <= 0):
+        raise ValueError("CROSS_LEO_ANALYTIC_BAD_MU")
+    if (type(time_s) not in (int, float) or not math.isfinite(time_s)
+            or time_s < 0):
+        raise ValueError("CROSS_LEO_ANALYTIC_BAD_TIME")
+    r0 = tuple(float(initial[k]) for k in ("x_m", "y_m", "z_m"))
+    v0 = tuple(float(initial[k]) for k in ("vx_m_s", "vy_m_s", "vz_m_s"))
+    if not all(math.isfinite(v) for v in (*r0, *v0)):
+        raise ValueError("CROSS_LEO_ANALYTIC_BAD_INITIAL_STATE")
+    radius = math.sqrt(sum(x*x for x in r0))
+    speed = math.sqrt(sum(x*x for x in v0))
+    if radius <= 1.0 or speed <= 0:
+        raise ValueError("CROSS_LEO_ANALYTIC_BAD_INITIAL_STATE")
+    expected_speed = math.sqrt(mu_m3_s2 / radius)
+    if abs(speed / expected_speed - 1.0) > 1e-12:
+        raise ValueError("CROSS_LEO_ANALYTIC_REQUIRES_CIRCULAR_SPEED")
+    if abs(sum(a*b for a,b in zip(r0,v0))) / (radius*speed) > 1e-12:
+        raise ValueError("CROSS_LEO_ANALYTIC_REQUIRES_TANGENTIAL_VELOCITY")
+    mean_motion = math.sqrt(mu_m3_s2 / (radius**3))
+    phase = mean_motion * time_s
+    c,s = math.cos(phase),math.sin(phase)
+    position = tuple(r0[i]*c + v0[i]/mean_motion*s for i in range(3))
+    velocity = tuple(v0[i]*c - r0[i]*mean_motion*s for i in range(3))
+    return position, velocity
+
+
+def analyze_closed_form_two_body(out: Path) -> dict:
+    """Recompute a third-method closed-form diagnostic on REAL hashed records.
+
+    Index pairing is for diagnostics only; use nominal clock ticks AND raw GMAT
+    ElapsedSecs separately. No fabricated engine outputs, interpolated samples,
+    nominal-timestamp replacement, external time/frame certification, or PASS.
+    """
+    earlier = compare_mu_control(out)
+    if earlier.get("status") != "INCONCLUSIVE" or earlier.get("paired_samples") != 91:
+        raise ValueError("CROSS_LEO_ANALYTIC_REQUIRES_REAL_DUAL_GMAT_CONTROL")
+    manifest = json.loads((out / "case_manifest.json").read_text(encoding="utf-8"))
+    mu = float(manifest["gravity"]["mu_m3_s2"])
+    initial = manifest["actual_initial_state_SI"]
+    if manifest.get("physical_flags") != MODEL_FLAGS:
+        raise ValueError("CROSS_LEO_ANALYTIC_REQUIRES_PURE_POINT_MASS")
+    if manifest.get("case", {}).get("initial_elements") != CASE["initial_elements"]:
+        raise ValueError("CROSS_LEO_ANALYTIC_REQUIRES_EXACT_CIRCULAR_CASE")
+    bsk = _read_states(out / "basilisk_state.csv", CASE["epoch_utc"])
+    gmat_original = _read_states(out / "gmat_state.csv", CASE["epoch_utc"],
+                                 tick_skew_budget_s=GMAT_REPORT_FLOAT_TIME_SKEW_BUDGET_S)
+    gmat_control = _read_states(out / "gmat_mu_control_state.csv", CASE["epoch_utc"],
+                                tick_skew_budget_s=GMAT_REPORT_FLOAT_TIME_SKEW_BUDGET_S)
+    if len(bsk) != len(gmat_original) or len(bsk) != len(gmat_control):
+        raise ValueError("CROSS_LEO_ANALYTIC_GRID_LENGTH_MISMATCH")
+
+    output = []
+    for idx,(a,b,c) in enumerate(zip(bsk,gmat_original,gmat_control)):
+        nominal_t = idx * CASE["sample_s"]
+        exact_pos,exact_vel = _closed_form_circular_two_body(initial,mu,nominal_t)
+        raw_time_pos,raw_time_vel = _closed_form_circular_two_body(
+            initial,mu,c["time_s"])
+        def distance(row, axes, exact):
+            return math.sqrt(sum((row[k]-v)**2 for k,v in zip(axes,exact)))
+        pos_axes=("x_m","y_m","z_m")
+        vel_axes=("vx_m_s","vy_m_s","vz_m_s")
+        output.append({
+            "nominal_time_s":nominal_t,
+            "basilisk_reported_time_s":a["time_s"],
+            "gmat_default_reported_time_s":b["time_s"],
+            "gmat_control_reported_time_s":c["time_s"],
+            "gmat_control_raw_clock_skew_s":c["time_s"]-nominal_t,
+            "basilisk_vs_closed_form_nominal_position_m":
+                distance(a,pos_axes,exact_pos),
+            "basilisk_vs_closed_form_nominal_velocity_m_s":
+                distance(a,vel_axes,exact_vel),
+            "gmat_default_vs_closed_form_nominal_position_m":
+                distance(b,pos_axes,exact_pos),
+            "gmat_control_vs_closed_form_nominal_position_m":
+                distance(c,pos_axes,exact_pos),
+            "gmat_control_vs_closed_form_nominal_velocity_m_s":
+                distance(c,vel_axes,exact_vel),
+            "gmat_control_vs_closed_form_raw_time_position_m":
+                distance(c,pos_axes,raw_time_pos),
+            "gmat_control_vs_closed_form_raw_time_velocity_m_s":
+                distance(c,vel_axes,raw_time_vel),
+        })
+    def summary(key):
+        vals=[v[key] for v in output]
+        return {"max":max(vals), "first":vals[0],
+                "middle":vals[len(vals)//2], "final":vals[-1]}
+    diagnostics={
+        "schema":SCHEMA, "case_id":CASE_ID, "status":"INCONCLUSIVE",
+        "reference_type":"MATHEMATICAL_CIRCULAR_EARTH_POINT_MASS_CLOSED_FORM",
+        "reference_is_flight_measurement":False,
+        "closed_form_requires_exact_circular_initial_conditions":True,
+        "mu_m3_s2_from_actual_basilisk_manifest":mu,
+        "initial_six_state_from_actual_basilisk_manifest":initial,
+        "sample_pairing":"NOMINAL_60_SECOND_INDEX_ONLY; ORIGINAL_GMAT_TIMES_RETAINED",
+        "paired_samples":len(output),"approved_frame_time_aligned_samples":0,
+        "independent_frame_mapping_approved":False,
+        "absolute_time_scale_mapping_approved":False,
+        "mission_residual_acceptance_limits_approved":False,
+        "gmat_normalized_utc_is_derived_from_elapsed_report_not_independent_utc":True,
+        "nominal_time_closed_form_position_m":{
+            "basilisk":summary("basilisk_vs_closed_form_nominal_position_m"),
+            "gmat_default_mu":summary("gmat_default_vs_closed_form_nominal_position_m"),
+            "gmat_basilisk_mu_control":summary("gmat_control_vs_closed_form_nominal_position_m"),
+        },
+        "nominal_time_closed_form_velocity_m_s":{
+            "basilisk":summary("basilisk_vs_closed_form_nominal_velocity_m_s"),
+            "gmat_basilisk_mu_control":summary("gmat_control_vs_closed_form_nominal_velocity_m_s"),
+        },
+        "raw_reported_time_closed_form_position_m":{
+            "gmat_basilisk_mu_control":summary("gmat_control_vs_closed_form_raw_time_position_m"),
+        },
+        "max_abs_raw_gmat_clock_skew_s":max(
+            abs(row["gmat_control_raw_clock_skew_s"]) for row in output),
+        "reference_frame_warning":(
+            "Basilisk N and GMAT EarthMJ2000Eq absolute coordinate-frame "
+            "relationship is NOT independently qualified; use only the "
+            "case-defined common numeric Cartesian initial vector."
+        ),
+        "data_hashes":{
+            "basilisk":manifest["evidence"]["basilisk_state_csv_sha256"],
+            "gmat_original":earlier["original_gmat_report_sha256"],
+            "gmat_mu_control":earlier["matched_mu_report_sha256"],
+        },
+    }
+    with (out/"analytic_reference_difference_rows.csv").open(
+            "w",newline="",encoding="utf-8") as stream:
+        writer=csv.DictWriter(stream,fieldnames=list(output[0]))
+        writer.writeheader()
+        writer.writerows(output)
+    _write_json(out/"analytic_reference_diagnostic.json",diagnostics)
+    return diagnostics
+
+
 def main(argv: list[str] | None = None) -> int:
     parser=argparse.ArgumentParser(description=__doc__)
     sub=parser.add_subparsers(dest="action",required=True)
@@ -598,6 +740,8 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--timeout-s",type=int,default=180)
     c=sub.add_parser("compare",help="Only compute real dual-engine residual diagnostics; no PASS claim")
     c.add_argument("--output",type=Path,required=True)
+    e=sub.add_parser("analytic-reference",help="Compare real records to exact circular two-body solution; INCONCLUSIVE")
+    e.add_argument("--output",type=Path,required=True)
     t=sub.add_parser("compare-mu-control",help="Unqualified real GMAT Earth-Mu sensitivity, no PASS")
     t.add_argument("--output",type=Path,required=True)
     args=parser.parse_args(argv)
@@ -608,8 +752,10 @@ def main(argv: list[str] | None = None) -> int:
                         matched_mu=(args.action=="gmat-mu-control"))
     elif args.action=="compare":
         result=compare(args.output)
-    else:
+    elif args.action=="compare-mu-control":
         result=compare_mu_control(args.output)
+    else:
+        result=analyze_closed_form_two_body(args.output)
     print(json.dumps({"case_id":CASE_ID,"action":args.action,"result":result.get("external_vv_status",result.get("status","BASILISK_EXECUTED"))},sort_keys=True))
     return 0
 
