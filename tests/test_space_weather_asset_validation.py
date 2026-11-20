@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from integrated.orbit_environment import assets
 from sat_sim.bsk_engine.space_weather import (
     inspect_space_weather_file,
     validate_space_weather_coverage,
@@ -60,3 +61,20 @@ def test_celestrak_space_weather_rejects_duplicate_observed_dates(tmp_path):
     path.write_text(duplicate, encoding="utf-8")
     with pytest.raises(ValueError, match="SPACE_WEATHER_DUPLICATE_DATE"):
         inspect_space_weather_file(path)
+
+def test_space_weather_asset_resolver_uses_explicit_offline_file(monkeypatch, tmp_path):
+    target = tmp_path / "SW-Last5Years.csv"
+    target.write_bytes(FIXTURE.read_bytes())
+    monkeypatch.setenv("SAT_SIM_SPACE_WEATHER_PATH", str(target))
+    asset, searched = assets.resolve_space_weather_asset(strict=True)
+    assert asset is not None
+    assert Path(asset.path) == target.resolve()
+    assert asset.sha256 == inspect_space_weather_file(target)["sha256"]
+
+
+def test_space_weather_asset_resolver_fails_closed_without_local_asset(monkeypatch, tmp_path):
+    monkeypatch.delenv("SAT_SIM_SPACE_WEATHER_PATH", raising=False)
+    monkeypatch.delenv("SAT_SIM_ASSET_ROOT", raising=False)
+    monkeypatch.setattr(assets, "DEFAULT_SPACE_WEATHER_DIR", tmp_path / "empty")
+    with pytest.raises(FileNotFoundError, match="SPACE_WEATHER_ASSET_NOT_FOUND"):
+        assets.resolve_space_weather_asset(strict=True)
