@@ -13,8 +13,9 @@ import threading
 from typing import Any
 
 from integrated.orbit_environment.assets import (
-    THIRD_PARTY_DIR, resolve_spice_assets, resolve_wmm_asset,
+    THIRD_PARTY_DIR, resolve_space_weather_asset, resolve_spice_assets, resolve_wmm_asset,
 )
+from .space_weather import validate_space_weather_coverage
 
 _SPICE_OWNER = threading.Lock()
 DEFAULT_EPOCH = '2026-01-01T00:00:00Z'
@@ -41,10 +42,22 @@ class NativeOrbitalEnvironment:
         for key in ('raan_deg', 'arg_perigee_deg'):
             if not 0. <= float(values.get(key, 0.)) <= 360.:
                 raise ValueError('NATIVE_ORBIT_ANGLE_INVALID')
+        self.atmosphere_model = str(values.get('atmosphere_model', 'none')).strip().lower()
+        if self.atmosphere_model not in ('none', 'nrlmsise00'):
+            raise ValueError('NATIVE_ATMOSPHERE_MODEL_INVALID')
+        self.drag_enabled = self.atmosphere_model == 'nrlmsise00'
+        self.drag_area_m2 = float(values.get('drag_area_m2', 0.08))
+        self.drag_coefficient = float(values.get('drag_coefficient', 2.2))
+        if not (0.0 < self.drag_area_m2 <= 1000.0) or not (0.0 < self.drag_coefficient <= 10.0):
+            raise ValueError('NATIVE_DRAG_PARAMETERS_OUT_OF_RANGE')
+        self.space_weather_asset = None
+        self.space_weather_evidence: dict[str, Any] | None = None
         self.factory = None
         self.spice = None
         self.assets: dict[str, Any] = {}
         self._owns_spice = False
+        if self.drag_enabled and self.profile != 'spice_wmm':
+            raise ValueError('NRLMSISE00_REQUIRES_SPICE_WMM_ENVIRONMENT')
         if self.profile == 'spice_wmm':
             end = self.epoch + timedelta(seconds=duration_s)
             if self.epoch.year < 2025 or end >= datetime(2030, 1, 1, tzinfo=timezone.utc):
@@ -58,6 +71,11 @@ class NativeOrbitalEnvironment:
             if not gravity.is_file():
                 raise FileNotFoundError('NATIVE_J2_GRAVITY_ASSET_MISSING')
             self.gravity_path = gravity.resolve()
+            if self.drag_enabled:
+                self.space_weather_asset, _ = resolve_space_weather_asset(strict=True)
+                self.space_weather_evidence = validate_space_weather_coverage(
+                    self.space_weather_asset.path, self.epoch, duration_s,
+                )
 
     def __enter__(self):
         if self.profile == 'spice_wmm':
@@ -122,4 +140,10 @@ class NativeOrbitalEnvironment:
                 'ephemeris':'JPL_DE430_SPICE' if self.spice is not None else 'fixed_sun_reference',
                 'gravity':'earth_J2_plus_sun_moon' if self.spice is not None else 'earth_point_mass',
                 'magnetic_field':'WMM2025' if self.spice is not None else 'centered_dipole',
+                'atmosphere_model':'NRLMSISE-00' if self.drag_enabled else 'none',
+                'drag_enabled':self.drag_enabled,
+                'drag_model':'Basilisk_DragDynamicEffector' if self.drag_enabled else None,
+                'drag_area_m2':self.drag_area_m2 if self.drag_enabled else None,
+                'drag_coefficient':self.drag_coefficient if self.drag_enabled else None,
+                'space_weather':self.space_weather_evidence,
                 'assets':self.assets, 'spacecraft_flight_validation':False}
