@@ -155,16 +155,19 @@ def _attach_provenance_manifest(path: Path, evidence: dict[str, Any], *, verify_
         return evidence
 
     source_url = manifest.get("source_url")
-    if not isinstance(source_url, str) or not source_url.strip():
-        raise ValueError("SPACE_WEATHER_PROVENANCE_SOURCE_MISSING")
+    if source_url is not None and (not isinstance(source_url, str) or not source_url.strip()):
+        raise ValueError("SPACE_WEATHER_PROVENANCE_SOURCE_INVALID")
     retrieved_at = manifest.get("retrieved_at_utc")
     if retrieved_at is not None and not isinstance(retrieved_at, str):
         raise ValueError("SPACE_WEATHER_PROVENANCE_RETRIEVAL_TIME_INVALID")
+    retrieval_unknown = manifest.get("retrieval_time_unknown", retrieved_at is None)
+    if not isinstance(retrieval_unknown, bool) or (retrieved_at is None and not retrieval_unknown):
+        raise ValueError("SPACE_WEATHER_PROVENANCE_RETRIEVAL_TIME_INVALID")
     evidence.update({
-        "provenance_manifest_status": "PASS",
+        "provenance_manifest_status": "PASS" if source_url else "HASH_BOUND_SOURCE_UNKNOWN",
         "source_url": source_url,
         "retrieved_at_utc": retrieved_at,
-        "retrieval_time_unknown": bool(manifest.get("retrieval_time_unknown", retrieved_at is None)),
+        "retrieval_time_unknown": retrieval_unknown,
         "manifest_validated_at_utc": manifest.get("validated_at_utc"),
         "provenance_manifest_sha256": _sha256(manifest_path),
     })
