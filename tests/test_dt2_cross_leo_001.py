@@ -1,0 +1,120 @@
+"""Unit contracts only: synthetic parser rows are NOT independent GMAT evidence."""
+from __future__ import annotations
+
+import importlib.util
+import json
+import math
+from pathlib import Path
+
+import pytest
+
+MODULE = Path(__file__).resolve().parents[1] / "scripts" / "dt2_cross_leo_001.py"
+spec = importlib.util.spec_from_file_location("dt2_cross_leo_001", MODULE)
+assert spec and spec.loader
+cross = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(cross)
+
+
+def make_zero_sample():
+    return {
+        "time_s": 0.0, "utc": "2026-03-04T21:48:00.000Z",
+        "x_m": 6650000., "y_m": 0., "z_m": 0.,
+        "vx_m_s": 0., "vy_m_s": 7742., "vz_m_s": 0.,
+    }
+
+
+def make_test_grid():
+    # Synthetically constructed values only for parser/grid invariants;
+    # never committed as a real GMAT or Basilisk orbit trajectory.
+    return [dict(make_zero_sample(), time_s=float(t), utc=cross._utc_at(cross.CASE["epoch_utc"], t))
+            for t in range(0, 5401, 60)]
+
+
+def test_gmat_script_is_generated_from_explicit_measured_initial_state():
+    script = cross._gmat_script(make_zero_sample(), report_path="gmat_raw.txt")
+    assert "CrossSat.DisplayStateType = Cartesian" in script
+    assert "CrossSat.CoordinateSystem = EarthMJ2000Eq" in script
+    assert "CrossGravity.PointMasses = {Earth}" in script
+    assert "CrossGravity.SRP = Off" in script
+    assert "CrossGravity.Drag = None" in script
+    assert "CrossGravity.RelativisticCorrection = Off" in script
+    assert "CrossProp.Type = RungeKutta89" in script
+    assert "CrossSat.X = 6650" in script
+    assert "CrossSat.VY = 7.742" in script
+    assert "04 Mar 2026 21:48:00.000" in script
+    assert script.count("Propagate CrossProp(CrossSat)") == 90
+    assert script.count("Report CrossState CrossSat.ElapsedSecs") == 91
+    assert "CrossSat.ElapsedSecs = 5400" in script
+    assert "GGM03S" not in script and "SRP = On" not in script
+
+
+def test_gmat_script_refuses_nonfinite_initial_state():
+    bad=make_zero_sample()
+    bad["vz_m_s"]=float("nan")
+    with pytest.raises(ValueError,match="BAD_GMAT_INITIAL_STATE"):
+        cross._gmat_script(bad,report_path="gmat_raw.txt")
+
+
+def test_utc_epoch_and_grid_must_be_complete_and_continuous():
+    samples=make_test_grid()
+    cross._assert_grid(samples)
+    assert cross._utc_at(cross.CASE["epoch_utc"],5400)=="2026-03-04T23:18:00.000Z"
+    with pytest.raises(ValueError,match="INCOMPLETE_GRID"):
+        cross._assert_grid(samples[:-1])
+    samples[2]["time_s"] = 121.
+    with pytest.raises(ValueError,match="TIME_GRID_MISMATCH"):
+        cross._assert_grid(samples)
+
+
+def test_exact_8_column_si_csv_and_timestamp_roundtrip(tmp_path):
+    path=tmp_path/"basilisk_state.csv"
+    cross._write_state_csv(path,make_test_grid())
+    text=path.read_text()
+    assert text.startswith(",".join(cross.FIELDNAMES))
+    rows=cross._read_states(path,cross.CASE["epoch_utc"])
+    assert len(rows)==91
+    assert rows[0]["x_m"]==6650000
+    assert rows[-1]["time_s"]==5400
+    path.write_text(text.replace("2026-03-04T21:48:00.000Z", "2001-01-01T00:00:00Z", 1))
+    with pytest.raises(ValueError,match="UTC_MISMATCH"):
+        cross._read_states(path,cross.CASE["epoch_utc"])
+
+
+def test_parse_only_well_formed_gmat_numeric_report(tmp_path):
+    raw=tmp_path/"gmat_raw.txt"
+    raw.write_text("".join(
+        f"{float(t)},{float(t)/1000+6650},0,0,0,7.742,0\n"
+        for t in range(0,5401,60)
+    ),encoding="utf-8")
+    rows=cross._read_gmat_report(raw,cross.CASE["epoch_utc"])
+    assert len(rows)==91
+    assert rows[0]["x_m"]==6650000
+    assert math.isclose(rows[0]["vy_m_s"],7742.)
+    raw.write_text("0,6650,0,0,0,7.742\n")
+    with pytest.raises(ValueError,match="BAD_GMAT_REPORT_WIDTH"):
+        cross._read_gmat_report(raw,cross.CASE["epoch_utc"])
+    raw.write_text("0,6650,0,0,0,nan,0\n")
+    with pytest.raises(ValueError,match="NONFINITE_GMAT_REPORT"):
+        cross._read_gmat_report(raw,cross.CASE["epoch_utc"])
+
+
+def test_no_external_engine_data_cannot_be_marked_pass(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        cross.compare(tmp_path)
+    case=tmp_path/"case_manifest.json"
+    case.write_text(json.dumps({"schema":cross.SCHEMA}),encoding="utf-8")
+    (tmp_path/"gmat_execution.json").write_text(json.dumps({"status":"NOT_RUN"}),encoding="utf-8")
+    with pytest.raises(ValueError,match="REAL_DUAL_ENGINE_EVIDENCE_REQUIRED"):
+        cross.compare(tmp_path)
+
+
+def test_invalid_git_sha_is_not_silently_replaced_by_claim():
+    with pytest.raises(ValueError,match="GIT_SHA_REQUIRED"):
+        cross.run_basilisk(Path("/tmp/dt2-cross-leo-unexecuted"),"UNKNOWN")
+
+
+def test_basilisk_initial_phase_is_not_falsely_claimed_to_be_213_phase():
+    assert cross.CASE["initial_elements"]["true_anomaly_deg"] == 0.
+    assert "NOT claimed" in cross.CASE["source_note"]
+    assert cross.MODEL_FLAGS["earth_point_mass"]
+    assert sum(bool(x) for x in cross.MODEL_FLAGS.values()) == 1

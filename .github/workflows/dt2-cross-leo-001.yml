@@ -1,0 +1,71 @@
+name: DT2 CROSS-LEO-001 independently reviewable two-body source trajectory
+
+on:
+  pull_request:
+    paths:
+      - "scripts/dt2_cross_leo_001.py"
+      - "tests/test_dt2_cross_leo_001.py"
+      - ".github/workflows/dt2-cross-leo-001.yml"
+      - "docs/engineering/dt2-cross-leo-001.md"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/dt2_cross_leo_001.py"
+      - "tests/test_dt2_cross_leo_001.py"
+      - ".github/workflows/dt2-cross-leo-001.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install exact public Basilisk 2.11.0 and test tools
+        run: python -m pip install "bsk==2.11.0" "numpy==2.3.5" "pytest==9.0.3"
+      - name: Strict parser, source and no-fabricated-GMAT guards
+        run: python -m pytest -q tests/test_dt2_cross_leo_001.py
+      - name: Execute real two-body Basilisk and freeze 91 full-state samples
+        run: |
+          python scripts/dt2_cross_leo_001.py basilisk \
+            --output reports/dt2-cross-leo-001 \
+            --checkout-sha "$(git rev-parse HEAD)"
+      - name: Verify actual state trace, input SHA and frozen GMAT source script
+        run: |
+          python - <<'PY'
+          import json
+          import hashlib
+          from pathlib import Path
+          import csv
+          path=Path('reports/dt2-cross-leo-001')
+          manifest=json.loads((path/'case_manifest.json').read_text())
+          assert manifest['evidence']['basilisk_executed'] is True
+          assert manifest['evidence']['gmat_executed'] is False
+          assert manifest['external_vv_status'] == 'NOT_RUN'
+          assert manifest['frames']['independent_alignment_approved'] is False
+          for filename,field in [('basilisk_state.csv','basilisk_state_csv_sha256'),
+                                 ('gmat_two_body.script','gmat_script_template_sha256')]:
+              digest=hashlib.sha256((path/filename).read_bytes()).hexdigest()
+              assert digest==manifest['evidence'][field]
+          with (path/'basilisk_state.csv').open() as stream:
+              rows=list(csv.DictReader(stream))
+          assert len(rows)==91
+          assert list(rows[0])==['time_s','utc','x_m','y_m','z_m','vx_m_s','vy_m_s','vz_m_s']
+          assert float(rows[0]['time_s'])==0.0
+          assert float(rows[-1]['time_s'])==5400.0
+          assert not (path/'gmat_raw.txt').exists()
+          print('DT2_BASILISK_SOURCE_EXECUTED rows=91 duration_s=5400 gmat_status=NOT_RUN')
+          PY
+      - name: Upload immutable Basilisk six-state evidence and unexecuted GMAT script
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dt2-cross-leo-001-basilisk-six-state
+          path: reports/dt2-cross-leo-001/
+          if-no-files-found: warn
