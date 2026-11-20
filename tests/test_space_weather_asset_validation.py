@@ -23,6 +23,8 @@ def test_celestrak_space_weather_fixture_is_auditable():
     assert evidence["valid_date_end"] == "2026-03-04"
     assert len(evidence["sha256"]) == 64
     assert evidence["first_invalid_row"] is None
+    assert evidence["provenance_manifest_status"] == "NOT_PROVIDED"
+    assert evidence["source_url"] is None
 
 
 def test_celestrak_space_weather_requires_three_day_lookback_and_run_end_coverage():
@@ -95,5 +97,23 @@ def test_offline_space_weather_setup_command_writes_manifest(tmp_path):
     manifest = json.loads((tmp_path / "space_weather_manifest.json").read_text(encoding="utf-8"))
     assert manifest["status"] == "PASS"
     assert manifest["runtime_network_required"] is False
+    assert manifest["source_url"] == "https://celestrak.org/SpaceData/SW-Last5Years.csv"
     assert manifest["asset"]["sha256"] == inspect_space_weather_file(target)["sha256"]
     assert manifest["retrieval_time_unknown"] is True
+
+def test_space_weather_provenance_manifest_hash_mismatch_fails_closed(tmp_path):
+    target = tmp_path / "SW-Last5Years.csv"
+    target.write_bytes(FIXTURE.read_bytes())
+    manifest = {
+        "schema_version": "sat-sim-space-weather-asset.v1",
+        "status": "PASS",
+        "source_url": "test-fixture://mismatched",
+        "retrieved_at_utc": None,
+        "retrieval_time_unknown": True,
+        "asset": {"sha256": "0" * 64},
+    }
+    (tmp_path / "space_weather_manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="SPACE_WEATHER_PROVENANCE_MANIFEST_HASH_MISMATCH"):
+        inspect_space_weather_file(target)
