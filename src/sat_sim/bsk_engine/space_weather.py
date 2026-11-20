@@ -47,6 +47,8 @@ def _inspect(path: Path) -> tuple[list[date], dict[str, Any]]:
             if not reader.fieldnames:
                 raise ValueError("SPACE_WEATHER_HEADER_MISSING")
             reader.fieldnames = [str(name).strip() for name in reader.fieldnames]
+            if len(reader.fieldnames) != len(set(reader.fieldnames)):
+                raise ValueError("SPACE_WEATHER_DUPLICATE_HEADER_COLUMN")
             missing = [name for name in REQUIRED_COLUMNS if name not in reader.fieldnames]
             if missing:
                 raise ValueError(f"SPACE_WEATHER_REQUIRED_COLUMNS_MISSING:{','.join(missing)}")
@@ -55,6 +57,9 @@ def _inspect(path: Path) -> tuple[list[date], dict[str, Any]]:
                 if not row or not any(value not in (None, "") for value in row.values()):
                     continue
                 raw_date = str(row.get("DATE", "") or "").strip()
+                if len(raw_date) != 10 or raw_date[4:5] != "-" or raw_date[7:8] != "-":
+                    first_invalid = {"row": row_number, "date": raw_date or None, "reason": "invalid_date_format"}
+                    break
                 try:
                     row_date = date.fromisoformat(raw_date)
                 except ValueError:
@@ -75,11 +80,11 @@ def _inspect(path: Path) -> tuple[list[date], dict[str, Any]]:
                     if not math.isfinite(value):
                         invalid_reason = f"non_finite:{column}"
                         break
-                    if column in AP_COLUMNS and value < 0.0:
-                        invalid_reason = f"negative_ap:{column}"
+                    if column in AP_COLUMNS and not 0.0 <= value <= 400.0:
+                        invalid_reason = f"ap_out_of_range:{column}"
                         break
-                    if column in F107_COLUMNS and value <= 0.0:
-                        invalid_reason = f"non_positive_f107:{column}"
+                    if column in F107_COLUMNS and not 0.0 < value <= 1000.0:
+                        invalid_reason = f"f107_out_of_range:{column}"
                         break
                 if invalid_reason:
                     first_invalid = {"row": row_number, "date": row_date.isoformat(), "reason": invalid_reason}
