@@ -9,6 +9,7 @@ from __future__ import annotations
 from utils.runtime_diagnostics import DiagnosticCategory, record_runtime_diagnostic
 
 from dataclasses import dataclass
+import math
 
 _messaging = None
 _sysModel = None
@@ -55,6 +56,7 @@ class ThermalNodeScheduledConfig:
     thermal_capacity_j_per_c: float = 900.0
     conductance_w_per_c: float = 0.35
     heater_power_w: float = 18.0
+    heater_hardware_present: bool = True
     cooling_power_w: float = 12.0
     heater_on_below_c: float = 2.0
     heater_off_above_c: float = 6.0
@@ -64,6 +66,11 @@ class ThermalNodeScheduledConfig:
 
 @dataclass(frozen=True)
 class ThermalNodeScheduledTraceRow:
+    """Thermal state and held commands after an update.
+
+    ``heater_power_w`` is the next held heater output. The separate deposited
+    and electrical interval powers describe the interval just integrated.
+    """
     time_s: float
     node_name: str
     heat_input_w: float
@@ -77,6 +84,8 @@ class ThermalNodeScheduledTraceRow:
     max_margin_c: float
     thermal_safe: bool
     mode_recommendation: str
+    heater_deposited_power_w: float = 0.0
+    heater_electrical_interval_power_w: float = 0.0
 
 
 class ConstantThermalPowerInput(_ThermalSysModelBase):
@@ -309,6 +318,9 @@ class ThermalNodeScheduledSysModel(_ThermalSysModelBase):
         1 when heater is active.
     coolingStatusOutMsg: DeviceStatusMsg
         1 when cooling action is active.
+    electricalPowerOutMsg: PowerNodeUsageMsg
+        Resistive heater consumption held until the next thermal update. Its
+        heat is deposited over that completed interval at unity efficiency.
     """
 
     def __init__(self, cfg: ThermalNodeScheduledConfig):
@@ -319,6 +331,20 @@ class ThermalNodeScheduledSysModel(_ThermalSysModelBase):
         self.thermalStatusOutMsg = _messaging.DeviceStatusMsg()
         self.heaterStatusOutMsg = _messaging.DeviceStatusMsg()
         self.coolingStatusOutMsg = _messaging.DeviceStatusMsg()
+        self.heater_hardware_present = bool(cfg.heater_hardware_present)
+        self.electricalPowerOutMsg = _messaging.PowerNodeUsageMsg() if self.heater_hardware_present else None
+        self.enableInMsg = _messaging.DeviceStatusMsgReader()
+        self._has_enable_input = False
+        self.enable_read_status = "VALID"
+        self.enable_read_error: str | None = None
+        self.input_error_count = 0
+        self.input_errors: list[str] = []
+        self.last_electrical_power_w = 0.0
+        self.last_heat_power_w = 0.0
+        self.last_heater_deposited_power_w = 0.0
+        self.cumulative_heater_heat_energy_j = 0.0
+        self.cumulative_heater_electrical_energy_j = 0.0
+        self.cumulative_external_heat_energy_j = 0.0
         self.temp_c = float(cfg.initial_temp_c)
         self.last_ns: int | None = None
         self.heater_on = False
@@ -331,16 +357,31 @@ class ThermalNodeScheduledSysModel(_ThermalSysModelBase):
         self.fault_heat_bias_w: float = 0.0
         self.trace: list[ThermalNodeScheduledTraceRow] = []
 
+    def subscribe_enable(self, status_msg) -> None:
+        """Apply the same PDU permit to heater heat and electrical consumption."""
+        self.enableInMsg.subscribeTo(status_msg)
+        self._has_enable_input = True
+
     def Reset(self, CurrentSimNanos: int) -> None:
         self.temp_c = float(self.cfg.initial_temp_c)
         self.last_ns = None
         self.heater_on = False
         self.cooling_on = False
         self._safe_latched = True
+        self.enable_read_status = "VALID"
+        self.enable_read_error = None
+        self.input_error_count = 0
+        self.input_errors.clear()
+        self.last_electrical_power_w = 0.0
+        self.last_heat_power_w = 0.0
+        self.last_heater_deposited_power_w = 0.0
+        self.cumulative_heater_heat_energy_j = 0.0
+        self.cumulative_heater_electrical_energy_j = 0.0
+        self.cumulative_external_heat_energy_j = 0.0
         self.trace.clear()
         self.UpdateState(CurrentSimNanos)
 
-    def _update_actuators(self) -> None:
+    def _update_actuators(self, current_ns: int) -> None:
         cfg = self.cfg
         if self.temp_c < cfg.heater_on_below_c:
             self.heater_on = True
@@ -348,6 +389,34 @@ class ThermalNodeScheduledSysModel(_ThermalSysModelBase):
             self.heater_on = False
         if self.heater_forced_state is not None:
             self.heater_on = bool(self.heater_forced_state)
+        if not self.heater_hardware_present:
+            self.heater_on = False
+        self.enable_read_status = "VALID"
+        self.enable_read_error = None
+        if self._has_enable_input:
+            try:
+                if not bool(self.enableInMsg.isLinked()):
+                    self.enable_read_status = "ERROR"
+                    self.enable_read_error = "heater enable message is not linked"
+                elif not bool(self.enableInMsg.isWritten()):
+                    self.enable_read_status = "NOT_READY" if int(current_ns) == 0 else "ERROR"
+                    self.enable_read_error = "heater enable message has not been written"
+                else:
+                    permit = int(self.enableInMsg().deviceStatus)
+                    if permit not in (0, 1):
+                        self.enable_read_status = "ERROR"
+                        self.enable_read_error = "heater PDU status is outside {0, 1}"
+                    elif permit == 0:
+                        self.heater_on = False
+            except Exception as exc:
+                self.enable_read_status = "NOT_READY" if int(current_ns) == 0 else "ERROR"
+                self.enable_read_error = f"{type(exc).__name__}: {exc}"
+            if self.enable_read_status != "VALID":
+                self.heater_on = False
+            if self.enable_read_status == "ERROR":
+                self.input_error_count += 1
+                if len(self.input_errors) < 10:
+                    self.input_errors.append(f"{int(current_ns)}ns: {self.enable_read_error}")
         if self.temp_c > cfg.cooling_on_above_c:
             self.cooling_on = True
         elif self.temp_c < cfg.cooling_off_below_c:
@@ -369,12 +438,38 @@ class ThermalNodeScheduledSysModel(_ThermalSysModelBase):
         self.last_ns = CurrentSimNanos
 
         heat_w = abs(float(self.heatInMsg().netPower))
-        self._update_actuators()
-        heater_w = self.cfg.heater_power_w * max(0.0, float(self.heater_power_scale)) if self.heater_on else 0.0
+        # The battery has consumed the previously published electrical output
+        # throughout this interval. A new thermostat/PDU/fault decision cannot
+        # retroactively replace its corresponding heat in the integrator.
+        deposited_heater_w = self.last_heat_power_w if dt > 0.0 else 0.0
+        electrical_interval_w = (
+            -float(self.electricalPowerOutMsg.read().netPower)
+            if dt > 0.0 and self.electricalPowerOutMsg is not None else 0.0
+        )
+        self.last_heater_deposited_power_w = deposited_heater_w
+        self.cumulative_heater_heat_energy_j += deposited_heater_w * dt
+        self.cumulative_heater_electrical_energy_j += electrical_interval_w * dt
+        self.cumulative_external_heat_energy_j += heat_w * dt
         cooling_w = self.cfg.cooling_power_w * max(0.0, float(self.cooling_power_scale)) if self.cooling_on else 0.0
         passive_cooling_w = self.cfg.conductance_w_per_c * (self.temp_c - self.cfg.ambient_temp_c)
-        net_w = heat_w + heater_w + float(self.fault_heat_bias_w) - cooling_w - passive_cooling_w
+        net_w = heat_w + deposited_heater_w + float(self.fault_heat_bias_w) - cooling_w - passive_cooling_w
         self.temp_c += net_w * dt / max(1e-9, self.cfg.thermal_capacity_j_per_c)
+
+        # Select and publish the next held state after completing the physical
+        # interval. Forced state, scale, PDU permission and absent hardware all
+        # continue to apply at this model's scheduled thermal update.
+        self._update_actuators(CurrentSimNanos)
+        heater_scale = float(self.heater_power_scale)
+        if not math.isfinite(heater_scale) or heater_scale < 0.0:
+            self.heater_on = False
+            self.input_error_count += 1
+            if len(self.input_errors) < 10:
+                self.input_errors.append(f"{int(CurrentSimNanos)}ns: heater power scale is non-finite or negative")
+        heater_w = max(0.0, self.cfg.heater_power_w) * heater_scale if self.heater_on else 0.0
+        # This reduced resistive heater assumes unity electrical-to-heat
+        # efficiency for the next held interval as well as the completed one.
+        self.last_electrical_power_w = heater_w
+        self.last_heat_power_w = heater_w
 
         safe = self._update_safe_latch()
         max_margin = float(self.cfg.max_safe_temp_c) - self.temp_c
@@ -387,6 +482,10 @@ class ThermalNodeScheduledSysModel(_ThermalSysModelBase):
         self.thermalStatusOutMsg.write(safe_msg, CurrentSimNanos, self.moduleID)
         self.heaterStatusOutMsg.write(heater_msg, CurrentSimNanos, self.moduleID)
         self.coolingStatusOutMsg.write(cooling_msg, CurrentSimNanos, self.moduleID)
+        if self.electricalPowerOutMsg is not None:
+            electrical_msg = _messaging.PowerNodeUsageMsgPayload()
+            electrical_msg.netPower = -heater_w
+            self.electricalPowerOutMsg.write(electrical_msg, CurrentSimNanos, self.moduleID)
 
         self.trace.append(ThermalNodeScheduledTraceRow(
             time_s=float(CurrentSimNanos) * _macros.NANO2SEC,
@@ -402,6 +501,8 @@ class ThermalNodeScheduledSysModel(_ThermalSysModelBase):
             max_margin_c=max_margin,
             thermal_safe=bool(safe),
             mode_recommendation=recommendation,
+            heater_deposited_power_w=deposited_heater_w,
+            heater_electrical_interval_power_w=electrical_interval_w,
         ))
 
 # Compatibility property for earlier thermal summary code.

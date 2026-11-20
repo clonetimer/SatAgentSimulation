@@ -1,4 +1,12 @@
 capability_id: whole_spacecraft.basic_power_orbit.v1
+resource_accounting:
+  route_scope: deprecated_direct_api
+  electrical_model: compatibility_local_orbit_eps_equations
+  decision: retain_deprecated_direct_api_for_historical_reproduction
+  implementation_references:
+  - src/sat_sim/adapters/whole_spacecraft_basic_power_orbit.py
+  - src/sat_sim/adapters/subsystem_eps_basic.py
+  evidence_scope: capability_declaration_not_runtime_measurement
 schema_version: 0.1.0
 name: Basic whole-spacecraft power-orbit simulation
 level: whole_spacecraft

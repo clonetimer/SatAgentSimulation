@@ -1,4 +1,13 @@
 capability_id: whole_spacecraft.maneuver_orbit_attitude.v1
+resource_accounting:
+  route_scope: product_without_eps
+  electrical_model: no_electrical_resource_model
+  decision: retain_maneuver_orbit_attitude_scope_without_eps_closure_claim
+  implementation_references:
+  - src/sat_sim/coupled/propulsion_orbit_attitude.py
+  evidence_scope: capability_declaration_not_runtime_measurement
+  assumptions:
+  - Propellant depletion and thrust mechanics do not constitute an electrical load or a valve/controller power model.
 schema_version: 0.1.0
 name: Route-B propulsion/orbit/attitude maneuver-coupled spacecraft model
 level: whole_spacecraft

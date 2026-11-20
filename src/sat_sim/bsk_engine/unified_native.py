@@ -2346,7 +2346,7 @@ class UnifiedNativeRuntime:
                 eclipse_msg=eclipse_model.eclipseOutMsgs[0],
                 thermal_network_cfg=thermal_cfg,
             )
-            attach_thermal_network_graph_to_task(sim, task_name, thermal_graph)
+            attach_thermal_network_graph_to_task(sim, task_name, thermal_graph, power_sampling_task_name=task_name)
             from .thermal_environment import NativeThermalEnvironment
             thermal_graph.network.radiative_environment = NativeThermalEnvironment(
                 spacecraft_msg=sc.scStateOutMsg, sun_msg=sun_msg, earth_msg=earth_msg,
@@ -3125,11 +3125,28 @@ class UnifiedNativeRuntime:
             ),
         })
 
+        if not cfg.adcs_only:
+            from integration.whole_resource_inventory import unified_power_inventory
+            from integration.thermal_resource_evidence import build_thermal_resource_evidence
+            power_inventory = unified_power_inventory(sim, whole_modules, recorder_map)
+            thermal_evidence = build_thermal_resource_evidence(whole_modules["thermal_graph"])
+            summary["power_authority_inventory"] = power_inventory
+            summary["resource_closure_evidence"] = {
+                "scope": "electrical authority census and measured internal-heat transfer",
+                "status": "PASS" if power_inventory["status"] == thermal_evidence["status"] == "PASS" else "FAIL",
+                "thermal_transfer": thermal_evidence,
+            }
+            summary["module_count_scope"] = "legacy construction ledger; full scheduled census in power_authority_inventory.scheduled_models"
+            if summary["resource_closure_evidence"]["status"] == "FAIL":
+                summary["execution_status"] = "FAIL"
+                summary["overall_status"] = "FAIL"
+
         metadata = {
             "runtime_manifest": {
                 "process": process_name,
                 "task": task_name,
                 "instantiated_modules": instantiated,
+                "module_count_scope": "legacy construction ledger; full scheduled census in power_authority_inventory",
                 "connections": connections,
                 "recorded_sources": record_sources,
                 "excluded_runtime_categories": ["external_solver", "curve_only_proxy"],

@@ -54,8 +54,11 @@ def test_native_rf_chain_has_real_receiver_cnr_without_floor() -> None:
 
 
 def test_eclipse_attitude_solar_chain_changes_generation_and_soc() -> None:
-    sun, sun_rows = _whole_case(sigma=(0.0, 0.0, 0.0))
-    anti, anti_rows = _whole_case(sigma=(0.0, 1.0, 0.0))
+    # Keep the existing 0.005 SOC separation criterion. With the actual native
+    # loads, a 40 s observation supplies only ~0.00333 separation even on the
+    # accepted A6 baseline; observe a long enough interval to exercise it.
+    sun, sun_rows = _whole_case(sigma=(0.0, 0.0, 0.0), duration_s=80.0)
+    anti, anti_rows = _whole_case(sigma=(0.0, 1.0, 0.0), duration_s=80.0)
 
     assert sun.solar_power_coupling_status == "PASS"
     assert anti.solar_power_coupling_status == "PASS"

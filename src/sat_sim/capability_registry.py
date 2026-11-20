@@ -370,6 +370,7 @@ def capability_summary_payload() -> list[dict[str, Any]]:
             "recommended": c.recommended,
             "operator": c.operator_contract.model_dump(mode="json"),
             "integration_contract": c.integration_contract.model_dump(mode="json"),
+            "resource_accounting": dict(c.data.get("resource_accounting") or {}) if isinstance(c.data.get("resource_accounting"), Mapping) else {},
             "model_projection": dict(c.data.get("model_projection") or {}) if isinstance(c.data.get("model_projection"), Mapping) else {},
             "execution": dict(c.data.get("execution") or {}) if isinstance(c.data.get("execution"), Mapping) else {},
         })

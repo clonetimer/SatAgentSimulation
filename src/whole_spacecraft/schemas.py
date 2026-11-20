@@ -254,6 +254,8 @@ class WholeSpacecraftTraceRow:
     gravity_coupling_enabled: float = 1.0
     propulsion_effector_coupling_enabled: float = 1.0
     propellant_used_kg: float = 0.0
+    battery_capacity_j: float = 0.0
+    battery_source_time_s: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -349,6 +351,11 @@ class WholeSpacecraftSummary:
     energy_balance_relative_error: float = 0.0
     energy_balance_tolerance_j: float = 0.0
     energy_conservation_status: str = "UNKNOWN"
+    battery_evidence_status: str = "UNKNOWN"
+    battery_evidence_sample_count: int = 0
+    battery_startup_excluded_sample_count: int = 0
+    battery_evidence_start_s: float | None = None
+    battery_evidence_end_s: float | None = None
     data_storage_delta_bits: float = 0.0
     integrated_payload_generated_bits: float = 0.0
     data_balance_removed_bits: float = 0.0
@@ -375,6 +382,8 @@ class WholeSpacecraftSummary:
     rf_environment_wiring_count: int = 0
     runtime_task_cadence_status: str = "UNKNOWN"
     runtime_task_cadence: dict[str, Any] = field(default_factory=dict)
+    power_authority_inventory: dict[str, Any] = field(default_factory=dict)
+    resource_closure_evidence: dict[str, Any] = field(default_factory=dict)
 
 
 __all__ = [

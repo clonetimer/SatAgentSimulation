@@ -1,11 +1,20 @@
 capability_id: whole_spacecraft.bsksim_coupled.v1
+resource_accounting:
+  route_scope: deprecated_direct_api
+  electrical_model: compatibility_project_coupled_electrical_equations
+  decision: retain_deprecated_direct_api_for_historical_reproduction
+  implementation_references:
+  - src/sat_sim/bsk_engine/whole_spacecraft_coupled.py
+  evidence_scope: capability_declaration_not_runtime_measurement
+  assumptions:
+  - The historical BSKSim-style name identifies project equations and does not establish official native electrical power authority.
 schema_version: 0.1.0
 name: Whole-spacecraft project coupled-equation engine (legacy BSKSim ID)
 level: whole_spacecraft
 domain: whole_spacecraft
 target: bsksim_coupled
 trust_level: engineering_preview
-status: agent_ready_candidate
+status: deprecated_compatibility_only
 summary: v0.5.4.7 project-owned whole-spacecraft coupled-equation capability. It propagates orbit/attitude, EPS, thermal,
   communication/data, payload and propulsion states in one deterministic equation engine. The legacy capability ID is retained
   for compatibility, but this runtime is not Basilisk-native and is not an official BSKSim template integration.

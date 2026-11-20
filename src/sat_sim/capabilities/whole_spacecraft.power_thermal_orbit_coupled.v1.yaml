@@ -1,4 +1,16 @@
 capability_id: whole_spacecraft.power_thermal_orbit_coupled.v1
+resource_accounting:
+  route_scope: local_electrical_product_model
+  electrical_model: project_local_eps_thermal_equations_with_optional_source_providers
+  decision: retain_active_local_model_with_explicit_electrical_scope
+  implementation_references:
+  - src/sat_sim/coupled/power_thermal_orbit.py
+  - src/subsystems/eps/model.py
+  - src/subsystems/thermal/model.py
+  evidence_scope: capability_declaration_not_runtime_measurement
+  assumptions:
+  - The default route computes solar generation, configured device/heater loads, battery energy and lumped heat with local equations.
+  - Optional source-provider variants remain within their declared module scope; this capability does not provide the native whole-runtime power-authority census.
 schema_version: 0.1.0
 name: Route-B power/thermal/orbit coupled spacecraft model
 level: whole_spacecraft

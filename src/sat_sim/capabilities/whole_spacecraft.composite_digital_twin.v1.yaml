@@ -1,4 +1,26 @@
 capability_id: whole_spacecraft.composite_digital_twin.v1
+resource_accounting:
+  route_scope: native_product_runtime
+  electrical_model: official_basilisk_nodes_and_project_heater_outputs
+  decision: retain_native_runtime_with_measured_authority_inventory
+  implementation_references:
+  - src/whole_spacecraft/builder.py
+  - src/components/thermal_node/basilisk_scheduled.py
+  - src/subsystems/thermal/thermal_network.py
+  evidence_scope: capability_declaration_not_runtime_measurement
+  runtime_inventory_field: power_authority_inventory
+  runtime_resource_evidence_field: resource_closure_evidence
+  runtime_resource_evidence_scope: electrical authority census, measured battery balance and actual internal-heat transfer
+  runtime_battery_balance_audit: observed_native_message_interval
+  scheduled_census_field: power_authority_inventory.scheduled_models
+  legacy_proxy_coupling_count_unit: link_records_not_electrical_providers
+  comm_profiles:
+    native_downlink: official AntennaPower plus separate base and idle SimplePowerSink nodes
+    fallback_transmitter: official fixed active 32 W, PDU-enabled idle 2 W and off 0 W sinks selected by native transmitter status
+  assumptions:
+  - Fixed device profiles and heat deposition fractions are engineering parameters, not calibrated flight power models.
+  - Reduced heaters use their actual thermostat/forced/PDU/scaled output with unity electrical-to-heat efficiency; unconfigured heaters are absent.
+  - Thermal deposition and status-only adapters are separate from electrical power authority; explicitly disabled coupling edges do not claim resource closure.
 schema_version: 0.1.0
 name: Composite whole-spacecraft engineering model
 level: whole_spacecraft
@@ -163,7 +185,7 @@ parameters:
     required: false
     min: 1.0e-06
     default: 1500000.0
-    description: Fixed reference throughput for communication activity-to-power scaling; independent from requested downlink rate.
+    description: Compatibility parameter retained for existing tasks; current native and fallback Comm power profiles do not scale electrical watts with throughput.
   native_downlink_packet_size_bits:
     type: number
     unit: bit
@@ -333,6 +355,14 @@ outputs:
     unit: J
     dtype: number
     description: 电池储能能量。运行器实际输出字段；技术字段为 battery_storage_j，单位 J。
+  - name: battery_capacity_j
+    unit: J
+    dtype: number
+    description: Actual capacity from the native battery message, including runtime capacity faults.
+  - name: battery_source_time_s
+    unit: s
+    dtype: number
+    description: Native battery message write time used to establish the observed evidence interval.
   - name: battery_soc
     unit: ratio
     dtype: number
@@ -540,7 +570,8 @@ outputs:
   - name: native_coupling_count
     unit: count
   - name: proxy_coupling_count
-    unit: count
+    unit: link_records
+    description: Legacy coupling-matrix link-record count; not an electrical provider or engineering proxy module count.
   - name: max_comm_control_power_w
     unit: W
   - name: mission_success_score
@@ -569,6 +600,24 @@ outputs:
     unit: label
   - name: energy_conservation_status
     unit: label
+  - name: battery_evidence_status
+    unit: label
+  - name: battery_evidence_sample_count
+    unit: count
+  - name: battery_startup_excluded_sample_count
+    unit: count
+  - name: battery_evidence_start_s
+    unit: s
+  - name: battery_evidence_end_s
+    unit: s
+  - name: power_authority_inventory
+    unit: json
+    dtype: object
+    description: Structured runtime inventory of actual electrical providers, status adapters, heat conversion and scheduled models.
+  - name: resource_closure_evidence
+    unit: json
+    dtype: object
+    description: Structured measured resource evidence, including the observed native battery interval and thermal energy transfer.
   - name: energy_balance_residual_j
     unit: J
   - name: energy_balance_relative_error
@@ -642,9 +691,9 @@ source_binding:
   basilisk_required: true
 fidelity_level: engineering_prototype
 known_physics_limits:
-- Several cross-subsystem links are deliberate engineering proxies rather than calibrated native physical interfaces.
+- Official Basilisk power nodes and actual project heater outputs own electrical watts; fixed profiles and heat fractions remain engineering assumptions.
 - The thermal model is a lumped/network engineering model, not finite-element thermal analysis.
-- Communication uses a compact native/proxy link and mission gate, not full RF propagation and multi-station scheduling.
+- Native downlink uses AntennaPower plus base/idle sinks; fallback transmitter mode uses official fixed 32 W active, 2 W enabled idle and 0 W off sinks, without a calibrated RF power model.
 - Payload operation is gate-based and does not include detailed mission planning or sensor phenomenology.
 - mission_success_score is an arithmetic deterministic gate fraction and must not be described as a probability.
 - Default parameter_profile=demo is unqualified until a suitable provenance registry is supplied.
@@ -933,6 +982,13 @@ operator:
     - runtime_fault_recovery_triggered_count
     - degradation_execution
     - energy_conservation_status
+    - battery_evidence_status
+    - battery_evidence_sample_count
+    - battery_startup_excluded_sample_count
+    - battery_evidence_start_s
+    - battery_evidence_end_s
+    - power_authority_inventory
+    - resource_closure_evidence
     - energy_balance_residual_j
     - energy_balance_relative_error
     - data_conservation_status
@@ -951,6 +1007,8 @@ operator:
     trace_fields:
     - time_s
     - battery_soc
+    - battery_capacity_j
+    - battery_source_time_s
     - thermal_temp_c
     - attitude_error_deg
     - payload_enabled
@@ -1019,12 +1077,14 @@ integration_contract:
     - eps_pdu_to_payload_activity
     - eps_pdu_to_comm_activity
     - eps_pdu_to_thermal_heaters
+    - eps_loads_to_thermal_heat
+    - comm_activity_to_eps_thermal
+    - thermal_heaters_to_eps_load
     - payload_activity_to_eps_thermal
     - adcs_control_effort_to_eps_thermal
     - propulsion_activity_to_eps_thermal
     - propulsion_effector_to_spacecraft
-    - adcs_pointing_to_payload_gate
-    - adcs_pointing_to_comm_gate
+    - adcs_pointing_to_payload_comm_gate
     unsupported:
     - '*'
   limitations:
@@ -1037,9 +1097,9 @@ integration_contract:
   - high_fidelity_battery_electrochemistry
   - detailed_payload_mission_planning
   - calibrated_mission_success_probability
-  - Several cross-subsystem links are deliberate engineering proxies rather than calibrated native physical interfaces.
+  - Official Basilisk power nodes and actual project heater outputs own electrical watts; fixed profiles and heat fractions remain engineering assumptions.
   - The thermal model is a lumped/network engineering model, not finite-element thermal analysis.
-  - Communication uses a compact native/proxy link and mission gate, not full RF propagation and multi-station scheduling.
+  - Native downlink uses AntennaPower plus base/idle sinks; fallback transmitter mode uses official fixed 32 W active, 2 W enabled idle and 0 W off sinks, without a calibrated RF power model.
   - Payload operation is gate-based and does not include detailed mission planning or sensor phenomenology.
   - mission_success_score is an arithmetic deterministic gate fraction and must not be described as a probability.
   - Default parameter_profile=demo is unqualified until a suitable provenance registry is supplied.
