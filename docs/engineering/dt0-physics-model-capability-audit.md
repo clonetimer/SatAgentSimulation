@@ -180,3 +180,25 @@ Canonical TaskSpec 已有 demo、engineering_estimate、ground_calibrated、flig
 不新增 Python NRLMSISE-00 代理，也不重复实现 NRLMSISE 公式。DT-1 应直接复用 Basilisk 2.11.0 官方模块，并为数据文件增加版本、来源、检索时间、SHA-256、有效日期范围和运行质量检查。
 
 当前项目状态仍是“官方模块可复用、推荐整星路径尚未接入”，不能把上游模块存在误标为本项目已经具备 NRLMSISE-00。
+
+## 10. Basilisk 2.11.0 的 SRP 与地球辐射模块复用选项
+
+对官方 AVSLab/basilisk v2.11.0 标签源码进一步核查后，确认存在以下模块：
+
+| 模块 | 能力 | 重要接口/限制 |
+|---|---|---|
+| facetSRPDynamicEffector | 基于航天器面片计算 SRP 力和力矩；支持静态与单自由度铰接面片 | 需要太阳状态、面片面积/法向/光学系数和可选铰接角；支持可选 sunEclipseInMsg。 |
+| facetedSRPEffector | 计算面片集合的 SRP 合力/合力矩 | 要求外部提供机体系面片几何和每个面片的预计算投影面积；不自行计算投影面积，也不直接读取铰接角。可与 facetedSpacecraftModel 和 facetedSpacecraftProjectedArea 上游模块配合。 |
+| EarthRadiationModel | Knocke patch 模型计算地球反照和红外辐射通量及方向 | 输入航天器状态、地球姿态/状态、太阳状态；输出 EarthRadiationMsg。该模块输出环境通量，不应直接误称为已经完成整星辐射力闭环。 |
+| albedo | 计算仪器视场内的地球反照率/通量 | 支持平均反照率或 CERES 数据；主要面向仪器环境，不等于高能粒子辐射带模型。 |
+
+当前 SatAgentSimulation 的 BSK-RUN-4 仍是 Cannonball SRP 烟测，使用固定 Sun 状态和全照明输入。推荐整星图尚未接入上述 faceted SRP 或 EarthRadiationModel。
+
+**后续接入建议：**
+1. 先使用真实 SPICE Sun 状态和 Basilisk Eclipse 消息闭环当前 SRP。
+2. 在安装几何已审定的前提下，优先评估 facetSRPDynamicEffector；它能直接处理面片和铰接角。
+3. 当 CAD/面片几何、投影面积由可信几何模块提供时，再评估 facetedSRPEffector。
+4. EarthRadiationModel 的 albedo/IR 输出单独验证；若要形成对航天器的实际受力，必须补齐明确的力/力矩连接，不把环境通量输出冒充动态效应器。
+5. 高能粒子辐射带、TID 和 SEE 仍是独立缺口，不能由 EarthRadiationModel 或 albedo 替代。
+
+官方版本依据：Basilisk v2.11.0 Release Notes 的 “Spacecraft dynamics and effectors” 和 “Environment, gravity, and ephemerides” 条目；对应源码目录位于 AVSLab/basilisk v2.11.0 的 facetSRPDynamicEffector、facetedSRPEffector、earthRadiationModel 和 albedo。
