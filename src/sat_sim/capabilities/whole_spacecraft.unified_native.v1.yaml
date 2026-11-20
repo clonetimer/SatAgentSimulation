@@ -1204,6 +1204,9 @@ outputs:
   - orbit.sun_position_m_*
   - orbit.phase_rad
   - orbit.eclipse_factor
+  - environment.igrf14.earth_center_n_m_*
+  - environment.igrf14.earth_j20002pfix_*
+  - environment.igrf14.earth_orientation_computed
   - adcs.pointing_error_deg
   - attitude.truth.pointing_error_deg
   - adcs.body_rate_rad_s_*
