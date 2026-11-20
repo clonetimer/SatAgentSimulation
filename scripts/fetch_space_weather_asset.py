@@ -65,21 +65,26 @@ def main() -> int:
         except (OSError, json.JSONDecodeError):
             old_manifest = {}
 
-    if args.refresh or not destination.is_file():
+    downloaded = args.refresh or not destination.is_file()
+    if downloaded:
         if args.offline:
             raise FileNotFoundError(f"SPACE_WEATHER_ASSET_MISSING:{destination}")
         _download(args.url, destination)
 
     evidence = inspect_space_weather_file(destination)
+    old_asset = old_manifest.get("asset", {}) if isinstance(old_manifest, dict) else {}
+    same_snapshot = old_asset.get("sha256") == evidence["sha256"]
+    retrieved_at = (
+        datetime.now(timezone.utc).isoformat()
+        if downloaded
+        else (old_manifest.get("retrieved_at_utc") if same_snapshot else None)
+    )
     manifest = {
         "schema_version": "sat-sim-space-weather-asset.v1",
         "status": "PASS",
-        "source_url": args.url if args.refresh or not old_manifest else old_manifest.get("source_url", args.url),
-        "retrieved_at_utc": (
-            datetime.now(timezone.utc).isoformat()
-            if args.refresh or not old_manifest or not old_manifest.get("retrieved_at_utc")
-            else old_manifest["retrieved_at_utc"]
-        ),
+        "source_url": args.url if downloaded else old_manifest.get("source_url", args.url),
+        "retrieved_at_utc": retrieved_at,
+        "retrieval_time_unknown": retrieved_at is None,
         "validated_at_utc": datetime.now(timezone.utc).isoformat(),
         "asset": evidence,
         "runtime_network_required": False,
