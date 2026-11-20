@@ -540,6 +540,18 @@ def _explicit_event_requirement_issues(
     return issues
 
 
+def _requests_native_nrlmsise(text: str) -> bool:
+    """A positive named NRLMSISE request is a physics requirement, not prose.
+
+    Reuse the planner's negation and latest-refinement rules: a request saying
+    'do not use NRLMSISE' is never silently turned into a drag opt-in.
+    """
+    from .capability_planner import _contains_any as _planner_contains_any, _filter_negated_matches
+    latest = text.rsplit("本轮补充指令：", 1)[-1]
+    return bool(_filter_negated_matches(
+        latest, _planner_contains_any(latest, ("nrlmsise-00", "nrlmsise"))))
+
+
 def _registered_literal_assignments(text: str, declared: Mapping[str, Any]) -> dict[str, Any]:
     """Shared strict user-literal requirements; never infer or replace values."""
     from .explicit_parameters import explicit_parameter_assignments
@@ -650,6 +662,22 @@ def _explicit_literal_requirement_issues(spec: Mapping[str, Any], text: str, *, 
         for key,wanted in expected.items()
         if not any(key in values for values in carriers)
         or any(key in values and not same_literal(wanted, values[key]) for values in carriers)]
+    # Named native mechanisms also need strict user-intent fidelity. The old
+    # literal guard alone cannot see 'use NRLMSISE-00' without key=value; a
+    # default 'atmosphere_model=none' would otherwise silently pass planning.
+    if cid == "whole_spacecraft.unified_native.v1" and _requests_native_nrlmsise(text):
+        for name, wanted in (
+            ("atmosphere_model", "nrlmsise00"),
+            ("environment_profile", "spice_wmm"),
+        ):
+            if not any(name in values and same_literal(values[name], wanted)
+                       for values in carriers):
+                issues.append(ValidationIssue(
+                    severity="error", path=f"$.parameters.{name}",
+                    code="USER_PARAMETER_REQUIREMENT_MISMATCH",
+                    message=f"Named NRLMSISE-00 request requires {name}={wanted}; "
+                            "the model draft may not fall back to a different atmosphere."
+                ))
     # The pre-default guard owns raw parameters only. Canonical migration also
     # validates events, so leave malformed events to the normal validator rather
     # than raising while checking an unrelated parameter requirement.
@@ -2077,6 +2105,15 @@ def _apply_capability_request_overrides(spec: dict[str, Any], request: Capabilit
             "base_template": base_template,
             "selection_reason": selection_reason,
         })
+
+    if cap_id == "whole_spacecraft.unified_native.v1" and _requests_native_nrlmsise(text):
+        # Deterministic template backend: this *explicit user request*
+        # authorizes the two opt-ins, not a global default switch. The raw
+        # literal guard still rejects contradictory key=value requirements.
+        params = spec.setdefault("parameters", {})
+        selected_values = params.get("values") if isinstance(params.get("values"), dict) else params
+        selected_values["atmosphere_model"] = "nrlmsise00"
+        selected_values["environment_profile"] = "spice_wmm"
 
     duration_s = _extract_seconds(text, ["duration", "simulate", "simulation", "仿真", "时长", "运行"]) or _extract_seconds(text, ["持续"])
     sample_s = _extract_seconds(text, ["sample", "sampling", "采样", "输出间隔", "步长", "间隔"])

@@ -124,3 +124,43 @@ def test_wrong_realistic_environment_never_compiles_or_exports(tmp_path):
     assert not result.ok
     assert result.compiled is None and result.script is None
     assert 'USER_PARAMETER_REQUIREMENT_MISMATCH' in {i.code for i in result.validation.errors}
+
+@pytest.mark.parametrize('phrase', ['NRLMSISE-00', 'NRLMSISE00'])
+def test_named_native_atmosphere_template_exports_real_opt_in(tmp_path, phrase):
+    request = CapabilityAgentRequest(
+        request=f'用 whole_spacecraft.unified_native.v1 创建整星仿真，使用{phrase}大气阻力，运行20秒',
+        backend='template',
+        allowed_capabilities=('whole_spacecraft.unified_native.v1',),
+        output_dir=tmp_path / 'agent',
+        run_task=False,
+    )
+    result = run_capability_script_generation(request)
+    assert result.ok, result.validation.to_dict()
+    assert result.script is not None
+    spec = canonicalize_task_spec(result.task_spec)
+    values = spec['parameters']['values']
+    assert values['environment_profile'] == 'spice_wmm'
+    assert values['atmosphere_model'] == 'nrlmsise00'
+    code = result.script.output_path.read_text(encoding='utf-8')
+    assert 'nrlmsise00' in code and 'spice_wmm' in code
+
+
+def test_named_native_atmosphere_draft_must_not_silently_disable_drag():
+    request = 'whole_spacecraft.unified_native.v1 使用 NRLMSISE-00 大气阻力'
+    spec = instantiate_scenario_template('whole_spacecraft_unified_native')
+    before = copy.deepcopy(spec)
+    issues = _explicit_literal_requirement_issues(spec, request)
+    assert {item.path for item in issues if item.code == 'USER_PARAMETER_REQUIREMENT_MISMATCH'} == {
+        '$.parameters.atmosphere_model',
+        '$.parameters.environment_profile',
+    }
+    assert spec == before
+    spec['parameters']['values'].update(
+        atmosphere_model='nrlmsise00', environment_profile='spice_wmm')
+    assert not _explicit_literal_requirement_issues(spec, request)
+
+
+def test_negated_native_atmosphere_does_not_enable_drag():
+    spec = instantiate_scenario_template('whole_spacecraft_unified_native')
+    assert not _explicit_literal_requirement_issues(
+        spec, 'whole_spacecraft.unified_native.v1 不要使用 NRLMSISE-00')

@@ -78,3 +78,12 @@
 - 第三轮 CI [44802673560](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44802673560) 精确定位了 `physical_validation.issues`：`environment.atmosphere_temperature_k` 的 4 个有效热层中性气体温度采样分别是 **1067.569 / 1068.744 / 1069.911 / 1071.070 K**，错误套用了**设备**热控区间 `153.15..423.15 K`；设备 `thermal.*` 本身无硬限 FAIL。SOC 初始值和短时姿态收敛只产生 WARNING，仍保留。根因在 `src/sat_sim/validation/physical_checks.py::_is_temperature_field` 对任意温度后缀无差别分类。修正仅排除这个已知 **环境字段**进入设备 thermal_bounds；设备热限制、`thermal.safe=0` 失败、物理默认值及独立 SRP/Drag/IGRF/GGM04 断言**完全不变**。新增正/负对照单元测试，必须由新的 CI 证明产品脚本 + Run Bundle 路径全程通过。
 
 - 新增专门的设备/大气字段隔离 CI 门禁：在既有 `continuous-satellite-native.yml` 的联合物理测试之后，明确调用 `tests/test_physical_evidence_coverage.py::test_native_nrlmsise_neutral_temperature_is_not_a_spacecraft_thermal_limit`；同时把 `src/sat_sim/validation/physical_checks.py`、该单测及工作流文件本身放入 PR/main push 路径触发。**理由：** 不能只新增回归测试源码而不真正执行；必须在新 HEAD 证明“环境大气温度不触发设备热控 FAIL”且设备过热、`thermal.safe=0` 依旧 FAIL。只改测试选择与 workflow 触发，不修改判定口径、环境数据或模型。
+
+## NL→TaskSpec 物理路由阻断修复（2026-11-21，验收候选）
+
+此前原生四效应同任务及正式 capability-python / sealed Run Bundle 均已通过，但用户通过自然语言明确指定 NRLMSISE-00 时，`capability_planner.UNSUPPORTED_DOMAIN_KEYWORDS` 仍把这个新实现的模型当作一项未支持的高保真轨道需求。旧 `tests/test_native_engineering_request_routing.py` 还要求将这项机制拒绝。此处是可核查的产品入口合同错配，并不意味着用户要求的是飞行级精度认证。
+
+最小修复：只允许 **`whole_spacecraft.unified_native.v1`** 将 NRLMSISE-00 视为已实现的显式 opt-in 机制；自然语言确定性模板在用户明确提出该模型时设置 `environment_profile=spice_wmm`、`atmosphere_model=nrlmsise00`，其余默认模型完全不变。与现有 `key=value` 保护并行增加命名物理要求检查：外部模型输出若丢失所请求大气模型或所需环境配置，必须在编译/脚本导出前拒绝，而不是回退到 `none` / `simplified`。否定指令不得被误作正向启用。
+
+回归覆盖：纯中文/英文正向物理选择、真实模板脚本导出、模型选择字段未丢失、错误能力（ADCS-only / orbit-only）拒绝、飞行级声明不豁免、外部原始草案不得静默降级、否定指令不启用。相关测试明确纳入 Agent/Run CI 路径触发及实际测试列表。**无原生模型、质量/面积、积分步长、空间天气来源或动力学物理门禁改动**。仅在新 exact-head CI 通过后宣告该自然语言输入链验收通过，不从规划测试推断真 LLM 理解准确率。
+

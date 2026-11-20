@@ -449,6 +449,14 @@ def _score_capability(capability_id: str, request_text: str) -> CapabilityRouteC
         if matches:
             score += 110.0
             reasons.append("explicit recommended whole-spacecraft unified-runtime cue")
+        # The whole-spacecraft native runtime (not the ORB-1 proxy) now owns
+        # opt-in NRLMSISE-00 + DragDynamicEffector. Route positive requests
+        # there rather than into an orbit-only engineering proxy.
+        native_drag_cues = _filter_negated_matches(
+            request_text, _contains_any(text, ("nrlmsise-00", "nrlmsise")))
+        if native_drag_cues:
+            score += 112.0
+            reasons.append("supported native NRLMSISE-00 drag requires whole-spacecraft runtime")
         requested_domains = sum(bool(item) for item in (adcs_matches or adcs_fidelity_matches, eps_matches or battery_matches, thermal_matches, comm_matches, payload_matches or data_queue_matches or onboard_storage_matches, orbit_matches))
         if unified_runtime_cues and (whole_matches or requested_domains >= 2):
             score += 90.0
@@ -812,6 +820,11 @@ def _detect_unsupported(request_text: str, selected_capability_id: str | None) -
             supported_cues = {'spice', 'spice ephemeris', 'spice 星历',
                               'third-body', 'third body', 'third-body forces',
                               '三体摄动', '第三体摄动'}
+            if selected_capability_id == 'whole_spacecraft.unified_native.v1':
+                # These are implemented opt-in mechanisms; flight-grade
+                # accuracy, calibrated tolerances and external truth are
+                # *not* exempted, nor is ADCS-only drag falsely advertised.
+                supported_cues.update({'nrlmsise', 'nrlmsise-00'})
             matches = tuple(match for match in matches if match not in supported_cues)
         if domain == 'thermal_advanced' and selected_capability_id == 'whole_spacecraft.unified_native.v1':
             matches = tuple(match for match in matches if match not in {

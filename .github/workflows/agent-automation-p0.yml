@@ -10,6 +10,10 @@ on:
       - "src/sat_sim/web/**"
       - "src/sat_sim/interactive/**"
       - "src/sat_sim/task_spec.py"
+      - "src/sat_sim/capability_planner.py"
+      - "src/sat_sim/capability_agent.py"
+      - "tests/test_native_engineering_request_routing.py"
+      - "tests/test_explicit_parameter_output_guards.py"
   pull_request:
     paths:
       - "src/sat_sim/web/**"
@@ -28,6 +32,7 @@ on:
       - "src/sat_sim/task_spec.py"
       - "src/sat_sim/explicit_parameters.py"
       - "src/sat_sim/capability_agent.py"
+      - "src/sat_sim/capability_planner.py"
       - "src/sat_sim/agent_facade.py"
       - "src/sat_sim/form_schema.py"
       - "src/sat_sim/capabilities/**"
@@ -41,6 +46,7 @@ on:
       - "tests/test_workbench_agent_refinement_browser.py"
       - "tests/test_task_source_binding.py"
       - "tests/test_explicit_*.py"
+      - "tests/test_native_engineering_request_routing.py"
       - "tests/test_refinement_*.py"
       - "tests/test_natural_language_refinement.py"
       - "tests/test_canonical_transport*.py"
@@ -106,6 +112,7 @@ jobs:
             tests/test_refinement_transaction.py \
             tests/test_explicit_user_parameter_contract.py \
             tests/test_explicit_parameter_output_guards.py \
+            tests/test_native_engineering_request_routing.py \
             tests/test_refinement_units_and_intent.py \
             tests/test_refinement_negated_clauses_and_dimensions.py \
             tests/test_refinement_event_preservation.py \
