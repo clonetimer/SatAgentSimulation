@@ -120,7 +120,14 @@ def test_real_drag_and_srp_act_together_on_one_native_spacecraft(monkeypatch, tm
     eclipse = [r["orbit.eclipse_factor"] for r in rows]
     power = [r["orbit.drag_force_relative_velocity_power_w"] for r in rows]
     assert min(density) > 0. and all(math.isfinite(x) for x in density)
-    assert min(dforce) > 0. and all(math.isfinite(x) for x in dforce)
+    # Basilisk logs t=0 before the first drag effector compute tick. The
+    # initial recorder sample is zero by construction, not atmospheric drag
+    # disappearing during the simulation. Require EVERY post-initialization
+    # sample to have a finite, strictly nonzero authoritative body-frame force.
+    assert rows[0]["time_s"] == pytest.approx(0.0)
+    assert dforce[0] == pytest.approx(0.0, abs=1e-15)
+    assert all(math.isfinite(x) and x > 0. for x in dforce[1:])
+    assert len(dforce[1:]) >= 30
     assert min(sforce) > 0. and all(math.isfinite(x) for x in sforce)
     assert min(eclipse) > 0.99
     assert max(power) <= 1e-12 and min(power) < 0.
