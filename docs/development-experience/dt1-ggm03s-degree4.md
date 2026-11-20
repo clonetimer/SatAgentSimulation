@@ -23,3 +23,9 @@
 - `src/sat_sim/bsk_engine/orbital_environment.py`：显式模型选择与来源记录；
 - `tests/test_native_ggm03s_gravity.py`：负控、真实 SPICE Earth 方向、度 2/3/4 轨道响应和数值收敛；
 - `tests/test_parameter_surface_audit.py`：注册参数计数与真实物理选择引用。
+
+## 记录：CI 首轮治理反馈
+
+- 物理专项 `Verify actual GGM03S degree2/3/4 forces, rotating Earth and refinement` 已 PASS，确实运行了官方原生 Basilisk；正式结论仍取决于新 HEAD 全部 CI。
+- 治理 Run `44776627021` FAIL：`SCRIPT_HEADER_INCOMPLETE`，新增 `scripts/fetch_ggm03s_gravity.py` 缺少仓库约定的“用途／参数／输出”文件头。已读取报告中的单条失败记录。
+- 本提交只补全脚本中文文件头，不变更数据源、SHA、模型、默认值、力场阶次或物理判据。

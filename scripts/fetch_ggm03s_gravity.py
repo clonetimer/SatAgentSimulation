@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Stage the official *full* GGM03S file once; runtime remains network-free.
+"""获取并验真官方 Basilisk 2.11.0 完整 GGM03S 球谐系数。
 
-The existing J2-only environmental preflight is deliberately unchanged.
-Usage:
-    python scripts/fetch_ggm03s_gravity.py
-    python scripts/fetch_ggm03s_gravity.py --offline
+用途：仅在安装/CI 资产准备阶段获取官方原始 GGM03S，运行时不联网。
+参数：--root 指定资产根目录，--offline 只验证已存在的完整原始文件。
+输出：固定 Git blob、文件长度、SHA-256、系数头及来源审计 JSON。
+默认 J2-only 资产/物理模型不变。
 """
 from __future__ import annotations
 
