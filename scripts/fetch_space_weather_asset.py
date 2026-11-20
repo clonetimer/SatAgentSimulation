@@ -84,7 +84,7 @@ def main() -> int:
     source_url = (
         args.url
         if downloaded
-        else (old_manifest.get("source_url") if same_snapshot else args.source_url)
+        else ((old_manifest.get("source_url") or args.source_url) if same_snapshot else args.source_url)
     )
     manifest = {
         "schema_version": "sat-sim-space-weather-asset.v1",
