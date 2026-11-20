@@ -223,7 +223,9 @@ def same_source_basilisk_celestials(
     sc_sim = SimulationBaseClass.SimBaseClass()
     process = sc_sim.CreateNewProcess("dt2_sun_anchor_process")
     task = "dt2_sun_anchor_task"
-    process.addTask(sc_sim.CreateNewTask(task, macros.sec2nano(2700.0)))
+    # Sample the genuine J2000 ET clock at all 91 source telemetry ticks.
+    # Sun/Moon recorders keep their original 2700 s sampling.
+    process.addTask(sc_sim.CreateNewTask(task, macros.sec2nano(60.0)))
     when = datetime.fromisoformat(epoch.replace("Z", "+00:00")).astimezone(timezone.utc)
     spice_time = when.strftime("%Y %B %d %H:%M:%S.%f") + " (UTC)"
     # Disable Basilisk's automatic DE430/naif0012 default kernel selection.
@@ -243,7 +245,7 @@ def same_source_basilisk_celestials(
     }
     for recorder in recorders.values():
         sc_sim.AddModelToTask(task, recorder)
-    clock_recorder = spice.spiceTimeOutMsg.recorder(macros.sec2nano(2700.0))
+    clock_recorder = spice.spiceTimeOutMsg.recorder(macros.sec2nano(60.0))
     sc_sim.AddModelToTask(task, clock_recorder)
 
     state_recorder = None
@@ -303,13 +305,19 @@ def same_source_basilisk_celestials(
         result[body] = rows
     clock_times = clock_recorder.times() * macros.NANO2SEC
     clock_et = clock_recorder.J2000Current
-    if len(clock_times) != 3 or len(clock_et) != 3:
-        raise ValueError("DT2_NATIVE_CLOCK_SPICE_TIME_MESSAGE_COUNT")
-    result["native_spice_clock"] = [
+    if len(clock_times) != 91 or len(clock_et) != 91:
+        raise ValueError("DT2_NATIVE_CLOCK_SPICE_TIME_MESSAGE_91_COUNT")
+    result["native_spice_clock_91"] = [
         {"time_s": float(clock_times[i]), "et_s": float(clock_et[i])}
-        for i in range(3)
+        for i in range(91)
     ]
-    if not all(math.isfinite(v) for row in result["native_spice_clock"]
+    if any(abs(row["time_s"] - i*60) > 1e-6
+           for i, row in enumerate(result["native_spice_clock_91"])):
+        raise ValueError("DT2_NATIVE_CLOCK_SPICE_TIME_MESSAGE_91_GRID")
+    result["native_spice_clock"] = [
+        result["native_spice_clock_91"][i] for i in INDICES
+    ]
+    if not all(math.isfinite(v) for row in result["native_spice_clock_91"]
                for v in row.values()):
         raise ValueError("DT2_NATIVE_CLOCK_NONFINITE_ET")
     if state_recorder is not None:
@@ -612,7 +620,7 @@ def audit_native_same_process_clock(
         })
     summary={
         "status":"INCONCLUSIVE",
-        "native_run":"second genuine Basilisk two-body replay, one Process with separate 5s spacecraft and 2700s J2000 SPICE tasks",
+        "native_run":"second genuine Basilisk two-body replay, one Process with separate 5s spacecraft and 60s J2000 SPICE tasks",
         "native_spice_referenceBase":"J2000",
         "native_spice_zeroBase":"earth",
         "pinned_native_kernels":3,
@@ -724,6 +732,108 @@ def audit_gmat_a1_tt_to_real_et(
     return summary,compared
 
 
+
+def audit_full_91_epoch_grid(
+    native_clock_91: list[dict],
+    naif_str2et_91: list[float],
+    gmat_frame_rows_91: list[dict],
+    gmat_TT_unitim_ET_91: list[float],
+    gmat_A1_unitim_ET_91: list[float],
+    original_basilisk_91: list[dict],
+) -> tuple[dict, list[dict]]:
+    """91 REAL native clock points versus independent NAIF and GMAT reports.
+
+    No extrapolated native clock state, fitted epoch, interpolation, or
+    post-hoc tolerances. A kinematic equivalent is NOT a timing-error bound.
+    """
+    sources=(native_clock_91,naif_str2et_91,gmat_frame_rows_91,
+             gmat_TT_unitim_ET_91,gmat_A1_unitim_ET_91,original_basilisk_91)
+    if any(len(s)!=91 for s in sources):
+        raise ValueError("DT2_FULL_CLOCK_REQUIRES_SIX_AUTHENTIC_91_SAMPLE_SOURCES")
+    samples=[]
+    for i in range(91):
+        try:
+            tick=float(native_clock_91[i]["time_s"])
+            native=float(native_clock_91[i]["et_s"])
+            naif=float(naif_str2et_91[i])
+            report=gmat_frame_rows_91[i]
+            gmat_elapsed=float(report["elapsed_s"])
+            a1=float(report["a1_mjd"])
+            tai=float(report["tai_mjd"])
+            gmat_tt=float(gmat_TT_unitim_ET_91[i])
+            gmat_a1=float(gmat_A1_unitim_ET_91[i])
+            source_elapsed=float(original_basilisk_91[i]["time_s"])
+            speed=math.sqrt(sum(float(original_basilisk_91[i][axis])**2
+                                for axis in ("vx_m_s","vy_m_s","vz_m_s")))
+        except (KeyError,TypeError,ValueError) as exc:
+            raise ValueError("DT2_FULL_CLOCK_MISSING_AUTHENTIC_SOURCE_FIELD") from exc
+        if not all(math.isfinite(v) for v in
+                   (tick,native,naif,gmat_elapsed,a1,tai,gmat_tt,
+                    gmat_a1,source_elapsed,speed)):
+            raise ValueError("DT2_FULL_CLOCK_NONFINITE_SOURCE")
+        nominal=i*60.
+        if abs(tick-nominal)>1e-6 or abs(source_elapsed-nominal)>1e-6:
+            raise ValueError("DT2_FULL_CLOCK_NATIVE_TIME_GRID")
+        if abs(gmat_elapsed-nominal)>20e-6:
+            # The pre-existing 20 μs GMAT report input-representation check.
+            # This is NOT an allowable physical clock-orbit error budget.
+            raise ValueError("DT2_FULL_CLOCK_GMAT_REPRESENTATION_GRID")
+        skew=gmat_elapsed-nominal
+        tt_delta=gmat_tt-naif
+        a1_delta=gmat_a1-naif
+        samples.append({
+            "sample_index":i,
+            "native_task_elapsed_s":tick,
+            "original_basilisk_elapsed_s":source_elapsed,
+            "original_gmat_ElapsedSecs_s":gmat_elapsed,
+            "gmat_raw_elapsed_minus_nominal_s":skew,
+            "native_j2000_ET_s":native,
+            "independent_NAIF_UTC_ET_s":naif,
+            "native_minus_NAIF_ET_s":native-naif,
+            "gmat_TT_unitim_ET_s":gmat_tt,
+            "gmat_A1_unitim_ET_s":gmat_a1,
+            "GMAT_TT_ET_minus_NAIF_ET_s":tt_delta,
+            "GMAT_A1_ET_minus_NAIF_ET_s":a1_delta,
+            "GMAT_TT_ET_minus_native_ET_s":gmat_tt-native,
+            "GMAT_TT_ET_delta_less_raw_elapsed_skew_s":tt_delta-skew,
+            "GMAT_A1_minus_TAI_observed_s":(a1-tai)*86400.,
+            "actual_native_speed_m_s":speed,
+            "raw_report_time_skew_times_native_speed_m_diagnostic":abs(skew)*speed,
+        })
+    def maxabs(field):
+        return max(abs(row[field]) for row in samples)
+    summary={
+        "status":"INCONCLUSIVE",
+        "source":"91 actual native SpiceTimeMsg.J2000Current ticks in same Process as 91 actual spacecraft replay states; genuine GMAT R2026a TT/A1 report; independent NAIF str2et/unitim",
+        "native_clock_source_is_direct_message":True,
+        "native_spice_message_samples":91,
+        "gmat_original_report_samples":91,
+        "first_reported_skew_s":samples[0]["gmat_raw_elapsed_minus_nominal_s"],
+        "last_reported_skew_s":samples[-1]["gmat_raw_elapsed_minus_nominal_s"],
+        "max_abs_gmat_raw_elapsed_skew_s":maxabs("gmat_raw_elapsed_minus_nominal_s"),
+        "max_abs_native_j2000_ET_minus_naif_s":maxabs("native_minus_NAIF_ET_s"),
+        "max_abs_GMAT_TT_ET_minus_NAIF_ET_s":maxabs("GMAT_TT_ET_minus_NAIF_ET_s"),
+        "max_abs_GMAT_A1_ET_minus_NAIF_ET_s":maxabs("GMAT_A1_ET_minus_NAIF_ET_s"),
+        "max_abs_GMAT_TT_ET_delta_less_reported_skew_s":
+            maxabs("GMAT_TT_ET_delta_less_raw_elapsed_skew_s"),
+        "max_raw_report_time_skew_times_actual_native_speed_m_diagnostic":
+            max(row["raw_report_time_skew_times_native_speed_m_diagnostic"]
+                for row in samples),
+        "numeric_report_A1_TAI_unique_value_count":
+            len(set(row["GMAT_A1_minus_TAI_observed_s"] for row in samples)),
+        "report_elapsed_skew_monotone_nonincreasing_observed":
+            all(samples[i]["gmat_raw_elapsed_minus_nominal_s"] >=
+                samples[i+1]["gmat_raw_elapsed_minus_nominal_s"]
+                for i in range(90)),
+        "clock_time_offset_as_physical_error_budget":False,
+        "original_Basilisk_spacecraft_N_axes_independently_qualified":False,
+        "original_GMAT_absolute_epoch_mapped_and_approved":False,
+        "independently_aligned_original_two_engine_states":0,
+        "mission_accuracy_budget_approved":False,
+    }
+    return summary,samples
+
+
 def run(out: Path, root: Path, binary: Path) -> dict:
     out=out.resolve(strict=True)
     root=root.resolve(strict=True)
@@ -773,6 +883,9 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         "native_clock_diagnostic":out/"basilisk_same_process_clock_diagnostic.json",
         "a1_tt_et_rows":out/"gmat_a1_tt_naif_ET_rows.csv",
         "a1_tt_et_diagnostic":out/"gmat_a1_tt_naif_ET_diagnostic.json",
+        "native_clock_91":out/"basilisk_same_process_spice_ET_91.csv",
+        "gmat_full_et_rows":out/"gmat_full_grid_a1_tt_to_ET_91.csv",
+        "gmat_full_et_diagnostic":out/"gmat_full_grid_ET_diagnostic.json",
         "receipt":out/"sun_anchor_execution.json",
     }
     if any(p.exists() for p in outputs.values()):
@@ -823,26 +936,33 @@ def run(out: Path, root: Path, binary: Path) -> dict:
     naif_et=[]
     gmat_tt_as_et=[]
     gmat_a1_as_et=[]
+    naif_et_91=[]
+    gmat_tt_as_et_91=[]
+    gmat_a1_as_et_91=[]
     try:
-        for index in INDICES:
+        for index in range(91):
             at=(epoch+timedelta(seconds=index*60)).isoformat().replace("+00:00","Z")
             et=spice.str2et(at)
-            naif_et.append(float(et))
+            naif_et_91.append(float(et))
             # GMAT's R2026a MODJULIAN is JD-2430000; J2000 is day 21545.
             # Subtract the two day counts BEFORE converting to seconds, to
             # avoid catastrophic double-precision JD cancellation.
             frame_time=rows[index]
             tt_sec=(float(frame_time["tt_mjd"])-21545.0)*86400.0
             a1_sec=(float(frame_time["a1_mjd"])-21545.0)*86400.0
-            gmat_tt_as_et.append(float(spice.unitim(tt_sec,"TDT","ET")))
+            gmat_tt_as_et_91.append(float(spice.unitim(tt_sec,"TDT","ET")))
             # GMAT A1 = TAI+0.0343817s; TT = TAI+32.184s.
             # This separate conversion is NOT an inferred spacecraft fit.
             tt_from_a1=a1_sec-0.0343817+32.184
-            gmat_a1_as_et.append(float(spice.unitim(tt_from_a1,"TDT","ET")))
-            state,_=spice.spkezr("SUN",et,"J2000","NONE","EARTH")
-            moon_state,_=spice.spkezr("MOON",et,"J2000","NONE","EARTH")
-            naif.append([float(x) for x in state])
-            naif_moon.append([float(x) for x in moon_state])
+            gmat_a1_as_et_91.append(float(spice.unitim(tt_from_a1,"TDT","ET")))
+            if index in INDICES:
+                naif_et.append(float(et))
+                gmat_tt_as_et.append(gmat_tt_as_et_91[-1])
+                gmat_a1_as_et.append(gmat_a1_as_et_91[-1])
+                state,_=spice.spkezr("SUN",et,"J2000","NONE","EARTH")
+                moon_state,_=spice.spkezr("MOON",et,"J2000","NONE","EARTH")
+                naif.append([float(x) for x in state])
+                naif_moon.append([float(x) for x in moon_state])
     finally:
         spice.kclear()
     with tempfile.TemporaryDirectory(prefix="dt2_sun_spice_") as td:
@@ -939,6 +1059,26 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         writer=csv.DictWriter(stream,fieldnames=list(clock_rows[0]))
         writer.writeheader()
         writer.writerows(clock_rows)
+    full_native_clock=basilisk_outputs["native_spice_clock_91"]
+    if len(full_native_clock)!=91:
+        raise ValueError("DT2_FULL_CLOCK_EXPECTS_NATIVE_SPICE_91")
+    with outputs["native_clock_91"].open("w",newline="",encoding="utf-8") as stream:
+        writer=csv.DictWriter(stream,fieldnames=("time_s","et_s"))
+        writer.writeheader()
+        writer.writerows(full_native_clock)
+    full_diag,full_rows=audit_full_91_epoch_grid(
+        full_native_clock,naif_et_91,rows,gmat_tt_as_et_91,
+        gmat_a1_as_et_91,original_states)
+    with outputs["gmat_full_et_rows"].open("w",newline="",encoding="utf-8") as stream:
+        writer=csv.DictWriter(stream,fieldnames=list(full_rows[0]))
+        writer.writeheader()
+        writer.writerows(full_rows)
+    full_diag["original_GMAT_frame_time_sha256"]=digest(frame)
+    full_diag["original_Basilisk_state_sha256"]=digest(original_state_file)
+    full_diag["native_Basilisk_91_ET_messages_sha256"]=digest(outputs["native_clock_91"])
+    full_diag["full_91_point_comparison_sha256"]=digest(outputs["gmat_full_et_rows"])
+    full_diag["official_GMAT_R2026a_LSK_sha256"]=receipt["kernel_sha256"]["lsk"]
+    write_json(outputs["gmat_full_et_diagnostic"],full_diag)
     clock_diagnostic["source_baseline_sha256"]=digest(original_state_file)
     clock_diagnostic["same_process_native_state_sha256"]=digest(outputs["native_clock_replay"])
     clock_diagnostic["native_SPICE_ET_vs_NAIF_vs_GMAT_clock_csv_sha256"]=digest(outputs["native_clock_raw"])
@@ -957,6 +1097,12 @@ def run(out: Path, root: Path, binary: Path) -> dict:
     uniform_diag["three_time_chain_rows_sha256"]=digest(outputs["a1_tt_et_rows"])
     write_json(outputs["a1_tt_et_diagnostic"],uniform_diag)
     receipt.update({
+        "native_spice_clock_91_sha256":digest(outputs["native_clock_91"]),
+        "gmat_full_grid_a1_tt_to_ET_91_sha256":digest(outputs["gmat_full_et_rows"]),
+        "gmat_full_grid_ET_diagnostic_sha256":digest(outputs["gmat_full_et_diagnostic"]),
+        "gmat_full_grid_native_SPICE_message_count":91,
+        "gmat_full_grid_real_source_sample_count":91,
+        "gmat_full_grid_physical_time_certified":False,
         "a1_tt_to_et_diagnostic_sha256":digest(outputs["a1_tt_et_diagnostic"]),
         "a1_tt_to_et_rows_sha256":digest(outputs["a1_tt_et_rows"]),
         "a1_tt_to_et_real_sample_count":3,

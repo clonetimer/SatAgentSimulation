@@ -334,3 +334,37 @@ def test_gmat_a1_tt_to_et_audit_reports_differences_without_certifying_time():
         anchor.audit_gmat_a1_tt_to_real_et(r,native,independent,
                                             real_conversion_from_unitim,real_conversion_from_unitim)
 
+def test_full_91_real_source_clock_audit_math_contract_and_fail_closed():
+    # Test fixtures only. NO synthetic source is asserted as real GMAT or BSK.
+    state={"time_s":0.,"vx_m_s":0.,"vy_m_s":7500.,"vz_m_s":0.}
+    original=[dict(state,time_s=i*60.) for i in range(91)]
+    native=[{"time_s":i*60.,"et_s":800000000.+i*60.} for i in range(91)]
+    naif=[800000000.+i*60. for i in range(91)]
+    frames=[{"elapsed_s":i*60.-i*0.0000001,
+             "a1_mjd":31104.4+i/1440.,
+             "tai_mjd":31104.4+i/1440.-0.0343817/86400.}
+            for i in range(91)]
+    tt=[naif[i]-i*0.0000001 for i in range(91)]
+    a1=list(tt)
+    info,rows=anchor.audit_full_91_epoch_grid(native,naif,frames,tt,a1,original)
+    assert len(rows)==91
+    assert info["native_clock_source_is_direct_message"]
+    assert info["max_abs_GMAT_TT_ET_delta_less_reported_skew_s"]<1e-6
+    assert info["max_abs_gmat_raw_elapsed_skew_s"]==pytest.approx(9e-6)
+    assert info["max_raw_report_time_skew_times_actual_native_speed_m_diagnostic"]==pytest.approx(0.0675)
+    assert info["report_elapsed_skew_monotone_nonincreasing_observed"]
+    assert info["numeric_report_A1_TAI_unique_value_count"]>=1
+    assert not info["clock_time_offset_as_physical_error_budget"]
+    assert info["independently_aligned_original_two_engine_states"]==0
+    assert not info["original_GMAT_absolute_epoch_mapped_and_approved"]
+    assert not info["mission_accuracy_budget_approved"]
+    with pytest.raises(ValueError,match="DT2_FULL_CLOCK_REQUIRES_SIX_AUTHENTIC_91"):
+        anchor.audit_full_91_epoch_grid(native[:-1],naif,frames,tt,a1,original)
+    frames[15]["elapsed_s"]=900.001
+    with pytest.raises(ValueError,match="DT2_FULL_CLOCK_GMAT_REPRESENTATION_GRID"):
+        anchor.audit_full_91_epoch_grid(native,naif,frames,tt,a1,original)
+    frames[15]["elapsed_s"]=900.-15*0.0000001
+    native[20]["et_s"]=float("nan")
+    with pytest.raises(ValueError,match="DT2_FULL_CLOCK_NONFINITE_SOURCE"):
+        anchor.audit_full_91_epoch_grid(native,naif,frames,tt,a1,original)
+

@@ -244,6 +244,9 @@ jobs:
           assert r["same_process_native_spacecraft_real_sample_count"]==91
           assert r["spacecraft_N_axis_independently_certified"] is False
           assert r["a1_tt_to_et_real_sample_count"]==3
+          assert r["gmat_full_grid_native_SPICE_message_count"]==91
+          assert r["gmat_full_grid_real_source_sample_count"]==91
+          assert r["gmat_full_grid_physical_time_certified"] is False
           assert r["GMAT_A1_TT_to_absolute_Basilisk_time_certified"] is False
           clock=json.loads((root/"basilisk_same_process_clock_diagnostic.json").read_text())
           assert clock["status"]=="INCONCLUSIVE"
@@ -252,6 +255,29 @@ jobs:
           time_audit=json.loads((root/"gmat_a1_tt_naif_ET_diagnostic.json").read_text())
           assert time_audit["status"]=="INCONCLUSIVE"
           assert time_audit["real_samples"]==3
+          full=json.loads((root/"gmat_full_grid_ET_diagnostic.json").read_text())
+          assert full["status"]=="INCONCLUSIVE"
+          assert full["native_spice_message_samples"]==91
+          assert full["gmat_original_report_samples"]==91
+          assert full["native_clock_source_is_direct_message"]
+          assert full["clock_time_offset_as_physical_error_budget"] is False
+          assert full["independently_aligned_original_two_engine_states"]==0
+          assert not full["mission_accuracy_budget_approved"]
+          for name,sha in (
+              ("basilisk_same_process_spice_ET_91.csv",r["native_spice_clock_91_sha256"]),
+              ("gmat_full_grid_a1_tt_to_ET_91.csv",r["gmat_full_grid_a1_tt_to_ET_91_sha256"]),
+              ("gmat_full_grid_ET_diagnostic.json",r["gmat_full_grid_ET_diagnostic_sha256"]),
+              ("basilisk_state.csv",full["original_Basilisk_state_sha256"]),
+              ("gmat_frame_time_rows.csv",full["original_GMAT_frame_time_sha256"])):
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==sha
+          with (root/"basilisk_same_process_spice_ET_91.csv").open(newline="") as stream:
+              native_rows=list(csv.DictReader(stream))
+          with (root/"gmat_full_grid_a1_tt_to_ET_91.csv").open(newline="") as stream:
+              full_rows=list(csv.DictReader(stream))
+          assert len(native_rows)==len(full_rows)==91
+          assert [int(t["sample_index"]) for t in full_rows]==list(range(91))
+          assert all(math.isfinite(float(t["native_j2000_ET_s"])) for t in full_rows)
+          assert all(math.isfinite(float(t["GMAT_TT_ET_minus_NAIF_ET_s"])) for t in full_rows)
           assert not time_audit["GMAT_A1_to_original_Basilisk_absolute_clock_approved"]
           assert not time_audit["original_Basilisk_spacecraft_N_axes_independently_qualified"]
           assert time_audit["aligned_original_two_engine_state_samples"]==0
@@ -296,6 +322,8 @@ jobs:
                 f"gmat_tt_naif_et_max_s={time_audit['max_abs_GMAT_TT_to_NAIF_ET_delta_s']:.9e} "
                 f"gmat_a1_naif_et_max_s={time_audit['max_abs_GMAT_A1_to_NAIF_ET_delta_s']:.9e} "
                 f"a1_tai_offset_error_max_s={time_audit['max_abs_reported_A1_TAI_offset_error_s']:.9e} "
+                f"full91_gmat_tt_naif_max_s={full['max_abs_GMAT_TT_ET_minus_NAIF_ET_s']:.9e} "
+                f"full91_skew_equivalent_max_m={full['max_raw_report_time_skew_times_actual_native_speed_m_diagnostic']:.9e} "
                 "status=INCONCLUSIVE certified_absolute_N=false")
           assert r["gmat_moon_report_produced"]
           assert hashlib.sha256((root/"gmat_moon_anchor_raw.txt").read_bytes()).hexdigest()==r["gmat_moon_report_sha256"]
