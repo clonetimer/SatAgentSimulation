@@ -15,6 +15,15 @@ on:
       - "tests/test_native_orbital_environment.py"
       - "tests/test_native_srp_spice_eclipse.py"
       - "tests/test_native_drag_srp_joint.py"
+      - "tests/test_native_integrated_environment.py"
+      - "src/sat_sim/bsk_engine/gravity_harmonics_asset.py"
+      - "src/sat_sim/bsk_engine/igrf14_asset.py"
+      - "scripts/fetch_ggm03s_gravity.py"
+      - "scripts/fetch_igrf14_asset.py"
+      - "tests/test_native_ggm03s_gravity.py"
+      - "tests/test_native_igrf14_field.py"
+      - "tests/test_native_igrf14_ppigrf_correlation.py"
+      - "tests/fixtures/IGRF14-IAGA-final.shc"
       - "src/sat_sim/bsk_engine/srp_environment.py"
       - "tests/test_space_weather_asset_validation.py"
       - "tests/fixtures/celestrak_space_weather_2026-03-04.csv"
@@ -141,6 +150,34 @@ jobs:
           )
           print("Strict spice_wmm resource preflight passed; native execution follows.")
           PY
+      - name: Stage immutable official GGM03S full coefficients
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python scripts/fetch_ggm03s_gravity.py
+          python scripts/fetch_ggm03s_gravity.py --offline
+      - name: Stage exact IAGA IGRF14 source and derived COF
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python scripts/fetch_igrf14_asset.py
+          python scripts/fetch_igrf14_asset.py --offline
+      - name: Verify official native GGM03S degree2-4 and rotating Earth
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q tests/test_native_ggm03s_gravity.py --capture=tee-sys --disable-warnings
+      - name: Verify native IGRF14 and genuine magnetometer A/B
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q tests/test_native_igrf14_field.py --capture=tee-sys --disable-warnings
+      - name: Independently correlate IGRF14 with official IAGA PPIGRF
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pip install --disable-pip-version-check "ppigrf==2.0.0" "pandas==2.3.3"
+          python -m pytest -q tests/test_native_igrf14_ppigrf_correlation.py --capture=tee-sys --disable-warnings
       - name: Verify native SPICE WMM, NRLMSISE-00 drag and orbit-step convergence
         env:
           PYTHONPATH: "src:."
@@ -161,6 +198,11 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           python -m pytest -q tests/test_native_drag_srp_joint.py --capture=tee-sys --disable-warnings
+      - name: Verify simultaneous drag SRP GGM03S IGRF14 in one actual Basilisk whole spacecraft
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q tests/test_native_integrated_environment.py --capture=tee-sys --disable-warnings
       - name: Run native continuous and segmented execution regression tests
         env:
           PYTHONPATH: "src:."
