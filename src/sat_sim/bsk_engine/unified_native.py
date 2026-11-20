@@ -971,6 +971,13 @@ def _build_unified_rows(
             row[f'orbit.velocity_m_s_{component}'] = float(state.v_BN_N[index][axis])
             if 'sun_ephemeris' in recorder_map:
                 row[f'orbit.sun_position_m_{component}'] = float(recorder_map['sun_ephemeris'].PositionVector[index][axis])
+        if 'earth_orientation' in recorder_map:
+            earth_orient = recorder_map['earth_orientation']
+            earth_dcm = np.asarray(earth_orient.J20002Pfix[index], dtype=float).reshape(3, 3)
+            for r_idx in range(3):
+                for c_idx in range(3):
+                    row[f'orbit.earth_fixed_dcm_{r_idx}{c_idx}'] = float(earth_dcm[r_idx,c_idx])
+            row['orbit.earth_orientation_computed'] = int(earth_orient.computeOrient[index])
         wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
         for wheel_index in range(3, wheel_count):
             torque_constant = float(cfg.values.get(
@@ -2470,6 +2477,8 @@ class UnifiedNativeRuntime:
                     messages[f"propulsion_thruster_{thruster_index}"] = thruster_msg
         if ephemeris is not None:
             messages['sun_ephemeris'] = sun_msg
+            if self._orbital_environment.full_gravity:
+                messages['earth_orientation'] = earth_msg
         for name, message in messages.items():
             recorder = message.recorder(macros.sec2nano(cfg.sample_s))
             sim.AddModelToTask(task_name, recorder, None, 1)
@@ -3115,6 +3124,20 @@ class UnifiedNativeRuntime:
                     },
                 })
 
+        if self._orbital_environment.full_gravity:
+            # This is evidence for the real optional model, never a promotion of
+            # a renamed J2-only file or a claim of independent orbit accuracy.
+            summary["gravity_harmonics"] = {
+                "selector": cfg.values.get("earth_gravity_model", "legacy_j2_only"),
+                "degree_and_order": self._orbital_environment.gravity_degree,
+                "source_git_blob_sha1": self._orbital_environment.gravity_asset["source_git_blob_sha1"],
+                "source_sha256": self._orbital_environment.gravity_asset["sha256"],
+                "reference_frame": "Earth_planet_fixed_from_SPICE",
+                "orientation_recorded": True,
+                "degree3_4_coefficients_present": True,
+                "flight_validation": False,
+                "tesseral_terms_included": True,
+            }
         fault_environment = BSKRLStyleFaultAdapter().summarize(cfg.events, tuple(rows))
         summary.update({
             "runtime_event_count": len(cfg.events),

@@ -15,6 +15,7 @@ from typing import Any
 from integrated.orbit_environment.assets import (
     THIRD_PARTY_DIR, resolve_spice_assets, resolve_wmm_asset,
 )
+from .gravity_harmonics_asset import GRAVITY_CHOICES, inspect_ggm03s
 
 _SPICE_OWNER = threading.Lock()
 DEFAULT_EPOCH = '2026-01-01T00:00:00Z'
@@ -33,6 +34,15 @@ class NativeOrbitalEnvironment:
         self.profile = str(values.get('environment_profile', 'simplified'))
         if self.profile not in ('simplified', 'spice_wmm'):
             raise ValueError('NATIVE_ENVIRONMENT_PROFILE_INVALID')
+        gravity_choice = values.get("earth_gravity_model", "legacy_j2_only")
+        if type(gravity_choice) is not str or gravity_choice not in GRAVITY_CHOICES:
+            raise ValueError("NATIVE_EARTH_GRAVITY_MODEL_UNSUPPORTED")
+        self.gravity_model = gravity_choice
+        self.gravity_degree = GRAVITY_CHOICES[gravity_choice]
+        self.full_gravity = gravity_choice != "legacy_j2_only"
+        if self.full_gravity and self.profile != "spice_wmm":
+            raise ValueError("NATIVE_GGM03S_REQUIRES_SPICE_WMM")
+        self.gravity_asset: dict[str, Any] | None = None
         self.epoch = parse_epoch(str(values.get('epoch_utc', DEFAULT_EPOCH)))
         a = float(values.get('orbit_radius_m', 7_000_000.))
         e = float(values.get('eccentricity', .001))
@@ -54,9 +64,17 @@ class NativeOrbitalEnvironment:
             self.assets = {'spice':[item.__dict__ for item in kernels], 'wmm':wmm.__dict__}
             # No arbitrary TaskSpec filesystem paths. Deployment may select an
             # audited asset root with the same resolver environment variables.
-            gravity = Path(os.getenv('SAT_SIM_ASSET_ROOT', str(THIRD_PARTY_DIR)))/'gravity'/'GGM03S-J2-only.txt'
-            if not gravity.is_file():
-                raise FileNotFoundError('NATIVE_J2_GRAVITY_ASSET_MISSING')
+            gravity_dir = Path(os.getenv('SAT_SIM_ASSET_ROOT', str(THIRD_PARTY_DIR))) / 'gravity'
+            if self.full_gravity:
+                # Never silently increase the order on the legacy sparse J2
+                # file. Opt-in uses only exact bytes from upstream Basilisk.
+                gravity = gravity_dir / 'GGM03S.txt'
+                self.gravity_asset = inspect_ggm03s(gravity)
+                self.assets['gravity_full'] = dict(self.gravity_asset)
+            else:
+                gravity = gravity_dir / 'GGM03S-J2-only.txt'
+                if not gravity.is_file():
+                    raise FileNotFoundError('NATIVE_J2_GRAVITY_ASSET_MISSING')
             self.gravity_path = gravity.resolve()
 
     def __enter__(self):
@@ -84,7 +102,7 @@ class NativeOrbitalEnvironment:
         self.factory = factory
         factory.createSun()
         factory.createMoon()
-        earth.useSphericalHarmonicsGravityModel(str(self.gravity_path), 2)
+        earth.useSphericalHarmonicsGravityModel(str(self.gravity_path), self.gravity_degree)
         factory.addBodiesTo(spacecraft)
         kernel_paths = [item['path'] for item in self.assets['spice']]
         self.spice = factory.createSpiceInterface(
@@ -118,8 +136,19 @@ class NativeOrbitalEnvironment:
         return magnetic
 
     def evidence(self):
-        return {'profile':self.profile, 'epoch_utc':self.epoch.isoformat(),
-                'ephemeris':'JPL_DE430_SPICE' if self.spice is not None else 'fixed_sun_reference',
-                'gravity':'earth_J2_plus_sun_moon' if self.spice is not None else 'earth_point_mass',
-                'magnetic_field':'WMM2025' if self.spice is not None else 'centered_dipole',
-                'assets':self.assets, 'spacecraft_flight_validation':False}
+        result = {'profile':self.profile, 'epoch_utc':self.epoch.isoformat(),
+                  'ephemeris':'JPL_DE430_SPICE' if self.spice is not None else 'fixed_sun_reference',
+                  'gravity':'earth_J2_plus_sun_moon' if self.spice is not None else 'earth_point_mass',
+                  'magnetic_field':'WMM2025' if self.spice is not None else 'centered_dipole',
+                  'assets':self.assets, 'spacecraft_flight_validation':False}
+        if self.full_gravity:
+            result.update({
+                'gravity':f'earth_GGM03S_full_degree_{self.gravity_degree}_plus_sun_moon',
+                'gravity_degree':self.gravity_degree,
+                'gravity_model':self.gravity_model,
+                'gravity_source':self.gravity_asset,
+                'gravity_reference_frame':'Earth_planet_fixed_from_SPICE',
+                'spherical_harmonic_scope':'full_degree_and_order_includes_tesseral_terms',
+                'tide_evolution_modeled':False,
+            })
+        return result
