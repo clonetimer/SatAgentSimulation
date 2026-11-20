@@ -136,9 +136,10 @@ PYTHONPATH=src python scripts/run_external_reference_alignment.py --output-dir r
 
 ## 差异来源候选
 
-- 初温：初始工况可能影响全窗趋势，先核对既有初值与温度演化证据【可本项目自查】。
-- 加热器迟滞：回执的“286 K±5 K”与原文“286 K、5 K 全带宽（10.35／15.35 °C 开关阈值）”存在宽度口径差异【可本项目自查】。
-- 太阳板耦合：核对既有太阳板与其他节点的导热／辐射耦合及入热分配【可本项目自查】。
+- 初温：290 K（16.85 °C）已定位；对 −7.768 °C/h 全窗趋势的独立贡献未定位到【已自查·未定位到】。证据：`src/subsystems/thermal/network_config.py:224-234`；`reports/external_reference_alignment/baseline_statistics.json:3016-3034`。
+- 加热器迟滞：286 K 设定点、5 K 全带宽及等效开启占空 14.36% 已定位；“286 K±5 K”的口径差足以解释 0.9–1.6 °C 均值偏差的证据未定位到【已自查·未定位到】。证据：`src/subsystems/thermal/network_config.py:87-113,301-307`；`reports/external_reference_alignment/baseline_statistics.json:2398-2413`。
+- 太阳板耦合：与结构导热 2.0 W/K、向空间热沉辐射及母线入热 5/18 已定位；由此归因电池温度偏差的证据未定位到【已自查·未定位到】。证据：`src/subsystems/thermal/network_config.py:279-299`；`src/subsystems/thermal/thermal_network.py:814-829`；`src/sat_sim/bsk_engine/unified_native.py:2330-2334`。
 - 单节点丢失测点间梯度：五个电池与十个太阳板测点的位置、物理对应和可用聚合权重尚未确认【需数据持有方确认】。
 - 六个坏列未知：8.csv 的列号、坏值规则及剔坏后有效样本口径尚未确认【需数据持有方确认】。
 - 参考坐标未定：12.csv 的参考系、轴序、角速度定义与 unwrap 口径尚未确认【需数据持有方确认】。
+阶段 5 结论：现有八节点集总模型无法解释，需增加测点或改结构（待用户决定）。
