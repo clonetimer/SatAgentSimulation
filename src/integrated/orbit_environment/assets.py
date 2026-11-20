@@ -187,14 +187,21 @@ def resolve_space_weather_asset(
     SAT_SIM_SPACE_WEATHER_PATH environment variable, SAT_SIM_ASSET_ROOT, or
     the packaged third_party/space_weather directory may supply the asset.
     """
-    if path and Path(path).expanduser().is_file():
-        candidate = Path(path).expanduser()
-        if candidate.suffix.lower() != ".csv":
-            raise ValueError("SPACE_WEATHER_ASSET_MUST_BE_CSV")
-        return _asset(candidate), ()
+    names = ("SW-Last5Years.csv", "SW-All.csv")
+    configured = path or os.environ.get("SAT_SIM_SPACE_WEATHER_PATH")
+    if configured:
+        configured_path = Path(configured).expanduser()
+        if configured_path.is_file():
+            if configured_path.suffix.lower() != ".csv":
+                raise ValueError("SPACE_WEATHER_ASSET_MUST_BE_CSV")
+            return _asset(configured_path), ()
+        if configured_path.is_dir():
+            for name in names:
+                candidate = configured_path / name
+                if candidate.is_file():
+                    return _asset(candidate), (str(configured_path),)
 
     searched: list[str] = []
-    names = ("SW-Last5Years.csv", "SW-All.csv")
     for directory in _candidate_dirs(
         path,
         DEFAULT_SPACE_WEATHER_DIR,
