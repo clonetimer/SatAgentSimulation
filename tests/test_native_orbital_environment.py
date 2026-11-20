@@ -181,6 +181,22 @@ def test_unified_runtime_executes_native_nrlmsise00_and_drag(monkeypatch, tmp_pa
 
     baseline_a = semi_major_axis(baseline.trace_rows[-1])
     drag_a = semi_major_axis(rows[-1])
+    # Report actual CI measurements, not only a boolean assertion.
+    # Keep the physical test configuration and acceptance criteria unchanged.
+    print(
+        "DT1_NATIVE_DRAG_AB_MEASURED "
+        f"sample_count={len(rows)} "
+        f"density_min_kg_m3={min(row['environment.atmosphere_density_kg_m3'] for row in rows):.9e} "
+        f"density_max_kg_m3={max(row['environment.atmosphere_density_kg_m3'] for row in rows):.9e} "
+        f"drag_force_max_n={max(row['orbit.drag_force_norm_n'] for row in rows):.9e} "
+        f"drag_power_min_w={min(row['orbit.drag_force_relative_velocity_power_w'] for row in rows):.9e} "
+        f"relative_speed_max_m_s={max(row['orbit.drag_relative_speed_m_s'] for row in rows):.9f} "
+        f"semi_major_axis_no_drag_m={baseline_a:.9f} "
+        f"semi_major_axis_with_drag_m={drag_a:.9f} "
+        f"delta_a_m={drag_a - baseline_a:.9f} "
+        "fixture_area_m2=10.0 fixture_cd=2.2 fixture_mass_kg=10.0 fixture_duration_s=600.0",
+        flush=True,
+    )
     assert drag_a < baseline_a, (baseline_a, drag_a)
     assert baseline.summary["orbital_environment"]["drag_enabled"] is False
 
