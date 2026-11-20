@@ -493,3 +493,12 @@ body[data-active-view="scene"] #workbenchNavigation {
 .birds-cad-review-checklist span{font-size:9px;color:#91a5b9;line-height:1.45}
 @media(max-width:1000px){.birds-cad-review-checklist{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.birds-cad-review-checklist{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* DT-4.1: opt-in BIRDS-4 RW reference outline, never an installation layer. */
+.dt41-rw-cad-load{cursor:pointer;white-space:nowrap}
+.dt41-rw-reference-notice{display:grid;gap:6px;border:1px solid rgba(221,168,91,.38);border-radius:9px;padding:9px;background:rgba(221,168,91,.06)}
+.dt41-rw-reference-notice strong{font-size:11px;color:var(--text)}
+.dt41-rw-reference-notice p{margin:0;color:var(--muted);font-size:10px;line-height:1.55}
+#simulationRwReferenceStatus{font-size:10px;color:var(--muted);overflow-wrap:anywhere}
+#simulationRwReferenceStatus[data-state="error"]{color:var(--danger)}
+#simulationRwReferenceStatus[data-state="verified"]{color:var(--success)}

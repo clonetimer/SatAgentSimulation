@@ -967,6 +967,24 @@ def create_app(
         resolved_trusted_hosts = [item.strip() for item in raw_hosts.split(",") if item.strip()]
     if resolved_trusted_hosts and resolved_trusted_hosts != ["*"]:
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=resolved_trusted_hosts)
+    # DT-4.1: an exact-digest, single-file reference viewer endpoint. It is
+    # registered BEFORE the general /assets mount and never exposes a folder.
+    @app.get("/assets/reference-cad/birds4/rw.glb", include_in_schema=False)
+    def pinned_reference_rw_geometry():
+        from .reference_rw_cad import verified_reference_rw_glb, RW_EXPECTED_SHA256
+        try:
+            path = verified_reference_rw_glb()
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return FileResponse(
+            path,
+            media_type="model/gltf-binary",
+            headers={"X-Reference-Glb-Sha256": RW_EXPECTED_SHA256,
+                     "Cache-Control": "no-store"},
+        )
+
     if web_root.is_dir():
         app.mount("/assets", StaticFiles(directory=web_root), name="workbench-assets")
 
