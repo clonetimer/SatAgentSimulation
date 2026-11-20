@@ -121,3 +121,18 @@ def test_space_weather_provenance_manifest_hash_mismatch_fails_closed(tmp_path):
     )
     with pytest.raises(ValueError, match="SPACE_WEATHER_PROVENANCE_MANIFEST_HASH_MISMATCH"):
         inspect_space_weather_file(target)
+
+def test_offline_asset_manifest_does_not_assume_default_celestrak_source(tmp_path):
+    target = tmp_path / "SW-Last5Years.csv"
+    target.write_bytes(FIXTURE.read_bytes())
+    script = Path(__file__).parents[1] / "scripts" / "fetch_space_weather_asset.py"
+    subprocess.run(
+        [sys.executable, str(script), "--offline", "--output", str(target)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    evidence = inspect_space_weather_file(target)
+    assert evidence["provenance_manifest_status"] == "HASH_BOUND_SOURCE_UNKNOWN"
+    assert evidence["source_url"] is None
+    assert evidence["retrieval_time_unknown"] is True
