@@ -84,6 +84,12 @@ parameters:
     default: simplified
     enum: [simplified, spice_wmm]
     description: Explicit reference environment or offline DE430, Earth J2, Sun/Moon gravity and WMM2025. No fallback.
+  magnetic_field_model:
+    type: string
+    required: false
+    default: wmm2025
+    enum: [wmm2025, igrf14]
+    description: WMM2025 is unchanged default; opt-in IGRF-14 uses the pinned IAGA 2025+secular-variation coefficients through the official Basilisk MAG evaluator with verified COF conversion, not an IGRF-specific Basilisk module.
   epoch_utc:
     type: string
     default: '2026-01-01T00:00:00Z'
@@ -1542,7 +1548,8 @@ operator:
       - comm.active
       - eps.battery_soc
   limitations:
-  - The simplified environment uses fixed reference ephemerides and point-mass Earth gravity; spice_wmm uses offline DE430, Earth J2, Sun/Moon gravity and WMM2025 during 2025-2029.
+  - The simplified environment uses fixed reference ephemerides and point-mass Earth gravity; spice_wmm defaults to offline DE430, Earth J2, Sun/Moon gravity and WMM2025 during 2025-2029.
+  - Opt-in IGRF-14 uses independently pinned IAGA 2025 field and 2025-2030 predictive SV via the official Basilisk MAG engine; source identity, coefficient conversion and valid epoch are recorded. IGRF-14 is not WMM2025, space-weather disturbance modeling, or flight-calibrated magnetometry.
   - Generic spacecraft parameters are engineering assumptions unless separately sourced; atmospheric drag and Earth gravity harmonics above J2 are not modeled by these environment profiles.
   - Project sensor fusion, event managers and mode gate are native SysModels but not official Basilisk modules.
   - Only effects listed in modes.*.effects are accepted by the unified runtime.

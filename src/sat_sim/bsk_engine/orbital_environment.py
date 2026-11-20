@@ -15,6 +15,7 @@ from typing import Any
 from integrated.orbit_environment.assets import (
     THIRD_PARTY_DIR, resolve_spice_assets, resolve_wmm_asset,
 )
+from .igrf14_asset import verify_igrf14_assets
 
 _SPICE_OWNER = threading.Lock()
 DEFAULT_EPOCH = '2026-01-01T00:00:00Z'
@@ -33,6 +34,12 @@ class NativeOrbitalEnvironment:
         self.profile = str(values.get('environment_profile', 'simplified'))
         if self.profile not in ('simplified', 'spice_wmm'):
             raise ValueError('NATIVE_ENVIRONMENT_PROFILE_INVALID')
+        self.magnetic_field_model = values.get("magnetic_field_model", "wmm2025")
+        if type(self.magnetic_field_model) is not str or self.magnetic_field_model not in ("wmm2025", "igrf14"):
+            raise ValueError("NATIVE_MAGNETIC_FIELD_MODEL_UNSUPPORTED")
+        if self.magnetic_field_model == "igrf14" and self.profile != "spice_wmm":
+            raise ValueError("NATIVE_IGRF14_REQUIRES_SPICE_WMM")
+        self.igrf14_asset: dict[str, Any] | None = None
         self.epoch = parse_epoch(str(values.get('epoch_utc', DEFAULT_EPOCH)))
         a = float(values.get('orbit_radius_m', 7_000_000.))
         e = float(values.get('eccentricity', .001))
@@ -50,8 +57,16 @@ class NativeOrbitalEnvironment:
             if self.epoch.year < 2025 or end >= datetime(2030, 1, 1, tzinfo=timezone.utc):
                 raise ValueError('WMM2025_EPOCH_OUTSIDE_VALIDITY_2025_2030')
             kernels, _, _ = resolve_spice_assets(kernel_names=KERNELS, strict=True)
-            wmm, _ = resolve_wmm_asset(strict=True)
-            self.assets = {'spice':[item.__dict__ for item in kernels], 'wmm':wmm.__dict__}
+            self.assets = {'spice':[item.__dict__ for item in kernels]}
+            if self.magnetic_field_model == "wmm2025":
+                wmm, _ = resolve_wmm_asset(strict=True)
+                self.assets['wmm'] = wmm.__dict__
+            else:
+                # Strictly pin both the IAGA source and the derived COF. Do
+                # not quietly use the WMM2025 coefficients as an IGRF alias.
+                folder = Path(os.getenv('SAT_SIM_ASSET_ROOT', str(THIRD_PARTY_DIR))) / 'igrf'
+                self.igrf14_asset = verify_igrf14_assets(folder)
+                self.assets['igrf14'] = dict(self.igrf14_asset)
             # No arbitrary TaskSpec filesystem paths. Deployment may select an
             # audited asset root with the same resolver environment variables.
             gravity = Path(os.getenv('SAT_SIM_ASSET_ROOT', str(THIRD_PARTY_DIR)))/'gravity'/'GGM03S-J2-only.txt'
@@ -110,7 +125,11 @@ class NativeOrbitalEnvironment:
             return None
         from Basilisk.simulation import magneticFieldWMM
         magnetic = magneticFieldWMM.MagneticFieldWMM()
-        magnetic.wmmDataFullPath = self.assets['wmm']['path']
+        magnetic.wmmDataFullPath = (
+            self.igrf14_asset["cof_path"]
+            if self.igrf14_asset is not None
+            else self.assets["wmm"]["path"]
+        )
         year_start = datetime(self.epoch.year, 1, 1, tzinfo=timezone.utc)
         year_end = datetime(self.epoch.year+1, 1, 1, tzinfo=timezone.utc)
         magnetic.epochDateFractionalYear = self.epoch.year + (self.epoch-year_start)/(year_end-year_start)
@@ -118,8 +137,22 @@ class NativeOrbitalEnvironment:
         return magnetic
 
     def evidence(self):
-        return {'profile':self.profile, 'epoch_utc':self.epoch.isoformat(),
-                'ephemeris':'JPL_DE430_SPICE' if self.spice is not None else 'fixed_sun_reference',
-                'gravity':'earth_J2_plus_sun_moon' if self.spice is not None else 'earth_point_mass',
-                'magnetic_field':'WMM2025' if self.spice is not None else 'centered_dipole',
-                'assets':self.assets, 'spacecraft_flight_validation':False}
+        evidence = {'profile':self.profile, 'epoch_utc':self.epoch.isoformat(),
+                    'ephemeris':'JPL_DE430_SPICE' if self.spice is not None else 'fixed_sun_reference',
+                    'gravity':'earth_J2_plus_sun_moon' if self.spice is not None else 'earth_point_mass',
+                    'magnetic_field':'WMM2025' if self.spice is not None else 'centered_dipole',
+                    'assets':self.assets, 'spacecraft_flight_validation':False}
+        if self.igrf14_asset is not None:
+            evidence.update({
+                'magnetic_field': 'IGRF14_2025_2030',
+                'magnetic_field_model_id': 'IGRF14_2025_2030',
+                'magnetic_model_engine': 'Basilisk.magneticFieldWMM_NOAA_MAG_with_IGRF14_COF',
+                'magnetic_field_epoch_base_year': 2025,
+                'magnetic_field_valid_through_exclusive_year': 2030,
+                'magnetic_source_sha256': self.igrf14_asset['source_sha256'],
+                'magnetic_derived_cof_sha256': self.igrf14_asset['cof_sha256'],
+                'magnetic_main_degree': 13,
+                'magnetic_secular_variation_degree': 8,
+                'magnetic_source_is_WMM2025': False,
+            })
+        return evidence
