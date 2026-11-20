@@ -160,6 +160,9 @@ def test_unified_runtime_executes_native_nrlmsise00_and_drag(monkeypatch, tmp_pa
     assert all(math.isfinite(row["environment.atmosphere_density_kg_m3"]) for row in rows)
     assert all(row["environment.atmosphere_density_kg_m3"] > 0.0 for row in rows)
     assert all(math.isfinite(row["orbit.drag_force_norm_n"]) for row in rows)
+    assert all(math.isfinite(row["orbit.drag_force_relative_velocity_power_w"]) for row in rows)
+    assert all(row["orbit.drag_force_relative_velocity_power_w"] <= 1.0e-12 for row in rows)
+    assert min(row["orbit.drag_force_relative_velocity_power_w"] for row in rows) < 0.0
     assert all(math.isfinite(row["orbit.drag_relative_speed_m_s"]) for row in rows)
     assert max(row["orbit.drag_relative_speed_m_s"] for row in rows) > 1000.0
     assert max(row["orbit.drag_force_norm_n"] for row in rows) > 0.0, (
