@@ -108,23 +108,32 @@ def test_unified_runtime_executes_native_nrlmsise00_and_drag(monkeypatch):
     base = config(
         environment_profile="spice_wmm",
         epoch_utc="2026-03-04T21:48:00Z",
-        atmosphere_model="nrlmsise00",
-        drag_area_m2=0.08,
-        drag_coefficient=2.2,
+        orbit_radius_m=6_650_000.0,
+        spacecraft_mass_kg=10.0,
         controller_k=0.0,
         controller_p=0.0,
     )
-    result = UnifiedNativeRuntime(replace(base, duration_s=60.0, sample_s=1.0)).run()
+    run_config = replace(base, duration_s=600.0, step_s=1.0, sample_s=10.0)
+    baseline = UnifiedNativeRuntime(run_config).run()
+    result = UnifiedNativeRuntime(replace(
+        run_config,
+        values={
+            **run_config.values,
+            "atmosphere_model": "nrlmsise00",
+            "drag_area_m2": 10.0,
+            "drag_coefficient": 2.2,
+        },
+    )).run()
 
     environment = result.summary["orbital_environment"]
     assert environment["atmosphere_model"] == "NRLMSISE-00"
     assert environment["drag_enabled"] is True
     assert environment["space_weather"]["coverage_status"] == "PASS"
     assert environment["space_weather"]["sha256"]
-    assert result.summary["aerodynamic_environment"]["status"] == "PASS"
     aero = result.summary["aerodynamic_environment"]
+    assert aero["status"] == "PASS"
     assert aero["wind_model_scope"] == "earth_co_rotation_zero_thermospheric_wind"
-    assert aero["configured_dynamic_effector_area_m2"] == pytest.approx(0.08)
+    assert aero["configured_dynamic_effector_area_m2"] == pytest.approx(10.0)
     assert aero["configured_dynamic_effector_cd"] == pytest.approx(2.2)
 
     rows = list(result.trace_rows)
@@ -135,12 +144,23 @@ def test_unified_runtime_executes_native_nrlmsise00_and_drag(monkeypatch):
     assert all(math.isfinite(row["orbit.drag_relative_speed_m_s"]) for row in rows)
     assert max(row["orbit.drag_relative_speed_m_s"] for row in rows) > 1000.0
     assert max(row["orbit.drag_force_norm_n"] for row in rows) > 0.0, (
-        result.summary["aerodynamic_environment"],
+        aero,
         max(row["environment.atmosphere_density_kg_m3"] for row in rows),
         max(row["orbit.drag_relative_speed_m_s"] for row in rows),
     )
     assert rows[-1]["environment.space_weather.ap_24_0"] == pytest.approx(6.0)
     assert rows[-1]["environment.space_weather.f107_1944_0"] == pytest.approx(138.5)
+
+    def semi_major_axis(row):
+        r = position(row)
+        v = np.array([row[f"orbit.velocity_m_s_{axis}"] for axis in "xyz"])
+        specific_energy = float(v @ v) / 2.0 - 3.986004418e14 / float(np.linalg.norm(r))
+        return -3.986004418e14 / (2.0 * specific_energy)
+
+    baseline_a = semi_major_axis(baseline.trace_rows[-1])
+    drag_a = semi_major_axis(rows[-1])
+    assert drag_a < baseline_a, (baseline_a, drag_a)
+    assert baseline.summary["orbital_environment"]["drag_enabled"] is False
 
 def test_nrlmsise00_rejects_simplified_environment_without_spice():
     with pytest.raises(ValueError, match="NRLMSISE00_REQUIRES_SPICE_WMM_ENVIRONMENT"):
