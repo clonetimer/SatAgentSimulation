@@ -33,3 +33,5 @@ CI 测试验证缺失与篡改均拒绝访问、原生页面默认关闭、真�
 4. 多轮复制唯一位置源是 TaskSpec；任何 GLB 世界变换均不进入仿真参数或安装审批。
 
 5. CI 初轮失败（Run `44760638857`）：GitHub Actions ZIP API 给出带签名的 Azure Blob 302；Python 默认重定向携带源站 Bearer 头，Blob 端报 401。修正为第一跳仅向 api.github.com 提交 Token，302 后以无 Authorization 的请求读取签名 Blob URL；严格 SHA-256 校验仍保留。该错误不是 GLB 格式/尺寸错误，也不能通过跳过真实浏览器验收解决。
+
+6. Run `44761970929` 的真实浏览器检查暴露了计数层级错误：该 GLB 含 **25 glTF nodes / 24 glTF mesh 定义 / 24 个 mesh-bearing node / 500 primitives**，而 `GLTFLoader` 把多 primitive mesh 拆为多个 Three.js Mesh。原实现错误地断言 Three.js Mesh 实例数等于 24，导致前端拒绝有效工件。修复为同时校验 glTF 定义数量、引用数量、primitive 总量和实际 Three.js 解析输出的 primitive 数；没有跳过任何 GLB 来源/摘要验证。图层关闭时仅释放独立相位标识的资源，不释放 GLB clone 共享材质。

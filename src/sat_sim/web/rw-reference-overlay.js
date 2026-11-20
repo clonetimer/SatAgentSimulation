@@ -43,6 +43,14 @@ function syncControl() {
 function requestRender() { sceneApi?.requestRwReferenceRender?.(); }
 function clearMounts() {
   if (layer) layer.clear();
+  // Copies share geometry/material from the pinned source; dispose only our
+  // dedicated visual phase markers. Never dispose shared GLB mesh resources.
+  rotorMarkers.forEach(marker => marker.traverse(node => {
+    node.geometry?.dispose?.();
+    const mats = Array.isArray(node.material) ? node.material
+      : node.material ? [node.material] : [];
+    mats.forEach(material => material.dispose?.());
+  }));
   mounts = [];
   rotorMarkers = [];
   requestRender();
@@ -150,13 +158,23 @@ async function decodePinnedGlb(buffer) {
       || head.getUint32(8,true) !== SOURCE_SIZE)
     throw Error('固定工件不是完整的 glTF 2.0 binary');
   const parsed = await new GLTFLoader().parseAsync(buffer,'');
-  if (!parsed.scene || parsed.parser?.json?.nodes?.length !== EXPECTED_NODE_COUNT
-      || parsed.parser?.json?.meshes?.length !== EXPECTED_MESH_COUNT)
-    throw Error('参考外形装配节点或 mesh 数与固定工件不符');
-  let meshCount = 0;
-  parsed.scene.traverse(node => {if (node.isMesh) meshCount += 1;});
-  if (meshCount !== EXPECTED_MESH_COUNT)
-    throw Error('GLB 可渲染 mesh 数不一致');
+  const gltf = parsed.parser?.json;
+  const gltfMeshNodes = gltf?.nodes?.filter(n => Number.isInteger(n.mesh)) || [];
+  const gltfPrimitives = gltf?.meshes?.reduce((total,mesh) =>
+    total + (Array.isArray(mesh.primitives) ? mesh.primitives.length : 0), 0);
+  // A glTF mesh *definition* may contain many primitives, each becoming an
+  // independent Three.js Mesh. These are distinct namespaces, not a waiver.
+  if (!parsed.scene || gltf?.nodes?.length !== EXPECTED_NODE_COUNT
+      || gltf?.meshes?.length !== EXPECTED_MESH_COUNT
+      || gltfMeshNodes.length !== EXPECTED_MESH_COUNT
+      || new Set(gltfMeshNodes.map(n=>n.mesh)).size !== EXPECTED_MESH_COUNT
+      || gltfPrimitives !== 500)
+    throw Error('固定子装配 glTF 节点/mesh/primitive 清单与工件不符');
+  let renderablePrimitives = 0;
+  parsed.scene.traverse(node => {if (node.isMesh) renderablePrimitives += 1;});
+  if (renderablePrimitives !== gltfPrimitives)
+    throw Error('GLB 渲染 primitive 数与 glTF 定义不一致：' +
+      renderablePrimitives + ' / ' + gltfPrimitives);
   return {model:parsed.scene,digest};
 }
 async function loadBuffer(buffer, token, displayName) {
