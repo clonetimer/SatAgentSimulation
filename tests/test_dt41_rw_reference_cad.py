@@ -132,6 +132,9 @@ def test_dt41_real_browser_rw_overlay_and_rejection(tmp_path, monkeypatch):
               }}}
             })""")
             assert accepted is True
+            assert page.locator("#simulationGeometryBadge").inner_text() == (
+                "TaskSpec 校验通过 · whole_spacecraft.unified_native.v1"
+            )
             assert page.locator("#simulationRwReferenceToggle").is_enabled()
             page.locator("#simulationRwReferenceToggle").click()
             try:

@@ -1413,7 +1413,7 @@ function setSimulationConfiguration(payload) {
   renderSensorGeometryRows(values);
   renderRigidBodyProperties(values);
   const badge=byId('simulationGeometryBadge');
-  if(badge){badge.textContent='TaskSpec 校验通过 · '+geometry.capabilityId;badge.dataset.state='live';}
+  if(badge){badge.textContent='TaskSpec 校验通过 · '+state.simulationGeometry.capabilityId;badge.dataset.state='live';}
   const summary=byId('simulationGeometrySummary');
   if(summary)summary.textContent=geometry.count+' 个反作用轮；构型 '+(geometry.configuration==='pyramid_4'?'四轮金字塔':'三轮正交')+'；几何模式 '+(geometry.mode==='per_wheel'?'逐轮安装':'预设轴向与共用偏置')+'。位置和轴向均以 B 系表示。';
   const status=byId('simulationGeometryStatus');
