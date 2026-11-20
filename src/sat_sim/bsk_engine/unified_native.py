@@ -983,12 +983,14 @@ def _build_unified_rows(
             # forceExternal_N field is not populated by this module; compute
             # the frame-invariant magnitude from the authoritative body force.
             drag_force_norm = float(np.linalg.norm(drag_force_b))
+            drag_power_w = float(drag_force_b @ drag_velocity_b)
             spacecraft_mass = float(cfg.values.get("spacecraft_mass_kg", 100.0))
             row.update({
                 "orbit.drag_force_norm_n": drag_force_norm,
                 "orbit.drag_force_b_x": float(drag_force_b[0]),
                 "orbit.drag_force_b_y": float(drag_force_b[1]),
                 "orbit.drag_force_b_z": float(drag_force_b[2]),
+                "orbit.drag_force_relative_velocity_power_w": drag_power_w,
                 "orbit.drag_relative_velocity_b_m_s_x": float(drag_velocity_b[0]),
                 "orbit.drag_relative_velocity_b_m_s_y": float(drag_velocity_b[1]),
                 "orbit.drag_relative_velocity_b_m_s_z": float(drag_velocity_b[2]),
@@ -3103,14 +3105,21 @@ class UnifiedNativeRuntime:
                 float(row["orbit.drag_relative_speed_m_s"])
                 for row in rows if "orbit.drag_relative_speed_m_s" in row
             ]
+            drag_power_values = [
+                float(row["orbit.drag_force_relative_velocity_power_w"])
+                for row in rows if "orbit.drag_force_relative_velocity_power_w" in row
+            ]
             if (
                 len(density_values) != len(rows)
                 or len(drag_force_values) != len(rows)
                 or len(drag_speed_values) != len(rows)
+                or len(drag_power_values) != len(rows)
                 or not density_values
                 or any(not math.isfinite(value) or value <= 0.0 for value in density_values)
                 or any(not math.isfinite(value) or value < 0.0 for value in drag_force_values)
                 or any(not math.isfinite(value) or value <= 1.0 for value in drag_speed_values)
+                or any(not math.isfinite(value) or value > 1.0e-12 for value in drag_power_values)
+                or min(drag_power_values, default=0.0) >= 0.0
                 or max(drag_force_values, default=0.0) <= 0.0
             ):
                 raise RuntimeError("NRLMSISE_RUNTIME_OUTPUT_INVALID")
