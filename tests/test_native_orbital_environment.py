@@ -1,5 +1,6 @@
 """Actual native environment, orbital geometry and integrator verification."""
 from dataclasses import replace
+from pathlib import Path
 import math
 
 import numpy as np
@@ -100,3 +101,34 @@ def test_point_mass_native_integrator_retains_fourth_order_convergence():
     fine_delta = np.linalg.norm(points[1]-points[2])
     assert 3.5 < math.log(coarse_delta/fine_delta, 2.) < 4.5
     assert fine_delta < 1.
+
+def test_unified_runtime_executes_native_nrlmsise00_and_drag(monkeypatch):
+    fixture = Path(__file__).parent / "fixtures" / "celestrak_space_weather_2026-03-04.csv"
+    monkeypatch.setenv("SAT_SIM_SPACE_WEATHER_PATH", str(fixture))
+    base = config(
+        environment_profile="spice_wmm",
+        epoch_utc="2026-03-04T21:48:00Z",
+        atmosphere_model="nrlmsise00",
+        drag_area_m2=0.08,
+        drag_coefficient=2.2,
+        controller_k=0.0,
+        controller_p=0.0,
+    )
+    result = UnifiedNativeRuntime(replace(base, duration_s=60.0, sample_s=1.0)).run()
+
+    environment = result.summary["orbital_environment"]
+    assert environment["atmosphere_model"] == "NRLMSISE-00"
+    assert environment["drag_enabled"] is True
+    assert environment["space_weather"]["coverage_status"] == "PASS"
+    assert environment["space_weather"]["sha256"]
+    assert result.summary["aerodynamic_environment"]["status"] == "PASS"
+    assert result.summary["aerodynamic_environment"]["wind_model_scope"] == "earth_co_rotation_zero_thermospheric_wind"
+
+    rows = list(result.trace_rows)
+    assert rows
+    assert all(math.isfinite(row["environment.atmosphere_density_kg_m3"]) for row in rows)
+    assert all(row["environment.atmosphere_density_kg_m3"] > 0.0 for row in rows)
+    assert all(math.isfinite(row["orbit.drag_force_n_norm"]) for row in rows)
+    assert max(row["orbit.drag_force_n_norm"] for row in rows) > 0.0
+    assert rows[-1]["environment.space_weather.ap_24_0"] == pytest.approx(6.0)
+    assert rows[-1]["environment.space_weather.f107_1944_0"] == pytest.approx(138.5)
