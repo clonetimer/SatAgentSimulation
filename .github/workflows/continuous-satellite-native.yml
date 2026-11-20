@@ -1,6 +1,27 @@
 name: Continuous satellite native Basilisk tests
 
 on:
+  # Ensure a reviewed, merged DT-1 candidate is actually reverified on the
+  # resulting main commit, not only on its pre-merge pull-request SHA.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/continuous-satellite-native.yml"
+      - "src/sat_sim/bsk_engine/**"
+      - "src/integrated/orbit_environment/**"
+      - "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml"
+      - "src/sat_sim/interactive/**"
+      - "src/subsystems/**"
+      - "src/whole_spacecraft/**"
+      - "tests/test_native_*.py"
+      - "tests/interactive/test_native_*.py"
+      - "tests/interactive/test_continuous_*.py"
+      - "tests/fixtures/celestrak_space_weather_2026-03-04.csv"
+      - "tests/fixtures/IGRF14-IAGA-final.shc"
+      - "scripts/fetch_environment_assets.py"
+      - "scripts/fetch_space_weather_asset.py"
+      - "scripts/fetch_ggm03s_gravity.py"
+      - "scripts/fetch_igrf14_asset.py"
   pull_request:
     paths:
       - "src/sat_sim/bsk_engine/unified_native.py"
@@ -198,6 +219,8 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           python -m pytest -q tests/test_native_drag_srp_joint.py --capture=tee-sys --disable-warnings
+      # Existing short 120 s A/B plus one complete Sun/Eclipse orbital cycle.
+      # Both cases retain unchanged force and source-verification assertions.
       - name: Verify simultaneous drag SRP GGM03S IGRF14 in one actual Basilisk whole spacecraft
         env:
           PYTHONPATH: "src:."

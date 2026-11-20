@@ -154,3 +154,124 @@ def test_actual_four_effects_coexist_with_independent_ablation(tmp_path, monkeyp
         "fixture_duration_s=120 fixture_step_s=1",
         flush=True
     )
+
+
+def test_all_four_effects_one_real_orbit_crosses_eclipse_with_drag_still_active(tmp_path, monkeypatch):
+    """Run a complete Earth orbit with all four true native models enabled.
+
+    The earlier short 120 s A/B tests prove each effect changes the model.
+    This covers a *full illuminated -> penumbra -> umbra -> illuminated*
+    environmental cycle, plus a same-initial-state SRP-off control, without
+    pretending the default 3600 s continuous test uses this configuration.
+    """
+    configure_weather(tmp_path, monkeypatch)
+    semimajor_m = 6_650_000.
+    # At this test orbit, an actual Keplerian period is about 5396.89 s.
+    # 5400 s includes a complete orbital revolution, not just an arc.
+    period_s = 2. * math.pi * math.sqrt(semimajor_m**3 / 3.986004415e14)
+    duration_s = 5400.
+    assert duration_s >= period_s
+    base = {
+        "environment_profile": "spice_wmm",
+        "epoch_utc": "2026-03-04T21:48:00Z",
+        "orbit_radius_m": semimajor_m,
+        "eccentricity": 0.0,
+        "inclination_deg": 0.,
+        "spacecraft_mass_kg": 100.,
+        "controller_k": 0.,
+        "controller_p": 0.,
+    }
+    # Use the actual time-stamped native DE430 Sun vector at the initial
+    # physical epoch. The orbital phase is not inferred from wall clock.
+    probe = run_whole(base, duration=10.)
+    sun = vector(probe.trace_rows[0], "orbit.sun_position_m")
+    base["initial_true_anomaly_rad"] = math.atan2(float(sun[1]), float(sun[0])) % (2.*math.pi)
+    fixture = {
+        **base,
+        "earth_gravity_model": "ggm03s_degree4",
+        "magnetic_field_model": "igrf14",
+        "atmosphere_model": "nrlmsise00",
+        "drag_area_m2": 1.,
+        "drag_coefficient": 2.2,
+        "srp_model": "cannonball",
+        "srp_reference_area_m2": 20.,
+        "srp_coefficient_reflection": 1.5,
+    }
+
+    def orbit_sim(values):
+        return UnifiedNativeRuntime(UnifiedRuntimeConfig(
+            capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
+            duration_s=duration_s,
+            step_s=5.,
+            sample_s=60.,
+            adcs_only=False,
+            events=(),
+            values=values,
+        )).run()
+
+    full = orbit_sim(fixture)
+    without_srp = orbit_sim({**fixture, "srp_model":"disabled"})
+    assert full.summary["orbital_environment"]["drag_enabled"] is True
+    assert full.summary["orbital_environment"]["gravity_degree"] == 4
+    assert full.summary["orbital_environment"]["magnetic_field_model_id"] == "IGRF14_2025_2030"
+    assert full.summary["orbital_environment"]["space_weather"]["coverage_status"] == "PASS"
+    assert full.summary["solar_radiation_pressure"]["status"] == "PASS"
+    assert full.summary["aerodynamic_environment"]["status"] == "PASS"
+    assert full.summary["runtime_message_read_error_count"] == 0
+    rows = full.trace_rows
+    assert len(rows) == 91
+    assert abs(rows[-1]["time_s"]-duration_s) < 1e-6
+    samples = rows[1:]
+    illuminated = [r for r in samples if r["orbit.eclipse_factor"] >= 0.999]
+    umbra = [r for r in samples if r["orbit.eclipse_factor"] <= 0.001]
+    assert len(illuminated) >= 30
+    assert len(umbra) >= 10
+    assert len(illuminated) + len(umbra) <= len(samples)
+    for r in samples:
+        factor = float(r["orbit.eclipse_factor"])
+        density = float(r["environment.atmosphere_density_kg_m3"])
+        drag = float(r["orbit.drag_force_norm_n"])
+        drag_work = float(r["orbit.drag_force_relative_velocity_power_w"])
+        solar = float(r["orbit.srp_force_norm_n"])
+        assert 0. <= factor <= 1.
+        assert all(math.isfinite(v) for v in (density,drag,drag_work,solar))
+        assert density > 0. and drag > 0. and drag_work < 0. and solar >= 0.
+        assert np.isfinite(vector(r, "adcs.magnetometer.reference_n_tesla")).all()
+        dcm = np.array([r[f"orbit.earth_fixed_dcm_{i}{j}"]
+                        for i in range(3) for j in range(3)]).reshape(3,3)
+        igrf_dcm = np.array([r[f"environment.igrf14.earth_j20002pfix_{i}{j}"]
+                             for i in range(3) for j in range(3)]).reshape(3,3)
+        assert np.linalg.norm(dcm - igrf_dcm) < 1e-10
+    for r in umbra:
+        assert r["orbit.srp_force_norm_n"] < 1e-10
+        assert r["orbit.drag_force_norm_n"] > 0.
+    for r in illuminated:
+        assert r["orbit.srp_force_norm_n"] > 0.
+        assert float(
+            vector(r,"orbit.srp_force_n") @
+            (vector(r,"orbit.sun_position_m") - vector(r,"orbit.position_m"))
+        ) < 0.
+    assert np.linalg.norm(
+        np.array([samples[0][f"orbit.earth_fixed_dcm_{i}{j}"] for i in range(3) for j in range(3)]) -
+        np.array([samples[-1][f"orbit.earth_fixed_dcm_{i}{j}"] for i in range(3) for j in range(3)])
+    ) > 0.1
+    delta_srp_m = float(np.linalg.norm(
+        vector(full.trace_rows[-1],"orbit.position_m") -
+        vector(without_srp.trace_rows[-1],"orbit.position_m")
+    ))
+    assert delta_srp_m > 0.001
+    forces = [float(r["orbit.drag_force_norm_n"]) for r in samples]
+    srp_forces = [float(r["orbit.srp_force_norm_n"]) for r in samples]
+    print(
+        "DT1_FOUR_EFFECTS_FULL_ORBIT_MEASURED "
+        f"duration_s={duration_s:.0f} period_s={period_s:.6f} "
+        f"step_s=5 output_s=60 samples={len(samples)} "
+        f"sunlit_samples={len(illuminated)} umbra_samples={len(umbra)} "
+        f"drag_min_n={min(forces):.9e} drag_max_n={max(forces):.9e} "
+        f"srp_max_n={max(srp_forces):.9e} "
+        f"srp_umbra_max_n={max(r['orbit.srp_force_norm_n'] for r in umbra):.9e} "
+        f"srp_on_vs_off_final_position_m={delta_srp_m:.9e} "
+        "full_ggm03s_degree=4 magnetic_model=IGRF14_2025_2030 "
+        "space_weather_source=test-fixture://celestrak-compatible-sample",
+        flush=True,
+    )
