@@ -25,9 +25,9 @@ def test_propulsion_is_physically_coupled_into_recommended_whole_runtime() -> No
     result = adapter.run(spec, contract.data)
     assert result.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
     assert result.summary["propulsion_enabled"] is True
-    assert result.summary["official_module_count"] == 30
-    assert result.summary["project_native_module_count"] == 29
-    assert result.summary["external_or_proxy_module_count"] == 1
+    assert result.summary["official_module_count"] == 32
+    assert result.summary["project_native_module_count"] == 31
+    assert result.summary["external_or_proxy_module_count"] == 0
     assert result.summary["propellant_used_kg"] > 0.0
     assert result.summary["max_total_thrust_n"] > 0.0
     assert result.summary["propulsion_burn_observed"] is True
@@ -44,9 +44,11 @@ def test_propulsion_is_physically_coupled_into_recommended_whole_runtime() -> No
     assert {"thermal_node_comm", "thermal_node_propulsion", "thermal_node_structure",
             "project_earth_horizon_sensor", "project_sun_direction_sensor"} <= project_modules
     assert "project_propulsion_burn_controller" in project_modules
-    assert "project_propulsion_activity_power_bridge" in proxy_modules
+    assert {"native_propulsion_power_0", "native_propulsion_power_1"} <= official_modules
+    assert {"project_propulsion_activity_status_0", "project_propulsion_activity_status_1"} <= project_modules
+    assert "project_propulsion_activity_power_bridge" not in proxy_modules
     assert "project_heater_status_power_bridge" not in proxy_modules
-    assert result.summary["external_or_proxy_module_count"] == 1
+    assert result.summary["external_or_proxy_module_count"] == 0
     assert result.summary["resource_feedback_closure_status"] == "PASS"
 
 

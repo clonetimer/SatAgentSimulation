@@ -1,9 +1,11 @@
-name: P10-A native RW, Comm/Data, heater and Payload power coupling
+name: P10-A native whole-spacecraft power coupling
 
 on:
   pull_request:
     paths:
       - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/sat_sim/adapters/whole_spacecraft_composite_digital_twin.py"
+      - "src/subsystems/thermal/thermal_network.py"
       - "src/integration/resource_feedback.py"
       - "src/whole_spacecraft/builder.py"
       - "src/whole_spacecraft/schemas.py"
@@ -21,6 +23,8 @@ on:
       - "tests/test_composite_native_heater_power.py"
       - "tests/test_composite_native_payload_power.py"
       - "tests/test_native_thermal_heater_power_contract.py"
+      - "tests/test_native_propulsion_power.py"
+      - "tests/test_composite_native_propulsion_power.py"
       - "tests/test_unified_native_event_migration.py"
       - "tests/test_runtime_evidence_status_thermal_rf.py"
       - "tests/test_resource_closure_agent_trust.py"
@@ -89,7 +93,7 @@ jobs:
           )
           print("P10A_OFFLINE_ENVIRONMENT_PREFLIGHT:PASS")
           PY
-      - name: Run native RW, Comm/Data antenna, heater and Payload power to SimpleBattery and thermal A/B
+      - name: Run native RW, Comm/Data, heater, Payload and propulsion power A/B
         env:
           PYTHONPATH: "src:."
         run: |
@@ -105,17 +109,19 @@ jobs:
             tests/test_composite_native_heater_power.py \
             tests/test_composite_native_payload_power.py \
             tests/test_native_thermal_heater_power_contract.py \
+            tests/test_native_propulsion_power.py \
+            tests/test_composite_native_propulsion_power.py \
             tests/test_runtime_evidence_status_thermal_rf.py \
             tests/test_unified_native_event_migration.py \
             tests/test_native_whole_spacecraft_event_bundles.py \
             tests/test_propulsion_whole_coupling.py \
-            tests/test_resource_closure_agent_trust.py::test_resource_closure_profiles_close_all_seven_p1_links \
+            tests/test_resource_closure_agent_trust.py \
             tests/interactive/test_native_battery_reset_barrier.py \
             --junitxml=reports/p10a/native-rw-comm-eps-junit.xml
       - name: Upload focused P10-A native power evidence
         uses: actions/upload-artifact@v4
         with:
-          name: p10a-native-rw-comm-heater-payload-eps-evidence
+          name: p10a-native-whole-spacecraft-power-evidence
           path: reports/p10a/native-rw-comm-eps-junit.xml
           if-no-files-found: error
           retention-days: 30

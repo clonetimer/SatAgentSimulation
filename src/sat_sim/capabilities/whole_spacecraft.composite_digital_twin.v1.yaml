@@ -218,6 +218,14 @@ parameters:
     unit: s
     required: false
     description: Per-thruster commanded on-time for paired propulsion causal validation.
+  propulsion_power_w:
+    type: number
+    unit: W
+    required: false
+    min: 0.0
+    max: 500.0
+    default: 20.0
+    description: Fixed auxiliary electrical draw per actually active native thruster, supplied by its official SimplePowerSink with zero idle draw; an engineering assumption, not a thrust-to-power calibration.
   access_window_s:
     type: number
     unit: s
@@ -448,11 +456,15 @@ outputs:
   - name: propulsion_power_w
     unit: W
     dtype: number
-    description: Propulsion electrical power observed from the runtime activity bridge.
+    description: Aggregate propulsion electrical draw from official per-thruster SimplePowerSink recorders, each enabled by its own actual native thrustFactor greater than zero.
+  - name: propulsion_activity
+    unit: count
+    dtype: number
+    description: Number of actually active thrusters from recorded per-thruster device status, independent of configured electrical watts.
   - name: propulsion_cumulative_energy_j
     unit: J
     dtype: number
-    description: Cumulative propulsion electrical energy derived from native bridge activity.
+    description: Cumulative propulsion electrical energy from zero-order-held official power-node samples recorded at every dynamics tick, independent of exported telemetry interval.
   - name: eclipse_shadow_factor
     unit: ratio
     dtype: number

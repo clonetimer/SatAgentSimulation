@@ -97,6 +97,78 @@ class PayloadActivityStatusSample:
     error: str | None = None
 
 
+@dataclass(frozen=True)
+class ThrusterActivityStatusSample:
+    time_ns: int
+    thrust_factor: float
+    thruster_active: bool
+    input_status: InputReadStatus = InputReadStatus.VALID
+    error: str | None = None
+
+
+if sysModel is not None:
+    class ThrusterActivityStatusAdapter(sysModel.SysModel):
+        """Publish actual thruster activity for an official auxiliary load node.
+
+        This is a fixed-load activity profile, not a thrust-to-electric-power
+        equation. Burn-start permission is deliberately not an input: it does
+        not switch off an already active native thruster.
+        """
+
+        def __init__(self, model_tag: str, *, thruster_output_msg: Any) -> None:
+            super().__init__()
+            if thruster_output_msg is None:
+                raise ValueError("THRUSTER_ACTIVITY_INPUT_REQUIRED")
+            self.ModelTag = str(model_tag)
+            self.thrusterInMsg = messaging.THROutputMsgReader()
+            self.thrusterInMsg.subscribeTo(thruster_output_msg)
+            self.activeStatusOutMsg = messaging.DeviceStatusMsg()
+            self.trace: list[ThrusterActivityStatusSample] = []
+            self.input_error_count: int = 0
+            self.input_errors: list[str] = []
+            self.not_ready_sample_count: int = 0
+            self.sample_count: int = 0
+
+        def Reset(self, CurrentSimNanos: int) -> None:
+            self.trace.clear()
+            self.input_error_count = 0
+            self.input_errors.clear()
+            self.not_ready_sample_count = 0
+            self.sample_count = 0
+            self.UpdateState(CurrentSimNanos)
+
+        def UpdateState(self, CurrentSimNanos: int) -> None:
+            payload, status, error = _read_payload(self.thrusterInMsg, CurrentSimNanos)
+            factor = float(payload.thrustFactor) if payload is not None else 0.0
+            if not math.isfinite(factor) or not 0.0 <= factor <= 1.0:
+                status = InputReadStatus.ERROR
+                error = "thruster activity factor is non-finite or outside [0, 1]"
+            # Continuous sessions retain cumulative health while keeping only
+            # a bounded diagnostic window. Eviction must never erase a fault.
+            self.sample_count += 1
+            if status is InputReadStatus.NOT_READY:
+                self.not_ready_sample_count += 1
+            if status is InputReadStatus.ERROR or (
+                status is InputReadStatus.NOT_READY and int(CurrentSimNanos) > 0
+            ):
+                self.input_error_count += 1
+                if len(self.input_errors) < 10:
+                    self.input_errors.append(f"{int(CurrentSimNanos)}ns: {error or status.value}")
+            active = bool(status is InputReadStatus.VALID and factor > 0.0)
+            output = messaging.DeviceStatusMsgPayload()
+            output.deviceStatus = int(active)
+            self.activeStatusOutMsg.write(output, CurrentSimNanos, self.moduleID)
+            self.trace.append(ThrusterActivityStatusSample(
+                time_ns=int(CurrentSimNanos),
+                thrust_factor=factor if math.isfinite(factor) else 0.0,
+                thruster_active=active,
+                input_status=status,
+                error=error,
+            ))
+            if len(self.trace) > 256:
+                del self.trace[:-256]
+
+
 if sysModel is not None:
     class PayloadActivityStatusAdapter(sysModel.SysModel):
         """Translate actual instrument activity and PDU permission into a load-enable status.
@@ -558,6 +630,7 @@ else:  # pragma: no cover
     # mandatory at execution time.
     DownlinkAntennaStatusAdapter = None
     PayloadActivityStatusAdapter = None
+    ThrusterActivityStatusAdapter = None
     DataActivityPowerBridge = DownlinkActivityPowerBridge = AdcsControlPowerBridge = StatusPowerBridge = ThrusterActivityPowerBridge = PowerToThermalAggregationBridge = None
 
 
@@ -565,9 +638,11 @@ __all__ = [
     "ActivityPowerSample",
     "DownlinkAntennaStatusSample",
     "PayloadActivityStatusSample",
+    "ThrusterActivityStatusSample",
     "InputReadStatus",
     "DownlinkAntennaStatusAdapter",
     "PayloadActivityStatusAdapter",
+    "ThrusterActivityStatusAdapter",
     "DataActivityPowerBridge",
     "DownlinkActivityPowerBridge",
     "AdcsControlPowerBridge",

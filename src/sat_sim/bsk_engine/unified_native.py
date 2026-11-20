@@ -20,7 +20,7 @@ from integration.resource_feedback import (
     DownlinkAntennaStatusAdapter,
     PayloadActivityStatusAdapter,
     InputReadStatus,
-    ThrusterActivityPowerBridge,
+    ThrusterActivityStatusAdapter,
 )
 
 from .event_manager import parse_bsk_events
@@ -221,6 +221,117 @@ def _native_payload_power_health(
         "source": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
         "input_source": "simpleInstrument.nodeDataOutMsg + project_eps_pdu.payloadStatusOutMsg",
     }
+
+def _native_propulsion_power_health(
+    rows: list[dict[str, Any]],
+    *,
+    active_power_per_thruster_w: float,
+    adapters: tuple[Any, ...],
+) -> dict[str, Any]:
+    """Audit actual per-thruster activity against official electrical recorders."""
+    tolerance_w = 1.0e-6
+    errors: list[str] = []
+    not_ready_count = 0
+    error_count = 0
+    for index, adapter in enumerate(adapters):
+        not_ready_count += adapter.not_ready_sample_count
+        error_count += adapter.input_error_count
+        errors.extend(f"THRUSTER_ACTIVITY_INPUT_INVALID:thruster={index}:{error}" for error in adapter.input_errors)
+    powers: list[float] = []
+    counts: list[int] = []
+    violations: list[dict[str, Any]] = []
+    for row in rows:
+        active_count = 0
+        component_sum = 0.0
+        for index in range(len(adapters)):
+            factor = float(row[f"propulsion.thrust_factor_{index}"])
+            actual = float(row[f"propulsion.electrical_power_w_{index}"])
+            valid = math.isfinite(factor) and 0.0 <= factor <= 1.0
+            active = bool(valid and factor > 0.0)
+            expected = active_power_per_thruster_w if active else 0.0
+            active_count += int(active)
+            component_sum += actual
+            if not valid or not math.isfinite(actual) or abs(actual - expected) > tolerance_w:
+                violations.append({"time_s": row["time_s"], "thruster_index": index,
+                                   "reason": "propulsion_power_does_not_match_actual_activity",
+                                   "expected_power_w": expected, "actual_power_w": actual})
+        total = float(row["propulsion.electrical_power_w"])
+        if not math.isfinite(total) or abs(total - component_sum) > tolerance_w:
+            violations.append({"time_s": row["time_s"], "reason": "propulsion_power_sum_mismatch"})
+        powers.append(total)
+        counts.append(active_count)
+    return {
+        "status": "FAIL" if error_count or violations else ("PASS" if rows else "NOT_READY"),
+        "sample_count": len(rows), "valid_sample_count": len(rows),
+        "not_ready_sample_count": not_ready_count,
+        "error_count": error_count, "errors": errors[:10],
+        "power_min_w": min(powers, default=0.0), "power_max_w": max(powers, default=0.0),
+        "power_span_w": max(powers, default=0.0) - min(powers, default=0.0),
+        "activity_min": min(counts, default=0), "activity_max": max(counts, default=0),
+        "activity_span": max(counts, default=0) - min(counts, default=0),
+        "positive_activity_sample_count": sum(count > 0 for count in counts),
+        "positive_power_sample_count": sum(power > tolerance_w for power in powers),
+        "enabled_transition_observed": len(set(counts)) > 1,
+        "stimulus_observed": any(count > 0 for count in counts) and any(power > tolerance_w for power in powers),
+        "directional_response_pass": not violations,
+        "directional_violation_count": len(violations), "directional_violations": violations[:10],
+        "source": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+        "input_source": "thrusterDynamicEffector.thrusterOutMsgs[].thrustFactor",
+        "evidence_sampling": "native_dynamics_tick_independent_of_export_cadence",
+    }
+
+
+def _propulsion_health_rows(recorder_map: Mapping[str, Any], thruster_count: int) -> list[dict[str, Any]]:
+    """Read per-tick official evidence, including short burns between export samples."""
+    if not thruster_count:
+        return []
+    times = np.asarray(recorder_map["propulsion_health_power_0"].times())
+    factors: list[np.ndarray] = []
+    powers: list[np.ndarray] = []
+    for index in range(thruster_count):
+        power_rec = recorder_map[f"propulsion_health_power_{index}"]
+        state_rec = recorder_map[f"propulsion_health_state_{index}"]
+        if not np.array_equal(times, power_rec.times()) or not np.array_equal(times, state_rec.times()):
+            raise RuntimeError("NATIVE_PROPULSION_HEALTH_RECORDERS_MISALIGNED")
+        factors.append(np.asarray(state_rec.thrustFactor))
+        powers.append(-np.asarray(power_rec.netPower))
+    rows = []
+    for sample_index, time_ns in enumerate(times):
+        row = {"time_s": float(time_ns) * 1.0e-9}
+        for index in range(thruster_count):
+            row[f"propulsion.thrust_factor_{index}"] = float(factors[index][sample_index])
+            row[f"propulsion.electrical_power_w_{index}"] = float(powers[index][sample_index])
+        row["propulsion.electrical_power_w"] = sum(float(power[sample_index]) for power in powers)
+        rows.append(row)
+    return rows
+
+
+def _merge_propulsion_power_health(previous: dict[str, Any] | None, current: dict[str, Any]) -> dict[str, Any]:
+    """Fold completed native segments into constant-size lifetime evidence."""
+    if previous is None:
+        return current
+    result = dict(current)
+    for key in ("sample_count", "valid_sample_count", "positive_activity_sample_count",
+                "positive_power_sample_count", "directional_violation_count"):
+        result[key] += previous[key]
+    for prefix in ("power", "activity"):
+        suffix = "_w" if prefix == "power" else ""
+        low, high = f"{prefix}_min{suffix}", f"{prefix}_max{suffix}"
+        result[low] = min(previous[low], current[low]) if current["sample_count"] else previous[low]
+        result[high] = max(previous[high], current[high]) if current["sample_count"] else previous[high]
+        result[f"{prefix}_span{suffix}"] = result[high] - result[low]
+    result["directional_violations"] = (previous["directional_violations"] + current["directional_violations"])[:10]
+    result["directional_response_pass"] = not result["directional_violation_count"]
+    result["enabled_transition_observed"] = result["activity_span"] > 0
+    result["stimulus_observed"] = previous["stimulus_observed"] or current["stimulus_observed"]
+    # Adapter diagnostics are already cumulative and bounded; do not count
+    # the same earlier error again on each subsequent native segment.
+    result["status"] = (
+        "FAIL" if result["error_count"] or result["directional_violation_count"]
+        else "PASS" if result["sample_count"] else "NOT_READY"
+    )
+    return result
+
 
 def _native_heater_power_health(
     rows: list[dict[str, Any]],
@@ -999,10 +1110,18 @@ def _build_unified_rows(
                     "propulsion.fuel_mass_dot_kg_s": float(fuel_rec.fuelMassDot[index]),
                     "propulsion.total_thrust_n": sum(thrust_forces),
                     "propulsion.max_thrust_factor": max(thrust_factors, default=0.0),
-                    "propulsion.electrical_power_w": max(0.0, -float(recorder_map["propulsion_power"].netPower[index])),
+                    "propulsion.electrical_power_w": sum(
+                        max(0.0, -float(recorder_map[f"propulsion_power_{i}"].netPower[index]))
+                        for i in range(len(thrust_factors))
+                    ),
                     "propulsion.thrust_force_n_0": thrust_forces[0] if thrust_forces else 0.0,
                     "propulsion.thrust_force_n_1": thrust_forces[1] if len(thrust_forces) > 1 else 0.0,
                 })
+                for thruster_index, factor in enumerate(thrust_factors):
+                    row[f"propulsion.thrust_factor_{thruster_index}"] = factor
+                    row[f"propulsion.electrical_power_w_{thruster_index}"] = max(
+                        0.0, -float(recorder_map[f"propulsion_power_{thruster_index}"].netPower[index]),
+                    )
             else:
                 row["propulsion.enabled"] = 0
         rows.append(row)
@@ -1742,7 +1861,7 @@ class UnifiedNativeRuntime:
 
             power_nodes = []
             # Only the always-on bus remains static.  ADCS, payload, communication
-            # and propulsion draw are supplied by message-driven activity bridges.
+            # and propulsion draw are supplied by message-driven native power nodes.
             sink = simplePowerSink.SimplePowerSink()
             sink.nodePowerOut = -float(values.get("bus_power_w", 18.0))
             add(sink, "bus_power", "basilisk_official_native", 55)
@@ -2078,21 +2197,37 @@ class UnifiedNativeRuntime:
                 connected("propulsion_thrusters", "spacecraft")
                 connected("propulsion_thrusters", "propulsion_fuel_tank")
                 connected("propulsion_fuel_tank", "spacecraft")
-                propulsion_power_bridge = ThrusterActivityPowerBridge(
-                    "project_propulsion_activity_power_bridge",
-                    thruster_output_msgs=tuple(propulsion_graph.thruster_effector.thrusterOutMsgs),
-                    active_power_per_thruster_w=float(values.get("propulsion_power_w", 20.0)),
-                    enable_status_msg=propulsion_controller.permissionStatusOutMsg,
-                )
-                add(propulsion_power_bridge, propulsion_power_bridge.ModelTag, "engineering_proxy", 54)
-                battery.addPowerNodeToModel(propulsion_power_bridge.powerOutMsg)
-                connected("project_propulsion_activity_power_bridge.powerOutMsg", "battery")
+                propulsion_power_w = float(values.get("propulsion_power_w", 20.0))
+                if not math.isfinite(propulsion_power_w) or not 0.0 <= propulsion_power_w <= 500.0:
+                    raise ValueError("NATIVE_PROPULSION_POWER_OUT_OF_RANGE")
+                propulsion_power_nodes = []
+                propulsion_status_adapters = []
+                for thruster_index, thruster_msg in enumerate(propulsion_graph.thruster_effector.thrusterOutMsgs):
+                    status_adapter = ThrusterActivityStatusAdapter(
+                        f"project_propulsion_activity_status_{thruster_index}",
+                        thruster_output_msg=thruster_msg,
+                    )
+                    # Burn-start permission does not abort an issued burn and
+                    # must never erase electrical draw from ongoing activity.
+                    add(status_adapter, status_adapter.ModelTag, "basilisk_project_native", 56)
+                    power_node = simplePowerSink.SimplePowerSink()
+                    power_node.ModelTag = f"native_propulsion_power_{thruster_index}"
+                    power_node.nodePowerOut = -propulsion_power_w
+                    power_node.nodeStatusInMsg.subscribeTo(status_adapter.activeStatusOutMsg)
+                    add(power_node, power_node.ModelTag, "basilisk_official_native", 54)
+                    battery.addPowerNodeToModel(power_node.nodePowerOutMsg)
+                    connected(f"propulsion_thrusters.thrusterOutMsgs[{thruster_index}]", status_adapter.ModelTag)
+                    connected(f"{status_adapter.ModelTag}.activeStatusOutMsg", power_node.ModelTag)
+                    connected(f"{power_node.ModelTag}.nodePowerOutMsg", "battery")
+                    propulsion_status_adapters.append(status_adapter)
+                    propulsion_power_nodes.append(power_node)
                 whole_modules.update({
                     "propulsion_graph": propulsion_graph,
                     "propulsion_controller": propulsion_controller,
                     "propulsion_thrusters": propulsion_graph.thruster_effector,
                     "propulsion_fuel_tank": propulsion_graph.fuel_tank,
-                    "propulsion_power_bridge": propulsion_power_bridge,
+                    "propulsion_power_nodes": tuple(propulsion_power_nodes),
+                    "propulsion_status_adapters": tuple(propulsion_status_adapters),
                 })
 
             from subsystems.thermal.builder import (
@@ -2202,8 +2337,8 @@ class UnifiedNativeRuntime:
             ]
             for wheel_index, power_node in enumerate(whole_modules["adcs_power_nodes"]):
                 thermal_inputs.append((power_node.nodePowerOutMsg, 0.90, "adcs", f"adcs_rw_{wheel_index}"))
-            if "propulsion_power_bridge" in whole_modules:
-                thermal_inputs.append((whole_modules["propulsion_power_bridge"].powerOutMsg, 0.85, "propulsion", "propulsion_activity"))
+            for power_node in whole_modules.get("propulsion_power_nodes", ()):
+                thermal_inputs.append((power_node.nodePowerOutMsg, 0.85, "propulsion", "propulsion_activity"))
             thermal_graph = build_thermal_network_assembly_graph(
                 duration_s=cfg.duration_s,
                 step_s=cfg.step_s,
@@ -2326,7 +2461,11 @@ class UnifiedNativeRuntime:
                     "propulsion_permission": whole_modules["propulsion_controller"].permissionStatusOutMsg,
                     "propulsion_burn_command": whole_modules["propulsion_controller"].commandOutMsg,
                 })
-                messages["propulsion_power"] = whole_modules["propulsion_power_bridge"].powerOutMsg
+                for thruster_index, power_node in enumerate(whole_modules["propulsion_power_nodes"]):
+                    messages[f"propulsion_power_{thruster_index}"] = power_node.nodePowerOutMsg
+                    messages[f"propulsion_active_status_{thruster_index}"] = (
+                        whole_modules["propulsion_status_adapters"][thruster_index].activeStatusOutMsg
+                    )
                 for thruster_index, thruster_msg in enumerate(whole_modules["propulsion_thrusters"].thrusterOutMsgs):
                     messages[f"propulsion_thruster_{thruster_index}"] = thruster_msg
         if ephemeris is not None:
@@ -2346,6 +2485,15 @@ class UnifiedNativeRuntime:
             sim.AddModelToTask(task_name, pdu_heater_status_fast, None, 1)
             recorder_map["pdu_heater_status_fast"] = pdu_heater_status_fast
             record_sources.append("pdu_heater_status_fast")
+        for index, power_node in enumerate(whole_modules.get("propulsion_power_nodes", ())):
+            for name, message in (
+                (f"propulsion_health_power_{index}", power_node.nodePowerOutMsg),
+                (f"propulsion_health_state_{index}", whole_modules["propulsion_thrusters"].thrusterOutMsgs[index]),
+            ):
+                recorder = message.recorder(macros.sec2nano(cfg.step_s))
+                sim.AddModelToTask(task_name, recorder, None, 1)
+                recorder_map[name] = recorder
+                record_sources.append(name)
 
         from sat_sim.basilisk_recorder_groups import attach_grouped_message_recorders, group_manifest
         recorder_groups = attach_grouped_message_recorders(
@@ -2479,6 +2627,18 @@ class UnifiedNativeRuntime:
         # all-history mission bounds in constant memory before each clear.
         history_bounds = {"energy": True, "data": True, "thermal": True}
         history_sample_count = 0
+        propulsion_health_history: dict[str, Any] | None = None
+
+        def observe_propulsion_power():
+            nonlocal propulsion_health_history
+            adapters = whole_modules.get("propulsion_status_adapters", ())
+            if adapters:
+                health = _native_propulsion_power_health(
+                    _propulsion_health_rows(recorder_map, len(adapters)),
+                    active_power_per_thruster_w=float(values.get("propulsion_power_w", 20.0)),
+                    adapters=adapters,
+                )
+                propulsion_health_history = _merge_propulsion_power_health(propulsion_health_history, health)
 
         def observe_mission_bounds(observed_rows):
             nonlocal history_sample_count
@@ -2588,6 +2748,12 @@ class UnifiedNativeRuntime:
                 # only between controlled segments so the latest segment is
                 # still available to the final native summary.  Batch runs do
                 # not enter this branch and retain their complete trace.
+                # Propulsion evidence was already folded after the previous
+                # native quantum, even if no slower export row was emitted.
+                if segment_count:
+                    for name, recorder in recorder_map.items():
+                        if name.startswith("propulsion_health_"):
+                            recorder.clear()
                 if emitted_count:
                     for recorder in recorder_map.values():
                         recorder.clear()
@@ -2622,6 +2788,7 @@ class UnifiedNativeRuntime:
                 if not cfg.adcs_only:
                     _overlay_exact_thermal_trace(live_rows, whole_modules["thermal"], tolerance_s=max(cfg.step_s, cfg.sample_s) + 1.0e-9)
                 observe_mission_bounds(live_rows)
+                observe_propulsion_power()
                 if live_rows:
                     last_live_rows = live_rows
                 cfg.execution_controller.runtime_advanced(stop_time_s, tuple(live_rows))
@@ -2643,6 +2810,7 @@ class UnifiedNativeRuntime:
                 sim.ConfigureStopTime(macros.sec2nano(stop_time_s))
                 sim.ExecuteSimulation()
             segment_count = len(execution_stops)
+            observe_propulsion_power()
 
         if interactive_events:
             cfg = replace(cfg, events=(*cfg.events, *interactive_events), execution_controller=None)
@@ -2684,9 +2852,6 @@ class UnifiedNativeRuntime:
         runtime_read_errors: list[str] = []
         causal_evidence: dict[str, Any] = {"status": "PASS", "requirements": []}
         if not cfg.adcs_only:
-            bridge_objects = {}
-            if "propulsion_power_bridge" in whole_modules:
-                bridge_objects["propulsion"] = whole_modules["propulsion_power_bridge"]
             bridge_health = {
                 "heater": _native_heater_power_health(
                     rows,
@@ -2706,7 +2871,11 @@ class UnifiedNativeRuntime:
                     adapter_trace=whole_modules["comm_status_adapter"].trace,
                 ),
             }
-            bridge_health.update({name: _bridge_health_payload(bridge) for name, bridge in bridge_objects.items()})
+            if "propulsion_power_nodes" in whole_modules:
+                bridge_health["propulsion"] = propulsion_health_history or _native_propulsion_power_health(
+                    [], active_power_per_thruster_w=float(values.get("propulsion_power_w", 20.0)),
+                    adapters=whole_modules["propulsion_status_adapters"],
+                )
             for name, health in bridge_health.items():
                 runtime_read_errors.extend(f"{name}: {item}" for item in health.get("errors", []))
             runtime_read_errors.extend(
@@ -2931,6 +3100,19 @@ class UnifiedNativeRuntime:
                     "max_total_thrust_n": max(float(row.get("propulsion.total_thrust_n", 0.0)) for row in rows),
                     "propulsion_burn_observed": any(bool(row.get("propulsion.burn_active", 0)) for row in rows),
                     "propulsion_permission_observed": any(bool(row.get("propulsion.burn_permitted", 0)) for row in rows),
+                    "propulsion_power_model": {
+                        "implementation": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+                        "node_count": len(whole_modules["propulsion_power_nodes"]),
+                        "active_power_per_thruster_w": float(values.get("propulsion_power_w", 20.0)),
+                        "activity_source": "thrusterDynamicEffector.thrusterOutMsgs[].thrustFactor > 0",
+                        "permission_semantics": "burn_start_only_not_power_supply",
+                        "electrical_to_local_heat_fraction": 0.85,
+                        "limitations": [
+                            "configured fixed auxiliary electrical load per active thruster; zero idle load",
+                            "activity proxy for valve/controller load; not measured electrical state or hardware calibration",
+                            "not exhaust power, propulsion efficiency, valve transients or combustion/plume heating",
+                        ],
+                    },
                 })
 
         fault_environment = BSKRLStyleFaultAdapter().summarize(cfg.events, tuple(rows))

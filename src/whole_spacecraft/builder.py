@@ -29,7 +29,7 @@ from integration.resource_feedback import (  # noqa: E402
     DataActivityPowerBridge,
     DownlinkAntennaStatusAdapter,
     PayloadActivityStatusAdapter,
-    ThrusterActivityPowerBridge,
+    ThrusterActivityStatusAdapter,
 )
 from subsystems.adcs.builder import (  # noqa: E402
     attach_adcs_closed_loop_graph,
@@ -231,6 +231,9 @@ def build_whole_spacecraft_graph(
     """Build the whole-spacecraft Basilisk graph without executing it."""
 
     cfg = cfg or WholeSpacecraftConfig()
+    propulsion_power_w = float(cfg.propulsion_power_w)
+    if not isfinite(propulsion_power_w) or not 0.0 <= propulsion_power_w <= 500.0:
+        raise ValueError("propulsion_power_w must be finite and between 0 and 500 W per active thruster")
     step_periods = {
         "adcs_dyn_step_s": float(cfg.adcs_dyn_step_s),
         "adcs_fsw_step_s": float(cfg.adcs_fsw_step_s),
@@ -836,21 +839,49 @@ def build_whole_spacecraft_graph(
             notes=("Only the native DownlinkHandling/RF path is migrated to official AntennaPower.",),
         )
 
-    if propulsion_graph is not None:
-        thruster_power_bridge = ThrusterActivityPowerBridge(
-            "thrusterActivityPowerBridge",
-            thruster_output_msgs=tuple(propulsion_graph.thruster_effector.thrusterOutMsgs),
-            active_power_per_thruster_w=20.0,
-        )
-        sim.AddModelToTask(sim_task_name, thruster_power_bridge, None, 36)
-        battery.addPowerNodeToModel(thruster_power_bridge.powerOutMsg)
-        resource_feedback_bridges["propulsion"] = thruster_power_bridge
-        power_inputs.append((thruster_power_bridge.powerOutMsg, 0.85, "structure", "propulsion.actual_activity"))
+    propulsion_power_nodes: list[Any] = []
+    propulsion_status_adapters: list[Any] = []
+    thruster_output_messages: tuple[Any, ...] = ()
+    if propulsion_graph is not None and coupling.enable_propulsion_effector_to_spacecraft:
+        thruster_output_messages = tuple(propulsion_graph.thruster_effector.thrusterOutMsgs)
+        if not thruster_output_messages:
+            raise RuntimeError("COMPOSITE_NATIVE_PROPULSION_POWER_REQUIRES_THRUSTER_OUTPUT_MESSAGES")
+        for index, thruster_output_msg in enumerate(thruster_output_messages):
+            status_adapter = ThrusterActivityStatusAdapter(
+                f"thrusterActivityStatusAdapter{index}",
+                thruster_output_msg=thruster_output_msg,
+            )
+            power_node = simplePowerSink.SimplePowerSink()
+            power_node.ModelTag = f"propulsionPower{index}"
+            power_node.nodePowerOut = -propulsion_power_w
+            power_node.powerStatus = 0
+            power_node.nodeStatusInMsg.subscribeTo(status_adapter.activeStatusOutMsg)
+            # Native thruster/fuel models were attached earlier at priority 0.
+            # Observe that tick's actual thrustFactor before publishing power;
+            # the existing battery scheduling consumes it on the next tick.
+            sim.AddModelToTask(sim_task_name, status_adapter)
+            sim.AddModelToTask(sim_task_name, power_node)
+            battery.addPowerNodeToModel(power_node.nodePowerOutMsg)
+            power_inputs.append((power_node.nodePowerOutMsg, 0.85, "structure", "propulsion.actual_activity"))
+            propulsion_status_adapters.append(status_adapter)
+            propulsion_power_nodes.append(power_node)
         coupling_matrix["propulsion_activity_to_eps_thermal"] = _coupling_record(
             name="propulsion_activity_to_eps_thermal", source_subsystem="propulsion", sink_subsystem="eps,thermal",
-            coupling_status="proxy_coupled_verified",
-            interface="THROutputMsg.thrustFactor -> ThrusterActivityPowerBridge -> battery + structure thermal node",
-            evidence=("native thruster output factors drive electrical and thermal resource feedback",),
+            coupling_status="coupled",
+            interface="THROutputMsg.thrustFactor -> ThrusterActivityStatusAdapter -> official SimplePowerSink per thruster -> battery + structure thermal node",
+            evidence=(
+                "each native thruster output independently gates one official fixed auxiliary electrical load",
+                "the same official PowerNodeUsageMsg feeds SimpleBattery and the structure thermal-node heat bridge exactly once",
+            ),
+            notes=(
+                "The configured auxiliary load is fixed while thrustFactor > 0, with zero idle draw; it is not calibrated thrust-to-electric-power conversion.",
+                "The thermal heat fraction is 0.85. This composite path has no physical thruster PDU switch or burn-start permission gate.",
+            ),
+        )
+    elif propulsion_graph is not None:
+        coupling_matrix["propulsion_activity_to_eps_thermal"] = _disabled_coupling_record(
+            name="propulsion_activity_to_eps_thermal", source_subsystem="propulsion", sink_subsystem="eps,thermal",
+            interface="disabled propulsion effector has no scheduled native activity or electrical load",
         )
 
     if coupling.enable_eps_loads_to_thermal_heat and eps_graph.load_sinks:
@@ -1107,8 +1138,14 @@ def build_whole_spacecraft_graph(
         recorders["comm_idle_status"] = comm_status_adapter.idleStatusOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
     elif comm_power_bridge is not None:
         recorders["comm_power_bridge"] = comm_power_bridge.powerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
-    if resource_feedback_bridges.get("propulsion") is not None:
-        recorders["propulsion_power"] = resource_feedback_bridges["propulsion"].powerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+    for index, (thruster_msg, status_adapter, power_node) in enumerate(zip(
+        thruster_output_messages, propulsion_status_adapters, propulsion_power_nodes,
+    )):
+        # Retain every power transition even when exported telemetry is coarse.
+        sample_ns = macros.sec2nano(float(cfg.adcs_dyn_step_s))
+        recorders[f"propulsion_thruster_{index}"] = thruster_msg.recorder(sample_ns)
+        recorders[f"propulsion_active_status_{index}"] = status_adapter.activeStatusOutMsg.recorder(sample_ns)
+        recorders[f"propulsion_power_{index}"] = power_node.nodePowerOutMsg.recorder(sample_ns)
     if orb_env_graph.eclipse_msg is not None:
         recorders["eclipse"] = orb_env_graph.eclipse_msg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
     if cfg.thermal_use_network and hasattr(thermal_graph, "network"):
@@ -1162,12 +1199,14 @@ def build_whole_spacecraft_graph(
         "conservation_battery", "conservation_storage", "conservation_instrument", "conservation_downlink",
         "downlink_node", "downlink", "ground_access", "rf_link_budget",
         "spacecraft_antenna", "ground_antenna", "spacecraft_state", "pdu_adcs_status",
-        "propulsion_power", "pdu_heater_status", "eclipse",
+        "pdu_heater_status", "eclipse",
     ):
         rec = recorders.get(rec_name)
         if rec is not None:
             sim.AddModelToTask(recorder_task_name, rec)
     for rec_name, rec in recorders.items():
+        if rec_name.startswith("propulsion_") and rec is not None:
+            sim.AddModelToTask(sim_task_name, rec, None, -10)
         if (rec_name.startswith("rw_state_") or rec_name.startswith("adcs_power_")) and rec is not None:
             sim.AddModelToTask(recorder_task_name, rec)
         if rec_name.startswith("heater_") and rec_name != "heater_eps_feedback" and rec is not None:
@@ -1199,7 +1238,8 @@ def build_whole_spacecraft_graph(
         "adcs_power_nodes": tuple(adcs_power_nodes),
         "heater_power_sources": dict(heater_power_sources),
         "adcs_power_monitoring_limit_w": adcs_power_monitoring_limit_w,
-        "propulsion_power_bridge": resource_feedback_bridges.get("propulsion"),
+        "propulsion_power_nodes": tuple(propulsion_power_nodes),
+        "propulsion_status_adapters": tuple(propulsion_status_adapters),
         "rw_cluster": adcs_graph.rw_closed_loop.rw_state_effector,
         "reaction_wheel_bundle": adcs_graph.rw_closed_loop.rw_bundle,
     }
