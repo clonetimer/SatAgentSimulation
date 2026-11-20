@@ -145,3 +145,13 @@ R1 不引入独立 Python NRLMSISE-00 实现。官方 Basilisk v2.11.0 已提供
 - 地球姿态/自转和相对大气速度连接正确。
 
 该路线减少重复实现，但不降低物理验证要求。NRLMSISE 密度输出、dragDynamicEffector 受力和轨道变化仍需独立 A/B、步长收敛及任务级误差预算。
+
+## 10. SRP 与地球辐射 R1 接入顺序
+
+Basilisk 2.11.0 已有官方面片 SRP 模块，R1 不应从零重写面片光压公式。
+
+- 先验证真实 SPICE Sun 状态、Eclipse illumination 和当前 Cannonball SRP 的一致时序。
+- 几何安装证据齐备后，优先评估 facetSRPDynamicEffector；若面片投影面积由几何模块提供，则评估 facetedSRPEffector。
+- 只有完成面片面积、法向、光学系数、中心压强位置、铰接角和地影验证，才将面片 SRP 晋升为整星正式能力。
+- EarthRadiationModel 的反照/红外通量先作为独立环境输出验证；需要实际动力学作用时，必须建立并验证力/力矩耦合，不能只因有 EarthRadiationMsg 就宣称地球辐射压力已作用于整星。
+- TID、SEE 和辐射带粒子环境另列模型任务，不由地球反照/红外模型代替。
