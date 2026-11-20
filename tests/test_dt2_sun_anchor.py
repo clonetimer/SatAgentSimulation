@@ -82,14 +82,14 @@ def test_real_release_startup_must_resolve_exact_packaged_kernels(tmp_path):
     startup = root / "bin/gmat_startup_file.txt"
     startup.parent.mkdir(parents=True)
     content = (
-        "ROOT_PATH = ../\\n"
-        "DATA_PATH = ROOT_PATH/data/\\n"
-        "PLANETARY_EPHEM_SPK_PATH = DATA_PATH/planetary_ephem/spk/\\n"
-        "PLANETARY_SPK_FILE = PLANETARY_EPHEM_SPK_PATH/DE421AllPlanets.bsp\\n"
-        "PLANETARY_COEFF_PATH = DATA_PATH/planetary_coeff/\\n"
-        "PLANETARY_PCK_FILE = PLANETARY_COEFF_PATH/SPICEPlanetaryConstantsKernel.tpc\\n"
-        "TIME_PATH = DATA_PATH/time/\\n"
-        "LSK_FILE = TIME_PATH/SPICELeapSecondKernel.tls\\n"
+        "ROOT_PATH = ../\n"
+        "DATA_PATH = ROOT_PATH/data/\n"
+        "PLANETARY_EPHEM_SPK_PATH = DATA_PATH/planetary_ephem/spk/\n"
+        "PLANETARY_SPK_FILE = PLANETARY_EPHEM_SPK_PATH/DE421AllPlanets.bsp\n"
+        "PLANETARY_COEFF_PATH = DATA_PATH/planetary_coeff/\n"
+        "PLANETARY_PCK_FILE = PLANETARY_COEFF_PATH/SPICEPlanetaryConstantsKernel.tpc\n"
+        "TIME_PATH = DATA_PATH/time/\n"
+        "LSK_FILE = TIME_PATH/SPICELeapSecondKernel.tls\n"
     )
     startup.write_text(content, encoding="utf-8")
     observed = anchor.verified_gmat_startup_kernels(root, entries)
