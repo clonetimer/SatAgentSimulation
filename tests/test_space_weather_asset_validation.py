@@ -66,7 +66,7 @@ def test_space_weather_asset_resolver_uses_explicit_offline_file(monkeypatch, tm
     target = tmp_path / "SW-Last5Years.csv"
     target.write_bytes(FIXTURE.read_bytes())
     monkeypatch.setenv("SAT_SIM_SPACE_WEATHER_PATH", str(target))
-    asset, searched = assets.resolve_space_weather_asset(strict=True)
+    asset, _searched = assets.resolve_space_weather_asset(strict=True)
     assert asset is not None
     assert Path(asset.path) == target.resolve()
     assert asset.sha256 == inspect_space_weather_file(target)["sha256"]
@@ -75,6 +75,6 @@ def test_space_weather_asset_resolver_uses_explicit_offline_file(monkeypatch, tm
 def test_space_weather_asset_resolver_fails_closed_without_local_asset(monkeypatch, tmp_path):
     monkeypatch.delenv("SAT_SIM_SPACE_WEATHER_PATH", raising=False)
     monkeypatch.delenv("SAT_SIM_ASSET_ROOT", raising=False)
-    monkeypatch.setattr(assets, "DEFAULT_SPACE_WEATHER_DIR", tmp_path / "empty")
+    monkeypatch.setattr(assets, "_candidate_dirs", lambda *args, **kwargs: [tmp_path / "empty"])
     with pytest.raises(FileNotFoundError, match="SPACE_WEATHER_ASSET_NOT_FOUND"):
         assets.resolve_space_weather_asset(strict=True)
