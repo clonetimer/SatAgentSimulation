@@ -3080,6 +3080,42 @@ class UnifiedNativeRuntime:
             "runtime_message_read_error_count": len(runtime_read_errors),
             "runtime_message_read_errors": runtime_read_errors[:20],
         }
+        if self._orbital_environment.drag_enabled:
+            density_values = [
+                float(row["environment.atmosphere_density_kg_m3"])
+                for row in rows if "environment.atmosphere_density_kg_m3" in row
+            ]
+            drag_force_values = [
+                float(row["orbit.drag_force_n_norm"])
+                for row in rows if "orbit.drag_force_n_norm" in row
+            ]
+            if (
+                len(density_values) != len(rows)
+                or len(drag_force_values) != len(rows)
+                or not density_values
+                or any(not math.isfinite(value) or value <= 0.0 for value in density_values)
+                or any(not math.isfinite(value) or value < 0.0 for value in drag_force_values)
+            ):
+                raise RuntimeError("NRLMSISE_RUNTIME_OUTPUT_INVALID")
+            summary["aerodynamic_environment"] = {
+                "status": "PASS",
+                "atmosphere_model": "Basilisk.simulation.msisAtmosphere.MsisAtmosphere",
+                "space_weather_model": "Basilisk.simulation.spaceWeatherData.SpaceWeatherData",
+                "space_weather_asset": self._orbital_environment.space_weather_evidence,
+                "drag_model": "Basilisk.simulation.dragDynamicEffector.DragDynamicEffector",
+                "wind_model": "Basilisk.simulation.zeroWindModel.ZeroWindModel",
+                "wind_model_scope": "earth_co_rotation_zero_thermospheric_wind",
+                "projected_area_model": "constant_scalar_engineering_assumption",
+                "projected_area_m2": self._orbital_environment.drag_area_m2,
+                "drag_coefficient": self._orbital_environment.drag_coefficient,
+                "density_min_kg_m3": min(density_values),
+                "density_max_kg_m3": max(density_values),
+                "drag_force_max_n": max(drag_force_values),
+                "sample_count": len(density_values),
+                "space_weather_interpolation": False,
+                "stale_space_weather_fallback": False,
+                "flight_validation": False,
+            }
         summary["adcs_fusion"] = {
             "attitude_estimator": "star_tracker_plus_sun_magnetic_field_triad_quaternion_slerp",
             "estimator_class": "deterministic_engineering_estimator_not_mekf_or_kalman",
