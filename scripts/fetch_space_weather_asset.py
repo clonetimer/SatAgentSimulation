@@ -2,7 +2,7 @@
 """Stage an offline CelesTrak space-weather snapshot for Basilisk NRLMSISE-00.
 
 用途：下载或校验 Basilisk NRLMSISE-00 所需的本地 SW-Last5Years.csv。
-参数：--output 指定 CSV 路径；--url 指定来源；--refresh 显式刷新；--offline 仅离线校验。
+参数：--output 指定 CSV 路径；--url 指定下载地址；--source-url 为已有离线文件显式填写来源；--refresh 显式刷新；--offline 仅离线校验。
 输出：已校验的 CSV 和相邻 space_weather_manifest.json，记录 SHA-256、有效日期、来源与检索时间。
 The runtime never downloads or refreshes this asset.
 """
@@ -51,7 +51,8 @@ def _download(url: str, destination: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--url", default=SOURCE_URL)
+    parser.add_argument("--url", default=SOURCE_URL, help="URL used only when downloading a new snapshot")
+    parser.add_argument("--source-url", default=None, help="explicit provenance URL for an already staged offline CSV")
     parser.add_argument("--refresh", action="store_true", help="download a new snapshot even when one exists")
     parser.add_argument("--offline", action="store_true", help="validate the existing snapshot without network access")
     args = parser.parse_args()
@@ -80,10 +81,15 @@ def main() -> int:
         if downloaded
         else (old_manifest.get("retrieved_at_utc") if same_snapshot else None)
     )
+    source_url = (
+        args.url
+        if downloaded
+        else (old_manifest.get("source_url") if same_snapshot else args.source_url)
+    )
     manifest = {
         "schema_version": "sat-sim-space-weather-asset.v1",
         "status": "PASS",
-        "source_url": args.url if downloaded else old_manifest.get("source_url", args.url),
+        "source_url": source_url,
         "retrieved_at_utc": retrieved_at,
         "retrieval_time_unknown": retrieved_at is None,
         "validated_at_utc": datetime.now(timezone.utc).isoformat(),
