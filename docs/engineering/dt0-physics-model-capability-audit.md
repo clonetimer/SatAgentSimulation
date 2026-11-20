@@ -152,3 +152,7 @@ Canonical TaskSpec 已有 demo、engineering_estimate、ground_calibrated、flig
 这属于 capability 元数据与当前执行基线之间的版本口径不一致。它不证明运行代码必然不兼容，但会误导用户和自动化环境选择。
 
 **处理要求：** DT-1 在推广 BSK-ORB 实验性路径前，先核对官方 Basilisk 2.11.0 的真实 API/模块可用性、capability optional_dependency、工作流安装版本和实际运行产物；统一后再更新 capability 元数据。不得通过仅改 YAML 版本号来代替运行验证。
+
+**现有真实运行测试：** tests/test_native_orbital_environment.py::test_real_spice_and_wmm_change_with_utc_epoch 使用 UnifiedNativeRuntime 分别运行 2026-01-01 和 2026-07-01 的 spice_wmm 工况，检查 DE430/WMM2025/J2+Sun/Moon 环境证据、SPICE 资产 SHA-256、太阳位置随历元变化、磁场输出量级及消息读取错误计数。该测试证明该环境路径有真实 Basilisk 运行覆盖；它尚未单独量化第三体加速度贡献或与 STK/GMAT 的轨道残差，因此本审计仍将第三体模型的任务级精度判为待验证。
+
+同文件还定义了 3600 s 轨道积分步长细化测试（10/5/2.5 s），用于测量 native spice 环境的收敛阶次和末端位置差。这是内部数值收敛门禁，不是外部真值验证。
