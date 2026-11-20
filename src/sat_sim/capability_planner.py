@@ -285,7 +285,7 @@ UNSUPPORTED_DOMAIN_KEYWORDS: dict[str, tuple[str, ...]] = {
         "force-model tolerance", "force-model tolerances",
         "calibrated force", "calibrated force-model", "calibrated tolerances", "spice", "spice ephemeris",
         "nrlmsise", "nrlmsise-00", "external truth orbit", "truth ephemeris", "validated ephemeris",
-        "高保真轨道", "完整轨道动力学", "三体摄动", "第三体摄动", "spice 星历", "外部真值", "轨道真值", "力模型容差", "校准力模型",
+        "高保真轨道", "飞行级轨道", "完整轨道动力学", "三体摄动", "第三体摄动", "spice 星历", "外部真值", "轨道真值", "力模型容差", "校准力模型",
     ),
     "high_fidelity_whole_spacecraft": (
         "工程级全卫星高保真", "全卫星高保真", "高保真全卫星", "高保真整星",
