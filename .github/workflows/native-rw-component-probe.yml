@@ -5,6 +5,19 @@ on:
     paths:
       - "src/sat_sim/bsk_engine/unified_native.py"
       - "src/sat_sim/bsk_engine/project_native_modules.py"
+      - "src/integration/resource_feedback.py"
+      - "src/integration/power_authority_inventory.py"
+      - "src/integration/whole_resource_inventory.py"
+      - "src/integration/thermal_resource_evidence.py"
+      - "src/components/thermal_node/basilisk_scheduled.py"
+      - "src/subsystems/eps/**"
+      - "src/subsystems/thermal/**"
+      - "src/whole_spacecraft/**"
+      - "src/sat_sim/adapters/whole_spacecraft_composite_digital_twin.py"
+      - "src/sat_sim/capabilities/whole_spacecraft.*.yaml"
+      - "src/sat_sim/capability_registry.py"
+      - "src/sat_sim/dataset_writer.py"
+      - "src/sat_sim/physical_couplings.py"
       - "src/sat_sim/adapters/subsystem_adcs_unified_native.py"
       - "src/components/pdu/builder.py"
       - "src/components/pdu/faults.py"
@@ -173,7 +186,7 @@ jobs:
           python -m pytest -q -s tests/test_p9o3_whole_spacecraft_guided_event_catalog.py
           python -m pytest -q -s --junitxml=reports/native_whole_spacecraft_events/rw4_initial_speed_guard.xml \
             tests/test_native_rw_momentum.py -k test_three_wheel_runtime_rejects_ghost_rw4_initial_speed
-      - name: Determine whether the browser surface changed
+      - name: Determine whether browser or native resource evidence changed
         id: browser_scope
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -186,7 +199,10 @@ jobs:
           git fetch --no-tags origin "$BASE_SHA" --depth=1
           changed_paths="$(git diff --name-only "$BASE_SHA" HEAD)"
           printf '%s\n' "$changed_paths"
-          if printf '%s\n' "$changed_paths" | grep -Eq '^(src/sat_sim/web/|tests/test_guided_task_workspace_browser.py$)'; then
+          # Backend resource changes affect real Run summaries and sealed bundles
+          # even when the HTML/JS is unchanged. Keep these journeys in that gate.
+          browser_evidence_paths='^(src/sat_sim/web/|tests/test_guided_task_workspace_browser\.py$|src/sat_sim/bsk_engine/(unified_native|project_native_modules)\.py$|src/integration/(resource_feedback|power_authority_inventory|whole_resource_inventory|thermal_resource_evidence)\.py$|src/components/thermal_node/basilisk_scheduled\.py$|src/subsystems/(eps|thermal)/|src/whole_spacecraft/|src/sat_sim/adapters/whole_spacecraft_composite_digital_twin\.py$|src/sat_sim/capabilities/whole_spacecraft\.[^/]+\.yaml$|src/sat_sim/(capability_registry|dataset_writer|physical_couplings)\.py$|\.github/workflows/native-rw-component-probe\.yml$)'
+          if printf '%s\n' "$changed_paths" | grep -Eq "$browser_evidence_paths"; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
