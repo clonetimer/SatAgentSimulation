@@ -88,6 +88,25 @@ parameters:
     type: string
     default: '2026-01-01T00:00:00Z'
     description: Timezone-qualified UTC epoch; WMM2025 profile is valid during 2025-2029.
+  atmosphere_model:
+    type: string
+    default: none
+    enum: [none, nrlmsise00]
+    description: Optional official Basilisk NRLMSISE-00 atmosphere and drag path. Requires spice_wmm and a locally staged CelesTrak space-weather CSV with complete UTC coverage.
+  drag_area_m2:
+    type: number
+    unit: m^2
+    default: 0.08
+    min: 0.001
+    max: 1000.0
+    description: Constant projected-area engineering approximation used by the optional NRLMSISE drag effector; not an attitude-dependent CAD aerodynamic model.
+  drag_coefficient:
+    type: number
+    unit: '1'
+    default: 2.2
+    min: 0.01
+    max: 10.0
+    description: Constant drag coefficient used by the optional NRLMSISE drag effector; requires traceable vehicle-specific aerodynamic evidence before calibrated claims.
   spacecraft_mass_kg:
     type: number
     unit: kg
@@ -1198,6 +1217,12 @@ outputs:
   - orbit.sun_position_m_*
   - orbit.phase_rad
   - orbit.eclipse_factor
+  - environment.atmosphere_density_kg_m3
+  - environment.atmosphere_temperature_k
+  - environment.space_weather.*
+  - orbit.drag_force_n_*
+  - orbit.drag_force_n_norm
+  - orbit.drag_acceleration_m_s2
   - adcs.pointing_error_deg
   - attitude.truth.pointing_error_deg
   - adcs.body_rate_rad_s_*
@@ -1543,7 +1568,7 @@ operator:
       - eps.battery_soc
   limitations:
   - The simplified environment uses fixed reference ephemerides and point-mass Earth gravity; spice_wmm uses offline DE430, Earth J2, Sun/Moon gravity and WMM2025 during 2025-2029.
-  - Generic spacecraft parameters are engineering assumptions unless separately sourced; atmospheric drag and Earth gravity harmonics above J2 are not modeled by these environment profiles.
+  - Generic spacecraft parameters are engineering assumptions unless separately sourced; optional NRLMSISE-00 drag requires a local, SHA-256-recorded CelesTrak space-weather CSV and currently uses constant projected area/Cd; Earth gravity harmonics above J2 are not modeled by these environment profiles.
   - Project sensor fusion, event managers and mode gate are native SysModels but not official Basilisk modules.
   - Only effects listed in modes.*.effects are accepted by the unified runtime.
   - Propulsion is opt-in and currently supports one scheduled burn gated by battery SOC, safe mode and timed ignition/impulse events.
