@@ -248,6 +248,27 @@ jobs:
           assert [int(row["time_s"]) for row in moon_rows]==[0,2700,5400]
           assert all(math.isfinite(float(v)) for row in moon_rows for v in row.values())
           pair=r["sun_moon_direction_geometry"]
+          bridge=json.loads((root/"gmat_mj_naif_frame_probe.json").read_text())
+          assert hashlib.sha256((root/"gmat_mj_naif_frame_probe.json").read_bytes()).hexdigest()==r["frame_bridge_diagnostic_sha256"]
+          assert hashlib.sha256((root/"gmat_mj_naif_frame_probe_rows.csv").read_bytes()).hexdigest()==r["frame_bridge_rows_sha256"]
+          assert hashlib.sha256((root/"gmat_mj_naif_frame_probe_rows.csv").read_bytes()).hexdigest()==bridge["holdout_rows_csv_sha256"]
+          assert bridge["status"]=="INCONCLUSIVE"
+          assert bridge["spacecraft_holdout_samples"]==91
+          assert bridge["original_pointmass_orbit_frame_time_qualified_samples"]==0
+          assert not bridge["original_basilisk_N_to_ICRF_approved"]
+          assert not bridge["mission_accuracy_budget_approved"]
+          assert math.isclose(bridge["reference_rotation_determinant"],1.,rel_tol=0,abs_tol=1e-12)
+          assert all(math.isfinite(v) and v>=0 for v in (
+              bridge["max_position_residual_m"],bridge["max_velocity_residual_m_s"]))
+          for source_file,sha in (
+              ("gmat_sun_anchor_raw.txt",bridge["source_sha256"]["gmat_sun_raw"]),
+              ("gmat_moon_anchor_raw.txt",bridge["source_sha256"]["gmat_moon_raw"]),
+              ("gmat_frame_time_rows.csv",bridge["source_sha256"]["gmat_frame_time_rows"])):
+              assert hashlib.sha256((root/source_file).read_bytes()).hexdigest()==sha
+          with (root/"gmat_mj_naif_frame_probe_rows.csv").open(newline="") as f:
+              heldout=list(csv.DictReader(f))
+          assert len(heldout)==91
+          assert float(heldout[-1]["gmat_original_elapsed_s"])<5400
           assert len(pair["sun_moon_separation_deg_by_epoch"])==3
           assert len(pair["rotation_information_condition_by_epoch"])==3
           assert pair["scientific_verdict"]=="INCONCLUSIVE"
@@ -283,6 +304,8 @@ jobs:
                 f"sun_moon_sep_deg={pair['sun_moon_separation_deg_by_epoch']} "
                 f"moon_gmat_naif_max_m={r['max_gmat_moon_icrf_vs_naif_j2000_pos_m']:.9e} "
                 f"moon_bsk_naif_max_m={r['max_basilisk_moon_n_vs_naif_j2000_pos_m']:.9e} "
+                f"mj_naif_heldout_max_pos_m={bridge['max_position_residual_m']:.9e} "
+                f"mj_naif_heldout_max_vel_m_s={bridge['max_velocity_residual_m_s']:.9e} "
                 "status=INCONCLUSIVE original_pointmass_n_axis_certified=false")
           PY
       - name: Upload all acquired raw provenance and engine outputs including failure logs

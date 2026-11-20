@@ -372,6 +372,106 @@ def two_celestial_direction_geometry(sun_km: list[list[float]],
     }
 
 
+def frozen_celestial_frame_probe(gmat_sun: list[list[float]],
+                                 gmat_moon: list[list[float]],
+                                 naif_sun: list[list[float]],
+                                 naif_moon: list[list[float]],
+                                 spacecraft_frame_rows: list[dict]) -> tuple[dict, list[dict]]:
+    """Read-only GMAT MJ2000Eq -> NAIF J2000 orientation probe from t=0 Sun/Luna.
+
+    The orientation is frozen using two real celestial directions only. The
+    91 GMAT spacecraft EarthICRF rows are held-out checks, NEVER fit inputs.
+    This does not establish the Basilisk spacecraft N-to-ICRF physical tie.
+    """
+    import numpy as np
+    sun, moon = np.asarray(gmat_sun, dtype=float), np.asarray(gmat_moon, dtype=float)
+    naif_s, naif_m = np.asarray(naif_sun, dtype=float), np.asarray(naif_moon, dtype=float)
+    if (sun.shape != (3, 12) or moon.shape != (3, 12) or
+            naif_s.shape != (3, 6) or naif_m.shape != (3, 6) or
+            not all(np.isfinite(a).all() for a in (sun, moon, naif_s, naif_m))):
+        raise ValueError("DT2_FRAME_BRIDGE_BAD_CELESTIAL_INPUT")
+    if len(spacecraft_frame_rows) != 91:
+        raise ValueError("DT2_FRAME_BRIDGE_REQUIRES_91_ORIGINAL_FRAME_ROWS")
+
+    def basis(a, b):
+        na = float(np.linalg.norm(a))
+        if not math.isfinite(na) or na <= 0:
+            raise ValueError("DT2_FRAME_BRIDGE_DEGENERATE_REFERENCE")
+        u = a / na
+        perpendicular = b - float(np.dot(b, u))*u
+        nb = float(np.linalg.norm(perpendicular))
+        if not math.isfinite(nb) or nb <= 0:
+            raise ValueError("DT2_FRAME_BRIDGE_DEGENERATE_REFERENCE")
+        v = perpendicular / nb
+        return np.column_stack([u, v, np.cross(u, v)])
+
+    matrices = []
+    for i in range(3):
+        source = basis(sun[i, 6:9], moon[i, 6:9])
+        target = basis(naif_s[i, :3], naif_m[i, :3])
+        matrices.append(target @ source.T)
+    frozen_rotation = matrices[0]
+    orientation_change_arcsec = []
+    for matrix in matrices:
+        delta = matrix @ frozen_rotation.T
+        skew = np.array([delta[2,1]-delta[1,2],delta[0,2]-delta[2,0],
+                         delta[1,0]-delta[0,1]])
+        radians = math.atan2(float(np.linalg.norm(skew))/2,
+                             (float(np.trace(delta))-1)/2)
+        orientation_change_arcsec.append(math.degrees(radians)*3600)
+
+    audit_rows = []
+    previous_time = None
+    for index, row in enumerate(spacecraft_frame_rows):
+        fields = [
+            "mj_x_km", "mj_y_km", "mj_z_km",
+            "mj_vx_km_s", "mj_vy_km_s", "mj_vz_km_s",
+            "icrf_x_km", "icrf_y_km", "icrf_z_km",
+            "icrf_vx_km_s", "icrf_vy_km_s", "icrf_vz_km_s",
+        ]
+        try:
+            elapsed = float(row["elapsed_s"])
+            values = {name: float(row[name]) for name in fields}
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("DT2_FRAME_BRIDGE_MISSING_OR_INVALID_STATE") from exc
+        if not math.isfinite(elapsed) or not all(math.isfinite(v) for v in values.values()):
+            raise ValueError("DT2_FRAME_BRIDGE_NONFINITE_STATE")
+        if previous_time is not None and elapsed <= previous_time:
+            raise ValueError("DT2_FRAME_BRIDGE_NONMONOTONE_GMAT_TIME")
+        previous_time = elapsed
+        mj_pos = np.array([values[n] for n in fields[:3]])
+        mj_vel = np.array([values[n] for n in fields[3:6]])
+        icrf_pos = np.array([values[n] for n in fields[6:9]])
+        icrf_vel = np.array([values[n] for n in fields[9:12]])
+        dp = (frozen_rotation @ mj_pos - icrf_pos)*1000
+        dv = (frozen_rotation @ mj_vel - icrf_vel)*1000
+        audit_rows.append({
+            "sample_index": index, "gmat_original_elapsed_s": elapsed,
+            "position_residual_norm_m": float(np.linalg.norm(dp)),
+            "velocity_residual_norm_m_s": float(np.linalg.norm(dv)),
+            "dx_m": float(dp[0]), "dy_m": float(dp[1]), "dz_m": float(dp[2]),
+            "dvx_m_s": float(dv[0]), "dvy_m_s": float(dv[1]),
+            "dvz_m_s": float(dv[2]),
+        })
+    diagnostic = {
+        "status": "INCONCLUSIVE",
+        "reference_source": "genuine GMAT EarthMJ2000Eq Sun/Luna at t=0",
+        "reference_target": "independent NAIF DE421 J2000 Sun/Luna at t=0",
+        "heldout_check": "91 genuine GMAT EarthICRF spacecraft states; no spacecraft fit",
+        "reference_epoch_index": 0,
+        "spacecraft_holdout_samples": len(audit_rows),
+        "reference_rotation_matrix_mj_to_naif_j2000": frozen_rotation.tolist(),
+        "reference_rotation_determinant": float(np.linalg.det(frozen_rotation)),
+        "celestial_rotation_variation_arcsec_by_epoch": orientation_change_arcsec,
+        "max_position_residual_m": max(r["position_residual_norm_m"] for r in audit_rows),
+        "max_velocity_residual_m_s": max(r["velocity_residual_norm_m_s"] for r in audit_rows),
+        "original_basilisk_N_to_ICRF_approved": False,
+        "original_pointmass_orbit_frame_time_qualified_samples": 0,
+        "mission_accuracy_budget_approved": False,
+    }
+    return diagnostic, audit_rows
+
+
 def run(out: Path, root: Path, binary: Path) -> dict:
     out=out.resolve(strict=True)
     root=root.resolve(strict=True)
@@ -414,6 +514,8 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         "stderr":out/"gmat_sun_anchor_stderr.log",
         "rows":out/"sun_anchor_three_engines.csv",
         "moon_rows":out/"moon_anchor_three_engines.csv",
+        "frame_bridge_rows":out/"gmat_mj_naif_frame_probe_rows.csv",
+        "frame_bridge_diagnostic":out/"gmat_mj_naif_frame_probe.json",
         "receipt":out/"sun_anchor_execution.json",
     }
     if any(p.exists() for p in outputs.values()):
@@ -524,7 +626,25 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         writer=csv.DictWriter(f,fieldnames=list(moon_compared[0]))
         writer.writeheader()
         writer.writerows(moon_compared)
+    # Three authenticated celestial reference vectors determine the independent
+    # t=0 orientation. The 91 original GMAT spacecraft states only test it;
+    # they never enter the frame solve and raw reported times are preserved.
+    bridge, bridge_rows = frozen_celestial_frame_probe(
+        gmats, gmat_moons, naif, naif_moon, rows)
+    bridge["source_sha256"] = {
+        "gmat_sun_raw":digest(outputs["raw"]),
+        "gmat_moon_raw":digest(outputs["moon_raw"]),
+        "gmat_frame_time_rows":digest(frame),
+    }
+    with outputs["frame_bridge_rows"].open("w",newline="",encoding="utf-8") as f:
+        writer=csv.DictWriter(f,fieldnames=list(bridge_rows[0]))
+        writer.writeheader()
+        writer.writerows(bridge_rows)
+    bridge["holdout_rows_csv_sha256"] = digest(outputs["frame_bridge_rows"])
+    write_json(outputs["frame_bridge_diagnostic"],bridge)
     receipt.update({
+        "frame_bridge_diagnostic_sha256":digest(outputs["frame_bridge_diagnostic"]),
+        "frame_bridge_rows_sha256":digest(outputs["frame_bridge_rows"]),
         "real_sample_count":len(compared),
         "real_moon_sample_count":len(moon_compared),
         "moon_anchor_comparison_csv_sha256":digest(outputs["moon_rows"]),

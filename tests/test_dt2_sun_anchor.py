@@ -194,3 +194,62 @@ def test_sun_triplet_geometry_rejects_invalid_vectors():
         with pytest.raises(ValueError, match="DT2_SUN_ANCHOR_DIRECTION"):
             anchor.sun_triplet_condition(vectors)
 
+
+def test_celestial_frame_probe_uses_no_spacecraft_fit_and_keeps_raw_times():
+    # Synthetic rotation/control only, NEVER described as real GMAT evidence.
+    import numpy as np
+    r=np.array([[0.,-1.,0.],[1.,0.,0.],[0.,0.,1.]])
+    sun=np.array([150000000.,0.,0.])
+    moon=np.array([0.,384400.,0.])
+    gmat_sun=[[*list(r@sun),0.,0.,0.,*list(sun),0.,0.,0.]]*3
+    gmat_moon=[[*list(r@moon),0.,0.,0.,*list(moon),0.,0.,0.]]*3
+    naif_sun=[[*list(r@sun),0.,0.,0.]]*3
+    naif_moon=[[*list(r@moon),0.,0.,0.]]*3
+    frame_rows=[]
+    for i in range(91):
+        p=np.array([float(i),0.,0.])
+        v=np.array([0.,1.,0.])
+        row={"elapsed_s": i*60.0-(i/90)*0.0000106869}
+        for label,position,velocity in (
+            ("mj",p,v),("icrf",r@p,r@v)
+        ):
+            for axis,x in zip("xyz",position):
+                row[label+"_"+axis+"_km"]=float(x)
+            for axis,x in zip("xyz",velocity):
+                row[label+"_v"+axis+"_km_s"]=float(x)
+        frame_rows.append(row)
+    diag,out=anchor.frozen_celestial_frame_probe(
+        gmat_sun,gmat_moon,naif_sun,naif_moon,frame_rows)
+    assert diag["spacecraft_holdout_samples"]==91
+    assert diag["reference_rotation_determinant"]==pytest.approx(1.)
+    assert np.asarray(diag["reference_rotation_matrix_mj_to_naif_j2000"])==pytest.approx(r)
+    assert diag["max_position_residual_m"]<1e-9
+    assert diag["max_velocity_residual_m_s"]<1e-9
+    assert out[-1]["gmat_original_elapsed_s"]==pytest.approx(frame_rows[-1]["elapsed_s"])
+    assert diag["original_basilisk_N_to_ICRF_approved"] is False
+    assert diag["mission_accuracy_budget_approved"] is False
+    assert diag["status"]=="INCONCLUSIVE"
+
+
+def test_celestial_frame_probe_fail_closed_invalid_reference_and_state():
+    import numpy as np
+    base=[1e8,0.,0.,0.,0.,0.,1e8,0.,0.,0.,0.,0.]
+    lunar=[0.,384400.,0.,0.,0.,0.,0.,384400.,0.,0.,0.,0.]
+    sun=[base]*3
+    moon=[lunar]*3
+    naif_sun=[[1e8,0.,0.,0.,0.,0.]]*3
+    naif_moon=[[0.,384400.,0.,0.,0.,0.]]*3
+    frames=[{}]*91
+    with pytest.raises(ValueError,match="DT2_FRAME_BRIDGE_MISSING_OR_INVALID_STATE"):
+        anchor.frozen_celestial_frame_probe(sun,moon,naif_sun,naif_moon,frames)
+    with pytest.raises(ValueError,match="DT2_FRAME_BRIDGE_REQUIRES_91"):
+        anchor.frozen_celestial_frame_probe(sun,moon,naif_sun,naif_moon,frames[:-1])
+    bad_moon=[[1e8,0.,0.,0.,0.,0.,1e8,0.,0.,0.,0.,0.]]*3
+    with pytest.raises(ValueError,match="DT2_FRAME_BRIDGE_DEGENERATE_REFERENCE"):
+        anchor.frozen_celestial_frame_probe(sun,bad_moon,naif_sun,naif_moon,frames)
+    bad_sun=[list(base),list(base),list(base)]
+    bad_sun[0][0]=float("nan")
+    with pytest.raises(ValueError,match="DT2_FRAME_BRIDGE_BAD_CELESTIAL_INPUT"):
+        anchor.frozen_celestial_frame_probe(bad_sun,moon,naif_sun,naif_moon,frames)
+
+
