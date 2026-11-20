@@ -153,6 +153,6 @@ Canonical TaskSpec 已有 demo、engineering_estimate、ground_calibrated、flig
 
 **处理要求：** DT-1 在推广 BSK-ORB 实验性路径前，先核对官方 Basilisk 2.11.0 的真实 API/模块可用性、capability optional_dependency、工作流安装版本和实际运行产物；统一后再更新 capability 元数据。不得通过仅改 YAML 版本号来代替运行验证。
 
-**现有真实运行测试定义：** tests/test_native_orbital_environment.py::test_real_spice_and_wmm_change_with_utc_epoch 使用 UnifiedNativeRuntime 分别运行 2026-01-01 和 2026-07-01 的 spice_wmm 工况，计划检查 DE430/WMM2025/J2+Sun/Moon 环境证据、SPICE 资产 SHA-256、太阳位置随历元变化、磁场输出量级及消息读取错误计数。注意：当前 .github/workflows/continuous-satellite-native.yml 已执行 spice_wmm 资源 preflight，但没有调用 tests/test_native_orbital_environment.py；因此该文件是实际运行测试定义，不应在官方 CI 执行前作为当前主干已通过证据。它也尚未单独量化第三体加速度贡献或与 STK/GMAT 的轨道残差。
+**现有真实运行测试定义：** tests/test_native_orbital_environment.py::test_real_spice_and_wmm_change_with_utc_epoch 使用 UnifiedNativeRuntime 分别运行 2026-01-01 和 2026-07-01 的 spice_wmm 工况，计划检查 DE430/WMM2025/J2+Sun/Moon 环境证据、SPICE 资产 SHA-256、太阳位置随历元变化、磁场输出量级及消息读取错误计数。注意：main 基线的 .github/workflows/continuous-satellite-native.yml 仅执行 spice_wmm 资源 preflight，没有调用 tests/test_native_orbital_environment.py；因此该文件在 main 上属于真实运行测试定义，而非已执行 CI 证据。PR #204 已将该测试加入官方 native workflow，其新增步骤在首次运行中 SUCCESS；但完整 native workflow 尚在执行且 PR 尚未合并。该测试也尚未单独量化第三体加速度贡献或与 STK/GMAT 的轨道残差。
 
 同文件还定义了 3600 s 轨道积分步长细化测试（10/5/2.5 s），用于测量 native spice 环境的收敛阶次和末端位置差。这是内部数值收敛门禁，不是外部真值验证。
