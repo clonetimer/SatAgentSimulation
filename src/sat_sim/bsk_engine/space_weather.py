@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 from datetime import date, datetime, timedelta, timezone
 import hashlib
+import json
 import math
 from pathlib import Path
 from typing import Any
@@ -112,15 +113,68 @@ def _inspect(path: Path) -> tuple[list[date], dict[str, Any]]:
     }
 
 
-def inspect_space_weather_file(path: str | Path) -> dict[str, Any]:
-    """Validate CSV structure and return immutable asset metadata.
+def _attach_provenance_manifest(path: Path, evidence: dict[str, Any], *, verify_manifest: bool) -> dict[str, Any]:
+    manifest_path = path.expanduser().resolve().with_name("space_weather_manifest.json")
+    if not manifest_path.is_file():
+        evidence.update({
+            "provenance_manifest_status": "NOT_PROVIDED",
+            "source_url": None,
+            "retrieved_at_utc": None,
+            "retrieval_time_unknown": True,
+            "manifest_validated_at_utc": None,
+        })
+        return evidence
+
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("SPACE_WEATHER_PROVENANCE_MANIFEST_INVALID") from exc
+
+    if not isinstance(manifest, dict) or manifest.get("status") != "PASS":
+        raise ValueError("SPACE_WEATHER_PROVENANCE_MANIFEST_NOT_PASS")
+    asset = manifest.get("asset")
+    if not isinstance(asset, dict) or asset.get("sha256") != evidence["sha256"]:
+        if verify_manifest:
+            raise ValueError("SPACE_WEATHER_PROVENANCE_MANIFEST_HASH_MISMATCH")
+        evidence.update({
+            "provenance_manifest_status": "STALE_REPLACED",
+            "source_url": None,
+            "retrieved_at_utc": None,
+            "retrieval_time_unknown": True,
+            "manifest_validated_at_utc": None,
+        })
+        return evidence
+
+    source_url = manifest.get("source_url")
+    if not isinstance(source_url, str) or not source_url.strip():
+        raise ValueError("SPACE_WEATHER_PROVENANCE_SOURCE_MISSING")
+    retrieved_at = manifest.get("retrieved_at_utc")
+    if retrieved_at is not None and not isinstance(retrieved_at, str):
+        raise ValueError("SPACE_WEATHER_PROVENANCE_RETRIEVAL_TIME_INVALID")
+    evidence.update({
+        "provenance_manifest_status": "PASS",
+        "source_url": source_url,
+        "retrieved_at_utc": retrieved_at,
+        "retrieval_time_unknown": bool(manifest.get("retrieval_time_unknown", retrieved_at is None)),
+        "manifest_validated_at_utc": manifest.get("validated_at_utc"),
+        "provenance_manifest_sha256": _sha256(manifest_path),
+    })
+    return evidence
+
+
+def inspect_space_weather_file(
+    path: str | Path,
+    *,
+    verify_manifest: bool = True,
+) -> dict[str, Any]:
+    """Validate CSV structure and return immutable asset/provenance metadata.
 
     Rows after the first malformed/predicted row are ignored, matching the
-    official Basilisk parser. Simulation-specific coverage is checked
-    separately by validate_space_weather_coverage.
+    official Basilisk parser. If an adjacent manifest exists, its asset hash
+    must match the CSV. Simulation-specific coverage is checked separately.
     """
     _, evidence = _inspect(Path(path))
-    return evidence
+    return _attach_provenance_manifest(Path(path), evidence, verify_manifest=verify_manifest)
 
 
 def validate_space_weather_coverage(
@@ -140,6 +194,7 @@ def validate_space_weather_coverage(
         raise ValueError("SPACE_WEATHER_DURATION_INVALID")
 
     valid_dates, evidence = _inspect(Path(path))
+    evidence = _attach_provenance_manifest(Path(path), evidence, verify_manifest=True)
     epoch_utc = epoch.astimezone(timezone.utc)
     end_utc = epoch_utc + timedelta(seconds=float(duration_s))
     required_start = epoch_utc.date() - timedelta(days=3)
