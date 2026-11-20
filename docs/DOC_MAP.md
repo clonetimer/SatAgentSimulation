@@ -32,6 +32,15 @@
 | [单机能力与原生范围清单](engineering/p9-n-component-capability-inventory.md) | 查部件的独立入口、物理简化和当前支持范围，按最新收尾节阅读。 |
 | [脚本入口说明](../scripts/README.md) | 找维护、诊断、构建与验收脚本，避免猜测启动命令。 |
 
+## 高可信仿真升级（DT-0）
+
+| 入口文件 | 什么时候看 |
+|---|---|
+| [DT-0 需求覆盖矩阵](engineering/dt0-requirements-coverage-matrix.md) | 逐条核对后端仿真要求与前端交互要求的现状、证据和缺口。 |
+| [DT-0 物理模型能力审计](engineering/dt0-physics-model-capability-audit.md) | 区分推荐整星路径、实验性 Basilisk 扩展、项目模型和未验证物理能力。 |
+| [DT-0 LEO-Engineering 基线](engineering/dt0-leo-engineering-baseline.md) | 查看首期 LEO 的现状 R0、目标 R1、验证用例和误差预算原则。 |
+| [DT-0 计划调整记录](engineering/dt0-plan-adjustment-log.md) | 查看每次路线调整的触发证据、必要性、充分性和验收条件。 |
+
 ## 验收证据
 
 这里区分能力声明、测试定义和已保存的运行结果；测试文件存在不等于该次测试已执行，历史通过也不自动覆盖新版本。
