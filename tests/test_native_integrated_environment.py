@@ -364,6 +364,7 @@ def test_four_effects_pass_canonical_taskspec_exported_script_and_sealed_run_bun
     script_result = json.loads(script_run.stdout[start:])
     if script_run.returncode != 0 or not script_result.get("ok", False):
         outcome = script_result.get("validation_outcome") or {}
+        physical = outcome.get("physical_validation") or {}
         nonpass = [
             {"check_id": row.get("check_id"), "result": row.get("result"),
              "reason_code": row.get("reason_code")}
@@ -375,6 +376,9 @@ def test_four_effects_pass_canonical_taskspec_exported_script_and_sealed_run_bun
             f"exit={script_run.returncode} result={outcome.get('result')} "
             f"reason={outcome.get('reason_code')} "
             f"nonpass={nonpass[:12]} "
+            f"physical_issues={(physical.get('issues') or [])[:8]} "
+            f"physical_fail_count={physical.get('fail_count')} "
+            f"physical_results={physical.get('check_results')} "
             f"plan_status={script_result.get('planning', {}).get('validation')} "
             f"summary_status={script_result.get('summary', {}).get('overall_status')}")
     assert script_result["capability_id"] == "whole_spacecraft.unified_native.v1"

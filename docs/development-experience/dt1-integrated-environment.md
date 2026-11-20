@@ -72,3 +72,5 @@
 引入这一关只为防止模型已在底层运行而在脚本/任务/证据产品入口丢失；无物理模型、任务默认值、原有判据和积分器改动。此条款只有新的 exact-head GitHub Actions 原生测试成功后才能标为 PASS；失败必须定位哪个产品路径未闭环，不以降低接受标准替代修复。
 
 - 首轮产品链 CI `44801455983` 的新增测试失败：**正式导出脚本确实运行并输出 JSON，但退出码为 1**；已有四效应底层 A/B 仍通过。最初的失败消息只保留了 JSON 尾部，无法区分 TaskSpec 任务判据/QoI 校验与规划/脚本错误。现在补充**失败原因码及非 PASS 检查**到同一个严格断言；未修改模型、QoI 要求或成功判定。待下一次 native CI 的具体失败原因再裁决。
+
+- 第二轮 CI `44802191610` 提取到真实失败分类：`DT1_GENERATED_SCRIPT_PRODUCT_GATE_FAILED exit=1 result=FAIL reason=PHYSICAL_VALIDATION_FAILED`，但底层 `summary.overall_status=PASS`。它不是模型启动异常，也不是自然语言解析失败；具体哪项物理验证检查及观测值仍需原始 physical_validation.issues。第三轮仅在严格失败信息中列出 `physical_issues/check_results`，以区分真实违规与检查器字段解释错误；不得通过关闭 `strict_physical`、改模拟质量/面积或跳过校验放行。
