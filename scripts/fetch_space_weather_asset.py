@@ -42,7 +42,7 @@ def _download(url: str, destination: Path) -> None:
     try:
         staged.write_bytes(raw)
         # Validate before replacing the last known good snapshot.
-        inspect_space_weather_file(staged)
+        inspect_space_weather_file(staged, verify_manifest=False)
         os.replace(staged, destination)
     finally:
         staged.unlink(missing_ok=True)
@@ -72,7 +72,7 @@ def main() -> int:
             raise FileNotFoundError(f"SPACE_WEATHER_ASSET_MISSING:{destination}")
         _download(args.url, destination)
 
-    evidence = inspect_space_weather_file(destination)
+    evidence = inspect_space_weather_file(destination, verify_manifest=not downloaded)
     old_asset = old_manifest.get("asset", {}) if isinstance(old_manifest, dict) else {}
     same_snapshot = old_asset.get("sha256") == evidence["sha256"]
     retrieved_at = (
