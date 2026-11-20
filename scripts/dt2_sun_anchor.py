@@ -191,7 +191,11 @@ def parse_gmat_moon(path: Path) -> list[list[float]]:
                                  minimum_km=2.0e5, maximum_km=5.0e5)
 
 
-def same_source_basilisk_celestials(kernel_root: Path, epoch: str) -> dict[str, list[list[float]]]:
+def same_source_basilisk_celestials(
+    kernel_root: Path, epoch: str, *,
+    spacecraft_initial: dict | None = None,
+    source_earth_mu_m3_s2: float | None = None,
+) -> dict:
     """Execute native Basilisk 2.11.0 with only the three exact supplied kernels.
 
     The gravBodyFactory.createSpiceInterface(path=...) helper in v2.11.0
@@ -201,7 +205,7 @@ def same_source_basilisk_celestials(kernel_root: Path, epoch: str) -> dict[str, 
     default kernels. Use both, and verify the loaded CSPICE kernel inventory.
     """
     from Basilisk.utilities import SimulationBaseClass, macros
-    from Basilisk.simulation import spiceInterface
+    from Basilisk.simulation import spiceInterface, spacecraft
     import Basilisk
     if Basilisk.__version__ != "2.11.0":
         raise RuntimeError("DT2_SUN_ANCHOR_WRONG_BASILISK")
@@ -239,6 +243,44 @@ def same_source_basilisk_celestials(kernel_root: Path, epoch: str) -> dict[str, 
     }
     for recorder in recorders.values():
         sc_sim.AddModelToTask(task, recorder)
+    clock_recorder = spice.spiceTimeOutMsg.recorder(macros.sec2nano(2700.0))
+    sc_sim.AddModelToTask(task, clock_recorder)
+
+    state_recorder = None
+    if spacecraft_initial is not None:
+        from Basilisk.utilities import simIncludeGravBody
+        if (source_earth_mu_m3_s2 is None or
+                not math.isfinite(float(source_earth_mu_m3_s2)) or
+                float(source_earth_mu_m3_s2) <= 0):
+            raise ValueError("DT2_NATIVE_CLOCK_REPLAY_SOURCE_MU_REQUIRED")
+        names = ("x_m", "y_m", "z_m", "vx_m_s", "vy_m_s", "vz_m_s")
+        try:
+            initial = [float(spacecraft_initial[k]) for k in names]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("DT2_NATIVE_CLOCK_REPLAY_SIX_STATE_REQUIRED") from exc
+        if not all(math.isfinite(v) for v in initial):
+            raise ValueError("DT2_NATIVE_CLOCK_REPLAY_NONFINITE_INITIAL_STATE")
+        # This is a NEW observational replay; the original sealed BSK Run is
+        # not changed. The real native spacecraft executes in this SAME
+        # Basilisk Process as the 3-kernel inertial J2000 SPICE clock.
+        orbit_task = "dt2_native_clock_replay_orbit_task"
+        process.addTask(sc_sim.CreateNewTask(orbit_task, macros.sec2nano(5.0)))
+        craft = spacecraft.Spacecraft()
+        craft.ModelTag = "DT2_NATIVE_CLOCK_SAME_PROCESS_CENTRAL_EARTH"
+        craft.hub.mHub = 100.0
+        craft.hub.IHubPntBc_B = [
+            [100.0, 0., 0.], [0., 100.0, 0.], [0., 0., 100.0]]
+        craft.hub.r_CN_NInit = initial[:3]
+        craft.hub.v_CN_NInit = initial[3:]
+        sc_sim.AddModelToTask(orbit_task, craft)
+        gravity = simIncludeGravBody.gravBodyFactory()
+        earth = gravity.createEarth()
+        earth.isCentralBody = True
+        gravity.addBodiesTo(craft)
+        if float(earth.mu) != float(source_earth_mu_m3_s2):
+            raise ValueError("DT2_NATIVE_CLOCK_REPLAY_MU_NOT_IDENTICAL")
+        state_recorder = craft.scStateOutMsg.recorder(macros.sec2nano(60.0))
+        sc_sim.AddModelToTask(orbit_task, state_recorder)
     sc_sim.InitializeSimulation()
     # Check the genuine Basilisk C++ CSPICE pool, not the Python argument list.
     if not all(spiceInterface.isKernelLoaded(str(p)) for p in kernel_paths):
@@ -259,6 +301,34 @@ def same_source_basilisk_celestials(kernel_root: Path, epoch: str) -> dict[str, 
         if not all(all(math.isfinite(v) for v in row) for row in rows):
             raise ValueError("DT2_CELESTIAL_ANCHOR_BSK_NONFINITE: " + body)
         result[body] = rows
+    clock_times = clock_recorder.times() * macros.NANO2SEC
+    clock_et = clock_recorder.J2000Current
+    if len(clock_times) != 3 or len(clock_et) != 3:
+        raise ValueError("DT2_NATIVE_CLOCK_SPICE_TIME_MESSAGE_COUNT")
+    result["native_spice_clock"] = [
+        {"time_s": float(clock_times[i]), "et_s": float(clock_et[i])}
+        for i in range(3)
+    ]
+    if not all(math.isfinite(v) for row in result["native_spice_clock"]
+               for v in row.values()):
+        raise ValueError("DT2_NATIVE_CLOCK_NONFINITE_ET")
+    if state_recorder is not None:
+        times = state_recorder.times() * macros.NANO2SEC
+        position = state_recorder.r_BN_N
+        velocity = state_recorder.v_BN_N
+        if len(times) != 91:
+            raise ValueError("DT2_NATIVE_CLOCK_REPLAY_91_STATES_REQUIRED")
+        states = []
+        for i, tick in enumerate(times):
+            values = [float(v) for v in (*position[i], *velocity[i])]
+            if not all(math.isfinite(v) for v in values):
+                raise ValueError("DT2_NATIVE_CLOCK_REPLAY_NONFINITE_STATE")
+            states.append({
+                "time_s": float(tick),
+                **dict(zip(("x_m","y_m","z_m","vx_m_s","vy_m_s","vz_m_s"),
+                           values)),
+            })
+        result["native_spacecraft_replay"] = states
     return result
 
 
@@ -472,6 +542,95 @@ def frozen_celestial_frame_probe(gmat_sun: list[list[float]],
     return diagnostic, audit_rows
 
 
+
+def audit_native_same_process_clock(
+    spacecraft_replay: list[dict], original_basilisk: list[dict],
+    native_clock: list[dict], naif_et: list[float], gmat_frame_rows: list[dict],
+) -> tuple[dict, list[dict]]:
+    """Independent clock audit, not certification of an absolute N-frame tie.
+
+    Original real BSK trajectory and all GMAT raw times are read-only.
+    """
+    if len(spacecraft_replay) != 91 or len(original_basilisk) != 91:
+        raise ValueError("DT2_NATIVE_CLOCK_SOURCE_REPLAY_91_STATES_REQUIRED")
+    if len(native_clock) != 3 or len(naif_et) != 3 or len(gmat_frame_rows) != 91:
+        raise ValueError("DT2_NATIVE_CLOCK_THREE_CELESTIAL_EPOCHS_REQUIRED")
+    axes = ("x_m","y_m","z_m","vx_m_s","vy_m_s","vz_m_s")
+    max_position, max_velocity = 0.0, 0.0
+    for i,(new, original) in enumerate(zip(spacecraft_replay, original_basilisk)):
+        try:
+            t1,t2 = float(new["time_s"]),float(original["time_s"])
+            rdiff = [float(new[k])-float(original[k]) for k in axes[:3]]
+            vdiff = [float(new[k])-float(original[k]) for k in axes[3:]]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("DT2_NATIVE_CLOCK_REPLAY_MISSING_VALUE") from exc
+        if (not math.isfinite(t1) or not math.isfinite(t2) or
+            abs(t1-i*60.0)>1e-6 or abs(t2-i*60.0)>1e-6 or
+            not all(math.isfinite(v) for v in (*rdiff,*vdiff))):
+            raise ValueError("DT2_NATIVE_CLOCK_REPLAY_BAD_TIME_OR_VALUE")
+        max_position=max(max_position,math.sqrt(sum(v*v for v in rdiff)))
+        max_velocity=max(max_velocity,math.sqrt(sum(v*v for v in vdiff)))
+        if i==0 and (math.sqrt(sum(v*v for v in rdiff))>1e-6 or
+                     math.sqrt(sum(v*v for v in vdiff))>1e-6):
+            raise ValueError("DT2_NATIVE_CLOCK_REPLAY_ORIGINAL_INITIAL_STATE_CHANGED")
+
+    results=[]
+    for j,k in enumerate((0,45,90)):
+        try:
+            actual_time = float(native_clock[j]["time_s"])
+            recorded_et = float(native_clock[j]["et_s"])
+            independent_et = float(naif_et[j])
+            gmat = gmat_frame_rows[k]
+            gmat_elapsed = float(gmat["elapsed_s"])
+            a1 = float(gmat["a1_mjd"])
+            utc = float(gmat["utc_mjd"])
+            tai = float(gmat["tai_mjd"])
+            tt = float(gmat["tt_mjd"])
+        except (KeyError, TypeError, ValueError, IndexError) as exc:
+            raise ValueError("DT2_NATIVE_CLOCK_MISSING_TIME_SOURCE") from exc
+        vals = [actual_time,recorded_et,independent_et,
+                gmat_elapsed,a1,utc,tai,tt]
+        if not all(math.isfinite(v) for v in vals):
+            raise ValueError("DT2_NATIVE_CLOCK_NONFINITE_TIME_SOURCE")
+        if abs(actual_time-k*60.0)>1e-6:
+            raise ValueError("DT2_NATIVE_CLOCK_UNEXPECTED_SPICE_TASK_TICK")
+        if abs(gmat_elapsed-k*60.0)>20e-6:
+            # This is the existing bounded GMAT file representation guard,
+            # NOT a new orbit timing acceptance threshold.
+            raise ValueError("DT2_NATIVE_CLOCK_GMAT_INPUT_REPRESENTATION_BAD")
+        results.append({
+            "sample_index":k,
+            "native_bsk_task_elapsed_s":actual_time,
+            "native_bsk_spice_J2000_ET_s":recorded_et,
+            "independent_naif_J2000_ET_s":independent_et,
+            "native_minus_naif_ET_s":recorded_et-independent_et,
+            "raw_gmat_ElapsedSecs_s":gmat_elapsed,
+            "raw_gmat_A1ModJulian":a1,
+            "raw_gmat_UTCModJulian":utc,
+            "raw_gmat_TAIModJulian":tai,
+            "raw_gmat_TTModJulian":tt,
+        })
+    summary={
+        "status":"INCONCLUSIVE",
+        "native_run":"second genuine Basilisk two-body replay, one Process with separate 5s spacecraft and 2700s J2000 SPICE tasks",
+        "native_spice_referenceBase":"J2000",
+        "native_spice_zeroBase":"earth",
+        "pinned_native_kernels":3,
+        "original_spacecraft_baseline_mutated":False,
+        "native_spacecraft_replay_rows":len(spacecraft_replay),
+        "native_spice_time_message_rows":len(results),
+        "max_native_spacecraft_replay_position_vs_sealed_baseline_m":max_position,
+        "max_native_spacecraft_replay_velocity_vs_sealed_baseline_m_s":max_velocity,
+        "max_native_spice_ET_minus_naif_ET_abs_s":max(
+            abs(r["native_minus_naif_ET_s"]) for r in results),
+        "absolute_Basilisk_spacecraft_N_to_EarthICRF_approved":False,
+        "absolute_GMAT_A1_to_Basilisk_ET_approved":False,
+        "independently_qualified_cross_engine_samples":0,
+        "mission_accuracy_budget_approved":False,
+    }
+    return summary, results
+
+
 def run(out: Path, root: Path, binary: Path) -> dict:
     out=out.resolve(strict=True)
     root=root.resolve(strict=True)
@@ -516,6 +675,9 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         "moon_rows":out/"moon_anchor_three_engines.csv",
         "frame_bridge_rows":out/"gmat_mj_naif_frame_probe_rows.csv",
         "frame_bridge_diagnostic":out/"gmat_mj_naif_frame_probe.json",
+        "native_clock_replay":out/"basilisk_same_process_spacecraft.csv",
+        "native_clock_raw":out/"basilisk_same_process_clock.csv",
+        "native_clock_diagnostic":out/"basilisk_same_process_clock_diagnostic.json",
         "receipt":out/"sun_anchor_execution.json",
     }
     if any(p.exists() for p in outputs.values()):
@@ -563,10 +725,12 @@ def run(out: Path, root: Path, binary: Path) -> dict:
     spice.furnsh(str(paths["spk"]))
     naif=[]
     naif_moon=[]
+    naif_et=[]
     try:
         for index in INDICES:
             at=(epoch+timedelta(seconds=index*60)).isoformat().replace("+00:00","Z")
             et=spice.str2et(at)
+            naif_et.append(float(et))
             state,_=spice.spkezr("SUN",et,"J2000","NONE","EARTH")
             moon_state,_=spice.spkezr("MOON",et,"J2000","NONE","EARTH")
             naif.append([float(x) for x in state])
@@ -579,7 +743,11 @@ def run(out: Path, root: Path, binary: Path) -> dict:
                          ("SPICELeapSecondKernel.tls",paths["lsk"]),
                          ("SPICEPlanetaryConstantsKernel.tpc",paths["pck"])):
             os.symlink(src,tmp/name)
-        basilisk_outputs=same_source_basilisk_celestials(tmp,manifest["case"]["epoch_utc"])
+        basilisk_outputs=same_source_basilisk_celestials(
+            tmp,manifest["case"]["epoch_utc"],
+            spacecraft_initial=manifest["actual_initial_state_SI"],
+            source_earth_mu_m3_s2=manifest["gravity"]["mu_m3_s2"],
+        )
         basilisk=basilisk_outputs["sun"]
         basilisk_moon=basilisk_outputs["moon"]
     compared=[]
@@ -642,6 +810,41 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         writer.writerows(bridge_rows)
     bridge["holdout_rows_csv_sha256"] = digest(outputs["frame_bridge_rows"])
     write_json(outputs["frame_bridge_diagnostic"],bridge)
+    # Independent, SECOND actual Basilisk spacecraft run in the SAME native
+    # simulation process as the 3-kernel SPICE J2000 ET clock. Original
+    # Basilisk and GMAT trajectories remain unmodified and hash-verified.
+    original_state_file=out/"basilisk_state.csv"
+    if digest(original_state_file)!=manifest["evidence"].get("basilisk_state_csv_sha256"):
+        raise ValueError("DT2_NATIVE_CLOCK_SEALED_BASILISK_SHA_MISMATCH")
+    with original_state_file.open(newline="",encoding="utf-8") as stream:
+        original_states=list(csv.DictReader(stream))
+    native_states=basilisk_outputs["native_spacecraft_replay"]
+    native_clock=basilisk_outputs["native_spice_clock"]
+    clock_diagnostic, clock_rows=audit_native_same_process_clock(
+        native_states, original_states, native_clock, naif_et, rows)
+    with outputs["native_clock_replay"].open("w",newline="",encoding="utf-8") as stream:
+        fields=("time_s","x_m","y_m","z_m","vx_m_s","vy_m_s","vz_m_s")
+        writer=csv.DictWriter(stream,fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(native_states)
+    with outputs["native_clock_raw"].open("w",newline="",encoding="utf-8") as stream:
+        writer=csv.DictWriter(stream,fieldnames=list(clock_rows[0]))
+        writer.writeheader()
+        writer.writerows(clock_rows)
+    clock_diagnostic["source_baseline_sha256"]=digest(original_state_file)
+    clock_diagnostic["same_process_native_state_sha256"]=digest(outputs["native_clock_replay"])
+    clock_diagnostic["native_SPICE_ET_vs_NAIF_vs_GMAT_clock_csv_sha256"]=digest(outputs["native_clock_raw"])
+    clock_diagnostic["original_GMAT_frame_time_csv_sha256"]=digest(frame)
+    clock_diagnostic["pinned_GMAT_DE421_LSK_PCK_sha256"]=receipt["kernel_sha256"]
+    write_json(outputs["native_clock_diagnostic"],clock_diagnostic)
+    receipt.update({
+        "same_process_native_clock_diagnostic_sha256":digest(outputs["native_clock_diagnostic"]),
+        "same_process_native_clock_rows_sha256":digest(outputs["native_clock_raw"]),
+        "same_process_native_replay_states_sha256":digest(outputs["native_clock_replay"]),
+        "same_process_native_clock_real_sample_count":3,
+        "same_process_native_spacecraft_real_sample_count":91,
+        "spacecraft_N_axis_independently_certified":False,
+    })
     receipt.update({
         "frame_bridge_diagnostic_sha256":digest(outputs["frame_bridge_diagnostic"]),
         "frame_bridge_rows_sha256":digest(outputs["frame_bridge_rows"]),

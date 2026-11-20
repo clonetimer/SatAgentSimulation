@@ -240,6 +240,34 @@ jobs:
           assert r["gmat_exit_code"]==0
           assert r["real_sample_count"]==3
           assert r["real_moon_sample_count"]==3
+          assert r["same_process_native_clock_real_sample_count"]==3
+          assert r["same_process_native_spacecraft_real_sample_count"]==91
+          assert r["spacecraft_N_axis_independently_certified"] is False
+          clock=json.loads((root/"basilisk_same_process_clock_diagnostic.json").read_text())
+          assert clock["status"]=="INCONCLUSIVE"
+          assert clock["native_spacecraft_replay_rows"]==91
+          assert clock["native_spice_time_message_rows"]==3
+          assert not clock["original_spacecraft_baseline_mutated"]
+          assert not clock["absolute_Basilisk_spacecraft_N_to_EarthICRF_approved"]
+          assert not clock["absolute_GMAT_A1_to_Basilisk_ET_approved"]
+          assert clock["independently_qualified_cross_engine_samples"]==0
+          assert not clock["mission_accuracy_budget_approved"]
+          for file,sha in (
+              ("basilisk_same_process_spacecraft.csv",r["same_process_native_replay_states_sha256"]),
+              ("basilisk_same_process_clock.csv",r["same_process_native_clock_rows_sha256"]),
+              ("basilisk_same_process_clock_diagnostic.json",r["same_process_native_clock_diagnostic_sha256"]),
+              ("basilisk_state.csv",clock["source_baseline_sha256"]),
+              ("gmat_frame_time_rows.csv",clock["original_GMAT_frame_time_csv_sha256"])):
+              assert hashlib.sha256((root/file).read_bytes()).hexdigest()==sha
+          with (root/"basilisk_same_process_clock.csv").open(newline="") as f:
+              clock_rows=list(csv.DictReader(f))
+          assert [int(float(x["sample_index"])) for x in clock_rows]==[0,45,90]
+          assert all(math.isfinite(float(x["native_minus_naif_ET_s"])) for x in clock_rows)
+          print("DT2_NATIVE_BSK_SAME_PROCESS_CLOCK "
+                f"native_naif_et_delta_max_s={clock['max_native_spice_ET_minus_naif_ET_abs_s']:.9e} "
+                f"replay_position_max_m={clock['max_native_spacecraft_replay_position_vs_sealed_baseline_m']:.9e} "
+                f"replay_velocity_max_m_s={clock['max_native_spacecraft_replay_velocity_vs_sealed_baseline_m_s']:.9e} "
+                "status=INCONCLUSIVE certified_absolute_N=false")
           assert r["gmat_moon_report_produced"]
           assert hashlib.sha256((root/"gmat_moon_anchor_raw.txt").read_bytes()).hexdigest()==r["gmat_moon_report_sha256"]
           assert hashlib.sha256((root/"moon_anchor_three_engines.csv").read_bytes()).hexdigest()==r["moon_anchor_comparison_csv_sha256"]

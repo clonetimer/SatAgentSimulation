@@ -252,4 +252,44 @@ def test_celestial_frame_probe_fail_closed_invalid_reference_and_state():
     with pytest.raises(ValueError,match="DT2_FRAME_BRIDGE_BAD_CELESTIAL_INPUT"):
         anchor.frozen_celestial_frame_probe(bad_sun,moon,naif_sun,naif_moon,frames)
 
+def test_same_process_native_clock_audit_synthetic_contract_only():
+    # Synthetic records validate math/provenance restrictions; NO native engine
+    # execution is faked and no external V&V PASS is derived here.
+    state={"x_m":6650000.,"y_m":0.,"z_m":0.,
+           "vx_m_s":0.,"vy_m_s":7742.,"vz_m_s":0.}
+    original=[dict(state,time_s=float(i*60)) for i in range(91)]
+    replay=[dict(s) for s in original]
+    epoch=[{"time_s":float(t),"et_s":810000000.+float(t)}
+           for t in (0,2700,5400)]
+    gmat=[{"elapsed_s":float(i*60),
+           "a1_mjd":31104.+float(i)/1440.,
+           "utc_mjd":31104.,"tai_mjd":31104.00043,
+           "tt_mjd":31104.0008}
+          for i in range(91)]
+    diag,raw=anchor.audit_native_same_process_clock(
+        replay,original,epoch,[810000000.,810002700.,810005400.],gmat)
+    assert diag["native_spacecraft_replay_rows"]==91
+    assert diag["native_spice_time_message_rows"]==3
+    assert diag["max_native_spice_ET_minus_naif_ET_abs_s"]==0
+    assert diag["max_native_spacecraft_replay_position_vs_sealed_baseline_m"]==0
+    assert [r["sample_index"] for r in raw]==[0,45,90]
+    assert not diag["absolute_Basilisk_spacecraft_N_to_EarthICRF_approved"]
+    assert not diag["absolute_GMAT_A1_to_Basilisk_ET_approved"]
+    assert diag["independently_qualified_cross_engine_samples"]==0
+    replay[-1]["y_m"]+=0.002
+    changed,_=anchor.audit_native_same_process_clock(
+        replay,original,epoch,[810000000.,810002700.,810005400.],gmat)
+    assert changed["max_native_spacecraft_replay_position_vs_sealed_baseline_m"]==pytest.approx(0.002)
+    replay[0]["x_m"]+=0.003
+    with pytest.raises(ValueError,match="DT2_NATIVE_CLOCK_REPLAY_ORIGINAL_INITIAL_STATE_CHANGED"):
+        anchor.audit_native_same_process_clock(
+            replay,original,epoch,[810000000.,810002700.,810005400.],gmat)
+    with pytest.raises(ValueError,match="DT2_NATIVE_CLOCK_THREE_CELESTIAL_EPOCHS_REQUIRED"):
+        anchor.audit_native_same_process_clock(
+            original,original,epoch[:2],[810000000.,810002700.],gmat)
+    replay[0]["x_m"]=state["x_m"]
+    gmat[45]["elapsed_s"]=2700.001
+    with pytest.raises(ValueError,match="DT2_NATIVE_CLOCK_GMAT_INPUT_REPRESENTATION_BAD"):
+        anchor.audit_native_same_process_clock(
+            replay,original,epoch,[810000000.,810002700.,810005400.],gmat)
 
