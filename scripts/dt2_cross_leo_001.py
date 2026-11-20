@@ -140,7 +140,7 @@ def _gmat_script(initial_state: dict, *, report_path: str) -> str:
     epoch_gmat = stamp.strftime("%d %b %Y %H:%M:%S.%f")[:-3]
     path = report_path.replace("\\", "/").replace("'", "")
     items = [
-        "% CROSS-LEO-001 — fresh two-body baseline, not #213's Sun-aligned phase",
+        "% CROSS-LEO-001 - fresh two-body baseline, not #213 Sun-aligned phase",
         "% Input six-state was measured/derived from real Basilisk 2.11.0 execution.",
         "% GMAT run must be performed separately; generated script is not proof of GMAT output.",
         "Create Spacecraft CrossSat;",
@@ -186,7 +186,12 @@ def _gmat_script(initial_state: dict, *, report_path: str) -> str:
     for t in range(CASE["sample_s"], CASE["duration_s"] + 1, CASE["sample_s"]):
         items.append(f"Propagate CrossProp(CrossSat) {{CrossSat.ElapsedSecs = {t}}};")
         items.append(f"Report CrossState {fields};")
-    return "\n".join(items) + "\n"
+    script = "\n".join(items) + "\n"
+    # GMAT R2026a Console deliberately rejects non-ASCII script bytes.
+    # Refuse at generation time rather than mislabeling a runtime parser failure.
+    if not script.isascii():
+        raise ValueError("CROSS_LEO_GMAT_SCRIPT_MUST_BE_ASCII")
+    return script
 
 
 def run_basilisk(out: Path, source_sha: str) -> dict:

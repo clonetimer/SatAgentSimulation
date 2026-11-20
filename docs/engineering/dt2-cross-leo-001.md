@@ -106,3 +106,10 @@ The independent GMAT ReportFile reference specifies enum `Delimiter = Comma`, **
 Official release file: https://sourceforge.net/projects/gmat/files/GMAT/GMAT-R2026a/gmat-ubuntu-x64-R2026a.tar.gz/download
 Official report-field reference: https://documentation.help/GMAT/ReportFile.html
 
+### GMAT exact executable discovery and input encoding
+
+- Native [CI 44817225430](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44817225430) fetched the authentic SourceForge Ubuntu archive (**401,664,992 bytes**, SHA-256 `fe124b4a606b2e3b704a6fbb1c37b87598d5df0d18cb661c304b5f60074a7754`), but its launcher is **`GmatConsole-R2026a`** rather than unsuffixed `GmatConsole`. This discovery is based on the actual extracted archive, not an assumed naming convention.
+- Follow-up real [CI 44817699249](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44817699249) found, launched and version-checked `GMAT/R2026a/bin/GmatConsole-R2026a` (binary SHA-256 `f7cf5b3188902353ed4245bb21c22c1afa0451efdd221b7e19f6a74dc7ed1d93`). The real GMAT Console engine initialized successfully but rejected the candidate script because a comment contained Unicode `—`: **GMAT R2026a only accepts ASCII source scripts**. The engine emitted `contains characters outside of the ASCII character set`; no `gmat_raw.txt` was written.
+- The `_gmat_script` generator now uses ASCII-only source comments and explicitly fails before any GMAT run if future generated text is not ASCII. Unit test asserts `script.isascii()`. This changes no orbital initial state, `earth.mu`, numeric integrator selection, sample cadence or flight-model assumptions.
+- The above is a genuine failed first GMAT script execution, **not** a completed external comparison. The next exact-head native GMAT workflow must actually produce 91 authentic GMAT rows before the result can advance beyond `NOT_RUN`/execution-blocked.
+

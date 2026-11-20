@@ -40,6 +40,7 @@ def test_gmat_script_is_generated_from_explicit_measured_initial_state():
     assert "CrossGravity.RelativisticCorrection = Off" in script
     assert "CrossProp.Type = RungeKutta89" in script
     assert "CrossState.FixedWidth = false" in script
+    assert script.isascii()  # genuine R2026a Console rejects Unicode comments
     assert "CrossState.Delimiter = Comma;" in script
     assert "CrossState.Delimiter = ',';" not in script
     assert "CrossSat.X = 6650" in script
