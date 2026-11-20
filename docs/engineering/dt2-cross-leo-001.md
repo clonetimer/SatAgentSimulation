@@ -256,3 +256,61 @@ advance-approved mission error budget; this small experiment exposes
 actual GMAT frame conversion and epoch-reporting behavior without
 changing any existing physics or overriding the INCONCLUSIVE verdict.
 
+
+## Shared-kernel external celestial direction check — first implementation candidate
+
+This test addresses a real gap: injecting identical *numeric* Cartesian states
+in Earth point-mass models does NOT establish a physical celestial orientation.
+NASA NAIF documents that in SPICE, frame J2000 uses ICRF axes; GMAT separately
+defines its EarthICRF and EarthMJ2000Eq frames. Both models must query an
+ephemeris direction at a specified physical epoch rather than inventing a
+rotation by fitting the two-body state histories.
+
+The existing real GMAT R2026a Linux archive contains
+data/planetary_ephem/spk/DE421AllPlanets.bsp and the SPICE leap-second and
+planetary-constants kernels. The new scripts/dt2_sun_anchor.py runs only after
+all three existing genuine Basilisk/GMAT runs with verified SHA-256 receipts:
+
+1. Read exactly the start, middle and end A1 epoch values from the REAL
+   91-row GMAT time report, without assuming A1=UTC or deriving a new clock.
+2. Run a new genuine GMAT Console mission reporting the geocentric Sun
+   six-state at those A1 instants in EarthICRF and EarthMJ2000Eq, with
+   SolarSystem.EphemerisSource set to SPICE and actual absolute kernel paths.
+   GMAT's documented SpacePoint coordinate-dependent parameters permit
+   reporting Sun.EarthICRF.X etc. The console's actual original ReportFile,
+   return code, stdout/stderr and executable/SolarSystem kernel fingerprints
+   remain in the artifact.
+3. Execute the *actual* Basilisk 2.11.0 SpiceInterface with explicit
+   referenceBase=J2000, zeroBase=earth and the SAME pinned GMAT release SPK,
+   LSK and PCK, saving its actual Sun planet-state messages at 0/2700/5400 s.
+4. Query the SAME underlying SPK with a separate NAIF SpiceyPy 8.4.0 wrapper
+   for Earth-relative Sun in J2000 at the actual UTC instants.
+5. Record the genuine three-way vectors and independent angular/distance
+   differences, including GMAT EarthICRF vs GMAT EarthMJ2000Eq. All sources
+   must be finite, physically plausible and SHA-bound. No artificial Sun
+   vectors or "reference" trajectories are generated to satisfy tests.
+
+**Important comparison boundary:** All three evaluations share the *same*
+DE421 planetary ephemeris; this is a controlled cross-tool axis-implementation
+check, NOT three statistically independent astrophysical truth sets. The
+R2026a bundled DE421 differs from the DE430 assets in DT-1 #213. Therefore
+this cannot replace the original spacecraft's source-orbit/frame acceptance
+nor establish that its *purely numerical* point-mass N initial axes were
+physically attached to the ICRF. Any observed vector discrepancy is reported
+and investigated, rather than silently correcting, fitting or post-hoc
+relaxing a numerical tolerance.
+
+The CI will indicate SUCCESS only for execution, provenance and validity of
+three real data sources; the diagnostic status will remain INCONCLUSIVE, with
+independent physical N frame tie and mission accuracy envelope explicitly
+UNAPPROVED until a separate frame/mission approval is demonstrated.
+
+Official sources:
+- https://naif.jpl.nasa.gov/pub/naif/self_training/individual_docs/16_frames_and_coordinate_systems.pdf
+- https://documentation.help/GMAT/CalculationParameters.html
+- https://documentation.help/GMAT/CoordinateSystem.html
+- https://documentation.help/GMAT/SolarSystem.html
+
+No change to the original 5400-second three-engine raw state data, high-order
+gravity, atmosphere, radiation force, instrument defaults or approval gates.
+
