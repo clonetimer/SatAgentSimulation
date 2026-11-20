@@ -90,6 +90,12 @@ def _is_kelvin_field(name: str) -> bool:
 
 
 def _is_temperature_field(name: str) -> bool:
+    # NRLMSISE neutral atmospheric temperature is an external environment
+    # state, NOT a spacecraft thermal node. The existing 153.15..423.15 K
+    # hardware safety envelope must never be applied to thermospheric gas.
+    # This is a field-ownership correction, not a tolerance/threshold change.
+    if name == "environment.atmosphere_temperature_k":
+        return False
     return name.endswith(("temp_c", "temperature_c")) or _is_kelvin_field(name)
 
 

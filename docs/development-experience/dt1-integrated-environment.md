@@ -74,3 +74,5 @@
 - 首轮产品链 CI `44801455983` 的新增测试失败：**正式导出脚本确实运行并输出 JSON，但退出码为 1**；已有四效应底层 A/B 仍通过。最初的失败消息只保留了 JSON 尾部，无法区分 TaskSpec 任务判据/QoI 校验与规划/脚本错误。现在补充**失败原因码及非 PASS 检查**到同一个严格断言；未修改模型、QoI 要求或成功判定。待下一次 native CI 的具体失败原因再裁决。
 
 - 第二轮 CI `44802191610` 提取到真实失败分类：`DT1_GENERATED_SCRIPT_PRODUCT_GATE_FAILED exit=1 result=FAIL reason=PHYSICAL_VALIDATION_FAILED`，但底层 `summary.overall_status=PASS`。它不是模型启动异常，也不是自然语言解析失败；具体哪项物理验证检查及观测值仍需原始 physical_validation.issues。第三轮仅在严格失败信息中列出 `physical_issues/check_results`，以区分真实违规与检查器字段解释错误；不得通过关闭 `strict_physical`、改模拟质量/面积或跳过校验放行。
+
+- 第三轮 CI [44802673560](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44802673560) 精确定位了 `physical_validation.issues`：`environment.atmosphere_temperature_k` 的 4 个有效热层中性气体温度采样分别是 **1067.569 / 1068.744 / 1069.911 / 1071.070 K**，错误套用了**设备**热控区间 `153.15..423.15 K`；设备 `thermal.*` 本身无硬限 FAIL。SOC 初始值和短时姿态收敛只产生 WARNING，仍保留。根因在 `src/sat_sim/validation/physical_checks.py::_is_temperature_field` 对任意温度后缀无差别分类。修正仅排除这个已知 **环境字段**进入设备 thermal_bounds；设备热限制、`thermal.safe=0` 失败、物理默认值及独立 SRP/Drag/IGRF/GGM04 断言**完全不变**。新增正/负对照单元测试，必须由新的 CI 证明产品脚本 + Run Bundle 路径全程通过。
