@@ -220,7 +220,7 @@ jobs:
                 f"mj_icrf_max_delta_m={diag['max_same_gmat_mj2000eq_icrf_position_difference_m']:.9e} "
                 "status=INCONCLUSIVE cross_engine_frame_certified=false")
           PY
-      - name: Execute actual pinned-DE421 Sun vector in GMAT Basilisk and NAIF
+      - name: Execute actual pinned-DE421 Sun and Luna vectors in GMAT Basilisk and NAIF
         shell: bash
         run: |
           python -m pip install "spiceypy==8.4.0"
@@ -239,6 +239,19 @@ jobs:
           assert r["status"]=="REAL_THREE_ENGINE_CELESTIAL_SOURCE_OBSERVED_INCONCLUSIVE"
           assert r["gmat_exit_code"]==0
           assert r["real_sample_count"]==3
+          assert r["real_moon_sample_count"]==3
+          assert r["gmat_moon_report_produced"]
+          assert hashlib.sha256((root/"gmat_moon_anchor_raw.txt").read_bytes()).hexdigest()==r["gmat_moon_report_sha256"]
+          assert hashlib.sha256((root/"moon_anchor_three_engines.csv").read_bytes()).hexdigest()==r["moon_anchor_comparison_csv_sha256"]
+          with (root/"moon_anchor_three_engines.csv").open(newline="") as f:
+              moon_rows=list(csv.DictReader(f))
+          assert [int(row["time_s"]) for row in moon_rows]==[0,2700,5400]
+          assert all(math.isfinite(float(v)) for row in moon_rows for v in row.values())
+          pair=r["sun_moon_direction_geometry"]
+          assert len(pair["sun_moon_separation_deg_by_epoch"])==3
+          assert len(pair["rotation_information_condition_by_epoch"])==3
+          assert pair["scientific_verdict"]=="INCONCLUSIVE"
+          assert pair["original_pointmass_n_axes_externally_certified"] is False
           assert r["basilisk_spice_kernel_pool_verified"] is True
           assert r["basilisk_spice_pinned_kernel_count"]==3
           geometry=r["sun_direction_triplet_geometry"]
@@ -267,6 +280,9 @@ jobs:
                 f"sun_max_sep_deg={geometry['max_pairwise_sun_direction_separation_deg']:.9e} "
                 f"sun_triplet_condition={geometry['sun_triplet_condition_number']} "
                 f"rotation_information_condition={geometry['rotation_information_condition_number']} "
+                f"sun_moon_sep_deg={pair['sun_moon_separation_deg_by_epoch']} "
+                f"moon_gmat_naif_max_m={r['max_gmat_moon_icrf_vs_naif_j2000_pos_m']:.9e} "
+                f"moon_bsk_naif_max_m={r['max_basilisk_moon_n_vs_naif_j2000_pos_m']:.9e} "
                 "status=INCONCLUSIVE original_pointmass_n_axis_certified=false")
           PY
       - name: Upload all acquired raw provenance and engine outputs including failure logs

@@ -28,6 +28,20 @@ def test_sun_report_script_has_actual_gmat_source_and_three_epochs(tmp_path):
     assert s.count("Report SunAnchor ")==3
     assert s.count("Sun.Epoch.A1ModJulian = ")==3
     assert "SunAnchor.Delimiter = ',';" in s
+    assert "MoonAnchor" not in s  # legacy Sun-only generation remains valid
+    both = anchor.sun_script(
+        [31104.4, 31104.43, 31104.46],
+        report_path=tmp_path/"real_sun.txt",
+        moon_report_path=tmp_path/"real_moon.txt",
+    )
+    assert both.isascii()
+    assert both.count("Report SunAnchor ") == 3
+    assert both.count("Report MoonAnchor ") == 3
+    assert both.count("Luna.Epoch.A1ModJulian = ") == 3
+    assert "Luna.EarthICRF.X" in both
+    assert "Luna.EarthMJ2000Eq.VZ" in both
+    assert "MoonAnchor.Delimiter = ',';" in both
+    assert "SolarSystem.LSKFilename" not in both
 
 
 def test_sun_report_script_rejects_invalid_epoch_grid(tmp_path):
@@ -52,6 +66,40 @@ def test_sun_vector_parser_rejects_invalid_external_records(tmp_path):
     path.write_text((",".join(["nan"]+list(map(str,vector[1:])))+"\n")*3,encoding="utf-8")
     with pytest.raises(ValueError,match="NONFINITE"):
         anchor.parse_gmat_sun(path)
+
+
+def test_moon_report_parser_requires_real_shape_and_plausible_distance(tmp_path):
+    f=tmp_path/"lunar_reference_fixture.csv"
+    sample=[384400.,0.,0.,0.,1.,0.,384400.,0.,0.,0.,1.,0.]
+    line=",".join(str(v) for v in sample)
+    f.write_text((line+"\n")*3,encoding="utf-8")
+    assert len(anchor.parse_gmat_moon(f))==3
+    f.write_text(line+"\n",encoding="utf-8")
+    with pytest.raises(ValueError,match="DT2_MOON_ANCHOR_REQUIRES_THREE_GMAT_EPOCHS"):
+        anchor.parse_gmat_moon(f)
+    f.write_text((",".join(["nan"]+list(map(str,sample[1:])))+"\n")*3,encoding="utf-8")
+    with pytest.raises(ValueError,match="DT2_MOON_ANCHOR_NONFINITE_GMAT_STATE"):
+        anchor.parse_gmat_moon(f)
+    f.write_text((",".join(map(str,[149597870.]+sample[1:]))+"\n")*3,encoding="utf-8")
+    with pytest.raises(ValueError,match="DT2_MOON_ANCHOR_IMPLAUSIBLE_MOON_DISTANCE_KM"):
+        anchor.parse_gmat_moon(f)
+
+
+def test_two_celestial_directions_report_rotation_geometry_not_frame_approval():
+    import numpy as np
+    perpendicular=anchor.two_celestial_direction_geometry(
+        [[1,0,0]]*3, [[0,1,0]]*3)
+    assert perpendicular["sun_moon_separation_deg_by_epoch"]==pytest.approx([90.]*3)
+    assert perpendicular["rotation_information_eigenvalues_by_epoch"][0]==pytest.approx([1,1,2])
+    assert perpendicular["rotation_information_condition_by_epoch"]==pytest.approx([2.]*3)
+    assert perpendicular["scientific_verdict"]=="INCONCLUSIVE"
+    assert not perpendicular["original_pointmass_n_axes_externally_certified"]
+    collinear=anchor.two_celestial_direction_geometry(
+        [[1,0,0]]*3, [[1,0,0]]*3)
+    assert collinear["rotation_information_condition_by_epoch"]==[None]*3
+    for bad in ([], [[1,0,0]]*2, [[float("nan"),0,0]]*3, [[0,0,0]]*3):
+        with pytest.raises(ValueError,match="DT2_SUN_MOON_DIRECTION"):
+            anchor.two_celestial_direction_geometry(bad,[[0,1,0]]*3)
 
 
 def test_angle_is_stable_for_tiny_nonzero_rotations():

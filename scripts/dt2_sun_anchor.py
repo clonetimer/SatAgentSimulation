@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""DT-2 CROSS-LEO-001: real shared-SPK Sun-vector frame anchor.
+"""DT-2 CROSS-LEO-001: real shared-SPK Sun/Luna frame-reference probe.
 
 用途：在已执行 Basilisk/GMAT 的封存证据上，用同一官方 GMAT DE421 SPK、
-      SPICE LSK 在 NAIF/真实 Basilisk SPICE 消息/真实 GMAT 中观测太阳地心矢量。
+      SPICE LSK 在 NAIF/真实 Basilisk SPICE 消息/真实 GMAT 中观测太阳、月球地心矢量。
 参数：--output 已封存案例目录 --gmat-root 真实 GMAT R2026a 解包目录
       --gmat-executable 真实 GmatConsole-R2026a。
-输出：真实 GMAT 原始太阳矢量、NAIF 与 Basilisk 参考矢量、逐点诊断和哈希凭证；
+输出：真实 GMAT 太阳与月球原始矢量、NAIF/Basilisk 逐点对照、诊断和哈希凭证；
       不生成虚构的 GMAT 数据，不自动通过绝对 N 轴或飞行精度验收。
 """
 from __future__ import annotations
@@ -93,7 +93,8 @@ def verified_gmat_startup_kernels(root: Path, paths: dict[str, Path]) -> dict:
         "kernel_paths": {name: str(path) for name, path in observed.items()},
     }
 
-def sun_script(a1_mjd: list[float], *, report_path: Path) -> str:
+def sun_script(a1_mjd: list[float], *, report_path: Path,
+               moon_report_path: Path | None = None) -> str:
     if len(a1_mjd)!=3 or not all(math.isfinite(t) for t in a1_mjd):
         raise ValueError("DT2_SUN_ANCHOR_REQUIRES_THREE_REAL_A1_EPOCHS")
     for a,b in zip(a1_mjd,a1_mjd[1:]):
@@ -117,45 +118,80 @@ def sun_script(a1_mjd: list[float], *, report_path: Path) -> str:
         "SunAnchor.Delimiter = ',';",
         "SunAnchor.WriteReport = false;",
         "SunAnchor.AppendToExistingFile = false;",
-        "BeginMissionSequence;",
     ]
+    if moon_report_path is not None:
+        # GMAT's built-in lunar CelestialBody is *Luna*, not "Moon".
+        lines += [
+            "Create ReportFile MoonAnchor;",
+            f"MoonAnchor.Filename = '{q(moon_report_path)}';",
+            "MoonAnchor.Precision = 16;",
+            "MoonAnchor.WriteHeaders = false;",
+            "MoonAnchor.FixedWidth = false;",
+            "MoonAnchor.Delimiter = ',';",
+            "MoonAnchor.WriteReport = false;",
+            "MoonAnchor.AppendToExistingFile = false;",
+        ]
+    lines.append("BeginMissionSequence;")
     parameters=" ".join(
         [f"Sun.EarthICRF.{axis}" for axis in AXES]+
         [f"Sun.EarthMJ2000Eq.{axis}" for axis in AXES])
+    moon_parameters = " ".join(
+        [f"Luna.EarthICRF.{axis}" for axis in AXES]+
+        [f"Luna.EarthMJ2000Eq.{axis}" for axis in AXES])
     for epoch in a1_mjd:
         lines += [
             f"Sun.Epoch.A1ModJulian = {epoch:.16g};",
             f"Report SunAnchor {parameters};",
         ]
+        if moon_report_path is not None:
+            lines += [
+                f"Luna.Epoch.A1ModJulian = {epoch:.16g};",
+                f"Report MoonAnchor {moon_parameters};",
+            ]
     result="\n".join(lines)+"\n"
     if not result.isascii():
         raise ValueError("DT2_SUN_ANCHOR_NON_ASCII_GMAT_SCRIPT")
     return result
 
 
-def parse_gmat_sun(path: Path) -> list[list[float]]:
-    result=[]
-    with path.open("r",encoding="utf-8-sig",newline="") as stream:
-        for values in csv.reader(stream,delimiter=","):
-            if not values or all(not s.strip() for s in values):
+def _parse_gmat_celestial(path: Path, *, body: str,
+                          minimum_km: float, maximum_km: float) -> list[list[float]]:
+    """Read only an actual body ReportFile, never infer missing GMAT values."""
+    prefix = "DT2_" + body.upper() + "_ANCHOR"
+    result = []
+    with path.open("r", encoding="utf-8-sig", newline="") as stream:
+        for values in csv.reader(stream, delimiter=","):
+            if not values or all(not part.strip() for part in values):
                 continue
-            if len(values)!=12:
-                raise ValueError("DT2_SUN_ANCHOR_WRONG_GMAT_WIDTH")
+            if len(values) != 12:
+                raise ValueError(prefix + "_WRONG_GMAT_WIDTH")
             try:
-                floats=[float(x.strip()) for x in values]
+                numbers = [float(part.strip()) for part in values]
             except ValueError as ex:
-                raise ValueError("DT2_SUN_ANCHOR_BAD_GMAT_NUMBER") from ex
-            if not all(math.isfinite(x) for x in floats):
-                raise ValueError("DT2_SUN_ANCHOR_NONFINITE_GMAT_STATE")
-            if not 1.0e8 < math.sqrt(sum(x*x for x in floats[:3])) < 2.0e8:
-                raise ValueError("DT2_SUN_ANCHOR_IMPLAUSIBLE_SUN_DISTANCE_KM")
-            result.append(floats)
-    if len(result)!=3:
-        raise ValueError("DT2_SUN_ANCHOR_REQUIRES_THREE_GMAT_EPOCHS")
+                raise ValueError(prefix + "_BAD_GMAT_NUMBER") from ex
+            if not all(math.isfinite(v) for v in numbers):
+                raise ValueError(prefix + "_NONFINITE_GMAT_STATE")
+            for idx in (0, 6):
+                radius = math.sqrt(sum(v*v for v in numbers[idx:idx+3]))
+                if not minimum_km < radius < maximum_km:
+                    raise ValueError(prefix + "_IMPLAUSIBLE_" + body.upper() + "_DISTANCE_KM")
+            result.append(numbers)
+    if len(result) != 3:
+        raise ValueError(prefix + "_REQUIRES_THREE_GMAT_EPOCHS")
     return result
 
 
-def same_source_basilisk_sun(kernel_root: Path, epoch: str) -> list[list[float]]:
+def parse_gmat_sun(path: Path) -> list[list[float]]:
+    return _parse_gmat_celestial(path, body="SUN",
+                                 minimum_km=1.0e8, maximum_km=2.0e8)
+
+
+def parse_gmat_moon(path: Path) -> list[list[float]]:
+    return _parse_gmat_celestial(path, body="MOON",
+                                 minimum_km=2.0e5, maximum_km=5.0e5)
+
+
+def same_source_basilisk_celestials(kernel_root: Path, epoch: str) -> dict[str, list[list[float]]]:
     """Execute native Basilisk 2.11.0 with only the three exact supplied kernels.
 
     The gravBodyFactory.createSpiceInterface(path=...) helper in v2.11.0
@@ -190,15 +226,19 @@ def same_source_basilisk_sun(kernel_root: Path, epoch: str) -> list[list[float]]
     spice = spiceInterface.SpiceInterface(auto_configure_kernels=False)
     spice.ModelTag = "DT2_DE421_EXPLICIT_SPICE_INTERFACE"
     spice.addKernelPaths([str(p) for p in kernel_paths])
-    spice.addPlanetNames(["earth", "sun"])
+    spice.addPlanetNames(["earth", "sun", "moon"])
     spice.zeroBase = "earth"
     spice.referenceBase = "J2000"
     spice.UTCCalInit = spice_time
     sc_sim.AddModelToTask(task, spice)
-    if len(spice.planetStateOutMsgs) != 2:
-        raise RuntimeError("DT2_SUN_ANCHOR_BSK_PLANET_MESSAGE_COUNT")
-    recorder = spice.planetStateOutMsgs[1].recorder(macros.sec2nano(2700.0))
-    sc_sim.AddModelToTask(task, recorder)
+    if len(spice.planetStateOutMsgs) != 3:
+        raise RuntimeError("DT2_CELESTIAL_ANCHOR_BSK_PLANET_MESSAGE_COUNT")
+    recorders = {
+        "sun": spice.planetStateOutMsgs[1].recorder(macros.sec2nano(2700.0)),
+        "moon": spice.planetStateOutMsgs[2].recorder(macros.sec2nano(2700.0)),
+    }
+    for recorder in recorders.values():
+        sc_sim.AddModelToTask(task, recorder)
     sc_sim.InitializeSimulation()
     # Check the genuine Basilisk C++ CSPICE pool, not the Python argument list.
     if not all(spiceInterface.isKernelLoaded(str(p)) for p in kernel_paths):
@@ -207,17 +247,24 @@ def same_source_basilisk_sun(kernel_root: Path, epoch: str) -> list[list[float]]
         raise RuntimeError("DT2_SUN_ANCHOR_BSK_UNEXPECTED_EXTRA_KERNELS")
     sc_sim.ConfigureStopTime(macros.sec2nano(5400.0))
     sc_sim.ExecuteSimulation()
-    seconds = recorder.times() * macros.NANO2SEC
-    pos = recorder.PositionVector
-    vel = recorder.VelocityVector
-    if len(seconds) != 3 or any(abs(float(t) - i*2700) > 1e-6
-                               for i, t in enumerate(seconds)):
-        raise ValueError("DT2_SUN_ANCHOR_BSK_MESSAGE_TIME_GRID")
-    result = [[float(v)/1000.0 for v in (*pos[i], *vel[i])]
-              for i in range(3)]
-    if not all(all(math.isfinite(x) for x in row) for row in result):
-        raise ValueError("DT2_SUN_ANCHOR_BSK_NONFINITE")
+    result = {}
+    for body, recorder in recorders.items():
+        seconds = recorder.times() * macros.NANO2SEC
+        pos, vel = recorder.PositionVector, recorder.VelocityVector
+        if len(seconds) != 3 or any(abs(float(t) - i*2700) > 1e-6
+                                   for i, t in enumerate(seconds)):
+            raise ValueError("DT2_CELESTIAL_ANCHOR_BSK_MESSAGE_TIME_GRID: " + body)
+        rows = [[float(v)/1000.0 for v in (*pos[i], *vel[i])]
+                for i in range(3)]
+        if not all(all(math.isfinite(v) for v in row) for row in rows):
+            raise ValueError("DT2_CELESTIAL_ANCHOR_BSK_NONFINITE: " + body)
+        result[body] = rows
     return result
+
+
+def same_source_basilisk_sun(kernel_root: Path, epoch: str) -> list[list[float]]:
+    """Backward-compatible Sun-only read of the same native two-body probe."""
+    return same_source_basilisk_celestials(kernel_root, epoch)["sun"]
 
 
 def dist(a: list[float], b: list[float]) -> float:
@@ -288,6 +335,43 @@ def sun_triplet_condition(positions_km: list[list[float]]) -> dict:
     }
 
 
+
+def two_celestial_direction_geometry(sun_km: list[list[float]],
+                                     moon_km: list[list[float]]) -> dict:
+    """Compare actual Sun/Luna orientation constraints; never fit an approved frame."""
+    import numpy as np
+    a = np.asarray(sun_km, dtype=np.float64)
+    b = np.asarray(moon_km, dtype=np.float64)
+    if a.shape != (3, 3) or b.shape != (3, 3) or not (
+        np.all(np.isfinite(a)) and np.all(np.isfinite(b))
+    ):
+        raise ValueError("DT2_SUN_MOON_DIRECTION_SHAPE_OR_FINITE")
+    norm_a, norm_b = np.linalg.norm(a, axis=1), np.linalg.norm(b, axis=1)
+    if np.any(norm_a <= 0) or np.any(norm_b <= 0):
+        raise ValueError("DT2_SUN_MOON_DIRECTION_ZERO_VECTOR")
+    angles = []
+    eigenvalues = []
+    conditions = []
+    for sun, moon in zip(a / norm_a[:, None], b / norm_b[:, None]):
+        sep = math.degrees(math.atan2(
+            float(np.linalg.norm(np.cross(sun, moon))),
+            float(np.dot(sun, moon))))
+        information = 2*np.eye(3) - np.outer(sun, sun) - np.outer(moon, moon)
+        eig = np.linalg.eigvalsh(information)
+        angles.append(sep)
+        eigenvalues.append([float(v) for v in eig])
+        conditions.append(float(eig[-1]/eig[0]) if eig[0] > 0 else None)
+    return {
+        "sun_moon_separation_deg_by_epoch": angles,
+        "rotation_information_eigenvalues_by_epoch": eigenvalues,
+        "rotation_information_condition_by_epoch": conditions,
+        "uses_two_physically_distinct_ephemeris_directions": True,
+        "original_pointmass_n_axes_externally_certified": False,
+        "independent_frame_time_alignment_approved": False,
+        "scientific_verdict": "INCONCLUSIVE",
+    }
+
+
 def run(out: Path, root: Path, binary: Path) -> dict:
     out=out.resolve(strict=True)
     root=root.resolve(strict=True)
@@ -325,15 +409,18 @@ def run(out: Path, root: Path, binary: Path) -> dict:
     outputs={
         "script":out/"gmat_sun_anchor_executed.script",
         "raw":out/"gmat_sun_anchor_raw.txt",
+        "moon_raw":out/"gmat_moon_anchor_raw.txt",
         "stdout":out/"gmat_sun_anchor_stdout.log",
         "stderr":out/"gmat_sun_anchor_stderr.log",
         "rows":out/"sun_anchor_three_engines.csv",
+        "moon_rows":out/"moon_anchor_three_engines.csv",
         "receipt":out/"sun_anchor_execution.json",
     }
     if any(p.exists() for p in outputs.values()):
         raise FileExistsError("DT2_SUN_ANCHOR_IMMUTABLE_OUTPUT_COLLISION")
     outputs["script"].write_text(sun_script(
-        a1_epochs,report_path=outputs["raw"]),encoding="ascii")
+        a1_epochs,report_path=outputs["raw"],
+        moon_report_path=outputs["moon_raw"]),encoding="ascii")
     proc=subprocess.run([str(binary),"--run",str(outputs["script"])],
         cwd=binary.parent,capture_output=True,text=True,timeout=240,check=False)
     outputs["stdout"].write_text(proc.stdout,encoding="utf-8")
@@ -351,7 +438,9 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         "gmat_startup_sha256":startup_evidence["sha256"],
         "gmat_startup_kernel_paths":startup_evidence["kernel_paths"],
         "gmat_sun_report_produced":outputs["raw"].is_file(),
+        "gmat_moon_report_produced":outputs["moon_raw"].is_file(),
         "gmat_sun_report_sha256":digest(outputs["raw"]) if outputs["raw"].is_file() else None,
+        "gmat_moon_report_sha256":digest(outputs["moon_raw"]) if outputs["moon_raw"].is_file() else None,
         "source_frame_report_sha256":digest(frame),
         "date_utc":manifest["case"]["epoch_utc"],
         "clock_epochs_A1_mjd":a1_epochs,
@@ -360,9 +449,10 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         "scientific_verdict":"INCONCLUSIVE",
     }
     write_json(outputs["receipt"],receipt)
-    if proc.returncode!=0 or not outputs["raw"].is_file():
+    if proc.returncode!=0 or not outputs["raw"].is_file() or not outputs["moon_raw"].is_file():
         raise RuntimeError("DT2_SUN_ANCHOR_REAL_GMAT_EXECUTION_FAILED")
     gmats=parse_gmat_sun(outputs["raw"])
+    gmat_moons=parse_gmat_moon(outputs["moon_raw"])
     # Third-party dependency is needed ONLY after actual GMAT execution and
     # immutable source checks, never to import the CLI or reject missing data.
     import spiceypy as spice
@@ -370,12 +460,15 @@ def run(out: Path, root: Path, binary: Path) -> dict:
     spice.furnsh(str(paths["lsk"]))
     spice.furnsh(str(paths["spk"]))
     naif=[]
+    naif_moon=[]
     try:
         for index in INDICES:
             at=(epoch+timedelta(seconds=index*60)).isoformat().replace("+00:00","Z")
             et=spice.str2et(at)
             state,_=spice.spkezr("SUN",et,"J2000","NONE","EARTH")
+            moon_state,_=spice.spkezr("MOON",et,"J2000","NONE","EARTH")
             naif.append([float(x) for x in state])
+            naif_moon.append([float(x) for x in moon_state])
     finally:
         spice.kclear()
     with tempfile.TemporaryDirectory(prefix="dt2_sun_spice_") as td:
@@ -384,7 +477,9 @@ def run(out: Path, root: Path, binary: Path) -> dict:
                          ("SPICELeapSecondKernel.tls",paths["lsk"]),
                          ("SPICEPlanetaryConstantsKernel.tpc",paths["pck"])):
             os.symlink(src,tmp/name)
-        basilisk=same_source_basilisk_sun(tmp,manifest["case"]["epoch_utc"])
+        basilisk_outputs=same_source_basilisk_celestials(tmp,manifest["case"]["epoch_utc"])
+        basilisk=basilisk_outputs["sun"]
+        basilisk_moon=basilisk_outputs["moon"]
     compared=[]
     for i,(gm,na,bs) in enumerate(zip(gmats,naif,basilisk)):
         compared.append({
@@ -403,12 +498,46 @@ def run(out: Path, root: Path, binary: Path) -> dict:
             "basilisk_spice_n_sun_y_km":bs[1],
             "basilisk_spice_n_sun_z_km":bs[2],
         })
+    moon_compared=[]
+    for i,(gm,na,bs) in enumerate(zip(gmat_moons,naif_moon,basilisk_moon)):
+        moon_compared.append({
+            "time_s":INDICES[i]*60,
+            "gmat_a1_mjd":a1_epochs[i],
+            "gmat_icrf_vs_naif_j2000_pos_m":dist(gm[:3],na[:3])*1e3,
+            "gmat_icrf_vs_naif_j2000_angle_arcsec":angle_arcsec(gm[:3],na[:3]),
+            "basilisk_n_vs_naif_j2000_pos_m":dist(bs[:3],na[:3])*1e3,
+            "basilisk_n_vs_naif_j2000_angle_arcsec":angle_arcsec(bs[:3],na[:3]),
+            "gmat_mj_vs_icrf_pos_m":dist(gm[6:9],gm[:3])*1e3,
+            "gmat_icrf_moon_x_km":gm[0],"gmat_icrf_moon_y_km":gm[1],
+            "gmat_icrf_moon_z_km":gm[2],
+            "naif_j2000_moon_x_km":na[0],"naif_j2000_moon_y_km":na[1],
+            "naif_j2000_moon_z_km":na[2],
+            "basilisk_spice_n_moon_x_km":bs[0],
+            "basilisk_spice_n_moon_y_km":bs[1],
+            "basilisk_spice_n_moon_z_km":bs[2],
+        })
     with outputs["rows"].open("w",newline="",encoding="utf-8") as f:
         writer=csv.DictWriter(f,fieldnames=list(compared[0]))
         writer.writeheader()
         writer.writerows(compared)
+    with outputs["moon_rows"].open("w",newline="",encoding="utf-8") as f:
+        writer=csv.DictWriter(f,fieldnames=list(moon_compared[0]))
+        writer.writeheader()
+        writer.writerows(moon_compared)
     receipt.update({
         "real_sample_count":len(compared),
+        "real_moon_sample_count":len(moon_compared),
+        "moon_anchor_comparison_csv_sha256":digest(outputs["moon_rows"]),
+        "max_gmat_moon_icrf_vs_naif_j2000_pos_m":
+            max(row["gmat_icrf_vs_naif_j2000_pos_m"] for row in moon_compared),
+        "max_basilisk_moon_n_vs_naif_j2000_pos_m":
+            max(row["basilisk_n_vs_naif_j2000_pos_m"] for row in moon_compared),
+        "max_gmat_moon_icrf_vs_naif_j2000_angle_arcsec":
+            max(row["gmat_icrf_vs_naif_j2000_angle_arcsec"] for row in moon_compared),
+        "max_basilisk_moon_n_vs_naif_j2000_angle_arcsec":
+            max(row["basilisk_n_vs_naif_j2000_angle_arcsec"] for row in moon_compared),
+        "sun_moon_direction_geometry":two_celestial_direction_geometry(
+            [x[:3] for x in naif],[x[:3] for x in naif_moon]),
         "sun_direction_triplet_geometry":sun_triplet_condition(
             [state[:3] for state in naif]),
         "sun_anchor_comparison_csv_sha256":digest(outputs["rows"]),
@@ -428,7 +557,9 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         "status":"REAL_THREE_ENGINE_CELESTIAL_SOURCE_OBSERVED_INCONCLUSIVE",
     })
     write_json(outputs["receipt"],receipt)
-    if len(compared)!=3 or not all(math.isfinite(v) for x in compared for v in x.values()):
+    if len(compared)!=3 or len(moon_compared)!=3 or not all(
+        math.isfinite(v) for x in (*compared,*moon_compared) for v in x.values()
+    ):
         raise RuntimeError("DT2_SUN_ANCHOR_INVALID_CELESTIAL_DIAGNOSTIC")
     return receipt
 
@@ -444,6 +575,9 @@ def main() -> None:
           f"rows={r['real_sample_count']} "
           f"gmat_naif_direction_max_arcsec={r['max_gmat_icrf_vs_naif_j2000_angle_arcsec']:.9e} "
           f"bsk_naif_direction_max_arcsec={r['max_basilisk_n_vs_naif_j2000_angle_arcsec']:.9e} "
+          f"moon_gmat_naif_max_m={r['max_gmat_moon_icrf_vs_naif_j2000_pos_m']:.9e} "
+          f"moon_bsk_naif_max_m={r['max_basilisk_moon_n_vs_naif_j2000_pos_m']:.9e} "
+          f"sun_moon_sep_min_deg={min(r['sun_moon_direction_geometry']['sun_moon_separation_deg_by_epoch']):.9f} "
           "status=INCONCLUSIVE absolute_pointmass_frame_tie=false")
 
 
