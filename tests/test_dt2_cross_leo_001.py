@@ -39,6 +39,9 @@ def test_gmat_script_is_generated_from_explicit_measured_initial_state():
     assert "CrossGravity.Drag = None" in script
     assert "CrossGravity.RelativisticCorrection = Off" in script
     assert "CrossProp.Type = RungeKutta89" in script
+    assert "CrossState.FixedWidth = false" in script
+    assert "CrossState.Delimiter = Comma;" in script
+    assert "CrossState.Delimiter = ',';" not in script
     assert "CrossSat.X = 6650" in script
     assert "CrossSat.VY = 7.742" in script
     assert "04 Mar 2026 21:48:00.000" in script

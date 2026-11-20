@@ -96,3 +96,13 @@ has already executed:
 - https://github.com/nasa/GMAT/blob/main/application/samples/Ex_LunarTransfer.script
 - https://github.com/nasa/GMAT/discussions/9
 - https://documentation.help/GMAT/CommandLine.html
+
+## Genuine GMAT R2026a CI execution attempt (separate fail-closed gate)
+
+The separate `.github/workflows/dt2-gmat-cross-leo-001.yml` is a **real, opt-in-engine validation attempt** on this Draft PR, not a flight accuracy release gate. It executes a fresh real bsk==2.11.0 two-body baseline, downloads the official Ubuntu GMAT R2026a binary from the NASA team's SourceForge release, records archive + actual executable SHA-256 and download URL, invokes actual `GmatConsole --run`, requires 91 authentic finite GMAT ReportFile rows, and only then computes an **INCONCLUSIVE** two-engine residual diagnostic. The external software is ~400 MB compressed, is not vendored into Git, and is never embedded in evidence artifacts. If download, initialization, script parser, or execution fails, the CI job fails and uploads available raw logs; it cannot fabricate a matching GMAT trajectory.
+
+The independent GMAT ReportFile reference specifies enum `Delimiter = Comma`, **not** the earlier syntactically unverified `Delimiter = ','`. The generated script and parser test now use the official enumerated value. Passing the script-generator unit test alone is insufficient; the actual GmatConsole run must produce the real 91-row report. No claim of frame/μ equivalence or approved mission acceptance tolerances is made in this initial execution attempt.
+
+Official release file: https://sourceforge.net/projects/gmat/files/GMAT/GMAT-R2026a/gmat-ubuntu-x64-R2026a.tar.gz/download
+Official report-field reference: https://documentation.help/GMAT/ReportFile.html
+

@@ -1,0 +1,101 @@
+name: DT2 CROSS-LEO-001 real GMAT R2026a independent execution
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/dt2-gmat-cross-leo-001.yml"
+      - "scripts/dt2_cross_leo_001.py"
+      - "tests/test_dt2_cross_leo_001.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actual-gmat-execution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install exact genuine Basilisk source runtime
+        run: |
+          python -m pip install "bsk==2.11.0" "numpy==2.3.5" "pytest==9.0.3"
+          python -m pytest -q tests/test_dt2_cross_leo_001.py
+      - name: Run actual Basilisk and freeze source-state CSV
+        run: |
+          python scripts/dt2_cross_leo_001.py basilisk \
+            --output reports/dt2-cross-leo-001 \
+            --checkout-sha "$(git rev-parse HEAD)"
+      - name: Download and record official GMAT R2026a Ubuntu binary archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/gmat-release"
+          release="https://downloads.sourceforge.net/project/gmat/GMAT/GMAT-R2026a/gmat-ubuntu-x64-R2026a.tar.gz"
+          archive="$RUNNER_TEMP/gmat-ubuntu-x64-R2026a.tar.gz"
+          curl -fLsS --retry 3 --retry-delay 6 --connect-timeout 30 --max-time 900 \
+            --write-out "effective_url=%{url_effective}\nhttp_code=%{http_code}\n" \
+            -o "$archive" "$release" > reports/dt2-cross-leo-001/gmat_archive_download.txt
+          python - "$archive" <<'PY'
+          import hashlib, json, pathlib, sys
+          src=pathlib.Path(sys.argv[1])
+          size=src.stat().st_size
+          if size < 250_000_000:
+              raise RuntimeError(f"GMAT_RELEASE_TOO_SMALL_OR_HTML: {size}")
+          info={
+            "release": "GMAT R2026a (official published Ubuntu archive)",
+            "url": "https://downloads.sourceforge.net/project/gmat/GMAT/GMAT-R2026a/gmat-ubuntu-x64-R2026a.tar.gz",
+            "bytes": size,
+            "archive_sha256": hashlib.file_digest(src.open("rb"), "sha256").hexdigest(),
+            "note": "SHA documents the fetched bytes; independent publisher signature not established",
+          }
+          pathlib.Path("reports/dt2-cross-leo-001/gmat_release_archive.json").write_text(
+              json.dumps(info, indent=2, sort_keys=True)+"\n", encoding="utf-8")
+          print("REAL_GMAT_RELEASE_ARCHIVE", json.dumps(info, sort_keys=True))
+          PY
+          tar -xzf "$archive" -C "$RUNNER_TEMP/gmat-release"
+          binary="$(find "$RUNNER_TEMP/gmat-release" -type f -name GmatConsole -print -quit)"
+          if [ -z "$binary" ]; then echo "GMAT_CONSOLE_NOT_FOUND_AFTER_REAL_RELEASE_EXTRACTION"; exit 1; fi
+          chmod +x "$binary"
+          printf 'GMAT_BIN=%s\n' "$binary" >> "$GITHUB_ENV"
+          echo "ACTUAL_GMAT_BINARY=$binary"
+          sha256sum "$binary" | tee reports/dt2-cross-leo-001/gmat_console_binary_sha256.txt
+          ldd "$binary" > reports/dt2-cross-leo-001/gmat_binary_ldd.txt 2>&1 || true
+      - name: Execute actual GMATConsole and require authentic 91-state report
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py gmat \
+            --output reports/dt2-cross-leo-001 \
+            --executable "$GMAT_BIN" --timeout-s 600
+      - name: Compare genuine dual-engine state traces without claiming flight PASS
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py compare --output reports/dt2-cross-leo-001
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          info=json.loads((root/"gmat_execution.json").read_text())
+          manifest=json.loads((root/"case_manifest.json").read_text())
+          result=json.loads((root/"comparison_diagnostic.json").read_text())
+          assert info["status"]=="GMAT_EXECUTED_UNQUALIFIED_ALIGNMENT"
+          assert info["rows"]==91
+          assert info["report_present"]
+          assert info["binary_sha256"]==hashlib.sha256(Path(info["binary_path"]).read_bytes()).hexdigest()
+          assert info["report_sha256"]==hashlib.sha256((root/"gmat_raw.txt").read_bytes()).hexdigest()
+          assert manifest["evidence"]["basilisk_executed"]
+          assert not manifest["frames"]["independent_alignment_approved"]
+          assert result["aligned_samples"]==91 and result["status"]=="INCONCLUSIVE"
+          print("DT2_REAL_GMAT_EXECUTED rows=91 status=INCONCLUSIVE "
+                "flight_validation=false independent_time_frame_mu_alignment=false")
+          PY
+      - name: Upload all acquired raw provenance and engine outputs including failure logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dt2-cross-leo-001-real-gmat-attempt
+          path: reports/dt2-cross-leo-001/
+          if-no-files-found: warn

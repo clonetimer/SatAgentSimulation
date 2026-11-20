@@ -174,7 +174,7 @@ def _gmat_script(initial_state: dict, *, report_path: str) -> str:
         "CrossState.Precision = 16;",
         "CrossState.WriteHeaders = false;",
         "CrossState.FixedWidth = false;",
-        "CrossState.Delimiter = ',';",
+        "CrossState.Delimiter = Comma;",
         "CrossState.WriteReport = false;",
         "CrossState.AppendToExistingFile = false;",
         "BeginMissionSequence;",
