@@ -89,7 +89,11 @@ def test_offline_space_weather_setup_command_writes_manifest(tmp_path):
     target.write_bytes(FIXTURE.read_bytes())
     script = Path(__file__).parents[1] / "scripts" / "fetch_space_weather_asset.py"
     subprocess.run(
-        [sys.executable, str(script), "--offline", "--output", str(target)],
+        [
+            sys.executable, str(script), "--offline",
+            "--output", str(target),
+            "--url", "test-fixture://celestrak-compatible-sample",
+        ],
         check=True,
         capture_output=True,
         text=True,
@@ -97,7 +101,7 @@ def test_offline_space_weather_setup_command_writes_manifest(tmp_path):
     manifest = json.loads((tmp_path / "space_weather_manifest.json").read_text(encoding="utf-8"))
     assert manifest["status"] == "PASS"
     assert manifest["runtime_network_required"] is False
-    assert manifest["source_url"] == "https://celestrak.org/SpaceData/SW-Last5Years.csv"
+    assert manifest["source_url"] == "test-fixture://celestrak-compatible-sample"
     assert manifest["asset"]["sha256"] == inspect_space_weather_file(target)["sha256"]
     assert manifest["retrieval_time_unknown"] is True
 
