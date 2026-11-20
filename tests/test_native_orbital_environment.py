@@ -132,3 +132,7 @@ def test_unified_runtime_executes_native_nrlmsise00_and_drag(monkeypatch):
     assert max(row["orbit.drag_force_n_norm"] for row in rows) > 0.0
     assert rows[-1]["environment.space_weather.ap_24_0"] == pytest.approx(6.0)
     assert rows[-1]["environment.space_weather.f107_1944_0"] == pytest.approx(138.5)
+
+def test_nrlmsise00_rejects_simplified_environment_without_spice():
+    with pytest.raises(ValueError, match="NRLMSISE00_REQUIRES_SPICE_WMM_ENVIRONMENT"):
+        NativeOrbitalEnvironment({"atmosphere_model": "nrlmsise00"}, 10.0)
