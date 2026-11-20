@@ -351,15 +351,32 @@ def test_four_effects_pass_canonical_taskspec_exported_script_and_sealed_run_bun
         [sys.executable, str(exported.output_path)],
         cwd=source_root, env=child_env,
         text=True, capture_output=True, timeout=180, check=False)
-    assert script_run.returncode == 0, (
-        f"exported runner failed: {script_run.returncode}\n"
-        f"stdout tail={script_run.stdout[-1800:]}\n"
-        f"stderr tail={script_run.stderr[-1800:]}")
+    # The production runner exits 1 for either failed planning or a failed
+    # validation outcome. Capture the *actual* reason, rather than printing
+    # only the trailing bytes of a long Run Summary and guessing the root.
     marker = '{\n  "ok":'
     start = script_run.stdout.rfind(marker)
-    assert start >= 0, f"generated runner result missing: {script_run.stdout[-1800:]}"
+    assert start >= 0, (
+        f"exported runner produced no final JSON; exit={script_run.returncode} "
+        f"stdout head={script_run.stdout[:1500]} "
+        f"stdout tail={script_run.stdout[-1500:]} "
+        f"stderr={script_run.stderr[-1000:]}")
     script_result = json.loads(script_run.stdout[start:])
-    assert script_result["ok"] is True
+    if script_run.returncode != 0 or not script_result.get("ok", False):
+        outcome = script_result.get("validation_outcome") or {}
+        nonpass = [
+            {"check_id": row.get("check_id"), "result": row.get("result"),
+             "reason_code": row.get("reason_code")}
+            for row in outcome.get("checks", [])
+            if row.get("result") not in ("PASS",)
+        ]
+        raise AssertionError(
+            "DT1_GENERATED_SCRIPT_PRODUCT_GATE_FAILED "
+            f"exit={script_run.returncode} result={outcome.get('result')} "
+            f"reason={outcome.get('reason_code')} "
+            f"nonpass={nonpass[:12]} "
+            f"plan_status={script_result.get('planning', {}).get('validation')} "
+            f"summary_status={script_result.get('summary', {}).get('overall_status')}")
     assert script_result["capability_id"] == "whole_spacecraft.unified_native.v1"
     assert script_result["validation_outcome"]["result"] == "PASS"
 
