@@ -1,6 +1,15 @@
 name: Continuous satellite static checks
 
 on:
+  # Reverify the actual merged main SHA. This does not authorize a merge.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/continuous-satellite-static.yml"
+      - "src/sat_sim/bsk_engine/**"
+      - "src/sat_sim/interactive/**"
+      - "src/sat_sim/web/**"
+      - "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml"
   pull_request:
     paths:
       - "src/sat_sim/interactive/**"

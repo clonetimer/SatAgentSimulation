@@ -1,6 +1,15 @@
 name: Agent input and run consistency
 
 on:
+  # Reverify the actual merged main SHA. This does not authorize a merge.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/agent-automation-p0.yml"
+      - "src/sat_sim/capabilities/**"
+      - "src/sat_sim/web/**"
+      - "src/sat_sim/interactive/**"
+      - "src/sat_sim/task_spec.py"
   pull_request:
     paths:
       - "src/sat_sim/web/**"

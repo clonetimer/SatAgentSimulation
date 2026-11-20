@@ -1,6 +1,15 @@
 name: Continuous satellite unit tests (without Basilisk)
 
 on:
+  # Reverify the actual merged main SHA. This does not authorize a merge.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/continuous-satellite-unit.yml"
+      - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/sat_sim/interactive/**"
+      - "src/sat_sim/web/**"
+      - "tests/interactive/test_native_*.py"
   pull_request:
     paths:
       - "src/sat_sim/interactive/**"

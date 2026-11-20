@@ -45,3 +45,22 @@
 **新增一轨周期验收**：此前 #213 的四模型联合 A/B 是 120 s 日照侧；已有 3600 s 耐久测试并未显式启用全部四种环境效应。现在增加 `test_all_four_effects_one_real_orbit_crosses_eclipse_with_drag_still_active`：使用相同受控天气夹具、真实 SPICE Sun 初相位，以 5400 s 覆盖一个完整 ~5397 s 轨道，检查至少 30 日照 + 10 本影采样、影内 SRP 近零但真实阻力持续为正、日照 SRP 非零、地固与 IGRF 源使用同一实际地球朝向，并用相同初态 SRP 关闭运行作终态对比。此测试只使用测试步长/面积/质量，**不改默认模型或已通过的短时物理断言**。
 
 **剩余未覆盖**：真实太阳翼/结构体面片气动与光压、固体/海洋时变潮汐、真实风场、辐射带及硬件标定，以及大规模验证以真实任务工况为准。本阶段不把环境模型集合的存在当成全面的高保真认证。
+
+
+## 受控交付新增：合并后主干多工作流重验（2026-11-21）
+
+**发现的缺口**：先前仅 `continuous-satellite-native.yml` 包含 `push: branches: [main]`。因此审查前 PR 的 15 个 PASS，不等于合并后 `main` 会自动执行资源耦合、Run Bundle、参数审计、治理、浏览器控制平面和静态/非原生回归；缺少这些结论不能声称主干联合验收完成。
+
+**本次实际修复**：不改变任何 job 或测试断言，仅为以下既有七条工作流增加严格限定 `push/main` 路径触发，并保留 `pull_request` 与 `workflow_dispatch`：
+
+- `native-rw-component-probe.yml`：独立物理组件、Run Bundle 和真实 Chromium 向导；
+- `p10a-native-rw-eps-coupling.yml`：原生整星资源、电源、热控耦合；
+- `parameter-surface-audit.yml`：177 参数注册、TaskSpec/表单结构；
+- `project-governance.yml`：脚本、依赖与工作流治理；
+- `continuous-satellite-static.yml`：静态代码和 JS 合约；
+- `continuous-satellite-unit.yml`：非 Basilisk 交互与控制平面回归；
+- `agent-automation-p0.yml`：Agent/Run API 与浏览器实际操作。
+
+**触发条件限制**：全部只在真实 `main` push 且匹配对应路径时运行，不对每个特性分支 push 重复收费；包含自身工作流文件，以确保本次 #213 合并后该作业必定满足路径匹配。已有 `native-rw-component-probe.yml` 对非 PR 事件会执行真实 Chromium 向导（原 `Determine whether browser...changed` 的 `run=true` 分支），不会悄悄跳过。
+
+**验收口径**：GitHub Actions 的触发配置仅确保能在合并事件之后执行，不保证网络、资产和 runner 一定 PASS，更不等同于 GitHub 分支保护（当前 token 无权读取设置）。维护者批准合并后必须以真实最新 `main` SHA 分别检查原生整星、独立组件/Run Bundle、P10-A、参数审计、治理、静态、非原生单测和 Agent/Run，确认全部 SUCCESS 后才可关闭被 #213 替代的五项原 PR。任何队列中、失败或条件跳过均需明确解释和补验，不能根据旧 PR 的绿色状态推断。
