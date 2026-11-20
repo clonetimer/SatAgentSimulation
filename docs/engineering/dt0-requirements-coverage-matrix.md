@@ -137,3 +137,5 @@ DT-0 后续交付：
 - 对所有“部分实现/仅配置/未实现”项建立后续阶段任务和验收条件。
 
 本文件仅记录当前事实，不因计划目标而将缺失能力标记为完成。
+
+**DT1-A1 实施状态（2026-11-20）：** 官方 Basilisk NRLMSISE-00 模块已完成上游接口审计；SatAgentSimulation 的整星接入目前处于独立 feature branch 开发与 CI 验证阶段，尚未合入 main。BE-03/BE-04 仍不得标记为已验证。当前候选限定为离线 CelesTrak + NRLMSISE-00 + ZeroWindModel 地球共转 + 固定投影面积 DragDynamicEffector；只有同一整星真实运行、空间天气覆盖、阻力响应和轨道 A/B 全部通过后才晋级。
