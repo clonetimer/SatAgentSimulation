@@ -122,7 +122,10 @@ def test_unified_runtime_executes_native_nrlmsise00_and_drag(monkeypatch):
     assert environment["space_weather"]["coverage_status"] == "PASS"
     assert environment["space_weather"]["sha256"]
     assert result.summary["aerodynamic_environment"]["status"] == "PASS"
-    assert result.summary["aerodynamic_environment"]["wind_model_scope"] == "earth_co_rotation_zero_thermospheric_wind"
+    aero = result.summary["aerodynamic_environment"]
+    assert aero["wind_model_scope"] == "earth_co_rotation_zero_thermospheric_wind"
+    assert aero["configured_dynamic_effector_area_m2"] == pytest.approx(0.08)
+    assert aero["configured_dynamic_effector_cd"] == pytest.approx(2.2)
 
     rows = list(result.trace_rows)
     assert rows
