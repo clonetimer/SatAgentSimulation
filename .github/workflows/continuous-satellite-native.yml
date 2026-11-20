@@ -14,6 +14,7 @@ on:
       - "scripts/fetch_environment_assets.py"
       - "tests/test_native_orbital_environment.py"
       - "tests/test_native_srp_spice_eclipse.py"
+      - "tests/test_native_drag_srp_joint.py"
       - "src/sat_sim/bsk_engine/srp_environment.py"
       - "tests/test_space_weather_asset_validation.py"
       - "tests/fixtures/celestrak_space_weather_2026-03-04.csv"
@@ -155,6 +156,11 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           python -m pytest -q tests/test_native_srp_spice_eclipse.py --capture=tee-sys --disable-warnings
+      - name: Verify simultaneous native drag and SRP force/trajectory A/B
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q tests/test_native_drag_srp_joint.py --capture=tee-sys --disable-warnings
       - name: Run native continuous and segmented execution regression tests
         env:
           PYTHONPATH: "src:."
