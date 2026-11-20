@@ -374,8 +374,12 @@ def build_power_authority_inventory(
             "kind": "recorder" if _is_recorder(model) else "model",
             "electrical_provider_ids": provider_ids,
         }
-        if hasattr(model, "heater_hardware_present"):
-            record["heater_hardware_present"] = bool(model.heater_hardware_present)
+        # An empty native recorder returns an empty array for any dynamic
+        # payload field, so hasattr() is not a hardware declaration. Read only
+        # the actual Python-owned boolean set by the reduced heater model.
+        hardware_present = vars(model).get("heater_hardware_present")
+        if isinstance(hardware_present, bool):
+            record["heater_hardware_present"] = hardware_present
         census.append(record)
 
     providers = list(entries.values())

@@ -7,7 +7,7 @@
     "python_version": "3.12.14",
     "basilisk_version": "2.11.0",
     "implementation_sha256": {
-      "src/integration/power_authority_inventory.py": "819c8110ffdda3e576b711fe8d3e792393d1f787da32291081b11175d632adc4",
+      "src/integration/power_authority_inventory.py": "84ec6742a4f74882fce2345afccd2516e771dd4843ece4afd1dbdd518bf8d2e0",
       "src/integration/whole_resource_inventory.py": "ce44ddbb287cccd52b6bd01e3c5c061d2f6103579e21efe360c171e22c19b051",
       "src/integration/thermal_resource_evidence.py": "3b5134eac71186b0ba9315b63dcf874a4663380ec18bbaf5ce005c604e501026",
       "src/integration/resource_feedback.py": "a6d1c999dd942a337106dc7b7d5b3d289acf82512c5a6c2bafb655d95f42513d",
@@ -48,12 +48,12 @@
   },
   "local_validation": {
     "focused_gate": {
-      "tests": 231,
+      "tests": 234,
       "failures": 0,
       "errors": 0,
       "skipped": 0,
-      "duration_s": 103.427,
-      "junit_sha256": "44c5301cee1cc8488be19d508cbb0a40951fedf646b886e9b0c96cbf1ea8b999",
+      "duration_s": 102.02,
+      "junit_sha256": "aa0b9090116898f4d9e1a221380afba5b978813998ea7198b91128856b3c55d8",
       "workflow": ".github/workflows/p10a-native-rw-eps-coupling.yml",
       "step": "Run native resource authority, closure, branch matrix and power A/B",
       "command": "python -m pytest -q -s tests/test_native_rw_power_consistency.py tests/test_unified_native_migration.py::test_whole_spacecraft_unified_runtime_has_message_coupling_and_bounds tests/test_unified_native_migration.py::test_low_soc_gate_changes_power_data_and_thermal_runtime_inputs tests/test_unified_native_migration.py::test_unified_native_payload_power_node_is_official_and_data_path_invariant tests/test_composite_native_adcs_power.py tests/test_downlink_antenna_status_adapter.py tests/test_composite_native_comm_antenna_power.py tests/test_composite_native_heater_power.py tests/test_composite_native_payload_power.py tests/test_native_thermal_heater_power_contract.py tests/test_native_propulsion_power.py tests/test_composite_native_propulsion_power.py tests/test_composite_resource_power_branches.py tests/test_composite_battery_evidence.py tests/test_thermal_power_sampling.py tests/test_reduced_heater_transition_energy.py tests/test_power_authority_inventory.py tests/test_whole_resource_inventory_matrix.py tests/test_whole_spacecraft_resource_catalog.py tests/test_native_thermal_energy_accounting.py tests/test_p0_trustworthiness_fixes.py tests/test_runtime_evidence_status_thermal_rf.py tests/test_unified_native_event_migration.py tests/test_native_whole_spacecraft_event_bundles.py tests/test_propulsion_whole_coupling.py tests/test_resource_closure_agent_trust.py tests/interactive/test_native_battery_reset_barrier.py --junitxml=reports/p10a/native-rw-comm-eps-junit.xml",
@@ -62,7 +62,38 @@
         "P10A7_EVIDENCE_DIR": "reports/p10a7"
       }
     },
-    "review": "Independent review and reproducer recheck passed; see development log for corrected findings."
+    "review": "Independent review and reproducer recheck passed; see development log for corrected findings.",
+    "continuous_finalize_regression": {
+      "cleared_native_power_and_state_recorders": "both reproduced the original error, then passed",
+      "stop_between_public_samples": "sample_s=1.0; advance_to(1.0) produced rows; advance_to(1.2) produced no rows; finalize preserved PASS inventory and resource evidence",
+      "inventory_suite": {
+        "tests": 23,
+        "passed": 23,
+        "duration_s": 3.63
+      }
+    },
+    "continuous_soaks": [
+      {
+        "target_sim_time_s": 180,
+        "actual_sim_time_s": 180.5,
+        "telemetry_frames": 181,
+        "native_segments": 361,
+        "test_duration_wall_s": 9.01,
+        "passed": true,
+        "segmented_telemetry_bytes": 65536,
+        "seal_and_logical_hash_checks": "PASS"
+      },
+      {
+        "target_sim_time_s": 3600,
+        "actual_sim_time_s": 3600.5,
+        "telemetry_frames": 3601,
+        "native_segments": 7201,
+        "test_duration_wall_s": 97.22,
+        "passed": true,
+        "seal_and_integrity_checks": "PASS"
+      }
+    ],
+    "continuous_time_scope": "Soak targets are simulated time; these results do not qualify equivalent wall-clock endurance."
   },
   "ci_evidence": {
     "artifact_name": "p10a-native-whole-spacecraft-power-evidence",
@@ -405,7 +436,7 @@
         }
       },
       "raw_artifact_file": "composite-network-0-comm-0-propulsion-0.json",
-      "local_raw_sha256": "f00e8edb06f8d2e4d4a6a991c492ef6ac27dcfe1c71543489ae363f2a3ce1ed8",
+      "local_raw_sha256": "9d08eee7acf7d4df78955f27d05b2c9a71a0f6d99cc63dd537f6ebc2669f8165",
       "trace_sample_count": 40,
       "first_trace_observations": {
         "time_s": 0.5,
@@ -733,7 +764,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=9.31049e+242; parameter/model assumption.",
+              "Configured nodePowerOut=6.93128e-310; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -771,7 +802,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.345e+161; parameter/model assumption.",
+              "Configured nodePowerOut=6.93135e-310; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -1375,7 +1406,7 @@
         }
       },
       "raw_artifact_file": "composite-network-0-comm-0-propulsion-1.json",
-      "local_raw_sha256": "7386ede66aa1476da47c5c02279660d042e488fb4bb1184c0417bc6831279b07",
+      "local_raw_sha256": "0117489a22790e53cf88c8f3e27710844753e7bc950848705567d03da8bbc357",
       "trace_sample_count": 40,
       "first_trace_observations": {
         "time_s": 0.5,
@@ -1703,7 +1734,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=0; parameter/model assumption.",
+              "Configured nodePowerOut=1.34175e-315; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -1741,7 +1772,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.345e+161; parameter/model assumption.",
+              "Configured nodePowerOut=6.93128e-310; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -1779,7 +1810,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.46973e+195; parameter/model assumption.",
+              "Configured nodePowerOut=0; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -2447,7 +2478,7 @@
         }
       },
       "raw_artifact_file": "composite-network-0-comm-1-propulsion-0.json",
-      "local_raw_sha256": "fac20ffa82eddb85ffc0e1b600528a7eb44aefc6e937b6eab6504efec00dfe8a",
+      "local_raw_sha256": "a670857bb6ea6bcc721325eda6bac3c0823976b49429e6fd34c07ae38a056b2d",
       "trace_sample_count": 40,
       "first_trace_observations": {
         "time_s": 0.5,
@@ -2775,7 +2806,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=3.31017e-315; parameter/model assumption.",
+              "Configured nodePowerOut=0; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -2813,7 +2844,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=0; parameter/model assumption.",
+              "Configured nodePowerOut=9.88131e-314; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -2851,7 +2882,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=9.31049e+242; parameter/model assumption.",
+              "Configured nodePowerOut=1.345e+161; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -2889,7 +2920,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=0; parameter/model assumption.",
+              "Configured nodePowerOut=6.93135e-310; parameter/model assumption.",
               "Configured basePowerNeed=0; parameter/model assumption.",
               "Native RF power or configured active/idle state profile; no measured flight calibration."
             ],
@@ -3473,7 +3504,7 @@
         }
       },
       "raw_artifact_file": "composite-network-0-comm-1-propulsion-1.json",
-      "local_raw_sha256": "cf43bba49bc7eed860c7e3f82209504f58ecb496e5e29a89b33fd5ff813b7cd8",
+      "local_raw_sha256": "c30818e2a875166aa625be675dc880496e1ad5c5583f9e332d6c32732271c9ac",
       "trace_sample_count": 40,
       "first_trace_observations": {
         "time_s": 0.5,
@@ -3801,7 +3832,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=6.9166e-310; parameter/model assumption.",
+              "Configured nodePowerOut=6.93135e-310; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -3839,7 +3870,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=2.26825e+161; parameter/model assumption.",
+              "Configured nodePowerOut=0; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -3877,7 +3908,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=3.45212e+175; parameter/model assumption.",
+              "Configured nodePowerOut=6.93128e-310; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -3915,7 +3946,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=3.31129e-315; parameter/model assumption.",
+              "Configured nodePowerOut=3.09253e+262; parameter/model assumption.",
               "Configured basePowerNeed=0; parameter/model assumption.",
               "Native RF power or configured active/idle state profile; no measured flight calibration."
             ],
@@ -4601,7 +4632,7 @@
         }
       },
       "raw_artifact_file": "composite-network-1-comm-0-propulsion-0.json",
-      "local_raw_sha256": "443ec5e8336b96b8faefdbad823bea09db4a8928a88421adb25e0f240b77fbde",
+      "local_raw_sha256": "0ddba9c9e8371e360207fc4fec9d2844c021fec6d2c9cd4fe77004dd7b2d303c",
       "trace_sample_count": 40,
       "first_trace_observations": {
         "time_s": 0.5,
@@ -4929,7 +4960,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.29152e+161; parameter/model assumption.",
+              "Configured nodePowerOut=3.45212e+175; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -4967,7 +4998,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=6.9166e-310; parameter/model assumption.",
+              "Configured nodePowerOut=1.13662e+261; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -5005,7 +5036,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=6.91665e-310; parameter/model assumption.",
+              "Configured nodePowerOut=3.98257e+246; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -5698,7 +5729,7 @@
         }
       },
       "raw_artifact_file": "composite-network-1-comm-0-propulsion-1.json",
-      "local_raw_sha256": "1a07af175927137400aed70746e15806df9a8fa97830f678c00d9177b6ba794f",
+      "local_raw_sha256": "c8b9a0dd7e55707f3247b37f813f6cc08141c432a14300e0dacac66f5cefd783",
       "trace_sample_count": 40,
       "first_trace_observations": {
         "time_s": 0.5,
@@ -6026,7 +6057,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=6.20582e+228; parameter/model assumption.",
+              "Configured nodePowerOut=2.55901e-307; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -6064,7 +6095,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=0; parameter/model assumption.",
+              "Configured nodePowerOut=1.13662e+261; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -6102,7 +6133,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=3.45212e+175; parameter/model assumption.",
+              "Configured nodePowerOut=3.98257e+246; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -6897,7 +6928,7 @@
         }
       },
       "raw_artifact_file": "composite-network-1-comm-1-propulsion-0.json",
-      "local_raw_sha256": "d14825e395b1fb16bca9364cfb8293bfb1646b78532c5316e9c6b958d1b5bb7e",
+      "local_raw_sha256": "3875c86b4be4a387ea344d78b38993ce81b5bb36b496e3095d92bf9f507f8eb0",
       "trace_sample_count": 40,
       "first_trace_observations": {
         "time_s": 0.5,
@@ -7225,7 +7256,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.10392e-316; parameter/model assumption.",
+              "Configured nodePowerOut=6.93133e-310; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -7263,7 +7294,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.06514e-316; parameter/model assumption.",
+              "Configured nodePowerOut=1.34176e-315; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -7301,7 +7332,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=6.91667e-310; parameter/model assumption.",
+              "Configured nodePowerOut=4.24399e-314; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -7339,7 +7370,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.03754e-322; parameter/model assumption.",
+              "Configured nodePowerOut=0; parameter/model assumption.",
               "Configured basePowerNeed=0; parameter/model assumption.",
               "Native RF power or configured active/idle state profile; no measured flight calibration."
             ],
@@ -8050,7 +8081,7 @@
         }
       },
       "raw_artifact_file": "composite-network-1-comm-1-propulsion-1.json",
-      "local_raw_sha256": "898eb96819eb7117811b59d0587e266d140cf12f234e54d88255c00d99bb3aa7",
+      "local_raw_sha256": "038f5f2802f5f9d22d2888ce35b1d23b899abf8ad780e65e09f5b2144212ba0b",
       "trace_sample_count": 40,
       "first_trace_observations": {
         "time_s": 0.5,
@@ -8378,7 +8409,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=6.91664e-310; parameter/model assumption.",
+              "Configured nodePowerOut=6.93128e-310; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -8416,7 +8447,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=8.87571e+247; parameter/model assumption.",
+              "Configured nodePowerOut=0; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -8454,7 +8485,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=2.87505e+161; parameter/model assumption.",
+              "Configured nodePowerOut=0; parameter/model assumption.",
               "Configured basePowerNeed=3.33333; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -8492,7 +8523,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=6.33105e+180; parameter/model assumption.",
+              "Configured nodePowerOut=0; parameter/model assumption.",
               "Configured basePowerNeed=0; parameter/model assumption.",
               "Native RF power or configured active/idle state profile; no measured flight calibration."
             ],
@@ -9598,7 +9629,7 @@
         }
       },
       "raw_artifact_file": "unified-propulsion-0.json",
-      "local_raw_sha256": "88fa6b8425f1cf8b23adad78df569295d20ff6ac20dc6b7a3bb43534007db000",
+      "local_raw_sha256": "d7ce0bf5a22fb7a362b62eea6aef6152e366e469e575a92f659bd993371bcc94",
       "trace_sample_count": 13,
       "first_trace_observations": {
         "time_s": 0.0,
@@ -9804,7 +9835,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.42409e-306; parameter/model assumption.",
+              "Configured nodePowerOut=1.78021e-306; parameter/model assumption.",
               "Configured basePowerNeed=0; parameter/model assumption.",
               "Native RF power or configured active/idle state profile; no measured flight calibration."
             ],
@@ -9877,7 +9908,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.11261e-306; parameter/model assumption.",
+              "Configured nodePowerOut=1.78022e-306; parameter/model assumption.",
               "Configured basePowerNeed=4; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -9915,7 +9946,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.24612e-306; parameter/model assumption.",
+              "Configured nodePowerOut=8.34449e-308; parameter/model assumption.",
               "Configured basePowerNeed=4; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -9953,7 +9984,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.33511e-306; parameter/model assumption.",
+              "Configured nodePowerOut=1.37961e-306; parameter/model assumption.",
               "Configured basePowerNeed=4; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -10812,7 +10843,7 @@
         }
       },
       "raw_artifact_file": "unified-propulsion-1.json",
-      "local_raw_sha256": "26feb7d096e3d14590108eb5af1c478b10c450511002387eed94215927d8bf62",
+      "local_raw_sha256": "cb6b7c6c275f901b4eaade58e99f19132e5ee0246eb5bdda142cc140b6fd9a8b",
       "trace_sample_count": 13,
       "first_trace_observations": {
         "time_s": 0.0,
@@ -11024,7 +11055,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=6.91664e-310; parameter/model assumption.",
+              "Configured nodePowerOut=5.01163e+217; parameter/model assumption.",
               "Configured basePowerNeed=0; parameter/model assumption.",
               "Native RF power or configured active/idle state profile; no measured flight calibration."
             ],
@@ -11097,7 +11128,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=6.9166e-310; parameter/model assumption.",
+              "Configured nodePowerOut=6.12033e+257; parameter/model assumption.",
               "Configured basePowerNeed=4; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -11135,7 +11166,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=4.2662e+180; parameter/model assumption.",
+              "Configured nodePowerOut=2.87505e+161; parameter/model assumption.",
               "Configured basePowerNeed=4; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."
@@ -11173,7 +11204,7 @@
             ],
             "assumptions": [
               "Native implementation origin does not establish hardware calibration.",
-              "Configured nodePowerOut=1.47915e-71; parameter/model assumption.",
+              "Configured nodePowerOut=6.10935e+223; parameter/model assumption.",
               "Configured basePowerNeed=4; parameter/model assumption.",
               "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
               "Configured mechToElecEfficiency=-1; parameter/model assumption."

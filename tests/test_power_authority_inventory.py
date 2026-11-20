@@ -130,6 +130,66 @@ def test_actual_native_project_and_proxy_providers_have_separate_counts():
     json.dumps(result, allow_nan=False)
 
 
+@pytest.mark.parametrize("message_kind", ["power", "state"])
+def test_cleared_native_recorders_remain_recorders_without_invented_heater_hardware(message_kind):
+    Binding, build = _api()
+    sink = _sink()
+    message = sink.nodePowerOutMsg if message_kind == "power" else messaging.SCStatesMsg().write(
+        messaging.SCStatesMsgPayload()
+    )
+    recorder = message.recorder()
+    _, scheduled = _run(sink, recorder)
+    assert len(recorder.times()) > 0
+    recorder.clear()  # Continuous extraction releases the native sample buffer.
+    assert len(recorder.times()) == 0
+
+    result = build("cleared_native_recorder", [Binding(sink, "nodePowerOutMsg", "bus")],
+                   scheduled_models=scheduled)
+
+    assert result["status"] == "PASS"
+    assert result["counts"]["electrical_provider_count"] == 1
+    assert result["counts"]["scheduled_recorder_count"] == 1
+    recorders = [row for row in result["scheduled_models"] if row["kind"] == "recorder"]
+    assert len(recorders) == 1
+    assert "heater_hardware_present" not in recorders[0]
+    assert recorders[0]["electrical_provider_ids"] == []
+    assert result["authorities"][0]["message_evidence"]["net_power_w"] == -12.0
+    json.dumps(result, allow_nan=False)
+
+
+def test_continuous_summary_between_public_samples_preserves_resource_inventory():
+    from sat_sim.bsk_engine.unified_native import WHOLE_UNIFIED_CAPABILITY_ID
+    from sat_sim.interactive.models import InteractiveSessionSpec
+    from sat_sim.interactive.runtime_factory import build_persistent_runtime
+
+    spec = InteractiveSessionSpec(
+        session_id="resource-inventory-partial-sample",
+        capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
+        continuous=True,
+        task_spec={"simulation": {"duration_s": 1.0, "sample_s": 1.0,
+                                  "solver": {"step_s": 0.1}},
+                   "parameters": {"values": {}}},
+    )
+    runtime, end_time = build_persistent_runtime(spec, supervised=False)
+    assert end_time is None
+    try:
+        runtime.prepare()
+        first = runtime.advance_to(1.0)
+        assert first and first[-1]["time_s"] == 1.0
+        assert runtime.advance_to(1.2) == ()
+        result = runtime.finalize()
+        inventory = result["summary"]["power_authority_inventory"]
+        assert inventory["status"] == "PASS"
+        assert inventory["counts"]["scheduled_recorder_count"] > 0
+        assert inventory["counts"]["unknown_provider_count"] == 0
+        assert inventory["counts"]["unregistered_provider_count"] == 0
+        assert result["summary"]["resource_closure_evidence"]["status"] == "PASS"
+        assert result["final_sim_time_s"] == 1.2
+        json.dumps(result, allow_nan=False)
+    finally:
+        runtime.abort()
+
+
 def test_dedup_uses_actual_model_and_port_not_tag_or_swig_wrapper():
     Binding, build = _api()
     first, second = _sink("sameTag", 3.0), _sink("sameTag", 7.0)
