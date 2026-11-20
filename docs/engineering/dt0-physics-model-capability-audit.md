@@ -144,3 +144,11 @@ Canonical TaskSpec 已有 demo、engineering_estimate、ground_calibrated、flig
 - Run Bundle：src/sat_sim/run_bundle.py
 - 参数溯源验收：docs/engineering/parameter_traceability_acceptance.md
 - 校准流程：docs/标定配置指南.md
+
+## 8. 版本与依赖元数据审计发现
+
+实验性 orbit_environment.basilisk_hf.v1 capability YAML 当前声明 optional_dependency 为 bsk==2.10.2；而当前项目主要真实整星/浏览器验收基线使用官方 bsk==2.11.0，whole_spacecraft.basilisk_6dof.v1 也声明了不同的 2.11.0+satfix2 版本边界。
+
+这属于 capability 元数据与当前执行基线之间的版本口径不一致。它不证明运行代码必然不兼容，但会误导用户和自动化环境选择。
+
+**处理要求：** DT-1 在推广 BSK-ORB 实验性路径前，先核对官方 Basilisk 2.11.0 的真实 API/模块可用性、capability optional_dependency、工作流安装版本和实际运行产物；统一后再更新 capability 元数据。不得通过仅改 YAML 版本号来代替运行验证。
