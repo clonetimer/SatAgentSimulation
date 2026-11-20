@@ -1590,11 +1590,12 @@ class UnifiedNativeRuntime:
 
             drag_effector = dragDynamicEffector.DragDynamicEffector()
             drag_effector.ModelTag = "nrlmsise_drag_effector"
-            drag_parameters = dragDynamicEffector.DragBaseData()
-            drag_parameters.projectedArea = self._orbital_environment.drag_area_m2
-            drag_parameters.dragCoeff = self._orbital_environment.drag_coefficient
-            drag_parameters.comOffset = [0.0, 0.0, 0.0]
-            drag_effector.coreParams = drag_parameters
+            # Mirror the upstream Basilisk scenario API: mutate the
+            # effector-owned coreParams in place.  Do not assign a detached
+            # DragBaseData value through the SWIG property.
+            drag_effector.coreParams.projectedArea = self._orbital_environment.drag_area_m2
+            drag_effector.coreParams.dragCoeff = self._orbital_environment.drag_coefficient
+            drag_effector.coreParams.comOffset = [0.0, 0.0, 0.0]
             drag_effector.atmoDensInMsg.subscribeTo(atmosphere_model.envOutMsgs[0])
             drag_effector.windVelInMsg.subscribeTo(wind_model.envOutMsgs[0])
             sc.addDynamicEffector(drag_effector)
