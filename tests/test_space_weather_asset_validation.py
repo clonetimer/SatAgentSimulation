@@ -38,10 +38,10 @@ def test_celestrak_space_weather_fails_closed_when_end_date_is_missing():
 
 def test_celestrak_space_weather_fails_closed_when_required_lookback_is_missing(tmp_path):
     raw = FIXTURE.read_text(encoding="utf-8")
-    # Remove the first observed day; the CSV remains structurally valid but
-    # cannot satisfy Basilisk's four-day look-back for a March 4 start.
+    # Remove March 1; the CSV remains structurally valid but cannot satisfy
+    # Basilisk's four-day look-back for a March 4 start.
     lines = raw.splitlines()
-    broken = "\n".join([lines[0], *lines[2:]]) + "\n"
+    broken = "\n".join([lines[0], lines[1], *lines[3:]]) + "\n"
     path = tmp_path / "missing-lookback.csv"
     path.write_text(broken, encoding="utf-8")
     with pytest.raises(ValueError, match="SPACE_WEATHER_COVERAGE_INCOMPLETE"):
