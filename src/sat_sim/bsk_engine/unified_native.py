@@ -3099,12 +3099,19 @@ class UnifiedNativeRuntime:
                 float(row["orbit.drag_force_norm_n"])
                 for row in rows if "orbit.drag_force_norm_n" in row
             ]
+            drag_speed_values = [
+                float(row["orbit.drag_relative_speed_m_s"])
+                for row in rows if "orbit.drag_relative_speed_m_s" in row
+            ]
             if (
                 len(density_values) != len(rows)
                 or len(drag_force_values) != len(rows)
+                or len(drag_speed_values) != len(rows)
                 or not density_values
                 or any(not math.isfinite(value) or value <= 0.0 for value in density_values)
                 or any(not math.isfinite(value) or value < 0.0 for value in drag_force_values)
+                or any(not math.isfinite(value) or value <= 1.0 for value in drag_speed_values)
+                or max(drag_force_values, default=0.0) <= 0.0
             ):
                 raise RuntimeError("NRLMSISE_RUNTIME_OUTPUT_INVALID")
             summary["aerodynamic_environment"] = {
