@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """Stage an offline CelesTrak space-weather snapshot for Basilisk NRLMSISE-00.
 
-The runtime never downloads or refreshes this asset. This setup command
-downloads SW-Last5Years.csv, validates the observed rows consumed by Basilisk
-SpaceWeatherData, and writes a SHA-256 provenance manifest.
+Purpose:
+    Download or validate a local SW-Last5Years.csv snapshot for Basilisk.
+Parameters:
+    --output: destination CSV path; defaults to third_party/space_weather.
+    --url: source CSV URL; defaults to the official CelesTrak endpoint.
+    --refresh: explicitly download a replacement snapshot.
+    --offline: validate an existing snapshot without network access.
+Outputs:
+    The validated CSV and adjacent space_weather_manifest.json with SHA-256,
+    observed date range, source URL, retrieval time, and validation time.
+The runtime never downloads or refreshes this asset.
 """
 from __future__ import annotations
 
