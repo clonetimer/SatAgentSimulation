@@ -48,7 +48,7 @@ class NativeOrbitalEnvironment:
         self.drag_enabled = self.atmosphere_model == 'nrlmsise00'
         self.drag_area_m2 = float(values.get('drag_area_m2', 0.08))
         self.drag_coefficient = float(values.get('drag_coefficient', 2.2))
-        if not (0.0 < self.drag_area_m2 <= 1000.0) or not (0.0 < self.drag_coefficient <= 10.0):
+        if self.drag_enabled and (not (0.0 < self.drag_area_m2 <= 1000.0) or not (0.0 < self.drag_coefficient <= 10.0)):
             raise ValueError('NATIVE_DRAG_PARAMETERS_OUT_OF_RANGE')
         self.space_weather_asset = None
         self.space_weather_evidence: dict[str, Any] | None = None
