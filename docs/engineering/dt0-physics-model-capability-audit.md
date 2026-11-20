@@ -203,8 +203,20 @@ Canonical TaskSpec 已有 demo、engineering_estimate、ground_calibrated、flig
 
 官方版本依据：Basilisk v2.11.0 Release Notes 的 “Spacecraft dynamics and effectors” 和 “Environment, gravity, and ephemerides” 条目；对应源码目录位于 AVSLab/basilisk v2.11.0 的 facetSRPDynamicEffector、facetedSRPEffector、earthRadiationModel 和 albedo。
 
-## 11. DT1-A1 接入状态（实施候选，尚待 CI）
+## 11. DT-1 可选原生环境集成候选：PR #213 的真实 CI 证据（不等于 main）
 
-当前 DT1-A1 feature branch 正在将官方 Basilisk v2.11.0 的 SpaceWeatherData、MsisAtmosphere、ZeroWindModel 和 DragDynamicEffector 接入推荐整星统一图。实现使用离线 CelesTrak CSV，并在运行前检查三日 Ap 回看窗口和整个仿真时间弧的日期连续性。
+**版本和状态边界（2026-11-21）：** 上文各项缺口与“尚未接入”的判断以当时 DT-0 **main 审计基线**为准，不应被追溯改写为历史主干已完成。独立 PR #206（NRLMSISE-00 阻力）、#208（SPICE/Eclipse SRP）、#210（完整 GGM03S 2/3/4 阶）、#211（IGRF-14）和 #212（PPIGRF 独立矢量对照）均已进入 **PR #213 的受控四效应集成候选**；#207 的参考 CAD 图层不属于此物理集成。PR #213 **未合并**，不得将以下通过结果写成当前 main 已发布能力。
 
-该 feature branch 的代码、测试和 CI 尚未完成，因此本节记录的是实现设计和待验收合同，不将其标记为 main 已具备或已通过的能力。固定面积/Cd 仍是工程假设。
+**可复核的 exact-head 来源：** PR #213 原生物理验收 SHA `eea19fa53bba774c5ef078220701555507f4110d`，工作流 [Continuous satellite native Basilisk tests / run 44794972189](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44794972189)，job `native-whole-spacecraft`。对应 HEAD 为 15 SUCCESS、1 条件性 SKIPPED、0 FAIL；后续仅文档更新也不能把旧 SHA 的 CI 自动当作新提交的 CI。
+
+| 真实原生门禁 | 在该 exact head 上的实际观测 | 边界 |
+|---|---|---|
+| NRLMSISE-00 + DragDynamicEffector | `tests/test_native_orbital_environment.py`：12 PASS；密度 6.100284068e-11～6.256561193e-11 kg/m³；最大本体系阻力 `3.725094387e-02 N`；600 s 同初态 A/B 半长轴差 `-3812.304821376 m` | 使用合成空间天气夹具、测试质量 10 kg/面积 10 m²/Cd 2.2，不是飞行标定 |
+| SPICE/Eclipse + RadiationPressure | `tests/test_native_srp_spice_eclipse.py`：真实 Sun 方向、日照侧 SRP `1.408643438e-04 N`、地球本影 `0 N` | Cannonball 固定面积/Cr；不代表 faceted SRP |
+| 完整 GGM03S 4 阶 | `tests/test_native_ggm03s_gravity.py`：5 PASS；完整 2/3/4 阶系数包含非带谐项；使用真实 SPICE 地固姿态 | 不是独立 STK/GMAT 轨道相关性，也不是纯 J3/J4 单项隔离 |
+| IGRF-14 和独立 PPIGRF | `tests/test_native_igrf14_field.py`：5 PASS；`tests/test_native_igrf14_ppigrf_correlation.py`：3 PASS，2026/2029 最大矢量残差分别 `0.05141683810 / 0.03099556718 nT`，小于原有 `1.0 nT` 门槛 | IAGA IGRF14.shc 固定来源，非飞行实测或磁暴扰动模型 |
+| **同一 Basilisk Process/Task 四效应联合闭环** | `tests/test_native_integrated_environment.py`：**2 PASS**。120 s 四组独立 A/B 中 Drag/SRP/高阶重力分别改变末端位置 `0.2177126328 / 0.01000388427 / 0.5282819834 m`；IGRF/WMM 磁强计矢量最大差 `5.981208016 nT`。5400 s 全轨道样本：**53 日照 + 37 本影**，阻力范围 `2.823995394e-03～3.537102855e-03 N`，本影 SRP `0 N`，同态 SRP 开关末端位置差 `23.44759781 m` | 一轨测试积分步长 5 s、遥测采样 60 s 是测试专用配置；**没有单独验证半影采样**，不能称已量化半影过渡精度 |
+
+**实际工程范围：** 上述四项均为显式 opt-in 的官方 Basilisk 模块与经验证离线资产组成的候选路径；legacy J2、WMM2025、无新增阻力/SRP 的原有默认配置未改。ZeroWindModel 仅表示地球共转，不含热层风场；气动/光压面积和 Cd/Cr 仍为常数工程假设。没有经审批的 CAD 实装映射、风场、固体/海洋潮汐、辐射带粒子效应、外部高精度轨道参考或飞行数据相关性。
+
+**发布门禁：** #213 保持待维护者审查与明确合并决定；真正合并后的 **main 新 SHA** 必须重新核对原生整星、独立物理/Run Bundle、参数表、治理、静态及浏览器检查，不得把此前 PR 上的 PASS 视作已验证主干。单独的源 PR 在受控主干验收完成前不得作为 superseded 关闭；#207 始终是独立、默认关闭的参考外形层，不能自动晋升 as-built。
