@@ -155,3 +155,16 @@ Basilisk 2.11.0 已有官方面片 SRP 模块，R1 不应从零重写面片光�
 - 只有完成面片面积、法向、光学系数、中心压强位置、铰接角和地影验证，才将面片 SRP 晋升为整星正式能力。
 - EarthRadiationModel 的反照/红外通量先作为独立环境输出验证；需要实际动力学作用时，必须建立并验证力/力矩耦合，不能只因有 EarthRadiationMsg 就宣称地球辐射压力已作用于整星。
 - TID、SEE 和辐射带粒子环境另列模型任务，不由地球反照/红外模型代替。
+
+## 11. DT1-A1：NRLMSISE-00 与大气阻力接入
+
+DT1-A1 的实现候选复用 Basilisk 2.11.0 官方模块，不引入第二套 NRLMSISE 公式：
+
+- SpaceWeatherData：读取本地 CelesTrak CSV，发布 23 条空间天气消息。
+- MsisAtmosphere：读取 UTC EpochMsg、地球姿态/位置和航天器状态，计算中性大气密度与温度。
+- ZeroWindModel：提供地球共转速度；不代表真实热层风。
+- DragDynamicEffector：使用大气密度、相对风速、常数投影面积和 Cd 施加真实动力学阻力。
+
+当前候选的气动面积为固定标量，尚未使用 CAD 面片、气动中心、姿态相关投影面积或自由分子/过渡流稀薄气体模型。该路径只能标记为“NRLMSISE-00 + 常数面积阻力工程模型”，不能称为完整航天器气动外形高保真。
+
+数据文件由 scripts/fetch_space_weather_asset.py 显式获取并生成 SHA-256 manifest。运行时按 UTC 起始时刻、仿真结束时刻和三日 Ap 回看窗口检查每日连续覆盖；不做插值，缺失即 fail closed。正式能力仍需官方 Basilisk CI、真实整星闭环、密度/阻力/轨道响应 A/B 和数值收敛通过后才能从候选状态晋级。
