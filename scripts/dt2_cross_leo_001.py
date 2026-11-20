@@ -134,13 +134,16 @@ def _assert_grid(rows: list[dict], *, tick_skew_budget_s: float = 1e-5) -> None:
 
 
 def _gmat_script(initial_state: dict, *, report_path: str,
-                 earth_mu_km3_s2: float | None = None) -> str:
+                 earth_mu_km3_s2: float | None = None,
+                 state_frame: str = "EarthMJ2000Eq") -> str:
     """Official GMAT syntax; *not* an executed GMAT result or syntax certification.
 
     GMAT states are km and km/s in EarthMJ2000Eq, Basilisk records SI m/m/s
     in Earth-centered inertial N. No cross-engine coordinate equivalence is
     asserted until a genuinely executed GMAT report is checked.
     """
+    if state_frame not in ("EarthMJ2000Eq", "EarthICRF"):
+        raise ValueError("CROSS_LEO_GMAT_FRAME_NOT_WHITELISTED")
     if earth_mu_km3_s2 is not None:
         if (type(earth_mu_km3_s2) not in (int, float) or not math.isfinite(earth_mu_km3_s2)
                 or earth_mu_km3_s2 <= 0):
@@ -159,7 +162,7 @@ def _gmat_script(initial_state: dict, *, report_path: str,
         "Create Spacecraft CrossSat;",
         "CrossSat.DateFormat = UTCGregorian;",
         f"CrossSat.Epoch = '{epoch_gmat}';",
-        "CrossSat.CoordinateSystem = EarthMJ2000Eq;",
+        f"CrossSat.CoordinateSystem = {state_frame};",
         "CrossSat.DisplayStateType = Cartesian;",
     ]
     if earth_mu_km3_s2 is not None:
@@ -198,7 +201,7 @@ def _gmat_script(initial_state: dict, *, report_path: str,
         "BeginMissionSequence;",
     ]
     fields = "CrossSat.ElapsedSecs " + " ".join(
-        f"CrossSat.EarthMJ2000Eq.{v}" for v in ("X", "Y", "Z", "VX", "VY", "VZ")
+        f"CrossSat.{state_frame}.{v}" for v in ("X", "Y", "Z", "VX", "VY", "VZ")
     )
     items.append(f"Report CrossState {fields};")
     # Actual R2026a Console interprets a Propagate ElapsedSecs target
@@ -434,6 +437,160 @@ def run_gmat(out: Path, binary: Path, *, timeout_s: int = 180,
     if record["status"] == "GMAT_RUN_FAILED":
         raise RuntimeError("CROSS_LEO_GMAT_NOT_VERIFIED: inspect gmat_execution.json")
     return record
+
+
+def run_gmat_icrf_numeric_control(out: Path, binary: Path, *,
+                                  timeout_s: int = 600) -> dict:
+    """Real fourth GMAT process: same BSK numbers declared as EarthICRF.
+
+    An actual independent GMAT run is required. The common physical N-to-ICRF
+    initial frame is still CONDITIONAL and cannot be certified from this test.
+    No original original-MJ, matched-mu, Sun/Luna or two-frame file is mutated.
+    """
+    out = out.resolve(strict=True)
+    manifest = json.loads((out/"case_manifest.json").read_text(encoding="utf-8"))
+    ev = manifest.get("evidence", {})
+    original = json.loads((out/"gmat_execution.json").read_text(encoding="utf-8"))
+    matched = json.loads((out/"gmat_mu_control_execution.json").read_text(encoding="utf-8"))
+    frame = json.loads((out/"gmat_frame_time_execution.json").read_text(encoding="utf-8"))
+    celestial = json.loads((out/"sun_anchor_execution.json").read_text(encoding="utf-8"))
+    bridge = json.loads((out/"gmat_mj_naif_frame_probe.json").read_text(encoding="utf-8"))
+    if (manifest.get("schema") != SCHEMA or not ev.get("basilisk_executed")
+        or not ev.get("gmat_executed") or not ev.get("gmat_mu_control_executed")
+        or not ev.get("gmat_frame_time_probe_executed")
+        or original.get("status") != "GMAT_EXECUTED_UNQUALIFIED_ALIGNMENT"
+        or matched.get("status") != "GMAT_MU_CONTROL_EXECUTED_UNQUALIFIED_ALIGNMENT"
+        or frame.get("status") != "GMAT_FRAME_TIME_REPORTED_UNQUALIFIED_ABSOLUTE_TIE"
+        or celestial.get("status") != "REAL_THREE_ENGINE_CELESTIAL_SOURCE_OBSERVED_INCONCLUSIVE"
+        or not celestial.get("basilisk_spice_kernel_pool_verified")
+        or celestial.get("real_moon_sample_count") != 3
+        or bridge.get("status") != "INCONCLUSIVE"
+        or bridge.get("spacecraft_holdout_samples") != 91
+        or bridge.get("original_basilisk_N_to_ICRF_approved") is not False):
+        raise ValueError("DT2_ICRF_CONTROL_REQUIRES_AUTHENTIC_TWO_ENGINE_AND_FRAME_PROOFS")
+    executable = binary.expanduser().resolve(strict=True)
+    binary_sha = _sha256(executable)
+    if (original.get("binary_sha256") != binary_sha
+        or matched.get("binary_sha256") != binary_sha
+        or frame.get("executable_sha256") != binary_sha
+        or celestial.get("gmat_binary_sha256") != binary_sha):
+        raise ValueError("DT2_ICRF_CONTROL_GMAT_BINARY_MISMATCH")
+    source_checks = (
+        ("basilisk_state.csv", ev.get("basilisk_state_csv_sha256")),
+        ("gmat_raw.txt", original.get("report_sha256")),
+        ("gmat_mu_control_raw.txt", matched.get("report_sha256")),
+        ("gmat_frame_time_raw.txt", frame.get("frame_time_report_sha256")),
+        ("gmat_sun_anchor_raw.txt", celestial.get("gmat_sun_report_sha256")),
+        ("gmat_moon_anchor_raw.txt", celestial.get("gmat_moon_report_sha256")),
+        ("gmat_mj_naif_frame_probe_rows.csv", bridge.get("holdout_rows_csv_sha256")),
+        ("gmat_mj_naif_frame_probe.json", celestial.get("frame_bridge_diagnostic_sha256")),
+    )
+    for name, expected in source_checks:
+        if not expected or _sha256(out/name) != expected:
+            raise ValueError("DT2_ICRF_CONTROL_SOURCE_HASH_MISMATCH: " + name)
+
+    files = {
+        "script": out/"gmat_icrf_numeric_executed.script",
+        "raw": out/"gmat_icrf_numeric_raw.txt",
+        "stdout": out/"gmat_icrf_numeric_stdout.log",
+        "stderr": out/"gmat_icrf_numeric_stderr.log",
+        "state": out/"gmat_icrf_numeric_state.csv",
+        "receipt": out/"gmat_icrf_numeric_execution.json",
+        "difference": out/"gmat_icrf_numeric_difference_rows.csv",
+        "diagnostic": out/"gmat_icrf_numeric_diagnostic.json",
+    }
+    if any(path.exists() for path in files.values()):
+        raise FileExistsError("DT2_ICRF_CONTROL_REFUSES_OVERWRITE")
+    mu_km3_s2 = float(manifest["gravity"]["mu_m3_s2"])/1e9
+    script_source = _gmat_script(
+        manifest["actual_initial_state_SI"],
+        report_path=str(files["raw"].resolve()),
+        earth_mu_km3_s2=mu_km3_s2, state_frame="EarthICRF",
+    )
+    files["script"].write_text(script_source, encoding="ascii")
+    if ("CrossSat.CoordinateSystem = EarthICRF;" not in script_source
+        or "CrossSat.EarthICRF.X" not in script_source
+        or f"GMAT Earth.Mu = {mu_km3_s2:.15g};" not in script_source):
+        raise ValueError("DT2_ICRF_CONTROL_SCRIPT_FRAME_OR_MU_NOT_EXPLICIT")
+    run = subprocess.run(
+        [str(executable),"--run",str(files["script"].resolve())],
+        cwd=executable.parent, capture_output=True, text=True,
+        timeout=timeout_s, check=False,
+    )
+    files["stdout"].write_text(run.stdout, encoding="utf-8")
+    files["stderr"].write_text(run.stderr, encoding="utf-8")
+    receipt = {
+        "status": "GMAT_ICRF_CONTROL_NOT_VERIFIED",
+        "scientific_verdict": "INCONCLUSIVE",
+        "engine": "genuine NASA GMAT R2026a",
+        "binary_sha256": binary_sha,
+        "script_sha256": _sha256(files["script"]),
+        "command": [str(executable),"--run",str(files["script"].resolve())],
+        "return_code": run.returncode,
+        "stdout_sha256": _sha256(files["stdout"]),
+        "stderr_sha256": _sha256(files["stderr"]),
+        "report_present": files["raw"].is_file(),
+        "raw_report_sha256": _sha256(files["raw"]) if files["raw"].is_file() else None,
+        "state_input": "actual original native Basilisk numeric Cartesian six-state",
+        "state_input_frame_declared_in_GMAT": "EarthICRF",
+        "earth_mu_km3_s2": mu_km3_s2,
+        "original_basilisk_N_to_EarthICRF_tie_independently_approved": False,
+        "absolute_time_alignment_approved": False,
+        "mission_accuracy_budget_approved": False,
+        "source_sha256": {name: expected for name, expected in source_checks},
+    }
+    _write_json(files["receipt"], receipt)
+    if run.returncode != 0 or not files["raw"].is_file():
+        raise RuntimeError("DT2_REAL_GMAT_ICRF_CONTROL_EXECUTION_FAILED")
+    rows = _read_gmat_report(files["raw"], CASE["epoch_utc"])
+    bsk = _read_states(out/"basilisk_state.csv", CASE["epoch_utc"])
+    if len(rows) != 91 or len(bsk) != len(rows):
+        raise ValueError("DT2_REAL_GMAT_ICRF_CONTROL_INCOMPLETE_GRID")
+    _write_state_csv(files["state"], rows)
+    difference = []
+    for i,(a,b) in enumerate(zip(bsk, rows)):
+        dp = [b[k]-a[k] for k in ("x_m","y_m","z_m")]
+        dv = [b[k]-a[k] for k in ("vx_m_s","vy_m_s","vz_m_s")]
+        difference.append({
+            "sample_index":i, "basilisk_elapsed_s":a["time_s"],
+            "gmat_original_elapsed_s":b["time_s"],
+            "raw_time_skew_s":b["time_s"]-a["time_s"],
+            "position_delta_m":math.sqrt(sum(v*v for v in dp)),
+            "velocity_delta_m_s":math.sqrt(sum(v*v for v in dv)),
+        })
+    with files["difference"].open("w", newline="", encoding="utf-8") as stream:
+        writer=csv.DictWriter(stream, fieldnames=list(difference[0]))
+        writer.writeheader()
+        writer.writerows(difference)
+    diagnostic = {
+        "status":"INCONCLUSIVE",
+        "case_id": CASE_ID,
+        "comparison_kind":"index-paired numeric EarthICRF GMAT vs Basilisk N; conditional physical frame hypothesis",
+        "paired_samples":len(difference),
+        "independently_frame_time_aligned_samples":0,
+        "frame_hypothesis":"Basilisk spacecraft N is physically NAIF J2000/ICRF -- not independently certified",
+        "frozen_source_initial_components_unchanged":True,
+        "no_rotation_or_state_adjustment_applied":True,
+        "raw_reported_gmat_times_retained":True,
+        "max_reported_gmat_time_skew_s":max(abs(row["raw_time_skew_s"]) for row in difference),
+        "position_delta_m_first":difference[0]["position_delta_m"],
+        "position_delta_m_mid":difference[len(difference)//2]["position_delta_m"],
+        "position_delta_m_last":difference[-1]["position_delta_m"],
+        "position_delta_m_max":max(row["position_delta_m"] for row in difference),
+        "velocity_delta_m_s_max":max(row["velocity_delta_m_s"] for row in difference),
+        "mission_accuracy_budget_approved":False,
+        "original_basilisk_N_to_EarthICRF_tie_independently_approved":False,
+    }
+    _write_json(files["diagnostic"], diagnostic)
+    receipt.update({
+        "status":"GMAT_ICRF_NUMERIC_INITIAL_EXECUTED_UNQUALIFIED_N_TIE",
+        "rows":len(rows),
+        "normalized_csv_sha256":_sha256(files["state"]),
+        "difference_rows_sha256":_sha256(files["difference"]),
+        "diagnostic_sha256":_sha256(files["diagnostic"]),
+    })
+    _write_json(files["receipt"],receipt)
+    return receipt
 
 
 def compare(out: Path) -> dict:
@@ -965,6 +1122,10 @@ def main(argv: list[str] | None = None) -> int:
     f.add_argument("--timeout-s",type=int,default=600)
     t=sub.add_parser("compare-mu-control",help="Unqualified real GMAT Earth-Mu sensitivity, no PASS")
     t.add_argument("--output",type=Path,required=True)
+    q=sub.add_parser("gmat-icrf-numeric-control",help="Real independent GMAT ICRF numeric-state run; conditional N-frame hypothesis")
+    q.add_argument("--output",type=Path,required=True)
+    q.add_argument("--executable",type=Path,required=True)
+    q.add_argument("--timeout-s",type=int,default=600)
     args=parser.parse_args(argv)
     if args.action=="basilisk":
         result=run_basilisk(args.output,args.checkout_sha)
@@ -977,6 +1138,8 @@ def main(argv: list[str] | None = None) -> int:
         result=compare_mu_control(args.output)
     elif args.action=="gmat-frame-time-probe":
         result=run_gmat_frame_time_probe(args.output,args.executable,timeout_s=args.timeout_s)
+    elif args.action=="gmat-icrf-numeric-control":
+        result=run_gmat_icrf_numeric_control(args.output,args.executable,timeout_s=args.timeout_s)
     else:
         result=analyze_closed_form_two_body(args.output)
     print(json.dumps({"case_id":CASE_ID,"action":args.action,"result":result.get("external_vv_status",result.get("status","BASILISK_EXECUTED"))},sort_keys=True))

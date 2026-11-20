@@ -308,6 +308,61 @@ jobs:
                 f"mj_naif_heldout_max_vel_m_s={bridge['max_velocity_residual_m_s']:.9e} "
                 "status=INCONCLUSIVE original_pointmass_n_axis_certified=false")
           PY
+      - name: Execute genuine EarthICRF GMAT numeric-state control, hold original baseline fixed
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py gmat-icrf-numeric-control \
+            --output reports/dt2-cross-leo-001 \
+            --executable "$GMAT_BIN" --timeout-s 600
+          python - <<'PY'
+          import csv,hashlib,json,math
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          receipt=json.loads((root/"gmat_icrf_numeric_execution.json").read_text())
+          d=json.loads((root/"gmat_icrf_numeric_diagnostic.json").read_text())
+          assert receipt["status"]=="GMAT_ICRF_NUMERIC_INITIAL_EXECUTED_UNQUALIFIED_N_TIE"
+          assert receipt["scientific_verdict"]=="INCONCLUSIVE"
+          assert receipt["rows"]==91 and receipt["return_code"]==0
+          assert receipt["state_input_frame_declared_in_GMAT"]=="EarthICRF"
+          assert not receipt["original_basilisk_N_to_EarthICRF_tie_independently_approved"]
+          assert not receipt["absolute_time_alignment_approved"]
+          assert not receipt["mission_accuracy_budget_approved"]
+          assert d["status"]=="INCONCLUSIVE"
+          assert d["paired_samples"]==91 and d["independently_frame_time_aligned_samples"]==0
+          assert d["frozen_source_initial_components_unchanged"]
+          assert d["no_rotation_or_state_adjustment_applied"]
+          assert d["raw_reported_gmat_times_retained"]
+          assert not d["mission_accuracy_budget_approved"]
+          assert not d["original_basilisk_N_to_EarthICRF_tie_independently_approved"]
+          for name, sha in (
+              ("gmat_icrf_numeric_executed.script",receipt["script_sha256"]),
+              ("gmat_icrf_numeric_raw.txt",receipt["raw_report_sha256"]),
+              ("gmat_icrf_numeric_state.csv",receipt["normalized_csv_sha256"]),
+              ("gmat_icrf_numeric_difference_rows.csv",receipt["difference_rows_sha256"]),
+              ("gmat_icrf_numeric_diagnostic.json",receipt["diagnostic_sha256"])):
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==sha
+          for name,sha in receipt["source_sha256"].items():
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==sha
+          script=(root/"gmat_icrf_numeric_executed.script").read_text()
+          assert "CrossSat.CoordinateSystem = EarthICRF;" in script
+          assert "CrossSat.EarthICRF.X" in script
+          assert "CrossGravity.Drag = None;" in script
+          assert "CrossGravity.SRP = Off;" in script
+          assert all(math.isfinite(d[k]) and d[k]>=0 for k in (
+              "position_delta_m_first","position_delta_m_mid","position_delta_m_last",
+              "position_delta_m_max","velocity_delta_m_s_max",
+              "max_reported_gmat_time_skew_s"))
+          with (root/"gmat_icrf_numeric_difference_rows.csv").open(newline="") as stream:
+              rows=list(csv.DictReader(stream))
+          assert len(rows)==91
+          assert float(rows[-1]["gmat_original_elapsed_s"])<5400.
+          print("DT2_REAL_GMAT_ICRF_NUMERIC_CONTROL "
+                f"position_final_m={d['position_delta_m_last']:.9e} "
+                f"position_max_m={d['position_delta_m_max']:.9e} "
+                f"velocity_max_m_s={d['velocity_delta_m_s_max']:.9e} "
+                "status=INCONCLUSIVE independent_N_tie=false")
+          PY
+
       - name: Upload all acquired raw provenance and engine outputs including failure logs
         if: always()
         uses: actions/upload-artifact@v7

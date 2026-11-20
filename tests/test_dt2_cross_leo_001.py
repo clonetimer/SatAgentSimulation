@@ -56,6 +56,32 @@ def test_gmat_script_is_generated_from_explicit_measured_initial_state():
     assert "GGM03S" not in script and "SRP = On" not in script
 
 
+def test_gmat_earthicrf_numeric_control_changes_only_declared_frame_not_physics():
+    initial=make_zero_sample()
+    base=cross._gmat_script(
+        initial,report_path="control_raw.txt",earth_mu_km3_s2=398600.436)
+    icrf=cross._gmat_script(
+        initial,report_path="control_raw.txt",earth_mu_km3_s2=398600.436,
+        state_frame="EarthICRF")
+    assert icrf==base.replace("CrossSat.CoordinateSystem = EarthMJ2000Eq;",
+                               "CrossSat.CoordinateSystem = EarthICRF;").replace(
+        "CrossSat.EarthMJ2000Eq.","CrossSat.EarthICRF.")
+    assert "CrossSat.CoordinateSystem = EarthICRF;" in icrf
+    assert "CrossSat.EarthICRF.X" in icrf
+    assert "GMAT Earth.Mu = 398600.436;" in icrf
+    assert icrf.count("Propagate CrossProp(CrossSat)") == 90
+    assert icrf.count("Report CrossState CrossSat.ElapsedSecs") == 91
+    assert icrf.isascii()
+    for invalid in ("J2000","EarthFixed","earthICRF","",None):
+        with pytest.raises(ValueError,match="CROSS_LEO_GMAT_FRAME_NOT_WHITELISTED"):
+            cross._gmat_script(initial,report_path="raw.txt",state_frame=invalid)
+
+
+def test_real_gmat_icrf_control_cannot_start_without_prior_engine_provenance(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        cross.run_gmat_icrf_numeric_control(tmp_path,tmp_path/"no-real-GMATConsole")
+
+
 def test_gmat_script_refuses_nonfinite_initial_state():
     bad=make_zero_sample()
     bad["vz_m_s"]=float("nan")
