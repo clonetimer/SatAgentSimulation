@@ -1220,8 +1220,8 @@ outputs:
   - environment.atmosphere_density_kg_m3
   - environment.atmosphere_temperature_k
   - environment.space_weather.*
-  - orbit.drag_force_n_*
-  - orbit.drag_force_n_norm
+  - orbit.drag_force_b_*
+  - orbit.drag_force_norm_n
   - orbit.drag_acceleration_m_s2
   - adcs.pointing_error_deg
   - attitude.truth.pointing_error_deg
