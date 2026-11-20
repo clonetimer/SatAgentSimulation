@@ -139,3 +139,30 @@ R1 每项要求都有独立模型、输入数据、数值基准、任务容差�
 - 所有对齐报告继续标注 simulation-output reference；
 - 不输出 hardware-calibrated 或 flight-correlated 结论；
 - 缺失统计不进行插值、猜测或反向重建。
+
+## CHG-DT0-006：将真实 spice_wmm 运行测试纳入官方 native CI
+
+**日期：** 2026-11-20  
+**触发证据：** tests/test_native_orbital_environment.py 与 .github/workflows/continuous-satellite-native.yml 的对照审计
+
+**原计划状态：** DT-1 后续再补强环境 V&V。
+
+**调整内容：**
+- 将现有 spice_wmm 整星运行测试提前作为 DT-1 的第一个 CI 门禁。
+- 在官方 native workflow 中增加 tests/test_native_orbital_environment.py 的真实运行步骤，并将该测试、orbital_environment.py 纳入路径触发。
+- 继续使用官方 bsk==2.11.0 和现有离线 DE430/WMM/J2 资源，不创建新的环境后端。
+
+**必要性：**
+当前 workflow 会下载并 preflight DE430/WMM/J2 资源，但没有执行已有的 native orbital environment 测试文件。资源存在不等于 Basilisk 真实运行成功；没有 CI 门禁，环境路径回归可能不被发现。
+
+**充分性：**
+该测试文件包含 UnifiedNativeRuntime 的真实 spice_wmm 运行、不同 UTC 历元下的 Sun/WMM 输出核验，以及 3600 s 轨道步长细化测试。将其加入官方 Basilisk 2.11.0 工作流，可以把资源 preflight 提升为可重复的真实运行门禁。它仍不能替代第三体加速度定量 A/B 或 STK/GMAT 外部交叉验证。
+
+**影响：**
+只增加已有测试的 CI 执行，不改变模型、参数、积分步长、任务容差或生产运行行为。
+
+**验收条件：**
+- 官方 native workflow 同一 head 实际执行该测试文件；
+- 所有测试无 skip/failure；
+- 保存运行日志和环境资产指纹；
+- 如测试失败，先修复真实运行/测试问题，不放宽物理断言。
