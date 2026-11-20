@@ -977,16 +977,15 @@ def _build_unified_rows(
             row["environment.atmosphere_temperature_k"] = float(atmosphere_sample.localTemp[index])
         if "drag_force" in recorder_map:
             drag_force_b = np.asarray(recorder_map["drag_force"].forceExternal_B[index], dtype=float).reshape(3)
-            drag_force_n = np.asarray(recorder_map["drag_force"].forceExternal_N[index], dtype=float).reshape(3)
             drag_velocity_b = np.asarray(recorder_map["drag_force"].v_B[index], dtype=float).reshape(3)
             drag_direction_b = np.asarray(recorder_map["drag_force"].v_hat_B[index], dtype=float).reshape(3)
-            drag_force_norm = float(np.linalg.norm(drag_force_n))
+            # DragDynamicEffector owns forceExternal_B.  Its inherited
+            # forceExternal_N field is not populated by this module; compute
+            # the frame-invariant magnitude from the authoritative body force.
+            drag_force_norm = float(np.linalg.norm(drag_force_b))
             spacecraft_mass = float(cfg.values.get("spacecraft_mass_kg", 100.0))
             row.update({
-                "orbit.drag_force_n_x": float(drag_force_n[0]),
-                "orbit.drag_force_n_y": float(drag_force_n[1]),
-                "orbit.drag_force_n_z": float(drag_force_n[2]),
-                "orbit.drag_force_n_norm": drag_force_norm,
+                "orbit.drag_force_norm_n": drag_force_norm,
                 "orbit.drag_force_b_x": float(drag_force_b[0]),
                 "orbit.drag_force_b_y": float(drag_force_b[1]),
                 "orbit.drag_force_b_z": float(drag_force_b[2]),
@@ -2585,7 +2584,7 @@ class UnifiedNativeRuntime:
             record_sources.append(name)
         if drag_effector is not None:
             drag_log = drag_effector.logger(
-                ["forceExternal_B", "forceExternal_N", "v_B", "v_hat_B"],
+                ["forceExternal_B", "v_B", "v_hat_B"],
                 macros.sec2nano(cfg.sample_s),
             )
             sim.AddModelToTask(task_name, drag_log, None, 1)
@@ -3097,8 +3096,8 @@ class UnifiedNativeRuntime:
                 for row in rows if "environment.atmosphere_density_kg_m3" in row
             ]
             drag_force_values = [
-                float(row["orbit.drag_force_n_norm"])
-                for row in rows if "orbit.drag_force_n_norm" in row
+                float(row["orbit.drag_force_norm_n"])
+                for row in rows if "orbit.drag_force_norm_n" in row
             ]
             if (
                 len(density_values) != len(rows)
