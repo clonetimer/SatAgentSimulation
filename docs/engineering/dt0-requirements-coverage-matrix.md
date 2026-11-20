@@ -27,12 +27,12 @@
 | BE-02 | J3–J4 及更高阶重力 | 未验证 | 独立 Basilisk 轨道适配器允许配置 degree 2–100，但当前仓库固定下载的 GGM03S-J2-only 系数文件只有 J2 数据。degree 字段上限不代表 J3/J4 已具备数据或通过验证。 | 引入有来源、版本和哈希的完整重力场系数；逐阶比较 J2/J3/J4，验证系数归一化、参考半径和参考系。 |
 | BE-03 | NRLMSISE-00 大气密度 | 官方模块可复用，项目未接入 | 官方 Basilisk 2.11.0 已包含 MsisAtmosphere 和 spaceWeatherData；后者发布 23 条 NRLMSISE-00 所需空间天气消息。当前 SatAgentSimulation 推荐整星图仍未接入这两个模块。 | 复用官方模块，建立固定版本 CelesTrak 空间天气快照、UTC epoch、23 消息顺序、完整日期覆盖和 stale-data 失败关闭检查，再接入整星 dragDynamicEffector。 |
 | BE-04 | 大气阻力 | 部分实现 | BSK-RUN-4 已有 Basilisk ExponentialAtmosphere + DragDynamicEffector 独立运行烟测路径；官方 Basilisk 2.11.0 还提供 MsisAtmosphere + spaceWeatherData + DragDynamicEffector 的 NRLMSISE-00 接线模式，但本项目尚未接入推荐整星图。 | 将 NRLMSISE-00 原生消息链接入统一整星，核验 Earth orientation、相对大气速度、姿态相关投影面积、质量/气动参数和空间天气文件有效覆盖，并做独立参考对比。 |
-| BE-05 | 太阳光压 | 部分实现 | BSK-RUN-4 有 Cannonball SRP 动力学效应器烟测。 | 当前独立烟测使用固定太阳位置和 illuminationFactor=1；不是随轨道变化的真实太阳星历/地影耦合，也不是表面光学模型。须与 DE430、Eclipse、航天器几何联动。 |
+| BE-05 | 太阳光压 | 部分实现，官方高保真模块可复用 | BSK-RUN-4 有 Cannonball SRP 独立烟测；官方 Basilisk 2.11.0 还提供 facetSRPDynamicEffector 和 facetedSRPEffector，分别支持内部面片几何/铰接面与外部提供面片几何/投影面积。当前 SatAgentSimulation 未将其接入推荐整星图。 | 先将真实 Sun/Eclipse 消息与 Cannonball 路径闭环；随后复用 facetSRPDynamicEffector 或 facetedSRPEffector，按几何证据选择，并验证光学系数、投影面积、安装/铰接姿态和力矩。 |
 | BE-06 | 日月第三体引力与星历 | 部分实现（真实路径，CI 待接入） | 推荐整星 spice_wmm 使用离线 DE430、NAIF 时间/行星内核及 Sun/Moon 引力；tests/test_native_orbital_environment.py 定义了 UnifiedNativeRuntime 的真实 SPICE/WMM 运行与 UTC 历元对比测试，但main 基线的 continuous-satellite-native.yml 仅做资源 preflight，未执行该测试文件；PR #204 已增加真实测试步骤且该步骤首次运行 SUCCESS，完整 native workflow 仍在执行、尚未合并。 | 将真实环境测试纳入官方 native CI；再独立量化第三体加速度贡献、参考解残差和星历/时间尺度误差。不能将资源可加载或测试代码存在等同于已通过。 |
 | BE-07 | 日食/地影 | 部分实现 | 推荐整星图中有 Basilisk Eclipse，热环境也使用太阳/地球几何及阴影输入。 | 对本影、半影、地球遮挡、太阳方向和边界事件建立专门基准；确保 SRP、太阳翼和传感器使用同一时刻的环境。 |
 | BE-08 | 固体潮、海潮 | 未实现 | 当前主干未发现接入整星轨道动力学的固体潮或海潮模型。 | 归入 LEO-Precision 配置；先定义任务精度和潮汐模型来源，再决定是否进入常规 LEO-Engineering。 |
 | BE-09 | 地磁场 | 部分实现 | 推荐整星 spice_wmm 接入 Basilisk MagneticFieldWMM，使用 WMM2025；有效年份限定为 2025–2029。tests/test_native_orbital_environment.py 实际运行 WMM2025 并检查磁场输出量级。简化模式使用中心偶极场。 | 用户要求中的 IGRF 尚未接入；应明确比较 WMM 与 IGRF 的模型选择，不得将二者名称互换。补充坐标、历元、磁场误差和磁强计链路验证。 |
-| BE-10 | 辐射环境 | 未实现 | 当前已审计环境配置未形成辐射带、粒子通量、总电离剂量或单粒子效应的统一模型链。 | 明确任务是否需要辐射剂量/器件效应；如需要，单独定义数据源、空间天气边界及器件响应模型。 |
+| BE-10 | 辐射环境 | 部分可复用，项目未集成 | 官方 Basilisk 2.11.0 有 EarthRadiationModel（地球反照与红外辐射通量）和 albedo 环境模块；当前 SatAgentSimulation 未将其接入推荐整星物理图。它们不是辐射带粒子通量/TID/SEE 模型。 | 区分地球反照/红外辐射压力与高能粒子辐射环境；按任务需求接入并验证数据/消息。若要求 TID/SEE，需另建空间辐射场与器件效应模型。 |
 | BE-11 | 真实太阳星历、环境场一致性 | 部分实现 | DE430 与 WMM2025 已进入推荐整星环境配置；独立模型还存在固定太阳向量路径。 | 建立统一 Environment Snapshot，保证太阳、地球、日食、地磁场和传感器同历元、同参考系、同仿真时刻。 |
 | BE-12 | 反作用轮饱和、摩擦和实际力矩 | 部分实现 | 官方 ReactionWheelStateEffector 路径已记录轮速、实际施加力矩和摩擦；统一整星图支持轮速/力矩限制及摩擦退化事件。 | 补齐死区、滞回、驱动电气动态、安装误差和响应时延；逐轮验证饱和与释放过程。 |
 | BE-13 | 磁力矩器与推力器动态 | 部分实现 | 项目 MTB 模型有磁偶极矩限制和力矩输出；官方 Basilisk ThrusterDynamicEffector、FuelTank 有独立有限时长验收。 | 核实 MTB 是否进入推荐整星闭环；推力器仍有固定点火时窗边界，阀门延迟、最小脉冲位、安装误差和多脉冲工况需补验。 |

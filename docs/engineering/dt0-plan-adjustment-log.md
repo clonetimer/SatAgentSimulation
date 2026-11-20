@@ -232,3 +232,31 @@ spaceWeatherData 不做空间天气插值；日期缺失时会保留上次发布
 - 验证 Ap/F10.7 变化会影响模型输出；
 - 验证数据缺失、日期越界、UTC epoch 错误时 fail closed 或显式降级；
 - 完成整星同一 Basilisk Process/Task 的消息连接和 Run Bundle 溯源。
+
+## CHG-DT0-009：SRP 与地球辐射优先复用 Basilisk 2.11.0 官方面片/环境模块
+
+**日期：** 2026-11-20  
+**触发证据：** 官方 AVSLab/basilisk v2.11.0 标签源码和 Release Notes。
+
+**调整内容：**
+- 保留 Cannonball SRP 作为低成本对照模型。
+- R1 先把真实 SPICE Sun 状态和 Eclipse illumination 接入当前 SRP。
+- 根据几何成熟度选择官方 facetSRPDynamicEffector（内部面片/铰接面）或 facetedSRPEffector（外部面片几何与投影面积）。
+- 将 EarthRadiationModel 的 albedo/IR 通量作为独立环境模型评估；不把通量输出当成已耦合的整星受力。
+- TID/SEE/辐射带仍作为独立高能粒子环境任务。
+
+**必要性：**
+Basilisk 2.11.0 已提供官方 SRP 面片模型和地球反照/红外环境模型。若重新实现面片光压和环境公式，会重复成熟代码；但直接接入 facetedSRPEffector 又要求可信的面片几何和投影面积，当前 CAD as-built 映射尚未批准。
+
+**充分性：**
+先验证真实 Sun/Eclipse/Cannonball 路径，再按几何来源选择官方面片模块；对面片面积、法向、光学参数、铰接、投影面积和力矩分别建立测试。EarthRadiationModel 先验证通量，若没有真实力/力矩连接则不声称动力学闭环。该分阶段路径既复用官方实现，又不把参考 CAD 冒充实装。
+
+**影响：**
+不改变 R0 当前模型；将 R1 的 SRP 从“仅 Cannonball”扩展为“真实星历/地影 + 官方面片模型候选”，并将 Earth IR/albedo 与高能粒子辐射区分。
+
+**验收条件：**
+- 真实 Sun/Eclipse 消息驱动 SRP；
+- 面片几何和投影面积来源可追溯；
+- 力/力矩 A/B 与理论值及 Basilisk 单元测试一致；
+- EarthRadiationModel 输出与参考输入一致；
+- 未接入的高能粒子辐射效应继续显示为 unsupported。
