@@ -309,7 +309,7 @@ class NativePropulsionInitial(_Strict):
     propulsion_initial_propellant_kg: float = Field(default=1., ge=0., le=100., description="原生 FuelTank 初始燃料质量（kg）")
     propulsion_tank_capacity_kg: float = Field(default=2., gt=0., le=100., description="原生 FuelTank 容量（kg），不得小于初始燃料质量")
     propulsion_min_burn_soc: float = Field(default=.30, ge=0., le=1., description="推进点火许可的最小电池 SOC")
-    propulsion_power_w: float = Field(default=20., ge=0., le=500., description="每只点火中的推进器电功率估算（W，项目侧功率桥）")
+    propulsion_power_w: float = Field(default=20., ge=0., le=500., description="每只实际工作推进器的辅助电负载（W，固定工作功耗，待机为零）")
     propulsion_min_pulse_s: float = Field(default=.05, gt=0., le=10., description="真实 Basilisk Thruster MinOnTime（s）；硬件最小脉冲，不等于计划点火时间")
     propulsion_thruster_0_direction_b_x: float = Field(default=1., ge=-1., le=1., description="原生推进器 1 的机体系 B 推力方向 X 分量（必须为单位向量）")
     propulsion_thruster_0_direction_b_y: float = Field(default=0., ge=-1., le=1., description="原生推进器 1 的机体系 B 推力方向 Y 分量（必须为单位向量）")

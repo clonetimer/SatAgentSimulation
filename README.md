@@ -60,6 +60,8 @@ V15 的建模画布只负责建模。普通物理模块不会叠加曲线或大�
 | 通信数据分系统 | `subsystem.comm_data.unified_native.v1` |
 | 推进分系统 | `subsystem.propulsion.unified_native.v1` |
 
+**整星资源功耗主线（P10-A6，2026-11-20）**：两条活动整星路径均按实际推进器活动接入逐推进器官方电负载节点，补齐燃烧启动许可撤销后的持续功耗和短脉冲证据。推荐整星路径在启用推进时也不再实例化工程功率代理；配置的辅助电负载仍是工程假设。验收证据、实现边界及后续 Composite 冷启动电池报告问题见 [P10-A6 开发记录](docs/development-experience/p10a6-native-propulsion-power.md)；本阶段不代表整个平台发布验收完成。
+
 V15 适合作为：
 
 - 内部工程仿真与算法验证；

@@ -166,15 +166,14 @@ def test_recommended_whole_runtime_uses_message_driven_pdu_and_resource_feedback
     low = adapter.run(spec(0.15), contract.data)
 
     assert nominal.summary["resource_feedback_closure_status"] == "PASS"
-    # A constant enabled heater proves activity-to-power coupling, but not a
-    # PDU transition.  v0.5.6.5 no longer treats field presence as transition
-    # evidence.
+    # P10-A5 retired the constant PDU-only heater proxy. Actual thermostats
+    # remain off in this warm nominal run, so there is no heater stimulus.
     assert nominal.summary["heater_pdu_power_feedback_observed"] is False
-    assert nominal.summary["resource_feedback_bridge_health"]["heater"]["stimulus_observed"] is True
+    assert nominal.summary["resource_feedback_bridge_health"]["heater"]["stimulus_observed"] is False
     assert max(row["eps.loads.payload_power_w"] for row in nominal.trace_rows) > 0.0
     assert max(row["eps.loads.comm_power_w"] for row in nominal.trace_rows) > 0.0
     assert max(row["eps.loads.adcs_power_w"] for row in nominal.trace_rows) > 0.0
-    assert max(row["eps.loads.heater_power_w"] for row in nominal.trace_rows) > 0.0
+    assert all(row["eps.loads.heater_power_w"] == 0.0 for row in nominal.trace_rows)
 
     active_rows = low.trace_rows[1:]
     assert active_rows

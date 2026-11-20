@@ -5,6 +5,8 @@ on:
     paths:
       - "src/sat_sim/interactive/**"
       - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/sat_sim/adapters/whole_spacecraft_composite_digital_twin.py"
+      - "src/subsystems/thermal/thermal_network.py"
       - "src/integration/resource_feedback.py"
       - "src/whole_spacecraft/builder.py"
       - "src/whole_spacecraft/runner.py"
@@ -17,6 +19,8 @@ on:
       - "tests/test_composite_native_heater_power.py"
       - "tests/test_composite_native_payload_power.py"
       - "tests/test_native_thermal_heater_power_contract.py"
+      - "tests/test_native_propulsion_power.py"
+      - "tests/test_composite_native_propulsion_power.py"
       - "tests/test_unified_native_event_migration.py"
       - "tests/test_guided_task_workspace_browser.py"
       - "tests/test_unified_native_migration.py"
@@ -49,6 +53,7 @@ jobs:
             src/sat_sim/interactive/unified_runtime.py \
             src/sat_sim/interactive/manager.py \
             src/sat_sim/bsk_engine/unified_native.py \
+            src/sat_sim/adapters/whole_spacecraft_composite_digital_twin.py \
             src/integration/resource_feedback.py \
             src/integration/qoi_profiles/resource_closure.py \
             src/whole_spacecraft/builder.py \
@@ -57,11 +62,14 @@ jobs:
             src/subsystems/eps/builder.py \
             src/subsystems/payload/builder.py \
             src/subsystems/comm_data/builder.py \
+            src/subsystems/thermal/thermal_network.py \
             tests/test_downlink_antenna_status_adapter.py \
             tests/test_composite_native_comm_antenna_power.py \
             tests/test_composite_native_heater_power.py \
             tests/test_composite_native_payload_power.py \
             tests/test_native_thermal_heater_power_contract.py \
+            tests/test_native_propulsion_power.py \
+            tests/test_composite_native_propulsion_power.py \
             tests/test_unified_native_event_migration.py \
             tests/test_unified_native_migration.py \
             tests/test_unified_native_event_migration.py \

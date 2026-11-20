@@ -1402,7 +1402,7 @@
                     <label>初始燃料质量（kg）<input data-native-group="propulsion" data-native-key="propulsion_initial_propellant_kg" type="number" min="0" max="100" step="any" value="1" required></label>
                     <label>燃料箱容量（kg）<input data-native-group="propulsion" data-native-key="propulsion_tank_capacity_kg" type="number" min="0.001" max="100" step="any" value="2" required></label>
                     <label>最小点火 SOC（0–1）<input data-native-group="propulsion" data-native-key="propulsion_min_burn_soc" type="number" min="0" max="1" step="any" value="0.3" required></label>
-                    <label>每只点火推进器电功率估算（W）<input data-native-group="propulsion" data-native-key="propulsion_power_w" type="number" min="0" max="500" step="any" value="20" required></label>
+                    <label>每只工作推进器辅助电负载（W）<input data-native-group="propulsion" data-native-key="propulsion_power_w" type="number" min="0" max="500" step="any" value="20" required></label>
                     <label>推进器最小点火脉宽（s）<input data-native-group="propulsion" data-native-key="propulsion_min_pulse_s" type="number" min="0.000001" max="10" step="any" value="0.05" required title="传给 Basilisk 原生 Thruster MinOnTime；可能限制实际短脉冲响应"></label>
                     <p class="continuous-muted"><strong>推进器 T1 安装几何</strong>：机体系 B 中的推力方向（单位向量）和相对质心的安装坐标（m）；默认沿 +X 方向。</p>
                     <label>T1 推力方向 X_B<input data-native-group="propulsion" data-native-key="propulsion_thruster_0_direction_b_x" type="number" min="-1" max="1" step="any" value="1" required title="方向三个分量平方和必须约等于1；沿机体系 B 坐标"></label>

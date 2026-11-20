@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, fields
 import json
+import math
 from typing import Any, Mapping, Sequence
 
 from sat_sim.adapter_base import SimulationResult
@@ -123,6 +124,7 @@ def _build_configs(spec: Mapping[str, Any]) -> tuple[WholeSpacecraftRunConfig, W
         thermal_use_network=_boolean(params, "thermal_use_network", True),
         propulsion_enabled=_boolean(params, "propulsion_enabled", True),
         propulsion_on_time_s=_number_tuple(params, "propulsion_on_time_s"),
+        propulsion_power_w=_number(params, "propulsion_power_w", 20.0),
         orb_env_step_s=_number(orbit, "step_s", 1.0),
         orb_env_sun_model=str(orbit.get("sun_model", "fixed")),
         orb_env_sun_vector_n=_vector3(orbit, "sun_vector_n", (1.0, 0.0, 0.0)),
@@ -190,6 +192,8 @@ class WholeSpacecraftCompositeDigitalTwinAdapter:
                     issues.append(ValidationIssue("error", f"$.{path}", "must be greater than zero", "range"))
             if structure.propulsion_on_time_s is not None and any(value < 0.0 for value in structure.propulsion_on_time_s):
                 issues.append(ValidationIssue("error", "$.parameters.propulsion_on_time_s", "all values must be nonnegative", "range"))
+            if not math.isfinite(structure.propulsion_power_w) or not 0.0 <= structure.propulsion_power_w <= 500.0:
+                issues.append(ValidationIssue("error", "$.parameters.propulsion_power_w", "must be finite and within [0, 500] W per active thruster", "range"))
             if not 0.0 <= structure.initial_soc <= 1.0:
                 issues.append(ValidationIssue("error", "$.parameters.initial_soc", "must be within [0, 1]", "range"))
             if run.sample_s > run.duration_s:

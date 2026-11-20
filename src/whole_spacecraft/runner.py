@@ -210,34 +210,6 @@ def _vector_norm(values: tuple[float, ...]) -> float:
     return sum(value * value for value in values) ** 0.5
 
 
-def _trace_sample_at(trace: list[Any], time_s: float) -> Any | None:
-    if not trace:
-        return None
-    times = [float(getattr(item, "time_ns", 0)) * macros.NANO2SEC for item in trace]
-    index = bisect.bisect_right(times, float(time_s) + 1e-12) - 1
-    if index < 0:
-        return trace[0]
-    return trace[min(index, len(trace) - 1)]
-
-
-def _trace_cumulative_energy_at(trace: list[Any], time_s: float) -> float:
-    if len(trace) < 2:
-        return 0.0
-    total = 0.0
-    previous_t = float(getattr(trace[0], "time_ns", 0)) * macros.NANO2SEC
-    for item in trace[1:]:
-        current_t = float(getattr(item, "time_ns", 0)) * macros.NANO2SEC
-        if previous_t >= float(time_s):
-            break
-        end_t = min(current_t, float(time_s))
-        if end_t > previous_t:
-            total += max(0.0, float(getattr(item, "electrical_power_w", 0.0))) * (end_t - previous_t)
-        previous_t = current_t
-        if current_t >= float(time_s):
-            break
-    return total
-
-
 def _recorder_times_s(recorder: Any | None) -> list[float]:
     if recorder is None or not hasattr(recorder, "times"):
         return []
@@ -254,6 +226,38 @@ def _recorder_values(recorder: Any | None, field: str) -> list[float]:
         return [float(value) for value in getattr(recorder, field)]
     except Exception:
         return []
+
+
+def _propulsion_power_history(recorder: Any) -> tuple[list[float], list[float], list[float]]:
+    """Build held-load energy from the actual official sink recorder.
+
+    The power node publishes after native thruster dynamics, and EPS reads that
+    held message on its next tick. Integrate each sample over the interval until
+    its successor, without trapezoidal ramps across on/off transitions. These
+    recorders run at dynamics cadence, independently of exported telemetry.
+    """
+
+    times = _recorder_times_s(recorder)
+    raw_power = _recorder_values(recorder, "netPower")
+    if len(times) != len(raw_power) or not times:
+        raise RuntimeError("COMPOSITE_PROPULSION_POWER_RECORDER_MISSING_SAMPLES")
+    if any(not isfinite(value) or value > 1e-12 for value in raw_power):
+        raise RuntimeError("COMPOSITE_PROPULSION_POWER_SAMPLE_INVALID")
+    power = [max(0.0, -value) for value in raw_power]
+    energy = [0.0]
+    for index in range(1, len(times)):
+        energy.append(energy[-1] + power[index - 1] * max(0.0, times[index] - times[index - 1]))
+    return times, power, energy
+
+
+def _propulsion_power_at(
+    history: tuple[list[float], list[float], list[float]], time_s: float,
+) -> tuple[float, float]:
+    times, power, energy = history
+    index = bisect.bisect_right(times, float(time_s) + 1e-12) - 1
+    if index < 0:
+        return 0.0, 0.0
+    return power[index], energy[index] + power[index] * max(0.0, float(time_s) - times[index])
 
 
 def _max_recorder_interval_s(recorder: Any | None, fallback_s: float) -> float:
@@ -582,7 +586,34 @@ def _execute_whole_spacecraft_graph(
     adcs_power_recorder_names = sorted(
         name for name in recorders if name.startswith("adcs_power_")
     )
-    propulsion_power_trace = list(getattr(graph.component_registry.get("propulsion_power_bridge"), "trace", ()))
+    propulsion_power_histories = [
+        _propulsion_power_history(recorder)
+        for name, recorder in sorted(recorders.items())
+        if name.startswith("propulsion_power_")
+    ]
+    propulsion_status_histories = [
+        (_recorder_times_s(recorder), _recorder_values(recorder, "deviceStatus"))
+        for name, recorder in sorted(recorders.items())
+        if name.startswith("propulsion_active_status_")
+    ]
+    propulsion_status_adapters = tuple(graph.component_registry.get("propulsion_status_adapters", ()))
+    propulsion_power_input_error_count = sum(
+        adapter.input_error_count for adapter in propulsion_status_adapters
+    )
+    propulsion_power_inputs_ok = (
+        propulsion_power_input_error_count == 0
+        and len(propulsion_power_histories) == len(propulsion_status_histories) == len(propulsion_status_adapters)
+        and all(
+            adapter.sample_count > adapter.not_ready_sample_count + adapter.input_error_count
+            for adapter in propulsion_status_adapters
+        )
+        and all(times and len(times) == len(values) for times, values in propulsion_status_histories)
+    )
+    propulsion_power_input_status = (
+        "PASS" if propulsion_status_adapters and propulsion_power_inputs_ok
+        else "NOT_APPLICABLE" if not propulsion_status_adapters and propulsion_power_inputs_ok
+        else "FAIL"
+    )
     fuel_values = _recorder_values(fuel_tank_rec, "fuelMass")
     initial_propellant_kg = fuel_values[0] if fuel_values else 0.0
     gravity_enabled_value = 1.0 if graph.coupling_matrix.get("gravity_to_spacecraft") and graph.coupling_matrix["gravity_to_spacecraft"].coupling_status != "disabled_by_schema" else 0.0
@@ -615,7 +646,12 @@ def _execute_whole_spacecraft_graph(
         net_power_w = _rec_value(battery_rec, "currentNetPower", i, nominal_net_power)
         sc_position = _rec_vector(recorders.get("spacecraft_state"), "r_BN_N", i)
         sc_velocity = _rec_vector(recorders.get("spacecraft_state"), "v_BN_N", i)
-        propulsion_sample = _trace_sample_at(propulsion_power_trace, time_s)
+        propulsion_power_samples = [_propulsion_power_at(history, time_s) for history in propulsion_power_histories]
+        propulsion_activity = 0.0
+        for status_times, status_values in propulsion_status_histories:
+            status_index = bisect.bisect_right(status_times, time_s + 1e-12) - 1
+            if 0 <= status_index < len(status_values) and status_values[status_index] > 0.5:
+                propulsion_activity += 1.0
         heater_names = [name for name in recorders if name.startswith("heater_") and name != "heater_eps_feedback" and not name.startswith("heater_eps_power_")]
         heater_active_count = sum(1.0 for name in heater_names if _rec_value(recorders.get(name), "deviceStatus", i, 0.0) > 0.5)
         pdu_heater_enabled = 1.0 if _rec_value(recorders.get("pdu_heater_status"), "deviceStatus", i, 0.0) > 0.5 else 0.0
@@ -667,9 +703,9 @@ def _execute_whole_spacecraft_graph(
                     for name in ("comm_power_tx", "comm_power_base", "comm_power_idle", "comm_power_bridge")
                     if recorders.get(name) is not None
                 ),
-                propulsion_power_w=max(0.0, -_rec_value(recorders.get("propulsion_power"), "netPower", i, float(getattr(propulsion_sample, "electrical_power_w", 0.0)))),
-                propulsion_activity=float(getattr(propulsion_sample, "activity", 0.0)),
-                propulsion_cumulative_energy_j=_trace_cumulative_energy_at(propulsion_power_trace, time_s),
+                propulsion_power_w=sum(sample[0] for sample in propulsion_power_samples),
+                propulsion_activity=propulsion_activity,
+                propulsion_cumulative_energy_j=sum(sample[1] for sample in propulsion_power_samples),
                 heater_eps_load_w=(
                     sum(max(0.0, -_rec_value(recorders.get(name), "netPower", i, 0.0)) for name in recorders if name.startswith("heater_eps_power_"))
                     if any(name.startswith("heater_eps_power_") for name in recorders)
@@ -949,6 +985,7 @@ def _execute_whole_spacecraft_graph(
         and energy_conservation_status == "PASS"
         and data_conservation_status == "PASS"
         and proxy_coupling_runtime_status == "PASS"
+        and propulsion_power_inputs_ok
     )
     # A single run can establish wiring, finite numerics, conservation and
     # response observations, but not counterfactual causality.  Reserve plain
@@ -1005,6 +1042,9 @@ def _execute_whole_spacecraft_graph(
             ("DownlinkAntennaStatusAdapter(SysModel)",)
             if graph.component_registry.get("comm_status_adapter") is not None
             else ()
+        ) + (
+            ("ThrusterActivityStatusAdapter(SysModel)",)
+            if propulsion_status_adapters else ()
         ),
         included_subsystems=included_subsystems,
         excluded_subsystems=() if propulsion_enabled else ("propulsion",),
@@ -1055,6 +1095,20 @@ def _execute_whole_spacecraft_graph(
         max_adcs_control_power_w=max_native_adcs_power_w,
         adcs_power_monitoring_limit_w=adcs_power_monitoring_limit_w,
         max_comm_control_power_w=max((row.comm_control_power_w for row in rows), default=0.0),
+        propulsion_power_input_status=propulsion_power_input_status,
+        propulsion_power_input_error_count=propulsion_power_input_error_count,
+        propulsion_power_model={
+            "electrical_module": "simplePowerSink.SimplePowerSink",
+            "per_thruster_active_power_w": float(structure_cfg.propulsion_power_w),
+            "idle_power_w": 0.0,
+            "thruster_count": len(propulsion_status_adapters),
+            "activity_source": "per-thruster native THROutputMsg.thrustFactor > 0",
+            "permission_semantics": "actual_activity_only_no_composite_thruster_pdu_switch",
+            "heat_fraction": 0.85,
+            "heat_sampling": "instantaneous power at thermal task ticks; unresolved short pulses may be missed",
+            "energy_integration": "zero_order_hold_of_dynamics_cadence_official_power_recorders",
+            "calibration": "assumed_fixed_auxiliary_electrical_load",
+        },
         final_attitude_error_deg=rows[-1].attitude_error_deg if rows else 0.0,
         runtime_unsupported_count=runtime_unsupported_count,
         runtime_fault_event_status=(runtime_fault_audit.get("runtime_event_status") if runtime_fault_audit is not None else "not_applicable"),

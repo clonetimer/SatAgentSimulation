@@ -450,6 +450,7 @@ class ThermalPowerBridge(sysModel.SysModel):
         heat_w = 0.0
         self.input_read_status = "VALID"
         self.input_read_errors.clear()
+        self.last_source_power_w.clear()
         for reader, efficiency, label in zip(
             self.powerInMsgs, self.efficiency_factors, self.source_labels
         ):
@@ -487,7 +488,7 @@ class ThermalPowerBridge(sysModel.SysModel):
             source_heat_w = source_w * efficiency
             electrical_w += source_w
             heat_w += source_heat_w
-            self.last_source_power_w[label] = source_w
+            self.last_source_power_w[label] = self.last_source_power_w.get(label, 0.0) + source_w
             self.cumulative_source_electrical_energy_j[label] = (
                 self.cumulative_source_electrical_energy_j.get(label, 0.0) + source_w * dt
             )

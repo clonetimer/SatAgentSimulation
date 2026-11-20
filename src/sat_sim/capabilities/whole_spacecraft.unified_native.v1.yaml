@@ -990,6 +990,14 @@ parameters:
     type: boolean
     required: false
     default: false
+  propulsion_power_w:
+    type: number
+    unit: W
+    required: false
+    default: 20.0
+    min: 0.0
+    max: 500.0
+    description: Configured auxiliary electrical load per actually active thruster, accounted by an official SimplePowerSink; fixed active load, zero idle load, not a measured valve current or thrust-to-power conversion.
   propulsion_burn_start_s:
     type: number
     unit: s
@@ -1230,6 +1238,8 @@ outputs:
   - propulsion.total_thrust_n
   - propulsion.max_thrust_factor
   - propulsion.electrical_power_w
+  - propulsion.electrical_power_w_*
+  - propulsion.thrust_factor_*
   - propulsion.thrust_force_n_*
   - comm.geometric_access
   - comm.native_cnr

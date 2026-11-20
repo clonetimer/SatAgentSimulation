@@ -95,6 +95,7 @@ class WholeSpacecraftConfig:
     propulsion_enabled: bool = True
     propulsion_config: PropulsionConfig | None = None
     propulsion_on_time_s: tuple[float, ...] | None = None
+    propulsion_power_w: float = 20.0
 
     orb_env_step_s: float = 1.0
     orb_env_sun_model: str = "fixed"
@@ -320,6 +321,9 @@ class WholeSpacecraftSummary:
     max_adcs_control_power_w: float = 0.0
     adcs_power_monitoring_limit_w: float = 120.0
     max_comm_control_power_w: float = 0.0
+    propulsion_power_input_status: str = "NOT_APPLICABLE"
+    propulsion_power_input_error_count: int = 0
+    propulsion_power_model: dict[str, Any] = field(default_factory=dict)
     final_attitude_error_deg: float = 0.0
     runtime_unsupported_count: int = 0
     runtime_fault_event_status: str = "not_applicable"
