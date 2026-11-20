@@ -114,6 +114,15 @@ def _inspect(path: Path) -> tuple[list[date], dict[str, Any]]:
 
 
 def _attach_provenance_manifest(path: Path, evidence: dict[str, Any], *, verify_manifest: bool) -> dict[str, Any]:
+    if not verify_manifest:
+        evidence.update({
+            "provenance_manifest_status": "NOT_VERIFIED_DURING_REFRESH",
+            "source_url": None,
+            "retrieved_at_utc": None,
+            "retrieval_time_unknown": True,
+            "manifest_validated_at_utc": None,
+        })
+        return evidence
     manifest_path = path.expanduser().resolve().with_name("space_weather_manifest.json")
     if not manifest_path.is_file():
         evidence.update({
