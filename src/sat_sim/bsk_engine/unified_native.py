@@ -971,6 +971,37 @@ def _build_unified_rows(
             row[f'orbit.velocity_m_s_{component}'] = float(state.v_BN_N[index][axis])
             if 'sun_ephemeris' in recorder_map:
                 row[f'orbit.sun_position_m_{component}'] = float(recorder_map['sun_ephemeris'].PositionVector[index][axis])
+        if "atmosphere" in recorder_map:
+            atmosphere_sample = recorder_map["atmosphere"]
+            row["environment.atmosphere_density_kg_m3"] = float(atmosphere_sample.neutralDensity[index])
+            row["environment.atmosphere_temperature_k"] = float(atmosphere_sample.localTemp[index])
+        if "drag_force" in recorder_map:
+            drag_force_b = np.asarray(recorder_map["drag_force"].forceExternal_B[index], dtype=float).reshape(3)
+            drag_force_n = np.asarray(recorder_map["drag_force"].forceExternal_N[index], dtype=float).reshape(3)
+            drag_force_norm = float(np.linalg.norm(drag_force_n))
+            spacecraft_mass = float(cfg.values.get("spacecraft_mass_kg", 100.0))
+            row.update({
+                "orbit.drag_force_n_x": float(drag_force_n[0]),
+                "orbit.drag_force_n_y": float(drag_force_n[1]),
+                "orbit.drag_force_n_z": float(drag_force_n[2]),
+                "orbit.drag_force_n_norm": drag_force_norm,
+                "orbit.drag_force_b_x": float(drag_force_b[0]),
+                "orbit.drag_force_b_y": float(drag_force_b[1]),
+                "orbit.drag_force_b_z": float(drag_force_b[2]),
+                "orbit.drag_acceleration_m_s2": drag_force_norm / spacecraft_mass,
+            })
+        for weather_index, weather_name in enumerate((
+            "ap_24_0", "ap_3_0", "ap_3_-3", "ap_3_-6", "ap_3_-9", "ap_3_-12",
+            "ap_3_-15", "ap_3_-18", "ap_3_-21", "ap_3_-24", "ap_3_-27",
+            "ap_3_-30", "ap_3_-33", "ap_3_-36", "ap_3_-39", "ap_3_-42",
+            "ap_3_-45", "ap_3_-48", "ap_3_-51", "ap_3_-54", "ap_3_-57",
+            "f107_1944_0", "f107_24_-24",
+        )):
+            recorder_name = f"space_weather_{weather_index:02d}"
+            if recorder_name in recorder_map:
+                row[f"environment.space_weather.{weather_name}"] = float(
+                    recorder_map[recorder_name].dataValue[index]
+                )
         wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
         for wheel_index in range(3, wheel_count):
             torque_constant = float(cfg.values.get(
@@ -2480,6 +2511,11 @@ class UnifiedNativeRuntime:
             "event_degradation": event_status.degradationOutMsg,
             "event_constraint": event_status.constraintOutMsg,
         }
+        if space_weather is not None and atmosphere_model is not None and wind_model is not None:
+            messages["atmosphere"] = atmosphere_model.envOutMsgs[0]
+            messages["wind"] = wind_model.envOutMsgs[0]
+            for message_index, weather_message in enumerate(space_weather.swDataOutMsgs):
+                messages[f"space_weather_{message_index:02d}"] = weather_message
         for wheel_index, rw_state_msg in enumerate(rw.rwOutMsgs):
             messages[f"rw_state_{wheel_index}"] = rw_state_msg
         if not cfg.adcs_only:
@@ -2536,6 +2572,14 @@ class UnifiedNativeRuntime:
             sim.AddModelToTask(task_name, recorder, None, 1)
             recorder_map[name] = recorder
             record_sources.append(name)
+        if drag_effector is not None:
+            drag_log = drag_effector.logger(
+                ["forceExternal_B", "forceExternal_N", "v_B", "v_hat_B"],
+                macros.sec2nano(cfg.sample_s),
+            )
+            sim.AddModelToTask(task_name, drag_log, None, 1)
+            recorder_map["drag_force"] = drag_log
+            record_sources.append("drag_force")
         if not cfg.adcs_only and "pdu" in whole_modules:
             # Preserve fast PDU transition evidence even when output telemetry
             # is sampled more slowly than the native simulation task. Reduced
