@@ -119,3 +119,14 @@ LEO-Engineering-R1 不以“模块存在”作为退出条件。必须同时满�
 7. 历史 Run 能够复现同一输入和结果；
 8. 未完成的模型和未验证的输出仍显式标注。
 
+## 8. 外部参考统计数据的使用边界
+
+当前外部参考统计登记文件为 configs/reference_alignment/external_reference_statistics.json。该文件明确记录：
+
+- source_kind 为 simulation_output_not_hardware_or_flight；
+- 仅收到用户提供的统计摘要；
+- raw_files_received=false，raw_timeseries_read=false，raw_timeseries_reconstructed=false；
+- reference_numeric_tolerances=null；
+- 部分列映射、坐标系、聚合定义和异常段仍未解决。
+
+因此这批材料只可用于**参考仿真之间的统计工作点/趋势一致性分析**。不得据此进行原始时序拟合、真实硬件标定、飞行相关性验证或飞行级精度声明。需要更细统计时，必须向数据持有人明确提出文件、列和统计定义，不得猜测原始时序。
