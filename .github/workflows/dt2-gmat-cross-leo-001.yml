@@ -176,6 +176,44 @@ jobs:
                 f"gmat_matched_raw_clock_max_m={raw['gmat_basilisk_mu_control']['max']:.9e} "
                 "status=INCONCLUSIVE frame_time_approved=false")
           PY
+
+      - name: Execute actual GMAT EarthMJ2000Eq ICRF UTC TAI TT frame-time probe
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py gmat-frame-time-probe \
+            --output reports/dt2-cross-leo-001 \
+            --executable "$GMAT_BIN" --timeout-s 600
+      - name: Verify real GMAT two-frame and absolute numerical epoch report without scientific PASS
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv,hashlib,json
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          manifest=json.loads((root/"case_manifest.json").read_text())
+          receipt=json.loads((root/"gmat_frame_time_execution.json").read_text())
+          diag=json.loads((root/"gmat_frame_time_diagnostic.json").read_text())
+          assert receipt["status"]=="GMAT_FRAME_TIME_REPORTED_UNQUALIFIED_ABSOLUTE_TIE"
+          assert receipt["return_code"]==0 and receipt["rows"]==91
+          assert receipt["executable_sha256"]==manifest["evidence"]["gmat_binary_sha256"]
+          assert manifest["evidence"]["gmat_frame_time_probe_executed"]
+          assert hashlib.sha256((root/"gmat_frame_time_raw.txt").read_bytes()).hexdigest()==receipt["frame_time_report_sha256"]
+          assert hashlib.sha256((root/"gmat_frame_time_executed.script").read_bytes()).hexdigest()==receipt["script_sha256"]
+          with (root/"gmat_frame_time_rows.csv").open() as stream:
+              rows=list(csv.DictReader(stream))
+          assert len(rows)==91
+          assert diag["status"]=="INCONCLUSIVE"
+          assert diag["gmat_epoch_jd_offset"]==2430000.
+          assert diag["certified_basilisk_n_axis_aligned_samples"]==0
+          assert not diag["independent_basilisk_n_to_gmat_axis_mapping_approved"]
+          assert not diag["independent_absolute_basilisk_clock_alignment_approved"]
+          assert not diag["mission_accuracy_budget_approved"]
+          print("DT2_ACTUAL_GMAT_FRAME_TIME "
+                f"tai_utc_s={diag['tai_minus_utc_s']:.9f} "
+                f"tt_tai_s={diag['tt_minus_tai_s']:.9f} "
+                f"mj_icrf_max_delta_m={diag['max_same_gmat_mj2000eq_icrf_position_difference_m']:.9e} "
+                "status=INCONCLUSIVE cross_engine_frame_certified=false")
+          PY
       - name: Upload all acquired raw provenance and engine outputs including failure logs
         if: always()
         uses: actions/upload-artifact@v7

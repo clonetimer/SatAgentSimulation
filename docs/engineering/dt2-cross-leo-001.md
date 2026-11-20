@@ -202,3 +202,57 @@ no post-hoc residual acceptance limit is introduced. This check is an
 independent mathematical interpretation of already authentic outputs, not
 qualification of flight accuracy or replacement of third-party data.
 
+
+## Real GMAT two-frame and numerical timescale experiment (not yet qualified)
+
+A new (third) genuine GMAT R2026a console invocation reuses the authenticated
+Basilisk six-state and both previously executed GMAT runs, with SHA-bound
+inputs, identical Earth-Mu override and a wholly separate output path.
+Original Basilisk, default-GMAT and matched-Mu-GMAT original trajectories
+and hashes remain untouched. Its explicit additional GMAT ReportFile
+records 91 simultaneous numerical observations:
+
+- ElapsedSecs, UTCModJulian, TAIModJulian, TTModJulian and A1ModJulian.
+- The same GMAT spacecraft state expressed in EarthMJ2000Eq and EarthICRF
+  Cartesian position and velocity (six components per frame).
+- The actual R2026a script, raw report, stdout/stderr, executable SHA,
+  optionally the local packaged tai-utc.dat hash, and a diagnostic file
+  whose scientific status remains INCONCLUSIVE.
+
+Time conventions are **not interchangeable**: GMAT ModJulian = JD-2430000.0,
+while conventional MJD = JD-2400000.5. For the frozen 2026-03-04T21:48 UTC
+to 23:18 UTC interval, official NIST/USNO resources state TAI-UTC=37 seconds
+and TT-TAI=32.184 seconds; no leap second occurs during this short arc.
+A **predeclared 1 millisecond bound is ONLY a numerical report sanity check**,
+not mission clock accuracy qualification. The original GMAT ElapsedSecs
+10.69-microsecond raw skew is preserved; no re-timing or resampling.
+
+The observed two-frame difference comes directly from GMAT, not an assumed
+identity. EarthMJ2000Eq (IAU-1976/FK5) and EarthICRF (IAU-2000/2006) are
+different realizations according to official GMAT documentation; the
+actual Basilisk two-body-only N frame was numerically initialized in a
+case-defined Cartesian basis but never tied to an independently measured
+celestial reference vector. Thus a successful GMAT internal frame probe
+**does not** qualify an absolute physical Basilisk N-to-ICRF rotation.
+
+The output must contain 91 verified finite rows, the correct GMAT JD
+offset, consistent UTC/TAI/TT numerical epoch relation, the same
+EarthMJ2000Eq state in the two GMAT ReportFiles, and verified source SHAs.
+Any deviation fails closed and preserves original console output. After
+success the diagnostic must still contain zero independently certified
+Basilisk-to-GMAT frame-aligned samples, false absolute time/axis approval
+and false mission accuracy qualification. Do not fit an Earth rotation
+from a 2-body-only test or retroactively invent a physical tolerance.
+
+Documentation/provenance:
+- https://documentation.help/GMAT/CoordinateSystem.html
+- https://documentation.help/GMAT/CalculationParameters.html
+- https://documentation.help/GMAT/SpacecraftEpoch.html
+- https://www.nist.gov/pml/time-and-frequency-division/time-realization/leap-seconds
+- https://maia.usno.navy.mil/information/eo-values
+
+The scientific goal remains independent real-world frame tie and
+advance-approved mission error budget; this small experiment exposes
+actual GMAT frame conversion and epoch-reporting behavior without
+changing any existing physics or overriding the INCONCLUSIVE verdict.
+

@@ -209,6 +209,59 @@ def test_closed_form_requires_real_hashed_basilisk_and_two_gmat_runs(tmp_path):
         cross.analyze_closed_form_two_body(tmp_path)
 
 
+
+def test_genuine_frame_time_probe_script_is_ascii_and_reports_both_frames():
+    # This unit only inspects a generated script, never fabricates GMAT output.
+    s=cross._gmat_frame_time_script(
+        make_zero_sample(),mu=398600.436,
+        state_path="state.txt",epoch_path="frame.txt")
+    assert s.isascii()
+    assert "GMAT Earth.Mu = 398600.436;" in s
+    assert "CrossFrame.Delimiter = ',';" in s
+    assert "CrossSat.UTCModJulian" in s and "CrossSat.TAIModJulian" in s
+    assert "CrossSat.TTModJulian" in s and "CrossSat.A1ModJulian" in s
+    assert "CrossSat.EarthMJ2000Eq.X" in s
+    assert "CrossSat.EarthICRF.VZ" in s
+    assert s.count("Report CrossFrame CrossSat.ElapsedSecs") == 91
+    assert s.count("Report CrossState CrossSat.ElapsedSecs") == 91
+    assert s.count("CrossSat.ElapsedSecs = 60}") == 90
+
+
+def test_gmat_time_probe_checks_nonstandard_jd_offset_and_leap_seconds(tmp_path):
+    # Synthetic FILE FORMAT fixture only, not a GMAT execution result.
+    assert cross.GMAT_MJD_JD_OFFSET_DAYS==2430000.0
+    utc0=cross._gmat_utc_modjulian(cross.CASE["epoch_utc"],0.)
+    assert 20000 < utc0 < 50000  # GMAT MJD, not conventional
+    rows=[]
+    for i in range(91):
+        t=i*60.0
+        mjd=utc0 + t/86400
+        tai=mjd + 37./86400.
+        tt=tai + 32.184/86400.
+        numbers=[t,mjd,tai,tt,tt,6650,0,0,0,7.742,0,
+                 6650,0,0,0,7.742,0]
+        rows.append(",".join(format(n,".16g") for n in numbers))
+    f=tmp_path/"not_real_gmat_report.txt"
+    f.write_text("\n".join(rows)+"\n",encoding="utf-8")
+    a=cross._read_gmat_frame_time(f,cross.CASE["epoch_utc"])
+    assert len(a)==91
+    assert abs((a[0]["tai_mjd"]-a[0]["utc_mjd"])*86400-37)<.001
+    assert abs((a[0]["tt_mjd"]-a[0]["tai_mjd"])*86400-32.184)<.001
+    corrupted=rows.copy()
+    vals=corrupted[40].split(",")
+    vals[1]=str(float(vals[1])+1./86400)  # One second wrong: must fail
+    corrupted[40]=",".join(vals)
+    f.write_text("\n".join(corrupted)+"\n",encoding="utf-8")
+    with pytest.raises(ValueError,match="UTC_MJD_MISMATCH"):
+        cross._read_gmat_frame_time(f,cross.CASE["epoch_utc"])
+
+
+def test_real_frame_time_probe_requires_prior_hash_verified_gmat_receipts(tmp_path):
+    # No dummy GmatConsole and no synthesis escape path.
+    with pytest.raises(FileNotFoundError):
+        cross.run_gmat_frame_time_probe(tmp_path,tmp_path/"does-not-exist")
+
+
 def test_no_external_engine_data_cannot_be_marked_pass(tmp_path):
     with pytest.raises(FileNotFoundError):
         cross.compare(tmp_path)

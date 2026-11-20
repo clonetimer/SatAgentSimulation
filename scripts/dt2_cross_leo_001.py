@@ -33,6 +33,10 @@ FIELDNAMES = ("time_s", "utc", "x_m", "y_m", "z_m", "vx_m_s", "vy_m_s", "vz_m_s"
 # a physical position/velocity error budget and not approval of time/frame
 # equivalence. R2026a reported -10.6869 microseconds at 5400 s in raw pilot.
 GMAT_REPORT_FLOAT_TIME_SKEW_BUDGET_S = 20e-6
+# Only a numeric time-REPORT sanity bound (not spacecraft timing accuracy).
+GMAT_FRAME_TIME_REPORT_SANITY_S = 1e-3
+GMAT_MJD_JD_OFFSET_DAYS = 2430000.0
+GMAT_FRAME_TIME_COLUMNS = ("elapsed_s", "utc_mjd", "tai_mjd", "tt_mjd", "a1_mjd", "mj_x_km", "mj_y_km", "mj_z_km", "mj_vx_km_s", "mj_vy_km_s", "mj_vz_km_s", "icrf_x_km", "icrf_y_km", "icrf_z_km", "icrf_vx_km_s", "icrf_vy_km_s", "icrf_vz_km_s")
 # Only the a/e/i/epoch/duration/step/telemetry cadence are carried forward from
 # the actual #213 test. The initial phase was NOT recoverable from sealed
 # P9-O3 evidence; set f=0 *explicitly* for a fresh, reproducible two-body case.
@@ -724,6 +728,208 @@ def analyze_closed_form_two_body(out: Path) -> dict:
     return diagnostics
 
 
+
+def _gmat_frame_time_script(initial_state: dict, *, mu: float,
+                            state_path: str, epoch_path: str) -> str:
+    """Third real GMAT run: independently report two frames and time scales."""
+    script = _gmat_script(initial_state, report_path=state_path,
+                          earth_mu_km3_s2=mu)
+    report_file = epoch_path.replace("\\", "/").replace("'", "")
+    frame_decl = "\n".join([
+        "Create ReportFile CrossFrame;",
+        f"CrossFrame.Filename = '{report_file}';",
+        "CrossFrame.Precision = 16;",
+        "CrossFrame.WriteHeaders = false;",
+        "CrossFrame.FixedWidth = false;",
+        "CrossFrame.Delimiter = ',';",
+        "CrossFrame.WriteReport = false;",
+        "CrossFrame.AppendToExistingFile = false;",
+    ]) + "\n"
+    if script.count("BeginMissionSequence;") != 1:
+        raise ValueError("CROSS_LEO_FRAME_TIME_NO_MISSION")
+    script = script.replace("BeginMissionSequence;",
+                            frame_decl + "BeginMissionSequence;")
+    fields = (
+        "CrossSat.ElapsedSecs CrossSat.UTCModJulian "
+        "CrossSat.TAIModJulian CrossSat.TTModJulian CrossSat.A1ModJulian "
+        + " ".join("CrossSat.EarthMJ2000Eq."+f
+                   for f in ("X","Y","Z","VX","VY","VZ"))
+        + " " + " ".join("CrossSat.EarthICRF."+f
+                       for f in ("X","Y","Z","VX","VY","VZ"))
+    )
+    rows = []
+    count = 0
+    for line in script.splitlines():
+        rows.append(line)
+        if line.startswith("Report CrossState "):
+            rows.append("Report CrossFrame "+fields+";")
+            count += 1
+    if count != 91:
+        raise ValueError("CROSS_LEO_FRAME_TIME_REPORT_COUNT")
+    result = "\n".join(rows)+"\n"
+    if not result.isascii():
+        raise ValueError("CROSS_LEO_FRAME_TIME_NON_ASCII_SCRIPT")
+    return result
+
+
+def _gmat_utc_modjulian(epoch: str, elapsed: float) -> float:
+    dt = datetime.fromisoformat(epoch.replace("Z","+00:00"))
+    if dt.utcoffset() != timedelta(0):
+        raise ValueError("CROSS_LEO_FRAME_TIME_EPOCH_NOT_UTC")
+    return 2440587.5 + (dt.timestamp()+elapsed)/86400.0 - GMAT_MJD_JD_OFFSET_DAYS
+
+
+def _read_gmat_frame_time(raw: Path, epoch: str) -> list[dict]:
+    """Only real GMAT report syntax is accepted; no synthetic fallback."""
+    out = []
+    with raw.open("r",encoding="utf-8-sig",newline="") as stream:
+        for line in csv.reader(stream,delimiter=","):
+            if not line or all(not x.strip() for x in line):
+                continue
+            if len(line)!=len(GMAT_FRAME_TIME_COLUMNS):
+                raise ValueError("CROSS_LEO_FRAME_TIME_BAD_ROW_WIDTH")
+            try:
+                values=[float(x.strip()) for x in line]
+            except ValueError as exc:
+                raise ValueError("CROSS_LEO_FRAME_TIME_NOT_NUMERIC") from exc
+            if not all(math.isfinite(x) for x in values):
+                raise ValueError("CROSS_LEO_FRAME_TIME_NONFINITE")
+            out.append(dict(zip(GMAT_FRAME_TIME_COLUMNS,values)))
+    if len(out)!=91:
+        raise ValueError("CROSS_LEO_FRAME_TIME_REQUIRES_91_REAL_ROWS")
+    for i,row in enumerate(out):
+        t=i*CASE["sample_s"]
+        if abs(row["elapsed_s"]-t)>GMAT_REPORT_FLOAT_TIME_SKEW_BUDGET_S:
+            raise ValueError("CROSS_LEO_FRAME_TIME_ELAPSED_GRID_MISMATCH")
+        if i and row["elapsed_s"]<=out[i-1]["elapsed_s"]:
+            raise ValueError("CROSS_LEO_FRAME_TIME_NONMONOTONIC")
+        if abs(row["utc_mjd"]-_gmat_utc_modjulian(epoch,t))*86400>GMAT_FRAME_TIME_REPORT_SANITY_S:
+            raise ValueError("CROSS_LEO_FRAME_TIME_UTC_MJD_MISMATCH")
+        if abs((row["tai_mjd"]-row["utc_mjd"])*86400-37.0)>GMAT_FRAME_TIME_REPORT_SANITY_S:
+            raise ValueError("CROSS_LEO_FRAME_TIME_TAI_UTC_MISMATCH")
+        if abs((row["tt_mjd"]-row["tai_mjd"])*86400-32.184)>GMAT_FRAME_TIME_REPORT_SANITY_S:
+            raise ValueError("CROSS_LEO_FRAME_TIME_TT_TAI_MISMATCH")
+    return out
+
+
+def run_gmat_frame_time_probe(out: Path, binary: Path, *, timeout_s: int=600) -> dict:
+    """Actual third GMAT process; never certify Basilisk N axes or time."""
+    mpath = out/"case_manifest.json"
+    manifest = json.loads(mpath.read_text(encoding="utf-8"))
+    default = json.loads((out/"gmat_execution.json").read_text(encoding="utf-8"))
+    control = json.loads((out/"gmat_mu_control_execution.json").read_text(encoding="utf-8"))
+    executable=binary.expanduser().resolve(strict=True)
+    ev=manifest.get("evidence",{})
+    if (manifest.get("schema")!=SCHEMA or not ev.get("basilisk_executed")
+        or not ev.get("gmat_executed") or not ev.get("gmat_mu_control_executed")
+        or default.get("status")!="GMAT_EXECUTED_UNQUALIFIED_ALIGNMENT"
+        or control.get("status")!="GMAT_MU_CONTROL_EXECUTED_UNQUALIFIED_ALIGNMENT"
+        or default.get("binary_sha256")!=control.get("binary_sha256")
+        or _sha256(executable)!=control.get("binary_sha256")):
+        raise ValueError("CROSS_LEO_FRAME_TIME_TWO_ACTUAL_GMAT_RUNS_REQUIRED")
+    for name,expected in (
+        ("basilisk_state.csv",ev.get("basilisk_state_csv_sha256")),
+        ("gmat_raw.txt",default.get("report_sha256")),
+        ("gmat_mu_control_raw.txt",control.get("report_sha256")),
+        ("gmat_mu_control_state.csv",control.get("normalized_csv_sha256")),
+    ):
+        if not expected or _sha256(out/name)!=expected:
+            raise ValueError("CROSS_LEO_FRAME_TIME_SOURCE_SHA_INVALID: "+name)
+    names=("gmat_frame_time_executed.script","gmat_frame_state_raw.txt",
+           "gmat_frame_time_raw.txt","gmat_frame_time_stdout.log",
+           "gmat_frame_time_stderr.log","gmat_frame_time_execution.json",
+           "gmat_frame_time_rows.csv","gmat_frame_time_diagnostic.json")
+    if any((out/name).exists() for name in names):
+        raise FileExistsError("CROSS_LEO_FRAME_TIME_NO_OVERWRITE")
+    script=out/names[0]
+    state=out/names[1]
+    frame=out/names[2]
+    mu=float(manifest["gravity"]["mu_m3_s2"])/1e9
+    script.write_text(_gmat_frame_time_script(
+        manifest["actual_initial_state_SI"],mu=mu,
+        state_path=str(state.resolve()),epoch_path=str(frame.resolve())),
+        encoding="ascii")
+    run=subprocess.run(
+        [str(executable),"--run",str(script.resolve())],cwd=executable.parent,
+        capture_output=True,text=True,timeout=timeout_s,check=False)
+    stdout,stderr=out/names[3],out/names[4]
+    stdout.write_text(run.stdout,encoding="utf-8")
+    stderr.write_text(run.stderr,encoding="utf-8")
+    leap_table=executable.parent.parent/"data"/"time"/"tai-utc.dat"
+    record={
+        "schema":SCHEMA,"status":"GMAT_FRAME_TIME_EXECUTION_FAILED",
+        "engine":"actual GMAT R2026a Console",
+        "command":[str(executable),"--run",str(script.resolve())],
+        "executable_sha256":_sha256(executable),"script_sha256":_sha256(script),
+        "return_code":run.returncode,"stdout_sha256":_sha256(stdout),
+        "stderr_sha256":_sha256(stderr),
+        "state_report_sha256":_sha256(state) if state.is_file() else None,
+        "frame_time_report_sha256":_sha256(frame) if frame.is_file() else None,
+        "leap_table_in_release_sha256":_sha256(leap_table) if leap_table.is_file() else None,
+        "verified_gmat_loaded_this_exact_leap_table":False,
+    }
+    if run.returncode==0 and state.is_file() and frame.is_file():
+        try:
+            states=_read_gmat_report(state,CASE["epoch_utc"])
+            rows=_read_gmat_frame_time(frame,CASE["epoch_utc"])
+            if len(states)!=len(rows):
+                raise ValueError("CROSS_LEO_FRAME_TIME_STATE_ROW_MISMATCH")
+            max_mj_icrf_m = max(math.sqrt(sum(
+                (row["mj_"+axis+"_km"]-row["icrf_"+axis+"_km"])**2
+                for axis in ("x","y","z")))*1000 for row in rows)
+            # Verify two reports made in the SAME GMAT run agree on MJ state.
+            max_self_error = max(math.sqrt(sum(
+                (a[f]-b[other]*1000)**2
+                for f,other in zip(
+                    ("x_m","y_m","z_m","vx_m_s","vy_m_s","vz_m_s"),
+                    ("mj_x_km","mj_y_km","mj_z_km",
+                     "mj_vx_km_s","mj_vy_km_s","mj_vz_km_s"))))
+                for a,b in zip(states,rows))
+            if max_self_error>1e-3:
+                raise ValueError("CROSS_LEO_FRAME_TIME_SAME_RUN_STATE_CONTRADICTION")
+            path=out/names[6]
+            with path.open("w",newline="",encoding="utf-8") as stream:
+                writer=csv.DictWriter(stream,fieldnames=GMAT_FRAME_TIME_COLUMNS)
+                writer.writeheader()
+                writer.writerows(rows)
+            record["status"]="GMAT_FRAME_TIME_REPORTED_UNQUALIFIED_ABSOLUTE_TIE"
+            record["rows"]=len(rows)
+            record["normalized_frame_time_sha256"]=_sha256(path)
+            diagnostics={
+                "schema":SCHEMA,"status":"INCONCLUSIVE","rows":len(rows),
+                "gmat_epoch_jd_offset":GMAT_MJD_JD_OFFSET_DAYS,
+                "first_utc_mjd":rows[0]["utc_mjd"],
+                "last_utc_mjd":rows[-1]["utc_mjd"],
+                "tai_minus_utc_s":(rows[0]["tai_mjd"]-rows[0]["utc_mjd"])*86400,
+                "tt_minus_tai_s":(rows[0]["tt_mjd"]-rows[0]["tai_mjd"])*86400,
+                "max_abs_reported_elapsed_skew_s":max(
+                    abs(r["elapsed_s"]-i*CASE["sample_s"])
+                    for i,r in enumerate(rows)),
+                "max_same_gmat_mj2000eq_icrf_position_difference_m":max_mj_icrf_m,
+                "max_same_run_mj_state_report_difference_si":max_self_error,
+                "independent_basilisk_n_to_gmat_axis_mapping_approved":False,
+                "independent_absolute_basilisk_clock_alignment_approved":False,
+                "mission_accuracy_budget_approved":False,
+                "certified_basilisk_n_axis_aligned_samples":0,
+                "reported_gmat_frames":["EarthMJ2000Eq","EarthICRF"],
+                "source_gmat_frame_report_sha256":record["frame_time_report_sha256"],
+                "note":"GMAT internal two-frame/epoch report only; point-mass numeric initial state does not define physical Basilisk N axes.",
+            }
+            _write_json(out/names[7],diagnostics)
+            record["diagnostic_sha256"]=_sha256(out/names[7])
+            ev["gmat_frame_time_probe_executed"]=True
+            ev["gmat_frame_time_report_sha256"]=record["frame_time_report_sha256"]
+            manifest["external_vv_status"]="INCONCLUSIVE"
+            manifest["acceptance_limits_status"]="NOT_APPROVED"
+            _write_json(mpath,manifest)
+        except (ValueError,OverflowError) as exc:
+            record["parse_error"]=f"{type(exc).__name__}: {exc}"
+    _write_json(out/names[5],record)
+    if record["status"]!="GMAT_FRAME_TIME_REPORTED_UNQUALIFIED_ABSOLUTE_TIE":
+        raise RuntimeError("CROSS_LEO_FRAME_TIME_PROBE_NOT_VERIFIED")
+    return record
+
+
 def main(argv: list[str] | None = None) -> int:
     parser=argparse.ArgumentParser(description=__doc__)
     sub=parser.add_subparsers(dest="action",required=True)
@@ -742,6 +948,10 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--output",type=Path,required=True)
     e=sub.add_parser("analytic-reference",help="Compare real records to exact circular two-body solution; INCONCLUSIVE")
     e.add_argument("--output",type=Path,required=True)
+    f=sub.add_parser("gmat-frame-time-probe",help="Actually execute GMAT numeric UTC TAI TT MJ2000Eq ICRF report")
+    f.add_argument("--output",type=Path,required=True)
+    f.add_argument("--executable",type=Path,required=True)
+    f.add_argument("--timeout-s",type=int,default=600)
     t=sub.add_parser("compare-mu-control",help="Unqualified real GMAT Earth-Mu sensitivity, no PASS")
     t.add_argument("--output",type=Path,required=True)
     args=parser.parse_args(argv)
@@ -754,6 +964,8 @@ def main(argv: list[str] | None = None) -> int:
         result=compare(args.output)
     elif args.action=="compare-mu-control":
         result=compare_mu_control(args.output)
+    elif args.action=="gmat-frame-time-probe":
+        result=run_gmat_frame_time_probe(args.output,args.executable,timeout_s=args.timeout_s)
     else:
         result=analyze_closed_form_two_body(args.output)
     print(json.dumps({"case_id":CASE_ID,"action":args.action,"result":result.get("external_vv_status",result.get("status","BASILISK_EXECUTED"))},sort_keys=True))
