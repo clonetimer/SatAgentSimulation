@@ -114,7 +114,7 @@ def test_unified_runtime_executes_native_nrlmsise00_and_drag(monkeypatch, tmp_pa
         [
             sys.executable, str(setup_script), "--offline",
             "--output", str(local_asset),
-            "--url", "test-fixture://celestrak-compatible-sample",
+            "--source-url", "test-fixture://celestrak-compatible-sample",
         ],
         check=True,
         capture_output=True,
