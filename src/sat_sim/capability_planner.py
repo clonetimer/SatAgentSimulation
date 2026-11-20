@@ -792,7 +792,9 @@ def _is_negated_keyword_use(request_text: str, keyword: str) -> bool:
     suffix = lower[start:start + len(kw) + 20]
     negators = (
         "不要", "不用", "不做", "不要做", "不要假装", "不要声称", "不要宣称",
-        "不需要", "避免", "先不要", "只要", "not ", "do not", "don't", "without",
+        "不需要", "不使用", "不启用", "禁用", "停用", "关闭",
+        "避免", "先不要", "只要", "not ", "do not", "don't", "without",
+        "disable ", "disabled ", "turn off ", "switch off ",
         "must not", "do not claim", "not full", "not high",
     )
     if any(token in prefix for token in negators):

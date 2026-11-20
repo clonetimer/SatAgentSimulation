@@ -552,6 +552,18 @@ def _requests_native_nrlmsise(text: str) -> bool:
         latest, _planner_contains_any(latest, ("nrlmsise-00", "nrlmsise"))))
 
 
+def _forbids_native_nrlmsise(text: str) -> bool:
+    """Recognize explicit *model-disable* intent, not limits on accuracy claims."""
+    latest = text.rsplit("本轮补充指令：", 1)[-1].lower()
+    compact = "".join(latest.split())
+    disable_actions = (
+        "不要使用", "不使用", "不要启用", "不启用", "禁用", "停用",
+        "关闭", "不用", "disable", "disabled", "turnoff",
+        "switchoff", "donotuse", "don'tuse", "without",
+    )
+    return any(action + "nrlmsise" in compact for action in disable_actions)
+
+
 def _registered_literal_assignments(text: str, declared: Mapping[str, Any]) -> dict[str, Any]:
     """Shared strict user-literal requirements; never infer or replace values."""
     from .explicit_parameters import explicit_parameter_assignments
@@ -678,6 +690,15 @@ def _explicit_literal_requirement_issues(spec: Mapping[str, Any], text: str, *, 
                     message=f"Named NRLMSISE-00 request requires {name}={wanted}; "
                             "the model draft may not fall back to a different atmosphere."
                 ))
+    # The inverse explicit request is also binding: a returned external
+    # draft must not enable the gas model that the user expressly disabled.
+    if cid == "whole_spacecraft.unified_native.v1" and _forbids_native_nrlmsise(text):
+        if any(values.get("atmosphere_model") == "nrlmsise00" for values in carriers):
+            issues.append(ValidationIssue(
+                severity="error", path="$.parameters.atmosphere_model",
+                code="USER_PARAMETER_REQUIREMENT_MISMATCH",
+                message="User expressly disabled NRLMSISE-00; the model draft must not enable its drag."
+            ))
     # The pre-default guard owns raw parameters only. Canonical migration also
     # validates events, so leave malformed events to the normal validator rather
     # than raising while checking an unrelated parameter requirement.

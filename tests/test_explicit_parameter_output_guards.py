@@ -160,7 +160,42 @@ def test_named_native_atmosphere_draft_must_not_silently_disable_drag():
     assert not _explicit_literal_requirement_issues(spec, request)
 
 
-def test_negated_native_atmosphere_does_not_enable_drag():
+@pytest.mark.parametrize('negative_request', [
+    '不要使用 NRLMSISE-00', '不使用 NRLMSISE-00',
+    '不启用 NRLMSISE-00', '禁用 NRLMSISE-00',
+    '停用 NRLMSISE-00', '关闭 NRLMSISE-00',
+    'disable NRLMSISE-00', 'turn off NRLMSISE-00',
+])
+def test_negated_native_atmosphere_never_enables_drag(tmp_path, negative_request):
+    from sat_sim.capability_agent import _requests_native_nrlmsise, _forbids_native_nrlmsise
+    request = f'whole_spacecraft.unified_native.v1 {negative_request}，运行20秒'
+    assert not _requests_native_nrlmsise(request)
+    assert _forbids_native_nrlmsise(request)
     spec = instantiate_scenario_template('whole_spacecraft_unified_native')
-    assert not _explicit_literal_requirement_issues(
-        spec, 'whole_spacecraft.unified_native.v1 不要使用 NRLMSISE-00')
+    assert not _explicit_literal_requirement_issues(spec, request)
+
+    # Real deterministic script generation must preserve the default off.
+    result = run_capability_script_generation(CapabilityAgentRequest(
+        request=request, backend='template',
+        allowed_capabilities=('whole_spacecraft.unified_native.v1',),
+        output_dir=tmp_path / 'no_drag', run_task=False))
+    assert result.ok, result.validation.to_dict()
+    values = canonicalize_task_spec(result.task_spec)['parameters']['values']
+    assert values.get('atmosphere_model', 'none') == 'none'
+    assert values.get('environment_profile', 'simplified') == 'simplified'
+
+    # Counterexample: external model draft cannot contradict explicit off.
+    spec['parameters']['values'].update(
+        atmosphere_model='nrlmsise00', environment_profile='spice_wmm')
+    issues = _explicit_literal_requirement_issues(spec, request)
+    assert any(
+        issue.code == 'USER_PARAMETER_REQUIREMENT_MISMATCH'
+        and issue.path == '$.parameters.atmosphere_model'
+        for issue in issues)
+
+
+def test_flight_grade_disclaimer_is_not_a_model_disable_request():
+    from sat_sim.capability_agent import _requests_native_nrlmsise, _forbids_native_nrlmsise
+    request = 'whole_spacecraft.unified_native.v1 使用 NRLMSISE-00，但不要声称飞行级精度'
+    assert _requests_native_nrlmsise(request)
+    assert not _forbids_native_nrlmsise(request)
