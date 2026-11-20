@@ -16,7 +16,7 @@
 - 图层默认 OFF；显式开启后先请求同源只读端点 `/assets/reference-cad/birds4/rw.glb`，仅从预置 `build/birds4/output/B4_RW_Assembly_v55.glb` 读取。若为 wheel 安装部署，也可通过 `SAT_SIM_BIRDS4_RW_GLB` 指向同一固定文件。
 - 本地缺失 404、大小错误 409、SHA-256 错误 409。浏览器再核验文件大小、SHA-256、glTF 格式及节点/mesh 数，不符合立即拒绝显示；人工选择 GLB 同样需固定摘要。
 - 独立 Three.js 参考 Group，不改变已有配置几何 Group。轮速来自同一时间精确配对的 `wheelPhases`，只更新单独的视觉相位指针，不旋转支架或把该视图解释为真实机械转子；无有效样本就不合成角运动。
-- 源场景外形保持 1:1 米单位；叠加位置与姿态仅从已校验的 TaskSpec 取得。工程分解视图的偏移不影响物理安装值。
+- 源场景外形保持 1:1 米单位；叠加位置与姿态仅从已校验的 `per_wheel` TaskSpec `rw_mount_b_*` / `rw_axis_b_*` 取得。旧 `legacy_axis_offset` 的预设轴向×半径仍允许原生仿真构型显示，但不能充当逐轮 CAD 参考安装位置。工程分解视图的偏移不影响物理安装值。
 - 免责提示常驻；不建立 CAD/物理实体 as-built、selector promotion、GLB 世界变换到 B 系、真实几何轴/物理量反演或遥测绑定。
 
 ## 安装与验收证据边界
@@ -37,3 +37,5 @@ CI 测试验证缺失与篡改均拒绝访问、原生页面默认关闭、真�
 6. Run `44761970929` 的真实浏览器检查暴露了计数层级错误：该 GLB 含 **25 glTF nodes / 24 glTF mesh 定义 / 24 个 mesh-bearing node / 500 primitives**，而 `GLTFLoader` 把多 primitive mesh 拆为多个 Three.js Mesh。原实现错误地断言 Three.js Mesh 实例数等于 24，导致前端拒绝有效工件。修复为同时校验 glTF 定义数量、引用数量、primitive 总量和实际 Three.js 解析输出的 primitive 数；没有跳过任何 GLB 来源/摘要验证。图层关闭时仅释放独立相位标识的资源，不释放 GLB clone 共享材质。
 
 7. 真实截图 `dt41-real-rw-reference-three-copies.png` 揭示原视图标题将 `geometry.capabilityId`（未定义）渲染为 `undefined`；能力 ID 实际存放于 `state.simulationGeometry.capabilityId`。修复仅涉及显示字段，不修改 TaskSpec 数据、参数或模拟响应；浏览器断言精确能力标签，防止回归。
+
+8. 边界复核发现此前参考图层对 `legacy_axis_offset` 也会生成外形复制，但该模式只有预设轴向和统一半径，并不提供逐轮 `rw_mount_b_*` 安装坐标。仅将参考 CAD 门禁限定为 `per_wheel`；不改变原有仿真构型解析、Basilisk 参数或积分设置。增加浏览器反例，证明旧模式仍能显示原有物理构型却无法启用参考 CAD。

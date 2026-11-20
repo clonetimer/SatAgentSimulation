@@ -51,6 +51,8 @@ def test_rw_reference_layer_default_off_and_independent_contract():
     assert "不建立正式节点映射或遥测绑定" in html
     assert "P9M4_REFERENCE_REGISTRY_PROMOTION_FORBIDDEN" in (ROOT/"src/sat_sim/api.py").read_text(encoding="utf-8")
     assert "const SOURCE_SHA256 = '" + RW_EXPECTED_SHA256 + "'" in overlay
+    assert "geometry.mode === 'per_wheel'" in overlay
+    assert "预设半径推算位置" in overlay
     assert "source.clone(true)" in overlay
     assert "new THREE.Vector3(0,1,0)" in overlay
     assert "new THREE.Vector3(...axis)" in overlay
@@ -119,8 +121,24 @@ def test_dt41_real_browser_rw_overlay_and_rejection(tmp_path, monkeypatch):
             assert initial["layer_enabled"] is False
             assert initial["instance_count"] == 0
             assert page.locator("#simulationRwReferenceToggle").is_disabled()
+            # A legacy preset is a legitimate physical configuration, but its
+            # radius-derived positions are not rw_mount_b_* coordinates. Keep
+            # the original engineering viewer, forbid the reference-CAD copy.
+            legacy = page.evaluate("""() => window.SatScene.setSimulationConfiguration({
+              capabilityId:'whole_spacecraft.unified_native.v1',validated:true,
+              values:{parameters:{values:{
+                rw_configuration:'orthogonal_3',rw_geometry_mode:'legacy_axis_offset',
+                rw_mount_radius_m:0.09,
+                spacecraft_mass_kg:10,spacecraft_inertia_xx_kg_m2:0.2,
+                spacecraft_inertia_yy_kg_m2:0.3,spacecraft_inertia_zz_kg_m2:0.4
+              }}}
+            })""")
+            assert legacy is True
+            assert page.locator("#simulationRwReferenceToggle").is_disabled()
+            assert "预设半径推算位置" in page.locator("#simulationRwReferenceStatus").inner_text()
+            assert page.evaluate("window.RwReferenceOverlay.getDiagnostics().instance_count") == 0
             # Validation has already occurred on the backend in the normal
-            # workspace. Inject the accepted view payload, not an unverified GLB.
+            # workspace. Inject the accepted per-wheel view payload, not an unverified GLB.
             accepted = page.evaluate("""() => window.SatScene.setSimulationConfiguration({
               capabilityId:'whole_spacecraft.unified_native.v1',validated:true,
               values:{parameters:{values:{

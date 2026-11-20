@@ -217,7 +217,9 @@ async function activateFromServer() {
 }
 function setGeometry(geometry) {
   loadingToken += 1;
-  approvedGeometry = geometry && Number.isInteger(geometry.count)
+  // Legacy axis-offset is valid for physics, but its inferred positions are not
+  // per-wheel rw_mount_b_* coordinates for a reference-CAD layout.
+  approvedGeometry = geometry && geometry.mode === 'per_wheel' && Number.isInteger(geometry.count)
     && (geometry.count === 3 || geometry.count === 4)
     && geometry.positions?.length === geometry.count
     && geometry.axes?.length === geometry.count ? geometry : null;
@@ -228,7 +230,9 @@ function setGeometry(geometry) {
   updateVisibility();
   status(approvedGeometry
     ? '参考图层关闭；可按需加载固定 BIRDS-4 RW 子装配。安装位置和轴向仅来自已校验 TaskSpec。'
-    : '缺少已校验的整星 TaskSpec；不显示参考外形或安装位置。');
+    : geometry?.mode === 'legacy_axis_offset'
+      ? '预设半径推算位置仅可用于原有仿真构型；RW 参考 CAD 仅接受逐轮 rw_mount_b_* / rw_axis_b_* TaskSpec。'
+      : '缺少已校验的整星 TaskSpec；不显示参考外形或安装位置。');
 }
 function setPhases(phases) {
   if (!active || !Array.isArray(phases)) return;
