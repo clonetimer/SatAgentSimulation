@@ -239,6 +239,38 @@ def angle_arcsec(a: list[float],b: list[float]) -> float:
     return math.atan2(sinang,cosang)*206264.806247
 
 
+def sun_triplet_condition(positions_km: list[list[float]]) -> dict:
+    """Numerical *observability* of three Sun directions, not a frame approval.
+
+    Three nearby Sun vectors constrain the frame poorly around their shared
+    direction. Report conditioning rather than silently fitting a 3-D frame.
+    """
+    import numpy as np
+    xyz = np.asarray(positions_km, dtype=np.float64)
+    if xyz.shape != (3, 3) or not np.all(np.isfinite(xyz)):
+        raise ValueError("DT2_SUN_ANCHOR_DIRECTION_SHAPE_OR_FINITE")
+    norms = np.linalg.norm(xyz, axis=1)
+    if not np.all(np.isfinite(norms)) or np.any(norms <= 0):
+        raise ValueError("DT2_SUN_ANCHOR_DIRECTION_ZERO_VECTOR")
+    unit = xyz / norms[:, None]
+    sigma = np.linalg.svd(unit, compute_uv=False)
+    maximum_separation_deg = max(
+        math.degrees(math.atan2(
+            float(np.linalg.norm(np.cross(unit[i], unit[j]))),
+            float(np.dot(unit[i], unit[j])),
+        ))
+        for i, j in ((0, 1), (0, 2), (1, 2))
+    )
+    condition = float(sigma[0] / sigma[-1]) if sigma[-1] > 0 else None
+    return {
+        "normalized_sun_direction_singular_values": [float(v) for v in sigma],
+        "sun_triplet_condition_number": condition,
+        "max_pairwise_sun_direction_separation_deg": maximum_separation_deg,
+        "absolute_inertial_frame_tie_approved": False,
+        "description": "three geocentric Sun directions only; not an independently qualified full inertial frame tie",
+    }
+
+
 def run(out: Path, root: Path, binary: Path) -> dict:
     out=out.resolve(strict=True)
     root=root.resolve(strict=True)
@@ -360,6 +392,8 @@ def run(out: Path, root: Path, binary: Path) -> dict:
         writer.writerows(compared)
     receipt.update({
         "real_sample_count":len(compared),
+        "sun_direction_triplet_geometry":sun_triplet_condition(
+            [state[:3] for state in naif]),
         "sun_anchor_comparison_csv_sha256":digest(outputs["rows"]),
         "max_gmat_icrf_vs_naif_j2000_angle_arcsec":
             max(x["gmat_icrf_vs_naif_j2000_angle_arcsec"] for x in compared),
