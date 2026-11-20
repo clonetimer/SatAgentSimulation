@@ -9,6 +9,9 @@ on:
       - "src/sat_sim/benchmarks/basilisk_orbit.py"
       - "integrated/orbit_environment/**"
       - "scripts/fetch_environment_assets.py"
+      - "scripts/fetch_ggm03s_gravity.py"
+      - "src/sat_sim/bsk_engine/gravity_harmonics_asset.py"
+      - "tests/test_native_ggm03s_gravity.py"
       - "tests/test_native_orbital_environment.py"
       - "src/sat_sim/adapters/whole_spacecraft_composite_digital_twin.py"
       - "src/subsystems/thermal/thermal_network.py"
@@ -133,6 +136,17 @@ jobs:
           )
           print("Strict spice_wmm resource preflight passed; native execution follows.")
           PY
+      - name: Stage and audit immutable official GGM03S full coefficients
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python scripts/fetch_ggm03s_gravity.py
+          python scripts/fetch_ggm03s_gravity.py --offline
+      - name: Verify actual GGM03S degree2/3/4 forces, rotating Earth and refinement
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q tests/test_native_ggm03s_gravity.py --capture=tee-sys --disable-warnings
       - name: Verify actual native SPICE WMM environment and orbit-step convergence
         env:
           PYTHONPATH: "src:."
