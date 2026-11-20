@@ -1023,6 +1023,28 @@ def _build_unified_rows(
                 row[f"environment.space_weather.{weather_name}"] = float(
                     recorder_map[recorder_name].dataValue[index]
                 )
+        if "earth_orientation" in recorder_map:
+            earth_orient = recorder_map["earth_orientation"]
+            earth_dcm = np.asarray(earth_orient.J20002Pfix[index], dtype=float).reshape(3, 3)
+            row["orbit.earth_orientation_computed"] = int(earth_orient.computeOrient[index])
+            for r_idx in range(3):
+                for c_idx in range(3):
+                    row[f"orbit.earth_fixed_dcm_{r_idx}{c_idx}"] = float(earth_dcm[r_idx, c_idx])
+        if "igrf14_earth_frame" in recorder_map:
+            # SPICE Earth center and orientation are reference observations
+            # only, not a substitute for the native geomagnetic model.
+            earth_ref = recorder_map["igrf14_earth_frame"]
+            dcm_np = np.asarray(earth_ref.J20002Pfix[index], dtype=float).reshape(3, 3)
+            row["environment.igrf14.earth_orientation_computed"] = int(earth_ref.computeOrient[index])
+            for axis, component in enumerate("xyz"):
+                row[f"environment.igrf14.earth_center_n_m_{component}"] = float(
+                    earth_ref.PositionVector[index][axis]
+                )
+            for row_index in range(3):
+                for col_index in range(3):
+                    row[f"environment.igrf14.earth_j20002pfix_{row_index}{col_index}"] = float(
+                        dcm_np[row_index, col_index]
+                    )
         wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
         for wheel_index in range(3, wheel_count):
             torque_constant = float(cfg.values.get(
@@ -2616,6 +2638,10 @@ class UnifiedNativeRuntime:
                     messages[f"propulsion_thruster_{thruster_index}"] = thruster_msg
         if ephemeris is not None:
             messages['sun_ephemeris'] = sun_msg
+            if self._orbital_environment.full_gravity:
+                messages["earth_orientation"] = earth_msg
+            if self._orbital_environment.igrf14_asset is not None:
+                messages["igrf14_earth_frame"] = earth_msg
         for name, message in messages.items():
             recorder = message.recorder(macros.sec2nano(cfg.sample_s))
             sim.AddModelToTask(task_name, recorder, None, 1)
@@ -3359,6 +3385,20 @@ class UnifiedNativeRuntime:
                 "engineering_assumption_only": True,
                 "flight_calibrated": False,
                 "surface_attitude_dependency": False,
+            }
+        if self._orbital_environment.full_gravity:
+            # This is evidence for the real optional model, never a promotion of
+            # a renamed J2-only file or a claim of independent orbit accuracy.
+            summary["gravity_harmonics"] = {
+                "selector": cfg.values.get("earth_gravity_model", "legacy_j2_only"),
+                "degree_and_order": self._orbital_environment.gravity_degree,
+                "source_git_blob_sha1": self._orbital_environment.gravity_asset["source_git_blob_sha1"],
+                "source_sha256": self._orbital_environment.gravity_asset["sha256"],
+                "reference_frame": "Earth_planet_fixed_from_SPICE",
+                "orientation_recorded": True,
+                "degree3_4_coefficients_present": True,
+                "flight_validation": False,
+                "tesseral_terms_included": True,
             }
         fault_environment = BSKRLStyleFaultAdapter().summarize(cfg.events, tuple(rows))
         summary.update({
