@@ -1,0 +1,3730 @@
+{
+  "schema_version": "external-reference-model-baseline.v1",
+  "purpose": "现有模型自有运行的统计基线，不是参考 CSV 重建或参数标定",
+  "reference_raw_data_accessed": false,
+  "reference_filter_applied": false,
+  "parameter_alignment_applied": false,
+  "production_defaults_changed": false,
+  "comparison_status": "UNALIGNED_MISSING_MAPPING_DEFINITIONS_AND_TOLERANCES",
+  "tolerance_assessment": "NOT_ASSESSED_NO_USER_TOLERANCE",
+  "reference_numeric_tolerances": null,
+  "basilisk_version": "2.11.0",
+  "python_version": "3.12.14",
+  "source_commit": "3bdb3b96ce63f5c5bd197ee3f9a03869f87846cb",
+  "task_spec_sha256": "328f9237389d3131d44e9179a7f4e73024a1a8a1e128d240460f88aec37f627c",
+  "wall_elapsed_s": 199.30534180900577,
+  "simulation": {
+    "level": "whole_spacecraft",
+    "duration_s": 3540.0,
+    "step_s": 0.1,
+    "sample_s": 0.3,
+    "random_seed": 0,
+    "backend": "basilisk",
+    "time_base": "simulation_seconds",
+    "time_system": "UTC"
+  },
+  "observed_sample_count": 11801,
+  "parameter_overrides": "仅观察窗和数值步长／记录间隔；无物理参数调整",
+  "environment_scope": "现有模板 simplified 环境；未获参考工况定义，不声明同工况",
+  "model_runtime_summary": {
+    "status": "complete",
+    "status_semantics_version": "v0.5.7.3",
+    "execution_status": "PASS",
+    "mission_status": "PASS",
+    "mission_bounds_scope": "all_published_runtime_samples",
+    "mission_bounds_sample_count": 11801,
+    "overall_status": "PASS",
+    "mission_reason_codes": [],
+    "capability_id": "whole_spacecraft.unified_native.v1",
+    "engine": "basilisk_unified_native_runtime",
+    "orbital_environment": {
+      "profile": "simplified",
+      "epoch_utc": "2026-01-01T00:00:00+00:00",
+      "ephemeris": "fixed_sun_reference",
+      "gravity": "earth_point_mass",
+      "magnetic_field": "centered_dipole",
+      "assets": {},
+      "spacecraft_flight_validation": false
+    },
+    "backend_type": "basilisk_native_mixed",
+    "runtime_truth_status": "instantiated_connected_recorded_unified",
+    "process_count": 1,
+    "task_count": 1,
+    "instantiated_module_count": 56,
+    "official_module_count": 28,
+    "project_native_module_count": 28,
+    "engineering_proxy_module_count": 0,
+    "external_module_count": 0,
+    "external_or_proxy_module_count": 0,
+    "connected_message_count": 76,
+    "recorder_count": 81,
+    "execution_segment_count": 1,
+    "execution_stops_s": [
+      3540.0
+    ],
+    "trace_rows": 11801,
+    "initial_pointing_error_deg": 7.999999999999997,
+    "final_pointing_error_deg": 1.5011806121256747e-44,
+    "adcs_closed_loop_improved": true,
+    "initial_truth_pointing_error_deg": 8.0,
+    "final_truth_pointing_error_deg": 1.6679784579174164e-44,
+    "adcs_truth_closed_loop_improved": true,
+    "initial_orbit_radius_m": 6993000.000000001,
+    "final_orbit_radius_m": 7005469.625107462,
+    "runtime_message_read_error_count": 0,
+    "runtime_message_read_errors": [],
+    "adcs_fusion": {
+      "attitude_estimator": "star_tracker_plus_sun_magnetic_field_triad_quaternion_slerp",
+      "estimator_class": "deterministic_engineering_estimator_not_mekf_or_kalman",
+      "attitude_frame": "body_B_relative_to_inertial_N",
+      "body_rate_frame": "body_B",
+      "star_tracker_measurement": "official_qInrtl2Case_N_to_C_transformed_with_dcm_CB_to_body_B",
+      "imu_angular_rate_measurement": "official_AngVelPlatform_in_P_transformed_with_dcm_PB_transpose_to_body_B",
+      "imu_startup_validity": "first_zeroed_Basilisk_2_11_0_update_is_invalid_until_IMU_message_write_time_advances; estimator_holds_last_valid_body_rate",
+      "imu_validity_semantics": "invalid_until_new_sample_time; also_invalid_for_signal_loss_stuck_zero_or_axis_dropout; bias_and_noise_degradations_remain_measured_samples",
+      "magnetometer_measurement": "official_tam_S_in_S_transformed_with_dcm_SB_transpose_to_body_B_and_fused_with_magField_N",
+      "sun_earth_measurements": "project_ideal_geometry_vectors_from_environment_and_spacecraft_truth_not_official_CSS_direction",
+      "magnetometer_used_sample_count": 11801,
+      "imu_sample_valid_count": 11800,
+      "body_rate_valid_sample_count": 11800,
+      "first_valid_body_rate_time_s": 0.30000000000000004,
+      "sensor_mounting_dcms": {
+        "star_tracker_dcm_CB": [
+          [
+            1.0,
+            0.0,
+            -0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "imu_dcm_PB": [
+          [
+            1.0,
+            0.0,
+            -0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "magnetometer_dcm_SB": [
+          [
+            1.0,
+            0.0,
+            -0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      "limitations": [
+        "not a flight-correlated estimator or MEKF/Kalman filter",
+        "StarTracker has no optical star catalog, star centroiding or FOV occultation model",
+        "Sun/Earth vector measurements are ideal project-native geometry sensors; CSS remains scalar irradiance telemetry",
+        "IMU is a measured rate input, not a full strapdown navigation solution"
+      ]
+    },
+    "comm_power_model": {
+      "implementation": "Basilisk.simulation.antennaPower.AntennaPower",
+      "antenna_input_message": "DownlinkAntennaStatusAdapter.antennaPowerOutMsg (gated copy of SimpleAntenna.antennaOutMsg)",
+      "antenna_source_message": "SimpleAntenna.antennaOutMsg",
+      "status_adapter": "DownlinkAntennaStatusAdapter",
+      "base_power_node": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+      "status_inputs": [
+        "DownlinkHandling.downlinkOutMsg.linkActive",
+        "DownlinkHandling.downlinkOutMsg.attemptedDataRate",
+        "project_eps_pdu.commStatusOutMsg",
+        "SimpleAntenna.antennaOutMsg.P_Tx"
+      ],
+      "tx_enable_condition": "PDU_Comm_enabled && linkActive && attemptedDataRate > 0 && antennaState in {TX,RXTX} && P_Tx > 0",
+      "antenna_tx_power_w": 5.0,
+      "base_power_w": 11.0,
+      "base_power_is_separate_pdu_gated_sink": true,
+      "total_active_tx_power_w": 16.0,
+      "idle_power_w": 0.0,
+      "failed_packet_transmissions_consume_tx_power": true,
+      "limitations": [
+        "constant TX-mode draw while an RF attempt is active",
+        "does not model RF PA efficiency, output-power control or rate-dependent DC draw",
+        "antenna P_Tx remains the RF link-budget transmit power, not a DC bus measurement"
+      ]
+    },
+    "adcs_power_model": {
+      "implementation": "Basilisk.simulation.ReactionWheelPower",
+      "input_message": "reactionWheelStateEffector.rwOutMsgs[i]",
+      "input_fields": {
+        "Omega": "rad/s",
+        "u_current": "N*m (applied motor torque)"
+      },
+      "output_message": "PowerNodeUsageMsg",
+      "power_equation": "P_base_i + abs(Omega_i*u_current_i)/elecToMechEfficiency",
+      "base_power_w_total": 12.0,
+      "base_power_w_per_wheel": 4.0,
+      "elec_to_mech_efficiency": 0.75,
+      "mech_to_elec_efficiency": -1.0,
+      "max_power_monitoring_w_total": 120.0,
+      "power_limit_semantics": "monitoring_only_fail_closed_no_actuator_clamp",
+      "pdu_status_message": "project_eps_pdu.adcsStatusOutMsg",
+      "limitations": [
+        "mechanical-work power model; not a winding resistance or bus-voltage circuit model",
+        "does not calculate copper loss, inverter switching loss or motor current dynamics",
+        "base power and conversion efficiency remain explicit engineering assumptions"
+      ]
+    },
+    "thermal_environment": {
+      "model": "finite_spherical_earth_lambertian_v1",
+      "earth_ir_exitance_w_m2": 234.0,
+      "earth_albedo": 0.3,
+      "solar_irradiance_at_au_w_m2": 1361.0,
+      "radial_order": 16,
+      "azimuth_order": 64,
+      "quadrature_backend": "numba_nopython_float64_no_fastmath_no_parallel",
+      "quadrature_runtime": {
+        "numpy": "2.3.5",
+        "numba": "0.63.1",
+        "llvmlite": "0.46.0"
+      },
+      "geometry": "body_nodes_six_equal_faces_wing_actual_eps_normal_two_sides",
+      "panel_front_solar_absorptivity": 0.9,
+      "panel_back_solar_absorptivity": 0.35,
+      "panel_emissivity": "thermal_node_emissivity_both_sides",
+      "panel_area": "EPS_panelArea_each_side",
+      "electrical_energy": "actual_EPS_output_subtracted_from_front_absorbed_solar",
+      "radiator_geometry": "six_equal_faces_effective_area_times_view_factor_when_exposed",
+      "radiator_optics": "node_shortwave_absorptivity_and_radiator_IR_emissivity",
+      "coupling": "explicit_previous_tick_heat_same_as_network_conduction",
+      "assumptions": [
+        "Uniform global IR and albedo; no local weather, land or cloud maps.",
+        "Effective exposed surfaces; no CAD occlusion, cavities or mutual radiation.",
+        "Wing optical values are declared engineering assumptions, not measured hardware data.",
+        "234 W/m2 is a global annual mean, not an instantaneous hot/cold bound.",
+        "Radiator view_factor is treated as an effective exposed-area multiplier."
+      ],
+      "references": [
+        "https://llis.nasa.gov/lesson/693",
+        "https://www.nasa.gov/sites/default/files/atoms/files/std8070.1.pdf"
+      ]
+    },
+    "thermal_conduction_paths": [
+      {
+        "from_node": "battery",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.5
+      },
+      {
+        "from_node": "battery",
+        "to_node": "electronics",
+        "conductance_w_per_k": 0.3
+      },
+      {
+        "from_node": "electronics",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.8
+      },
+      {
+        "from_node": "electronics",
+        "to_node": "payload",
+        "conductance_w_per_k": 0.4
+      },
+      {
+        "from_node": "electronics",
+        "to_node": "adcs",
+        "conductance_w_per_k": 0.2
+      },
+      {
+        "from_node": "payload",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.3
+      },
+      {
+        "from_node": "adcs",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.4
+      },
+      {
+        "from_node": "solar_panel",
+        "to_node": "structure",
+        "conductance_w_per_k": 2.0
+      },
+      {
+        "from_node": "comm",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.35
+      },
+      {
+        "from_node": "propulsion",
+        "to_node": "structure",
+        "conductance_w_per_k": 0.45
+      }
+    ],
+    "thermal_internal_power_accounting": {
+      "constant_internal_heat_w": 0.0,
+      "housekeeping_allocation": {
+        "battery": 0.1111111111111111,
+        "electronics": 0.4444444444444444,
+        "adcs": 0.16666666666666666,
+        "solar_panel": 0.2777777777777778
+      },
+      "housekeeping_source": "actual_bus_power_message",
+      "thermostats": "full_electrical_power_debited_from_native_battery; heat=electrical*efficiency",
+      "heater_power_authority": "ThermalHeater.electricalPowerOutMsg_per_node; deposited_heat=ThermalHeater.powerOutMsg",
+      "boundary": "unallocated_electrical_to_heat_fraction_outside_lumped_nodes; not_full_electromechanical_conservation"
+    },
+    "final_battery_soc": 0.7903482930636712,
+    "final_storage_bits": 5999920895.0,
+    "energy_bounds_pass": true,
+    "data_bounds_pass": true,
+    "thermal_bounds_pass": true,
+    "coupling_integrity_pass": true,
+    "resource_feedback_closure_status": "PASS",
+    "resource_feedback_bridge_health": {
+      "heater": {
+        "status": "PASS",
+        "sample_count": 11801,
+        "valid_sample_count": 11801,
+        "not_ready_sample_count": 0,
+        "error_count": 0,
+        "errors": [],
+        "power_min_w": 0.0,
+        "power_max_w": 12.0,
+        "power_span_w": 12.0,
+        "activity_min": 0.0,
+        "activity_max": 12.0,
+        "activity_span": 12.0,
+        "positive_activity_sample_count": 1695,
+        "positive_power_sample_count": 1695,
+        "enabled_transition_observed": false,
+        "pdu_state_transition_observed": false,
+        "stimulus_observed": true,
+        "directional_response_pass": true,
+        "directional_violation_count": 0,
+        "directional_violations": [],
+        "source": "ThermalHeater.electricalPowerOutMsg",
+        "input_source": "project_eps_pdu.heaterStatusOutMsg -> ThermalHeater.enableInMsg",
+        "heater_names": [
+          "battery",
+          "electronics"
+        ]
+      },
+      "payload": {
+        "status": "PASS",
+        "sample_count": 11801,
+        "valid_sample_count": 11801,
+        "not_ready_sample_count": 1,
+        "error_count": 0,
+        "errors": [],
+        "power_min_w": 0.0,
+        "power_max_w": 38.0,
+        "power_span_w": 38.0,
+        "activity_min": 0.0,
+        "activity_max": 2500000.0,
+        "activity_span": 2500000.0,
+        "positive_activity_sample_count": 11800,
+        "positive_power_sample_count": 11800,
+        "enabled_transition_observed": false,
+        "stimulus_observed": true,
+        "directional_response_pass": true,
+        "directional_violation_count": 0,
+        "directional_violations": [],
+        "source": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+        "input_source": "simpleInstrument.nodeDataOutMsg + project_eps_pdu.payloadStatusOutMsg"
+      },
+      "adcs": {
+        "status": "PASS",
+        "sample_count": 11801,
+        "valid_sample_count": 11801,
+        "not_ready_sample_count": 0,
+        "error_count": 0,
+        "errors": [],
+        "power_min_w": 12.0,
+        "power_max_w": 20.6449375515882,
+        "power_span_w": 8.6449375515882,
+        "activity_min": 0.0,
+        "activity_max": 6.4837031636911515,
+        "activity_span": 6.4837031636911515,
+        "positive_activity_sample_count": 1429,
+        "positive_power_sample_count": 11801,
+        "enabled_transition_observed": false,
+        "stimulus_observed": true,
+        "directional_response_pass": true,
+        "directional_violation_count": 0,
+        "directional_violations": [],
+        "source": "Basilisk.simulation.ReactionWheelPower",
+        "input_source": "reactionWheelStateEffector.rwOutMsgs"
+      },
+      "comm": {
+        "status": "PASS",
+        "sample_count": 11801,
+        "valid_sample_count": 11800,
+        "error_count": 0,
+        "errors": [],
+        "violation_count": 0,
+        "violations": [],
+        "directional_violation_count": 0,
+        "directional_violations": [],
+        "directional_response_pass": true,
+        "enabled_transition_observed": false,
+        "stimulus_observed": true,
+        "pdu_enabled_sample_count": 11800,
+        "pdu_disabled_sample_count": 0,
+        "tx_enabled_sample_count": 1125,
+        "idle_enabled_sample_count": 10675,
+        "power_min_w": 0.0,
+        "power_max_w": 16.0,
+        "antenna_tx_power_min_w": 5.0,
+        "antenna_tx_power_max_w": 5.0,
+        "expected_tx_power_w": 16.0,
+        "base_power_w": 11.0,
+        "antenna_tx_power_w": 5.0,
+        "tx_enable_condition": "pdu_comm_enabled && linkActive && attemptedDataRate > 0 && physical_antenna_state in {TX,RXTX} && P_Tx > 0",
+        "source": "Basilisk.simulation.antennaPower.AntennaPower",
+        "antenna_input": "DownlinkAntennaStatusAdapter.antennaPowerOutMsg",
+        "antenna_source": "SimpleAntenna.antennaOutMsg",
+        "base_power_node": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+        "status_adapter": "DownlinkAntennaStatusAdapter"
+      }
+    },
+    "causal_requirement_evidence_status": "NOT_REQUIRED",
+    "coupling_causality_status": "NOT_EVALUATED_PAIRED_RUN_REQUIRED",
+    "coupling_claim_scope": "single_run_wiring_numerics_conservation_and_response_observation_only",
+    "causal_requirement_evidence": {
+      "status": "NOT_REQUIRED",
+      "requirements": [],
+      "claim_scope": "no_explicit_causal_requirement_declared_for_this_run",
+      "paired_run_required_for_causal_pass": true
+    },
+    "pdu_payload_feedback_observed": false,
+    "pdu_comm_feedback_observed": false,
+    "adcs_dynamic_power_observed": true,
+    "payload_dynamic_power_observed": true,
+    "comm_dynamic_power_observed": true,
+    "heater_pdu_power_feedback_observed": false,
+    "propulsion_enabled": false,
+    "runtime_event_count": 0,
+    "fault_environment_episode_count": 0,
+    "physical_effect_verified_count": 0,
+    "power_authority_inventory": {
+      "schema_version": "sat-sim.power-authority-inventory.v1",
+      "runtime": "basilisk.unified_native",
+      "status": "PASS",
+      "counts_scope": "unique_model_and_electrical_output_message",
+      "connection_evidence_scope": "builder_supplied_recorder_and_destination_labels",
+      "scheduled_census_provided": true,
+      "authorities": [
+        {
+          "provider_id": "electrical_provider_1",
+          "model_class": "Basilisk.simulation.simpleSolarPanel.SimpleSolarPanel",
+          "model_tag": "solar_panel",
+          "origin": "official",
+          "output_attr": "nodePowerOutMsg",
+          "output_attrs": [
+            "nodePowerOutMsg"
+          ],
+          "role": "solar_generation",
+          "roles": [
+            "solar_generation"
+          ],
+          "registered": true,
+          "scheduled": true,
+          "recorder_names": [
+            "panel"
+          ],
+          "thermal_destinations": [],
+          "assumptions": [
+            "Native implementation origin does not establish hardware calibration.",
+            "Configured nodePowerOut=0; parameter/model assumption."
+          ],
+          "message_evidence": {
+            "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+            "written": true,
+            "read_status": "VALID",
+            "source_time_ns": 3540000000000,
+            "error": null,
+            "net_power_w": 0.0
+          },
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {},
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          }
+        },
+        {
+          "provider_id": "electrical_provider_2",
+          "model_class": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+          "model_tag": "bus_power",
+          "origin": "official",
+          "output_attr": "nodePowerOutMsg",
+          "output_attrs": [
+            "nodePowerOutMsg"
+          ],
+          "role": "eps_bus_load",
+          "roles": [
+            "eps_bus_load"
+          ],
+          "registered": true,
+          "scheduled": true,
+          "recorder_names": [
+            "bus_power"
+          ],
+          "thermal_destinations": [
+            "adcs",
+            "battery",
+            "electronics",
+            "solar_panel"
+          ],
+          "assumptions": [
+            "Native implementation origin does not establish hardware calibration.",
+            "Configured nodePowerOut=-18; parameter/model assumption."
+          ],
+          "message_evidence": {
+            "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+            "written": true,
+            "read_status": "VALID",
+            "source_time_ns": 3540000000000,
+            "error": null,
+            "net_power_w": -18.0
+          },
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {},
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          }
+        },
+        {
+          "provider_id": "electrical_provider_3",
+          "model_class": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+          "model_tag": "native_payload_power",
+          "origin": "official",
+          "output_attr": "nodePowerOutMsg",
+          "output_attrs": [
+            "nodePowerOutMsg"
+          ],
+          "role": "payload_load",
+          "roles": [
+            "payload_load"
+          ],
+          "registered": true,
+          "scheduled": true,
+          "recorder_names": [
+            "payload_power"
+          ],
+          "thermal_destinations": [
+            "payload"
+          ],
+          "assumptions": [
+            "Native implementation origin does not establish hardware calibration.",
+            "Configured nodePowerOut=-38; parameter/model assumption."
+          ],
+          "message_evidence": {
+            "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+            "written": true,
+            "read_status": "VALID",
+            "source_time_ns": 3540000000000,
+            "error": null,
+            "net_power_w": -38.0
+          },
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {},
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          }
+        },
+        {
+          "provider_id": "electrical_provider_4",
+          "model_class": "Basilisk.simulation.antennaPower.AntennaPower",
+          "model_tag": "native_comm_antenna_power",
+          "origin": "official",
+          "output_attr": "nodePowerOutMsg",
+          "output_attrs": [
+            "nodePowerOutMsg"
+          ],
+          "role": "comm_load",
+          "roles": [
+            "comm_load"
+          ],
+          "registered": true,
+          "scheduled": true,
+          "recorder_names": [
+            "downlink_power"
+          ],
+          "thermal_destinations": [
+            "comm"
+          ],
+          "assumptions": [
+            "Native implementation origin does not establish hardware calibration.",
+            "Configured nodePowerOut=1.9904e-263; parameter/model assumption.",
+            "Configured basePowerNeed=0; parameter/model assumption.",
+            "Native RF power or configured active/idle state profile; no measured flight calibration."
+          ],
+          "message_evidence": {
+            "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+            "written": true,
+            "read_status": "VALID",
+            "source_time_ns": 3540000000000,
+            "error": null,
+            "net_power_w": -0.0
+          },
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {},
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          }
+        },
+        {
+          "provider_id": "electrical_provider_5",
+          "model_class": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+          "model_tag": "native_comm_base_power",
+          "origin": "official",
+          "output_attr": "nodePowerOutMsg",
+          "output_attrs": [
+            "nodePowerOutMsg"
+          ],
+          "role": "comm_load",
+          "roles": [
+            "comm_load"
+          ],
+          "registered": true,
+          "scheduled": true,
+          "recorder_names": [
+            "comm_base_power"
+          ],
+          "thermal_destinations": [
+            "comm"
+          ],
+          "assumptions": [
+            "Native implementation origin does not establish hardware calibration.",
+            "Configured nodePowerOut=-11; parameter/model assumption.",
+            "Native RF power or configured active/idle state profile; no measured flight calibration."
+          ],
+          "message_evidence": {
+            "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+            "written": true,
+            "read_status": "VALID",
+            "source_time_ns": 3540000000000,
+            "error": null,
+            "net_power_w": 0.0
+          },
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {},
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          }
+        },
+        {
+          "provider_id": "electrical_provider_6",
+          "model_class": "Basilisk.simulation.ReactionWheelPower.ReactionWheelPower",
+          "model_tag": "reaction_wheel_power_0",
+          "origin": "official",
+          "output_attr": "nodePowerOutMsg",
+          "output_attrs": [
+            "nodePowerOutMsg"
+          ],
+          "role": "adcs_load",
+          "roles": [
+            "adcs_load"
+          ],
+          "registered": true,
+          "scheduled": true,
+          "recorder_names": [
+            "adcs_power_0"
+          ],
+          "thermal_destinations": [
+            "adcs"
+          ],
+          "assumptions": [
+            "Native implementation origin does not establish hardware calibration.",
+            "Configured nodePowerOut=0; parameter/model assumption.",
+            "Configured basePowerNeed=4; parameter/model assumption.",
+            "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
+            "Configured mechToElecEfficiency=-1; parameter/model assumption."
+          ],
+          "message_evidence": {
+            "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+            "written": true,
+            "read_status": "VALID",
+            "source_time_ns": 3540000000000,
+            "error": null,
+            "net_power_w": -4.0
+          },
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {},
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          }
+        },
+        {
+          "provider_id": "electrical_provider_7",
+          "model_class": "Basilisk.simulation.ReactionWheelPower.ReactionWheelPower",
+          "model_tag": "reaction_wheel_power_1",
+          "origin": "official",
+          "output_attr": "nodePowerOutMsg",
+          "output_attrs": [
+            "nodePowerOutMsg"
+          ],
+          "role": "adcs_load",
+          "roles": [
+            "adcs_load"
+          ],
+          "registered": true,
+          "scheduled": true,
+          "recorder_names": [
+            "adcs_power_1"
+          ],
+          "thermal_destinations": [
+            "adcs"
+          ],
+          "assumptions": [
+            "Native implementation origin does not establish hardware calibration.",
+            "Configured nodePowerOut=0; parameter/model assumption.",
+            "Configured basePowerNeed=4; parameter/model assumption.",
+            "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
+            "Configured mechToElecEfficiency=-1; parameter/model assumption."
+          ],
+          "message_evidence": {
+            "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+            "written": true,
+            "read_status": "VALID",
+            "source_time_ns": 3540000000000,
+            "error": null,
+            "net_power_w": -4.0
+          },
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {},
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          }
+        },
+        {
+          "provider_id": "electrical_provider_8",
+          "model_class": "Basilisk.simulation.ReactionWheelPower.ReactionWheelPower",
+          "model_tag": "reaction_wheel_power_2",
+          "origin": "official",
+          "output_attr": "nodePowerOutMsg",
+          "output_attrs": [
+            "nodePowerOutMsg"
+          ],
+          "role": "adcs_load",
+          "roles": [
+            "adcs_load"
+          ],
+          "registered": true,
+          "scheduled": true,
+          "recorder_names": [
+            "adcs_power_2"
+          ],
+          "thermal_destinations": [
+            "adcs"
+          ],
+          "assumptions": [
+            "Native implementation origin does not establish hardware calibration.",
+            "Configured nodePowerOut=0; parameter/model assumption.",
+            "Configured basePowerNeed=4; parameter/model assumption.",
+            "Configured elecToMechEfficiency=0.75; parameter/model assumption.",
+            "Configured mechToElecEfficiency=-1; parameter/model assumption."
+          ],
+          "message_evidence": {
+            "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+            "written": true,
+            "read_status": "VALID",
+            "source_time_ns": 3540000000000,
+            "error": null,
+            "net_power_w": -4.0
+          },
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {},
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          }
+        },
+        {
+          "provider_id": "electrical_provider_9",
+          "model_class": "subsystems.thermal.thermal_network.ThermalHeater",
+          "model_tag": "batteryHeater",
+          "origin": "project_physical",
+          "output_attr": "electricalPowerOutMsg",
+          "output_attrs": [
+            "electricalPowerOutMsg"
+          ],
+          "role": "heater_load",
+          "roles": [
+            "heater_load"
+          ],
+          "registered": true,
+          "scheduled": true,
+          "recorder_names": [
+            "thermal_heater_electrical_battery"
+          ],
+          "thermal_destinations": [
+            "battery"
+          ],
+          "assumptions": [
+            "Native implementation origin does not establish hardware calibration.",
+            "Project heater owns actual electrical draw; electrical-to-heat efficiency=0.95."
+          ],
+          "message_evidence": {
+            "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+            "written": true,
+            "read_status": "VALID",
+            "source_time_ns": 3540000000000,
+            "error": null,
+            "net_power_w": -12.0
+          },
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {
+              "enable_read_status": "VALID"
+            },
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          }
+        },
+        {
+          "provider_id": "electrical_provider_10",
+          "model_class": "subsystems.thermal.thermal_network.ThermalHeater",
+          "model_tag": "electronicsHeater",
+          "origin": "project_physical",
+          "output_attr": "electricalPowerOutMsg",
+          "output_attrs": [
+            "electricalPowerOutMsg"
+          ],
+          "role": "heater_load",
+          "roles": [
+            "heater_load"
+          ],
+          "registered": true,
+          "scheduled": true,
+          "recorder_names": [
+            "thermal_heater_electrical_electronics"
+          ],
+          "thermal_destinations": [
+            "electronics"
+          ],
+          "assumptions": [
+            "Native implementation origin does not establish hardware calibration.",
+            "Project heater owns actual electrical draw; electrical-to-heat efficiency=0.95."
+          ],
+          "message_evidence": {
+            "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+            "written": true,
+            "read_status": "VALID",
+            "source_time_ns": 3540000000000,
+            "error": null,
+            "net_power_w": -0.0
+          },
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {
+              "enable_read_status": "VALID"
+            },
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          }
+        }
+      ],
+      "status_adapters": [
+        {
+          "model_class": "integration.resource_feedback.PayloadActivityStatusAdapter",
+          "model_tag": "project_payload_activity_status_adapter",
+          "origin": "project_physical",
+          "role": "status_adapter",
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {
+              "last_sample_input_status": "VALID"
+            },
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          },
+          "outputs": {
+            "activeStatusOutMsg": {
+              "message_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsg",
+              "written": true,
+              "read_status": "VALID",
+              "source_time_ns": 3540000000000,
+              "error": null
+            }
+          }
+        },
+        {
+          "model_class": "integration.resource_feedback.DownlinkAntennaStatusAdapter",
+          "model_tag": "project_comm_downlink_status_adapter",
+          "origin": "project_physical",
+          "role": "status_adapter",
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {
+              "last_sample_input_status": "VALID"
+            },
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          },
+          "outputs": {
+            "antennaPowerOutMsg": {
+              "message_class": "Basilisk.architecture.messaging.AntennaLogMsgPayload.AntennaLogMsg",
+              "written": true,
+              "read_status": "VALID",
+              "source_time_ns": 3540000000000,
+              "error": null
+            },
+            "idleStatusOutMsg": {
+              "message_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsg",
+              "written": true,
+              "read_status": "VALID",
+              "source_time_ns": 3540000000000,
+              "error": null
+            },
+            "txStatusOutMsg": {
+              "message_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsg",
+              "written": true,
+              "read_status": "VALID",
+              "source_time_ns": 3540000000000,
+              "error": null
+            }
+          }
+        }
+      ],
+      "thermal_bridges": [
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "batteryThermalPowerBridge",
+          "origin": "project_physical",
+          "role": "thermal_bridge",
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {
+              "input_read_status": "VALID"
+            },
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          },
+          "outputs": {
+            "heatOutMsg": {
+              "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+              "written": true,
+              "read_status": "VALID",
+              "source_time_ns": 3540000000000,
+              "error": null
+            }
+          }
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "electronicsThermalPowerBridge",
+          "origin": "project_physical",
+          "role": "thermal_bridge",
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {
+              "input_read_status": "VALID"
+            },
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          },
+          "outputs": {
+            "heatOutMsg": {
+              "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+              "written": true,
+              "read_status": "VALID",
+              "source_time_ns": 3540000000000,
+              "error": null
+            }
+          }
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "payloadThermalPowerBridge",
+          "origin": "project_physical",
+          "role": "thermal_bridge",
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {
+              "input_read_status": "VALID"
+            },
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          },
+          "outputs": {
+            "heatOutMsg": {
+              "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+              "written": true,
+              "read_status": "VALID",
+              "source_time_ns": 3540000000000,
+              "error": null
+            }
+          }
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "adcsThermalPowerBridge",
+          "origin": "project_physical",
+          "role": "thermal_bridge",
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {
+              "input_read_status": "VALID"
+            },
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          },
+          "outputs": {
+            "heatOutMsg": {
+              "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+              "written": true,
+              "read_status": "VALID",
+              "source_time_ns": 3540000000000,
+              "error": null
+            }
+          }
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "solar_panelThermalPowerBridge",
+          "origin": "project_physical",
+          "role": "thermal_bridge",
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {
+              "input_read_status": "VALID"
+            },
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          },
+          "outputs": {
+            "heatOutMsg": {
+              "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+              "written": true,
+              "read_status": "VALID",
+              "source_time_ns": 3540000000000,
+              "error": null
+            }
+          }
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "commThermalPowerBridge",
+          "origin": "project_physical",
+          "role": "thermal_bridge",
+          "model_read_evidence": {
+            "status": "VALID",
+            "signals": {
+              "input_read_status": "VALID"
+            },
+            "input_error_count": 0,
+            "retained_error_sample_count": 0,
+            "errors": []
+          },
+          "outputs": {
+            "heatOutMsg": {
+              "message_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsg",
+              "written": true,
+              "read_status": "VALID",
+              "source_time_ns": 3540000000000,
+              "error": null
+            }
+          }
+        }
+      ],
+      "scheduled_models": [
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.NativeEventStatus",
+          "model_tag": "project_native_event_status",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.spacecraft.Spacecraft",
+          "model_tag": "spacecraft",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.reactionWheelStateEffector.ReactionWheelStateEffector",
+          "model_tag": "reaction_wheels",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.eclipse.Eclipse",
+          "model_tag": "eclipse",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.starTracker.StarTracker",
+          "model_tag": "star_tracker",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.imuSensor.ImuSensor",
+          "model_tag": "imu",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.coarseSunSensor.CoarseSunSensor",
+          "model_tag": "coarse_sun_sensor",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.EarthHorizonSensor",
+          "model_tag": "project_earth_horizon_sensor",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.SunDirectionSensor",
+          "model_tag": "project_sun_direction_sensor",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.magneticFieldCenteredDipole.MagneticFieldCenteredDipole",
+          "model_tag": "magnetic_field",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.magnetometer.Magnetometer",
+          "model_tag": "magnetometer",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.ImuFaultInjector",
+          "model_tag": "project_imu_fault_injector",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.StarTrackerFaultInjector",
+          "model_tag": "project_star_tracker_fault_injector",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.SunVectorFaultInjector",
+          "model_tag": "project_sun_vector_fault_injector",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.AdcsSensorFusion",
+          "model_tag": "project_adcs_sensor_fusion",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.ReactionWheelSpeedFaultInjector",
+          "model_tag": "project_rw_speed_fault_injector",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.fswAlgorithms.inertial3D.inertial3D",
+          "model_tag": "inertial_guidance",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.fswAlgorithms.attTrackingError.attTrackingError",
+          "model_tag": "attitude_error",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.fswAlgorithms.mrpFeedback.mrpFeedback",
+          "model_tag": "mrp_feedback",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.fswAlgorithms.rwMotorTorque.rwMotorTorque",
+          "model_tag": "rw_motor_torque",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.ReactionWheelCommandFaultManager",
+          "model_tag": "project_rw_command_fault_manager",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.simpleSolarPanel.SimpleSolarPanel",
+          "model_tag": "solar_panel",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": [
+            "electrical_provider_1"
+          ]
+        },
+        {
+          "model_class": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+          "model_tag": "bus_power",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": [
+            "electrical_provider_2"
+          ]
+        },
+        {
+          "model_class": "Basilisk.simulation.simpleBattery.SimpleBattery",
+          "model_tag": "battery",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "components.pdu.builder.ConstantDeviceRequest",
+          "model_tag": "project_payload_power_request",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "components.pdu.builder.ConstantDeviceRequest",
+          "model_tag": "project_adcs_power_request",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "components.pdu.builder.ConstantDeviceRequest",
+          "model_tag": "project_comm_power_request",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "components.pdu.builder.ConstantDeviceRequest",
+          "model_tag": "project_heater_power_request",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "components.pdu.builder.PduLoadSheddingSysModel",
+          "model_tag": "project_eps_pdu",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.PowerDataModeGate",
+          "model_tag": "project_power_data_mode_gate",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.simpleInstrument.SimpleInstrument",
+          "model_tag": "payload_instrument",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.groundLocation.GroundLocation",
+          "model_tag": "ground_location",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.simpleAntenna.SimpleAntenna",
+          "model_tag": "spacecraft_antenna",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.simpleAntenna.SimpleAntenna",
+          "model_tag": "ground_antenna",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.linkBudget.LinkBudget",
+          "model_tag": "native_link_budget",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.NativeRfDownlinkGate",
+          "model_tag": "project_native_rf_downlink_gate",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.downlinkHandling.DownlinkHandling",
+          "model_tag": "native_downlink_handling",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.simpleStorageUnit.SimpleStorageUnit",
+          "model_tag": "storage",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.ReactionWheelPower.ReactionWheelPower",
+          "model_tag": "reaction_wheel_power_0",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": [
+            "electrical_provider_6"
+          ]
+        },
+        {
+          "model_class": "Basilisk.simulation.ReactionWheelPower.ReactionWheelPower",
+          "model_tag": "reaction_wheel_power_1",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": [
+            "electrical_provider_7"
+          ]
+        },
+        {
+          "model_class": "Basilisk.simulation.ReactionWheelPower.ReactionWheelPower",
+          "model_tag": "reaction_wheel_power_2",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": [
+            "electrical_provider_8"
+          ]
+        },
+        {
+          "model_class": "integration.resource_feedback.PayloadActivityStatusAdapter",
+          "model_tag": "project_payload_activity_status_adapter",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+          "model_tag": "native_payload_power",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": [
+            "electrical_provider_3"
+          ]
+        },
+        {
+          "model_class": "integration.resource_feedback.DownlinkAntennaStatusAdapter",
+          "model_tag": "project_comm_downlink_status_adapter",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.simulation.antennaPower.AntennaPower",
+          "model_tag": "native_comm_antenna_power",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": [
+            "electrical_provider_4"
+          ]
+        },
+        {
+          "model_class": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+          "model_tag": "native_comm_base_power",
+          "origin": "official",
+          "kind": "model",
+          "electrical_provider_ids": [
+            "electrical_provider_5"
+          ]
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalNode",
+          "model_tag": "batteryThermalNode",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalNode",
+          "model_tag": "electronicsThermalNode",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalNode",
+          "model_tag": "payloadThermalNode",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalNode",
+          "model_tag": "adcsThermalNode",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalNode",
+          "model_tag": "structureThermalNode",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalNode",
+          "model_tag": "solar_panelThermalNode",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalNode",
+          "model_tag": "commThermalNode",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalNode",
+          "model_tag": "propulsionThermalNode",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalHeater",
+          "model_tag": "batteryHeater",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": [
+            "electrical_provider_9"
+          ]
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalHeater",
+          "model_tag": "electronicsHeater",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": [
+            "electrical_provider_10"
+          ]
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalRadiator",
+          "model_tag": "electronicsRadiator",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalRadiator",
+          "model_tag": "payloadRadiator",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "batteryThermalPowerBridge",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "electronicsThermalPowerBridge",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "payloadThermalPowerBridge",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "adcsThermalPowerBridge",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "solar_panelThermalPowerBridge",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+          "model_tag": "commThermalPowerBridge",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network._ThermalPowerSampler",
+          "model_tag": "batteryThermalPowerSampler",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network._ThermalPowerSampler",
+          "model_tag": "electronicsThermalPowerSampler",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network._ThermalPowerSampler",
+          "model_tag": "payloadThermalPowerSampler",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network._ThermalPowerSampler",
+          "model_tag": "adcsThermalPowerSampler",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network._ThermalPowerSampler",
+          "model_tag": "solar_panelThermalPowerSampler",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network._ThermalPowerSampler",
+          "model_tag": "commThermalPowerSampler",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "subsystems.thermal.thermal_network.ThermalNetworkSysModel",
+          "model_tag": "ThermalNetwork",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "sat_sim.bsk_engine.project_native_modules.WholeSpacecraftParameterEventController",
+          "model_tag": "project_whole_parameter_event_controller",
+          "origin": "project_physical",
+          "kind": "model",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.SCStatesMsgPayload.SCStatesMsgRecorder",
+          "model_tag": "Rec:SCStatesMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.AttGuidMsgPayload.AttGuidMsgRecorder",
+          "model_tag": "Rec:AttGuidMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.RWSpeedMsgPayload.RWSpeedMsgRecorder",
+          "model_tag": "Rec:RWSpeedMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.RWSpeedMsgPayload.RWSpeedMsgRecorder",
+          "model_tag": "Rec:RWSpeedMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.ArrayMotorTorqueMsgPayload.ArrayMotorTorqueMsgRecorder",
+          "model_tag": "Rec:ArrayMotorTorqueMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.ArrayMotorTorqueMsgPayload.ArrayMotorTorqueMsgRecorder",
+          "model_tag": "Rec:ArrayMotorTorqueMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.ArrayMotorTorqueMsgPayload.ArrayMotorTorqueMsgRecorder",
+          "model_tag": "Rec:ArrayMotorTorqueMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.ArrayMotorTorqueMsgPayload.ArrayMotorTorqueMsgRecorder",
+          "model_tag": "Rec:ArrayMotorTorqueMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.RWSpeedMsgPayload.RWSpeedMsgRecorder",
+          "model_tag": "Rec:RWSpeedMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.STSensorMsgPayload.STSensorMsgRecorder",
+          "model_tag": "Rec:STSensorMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.STSensorMsgPayload.STSensorMsgRecorder",
+          "model_tag": "Rec:STSensorMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.IMUSensorMsgPayload.IMUSensorMsgRecorder",
+          "model_tag": "Rec:IMUSensorMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.IMUSensorMsgPayload.IMUSensorMsgRecorder",
+          "model_tag": "Rec:IMUSensorMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.IMUSensorMsgPayload.IMUSensorMsgRecorder",
+          "model_tag": "Rec:IMUSensorMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.IMUSensorMsgPayload.IMUSensorMsgRecorder",
+          "model_tag": "Rec:IMUSensorMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.TAMSensorMsgPayload.TAMSensorMsgRecorder",
+          "model_tag": "Rec:TAMSensorMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.MagneticFieldMsgPayload.MagneticFieldMsgRecorder",
+          "model_tag": "Rec:MagneticFieldMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.CSSRawDataMsgPayload.CSSRawDataMsgRecorder",
+          "model_tag": "Rec:CSSRawDataMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.TAMSensorMsgPayload.TAMSensorMsgRecorder",
+          "model_tag": "Rec:TAMSensorMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.TAMSensorMsgPayload.TAMSensorMsgRecorder",
+          "model_tag": "Rec:TAMSensorMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.NavAttMsgPayload.NavAttMsgRecorder",
+          "model_tag": "Rec:NavAttMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.TAMSensorMsgPayload.TAMSensorMsgRecorder",
+          "model_tag": "Rec:TAMSensorMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.TAMSensorMsgPayload.TAMSensorMsgRecorder",
+          "model_tag": "Rec:TAMSensorMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.EclipseMsgPayload.EclipseMsgRecorder",
+          "model_tag": "Rec:EclipseMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.RWConfigLogMsgPayload.RWConfigLogMsgRecorder",
+          "model_tag": "Rec:RWConfigLogMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.RWConfigLogMsgPayload.RWConfigLogMsgRecorder",
+          "model_tag": "Rec:RWConfigLogMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.RWConfigLogMsgPayload.RWConfigLogMsgRecorder",
+          "model_tag": "Rec:RWConfigLogMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.PowerStorageStatusMsgPayload.PowerStorageStatusMsgRecorder",
+          "model_tag": "Rec:PowerStorageStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsgRecorder",
+          "model_tag": "Rec:PowerNodeUsageMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsgRecorder",
+          "model_tag": "Rec:PowerNodeUsageMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsgRecorder",
+          "model_tag": "Rec:PowerNodeUsageMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsgRecorder",
+          "model_tag": "Rec:PowerNodeUsageMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsgRecorder",
+          "model_tag": "Rec:PowerNodeUsageMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DataNodeUsageMsgPayload.DataNodeUsageMsgRecorder",
+          "model_tag": "Rec:DataNodeUsageMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DataStorageStatusMsgPayload.DataStorageStatusMsgRecorder",
+          "model_tag": "Rec:DataStorageStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.AccessMsgPayload.AccessMsgRecorder",
+          "model_tag": "Rec:AccessMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.LinkBudgetMsgPayload.LinkBudgetMsgRecorder",
+          "model_tag": "Rec:LinkBudgetMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.LinkBudgetMsgPayload.LinkBudgetMsgRecorder",
+          "model_tag": "Rec:LinkBudgetMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DownlinkHandlingMsgPayload.DownlinkHandlingMsgRecorder",
+          "model_tag": "Rec:DownlinkHandlingMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsgRecorder",
+          "model_tag": "Rec:PowerNodeUsageMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsgRecorder",
+          "model_tag": "Rec:PowerNodeUsageMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsgRecorder",
+          "model_tag": "Rec:PowerNodeUsageMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsgRecorder",
+          "model_tag": "Rec:PowerNodeUsageMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.PowerNodeUsageMsgPayload.PowerNodeUsageMsgRecorder",
+          "model_tag": "Rec:PowerNodeUsageMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        },
+        {
+          "model_class": "Basilisk.architecture.messaging.DeviceStatusMsgPayload.DeviceStatusMsgRecorder",
+          "model_tag": "Rec:DeviceStatusMsg",
+          "origin": "official",
+          "kind": "recorder",
+          "electrical_provider_ids": []
+        }
+      ],
+      "counts": {
+        "electrical_provider_count": 10,
+        "official_provider_count": 8,
+        "project_physical_provider_count": 2,
+        "engineering_proxy_provider_count": 0,
+        "unknown_provider_count": 0,
+        "unregistered_provider_count": 0,
+        "status_adapter_count": 2,
+        "thermal_bridge_count": 6,
+        "scheduled_model_count": 153,
+        "scheduled_recorder_count": 81
+      },
+      "errors": []
+    },
+    "resource_closure_evidence": {
+      "scope": "electrical authority census and measured internal-heat transfer",
+      "status": "PASS",
+      "thermal_transfer": {
+        "schema_version": "sat-sim.thermal-resource-evidence.v1",
+        "status": "PASS",
+        "scope": "actual electrical/converted-heater inputs through bridges into receiving thermal integrators",
+        "pending_semantics": "sampled energy after the last actual thermal update; not yet deposited",
+        "heat_fraction_semantics": "declared engineering assumptions, not flight-calibrated conversion",
+        "nodes": [
+          {
+            "node": "adcs",
+            "bridge_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+            "status": "PASS",
+            "electrical_sampling": "native_dynamics_zero_order_hold",
+            "native_power_sample_count": 35402,
+            "power_observed_until_s": 3540.0,
+            "thermal_consumed_until_s": 3540.0,
+            "published_heat_energy_j": 48924.05510539769,
+            "received_heat_energy_j": 48924.05510539769,
+            "pending_heat_energy_j": 0.0,
+            "transfer_residual_j": 0.0,
+            "transfer_tolerance_j": 4.892405510539769e-06,
+            "input_error_count": 0,
+            "errors": [],
+            "sources": [
+              {
+                "label": "adcs_rw_0",
+                "consumed_input_energy_j": 14211.971683182068,
+                "deposited_heat_energy_j": 12790.774514875633,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "electrical_power_magnitude"
+              },
+              {
+                "label": "adcs_rw_1",
+                "consumed_input_energy_j": 14175.41859925777,
+                "deposited_heat_energy_j": 12757.876739343657,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "electrical_power_magnitude"
+              },
+              {
+                "label": "adcs_rw_2",
+                "consumed_input_energy_j": 14172.670945799182,
+                "deposited_heat_energy_j": 12755.403851230913,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "electrical_power_magnitude"
+              },
+              {
+                "label": "bus_adcs",
+                "consumed_input_energy_j": 63720.000000040694,
+                "deposited_heat_energy_j": 10620.000000009417,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "electrical_power_magnitude"
+              }
+            ]
+          },
+          {
+            "node": "battery",
+            "bridge_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+            "status": "PASS",
+            "electrical_sampling": "native_dynamics_zero_order_hold",
+            "native_power_sample_count": 35402,
+            "power_observed_until_s": 3540.0,
+            "thermal_consumed_until_s": 3540.0,
+            "published_heat_energy_j": 12875.760000006241,
+            "received_heat_energy_j": 12875.760000006241,
+            "pending_heat_energy_j": 0.0,
+            "transfer_residual_j": 0.0,
+            "transfer_tolerance_j": 1.2875760000006242e-06,
+            "input_error_count": 0,
+            "errors": [],
+            "sources": [
+              {
+                "label": "bus_battery",
+                "consumed_input_energy_j": 63720.000000040694,
+                "deposited_heat_energy_j": 7080.0000000091995,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "electrical_power_magnitude"
+              },
+              {
+                "label": "heater.battery",
+                "consumed_input_energy_j": 5795.760000000339,
+                "deposited_heat_energy_j": 5795.760000000339,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "already_converted_heater_heat"
+              }
+            ]
+          },
+          {
+            "node": "comm",
+            "bridge_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+            "status": "PASS",
+            "electrical_sampling": "native_dynamics_zero_order_hold",
+            "native_power_sample_count": 35402,
+            "power_observed_until_s": 3540.0,
+            "thermal_consumed_until_s": 3540.0,
+            "published_heat_energy_j": 4861.43999999981,
+            "received_heat_energy_j": 4861.43999999981,
+            "pending_heat_energy_j": 0.0,
+            "transfer_residual_j": 0.0,
+            "transfer_tolerance_j": 4.861439999999811e-07,
+            "input_error_count": 0,
+            "errors": [],
+            "sources": [
+              {
+                "label": "comm_antenna_tx",
+                "consumed_input_energy_j": 1688.0,
+                "deposited_heat_energy_j": 1519.2000000000926,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "electrical_power_magnitude"
+              },
+              {
+                "label": "comm_base_tx",
+                "consumed_input_energy_j": 3713.5999999997925,
+                "deposited_heat_energy_j": 3342.23999999972,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "electrical_power_magnitude"
+              }
+            ]
+          },
+          {
+            "node": "electronics",
+            "bridge_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+            "status": "PASS",
+            "electrical_sampling": "native_dynamics_zero_order_hold",
+            "native_power_sample_count": 35402,
+            "power_observed_until_s": 3540.0,
+            "thermal_consumed_until_s": 3540.0,
+            "published_heat_energy_j": 28320.000000036798,
+            "received_heat_energy_j": 28320.000000036798,
+            "pending_heat_energy_j": 0.0,
+            "transfer_residual_j": 0.0,
+            "transfer_tolerance_j": 2.83200000000368e-06,
+            "input_error_count": 0,
+            "errors": [],
+            "sources": [
+              {
+                "label": "bus_electronics",
+                "consumed_input_energy_j": 63720.000000040694,
+                "deposited_heat_energy_j": 28320.000000036798,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "electrical_power_magnitude"
+              },
+              {
+                "label": "heater.electronics",
+                "consumed_input_energy_j": 0.0,
+                "deposited_heat_energy_j": 0.0,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "already_converted_heater_heat"
+              }
+            ]
+          },
+          {
+            "node": "payload",
+            "bridge_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+            "status": "PASS",
+            "electrical_sampling": "native_dynamics_zero_order_hold",
+            "native_power_sample_count": 35402,
+            "power_observed_until_s": 3540.0,
+            "thermal_consumed_until_s": 3540.0,
+            "published_heat_energy_j": 127790.39000000422,
+            "received_heat_energy_j": 127790.39000000422,
+            "pending_heat_energy_j": 0.0,
+            "transfer_residual_j": 0.0,
+            "transfer_tolerance_j": 1.2779039000000423e-05,
+            "input_error_count": 0,
+            "errors": [],
+            "sources": [
+              {
+                "label": "payload.instrument_active",
+                "consumed_input_energy_j": 134516.20000006031,
+                "deposited_heat_energy_j": 127790.39000000422,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "electrical_power_magnitude"
+              }
+            ]
+          },
+          {
+            "node": "solar_panel",
+            "bridge_class": "subsystems.thermal.thermal_network.ThermalPowerBridge",
+            "status": "PASS",
+            "electrical_sampling": "native_dynamics_zero_order_hold",
+            "native_power_sample_count": 35402,
+            "power_observed_until_s": 3540.0,
+            "thermal_consumed_until_s": 3540.0,
+            "published_heat_energy_j": 17700.0,
+            "received_heat_energy_j": 17700.0,
+            "pending_heat_energy_j": 0.0,
+            "transfer_residual_j": 0.0,
+            "transfer_tolerance_j": 1.77e-06,
+            "input_error_count": 0,
+            "errors": [],
+            "sources": [
+              {
+                "label": "bus_solar_panel",
+                "consumed_input_energy_j": 63720.000000040694,
+                "deposited_heat_energy_j": 17700.0,
+                "pending_input_energy_j": 0.0,
+                "pending_heat_energy_j": 0.0,
+                "input_quantity": "electrical_power_magnitude"
+              }
+            ]
+          }
+        ],
+        "heaters": [
+          {
+            "node": "battery",
+            "status": "PASS",
+            "errors": [],
+            "source": "actual owner held electrical output over completed thermal intervals",
+            "electrical_energy_j": 6100.799999999441,
+            "deposited_heat_energy_j": 5795.760000000339,
+            "efficiency": 0.95,
+            "conversion_residual_j": 8.703864295966923e-10,
+            "bridge_received_heater_heat_j": 5795.760000000339,
+            "completed_until_s": 3540.0,
+            "power_observed_until_s": 3540.0,
+            "pending_electrical_energy_j": 0.0,
+            "pending_heat_energy_j": 0.0
+          },
+          {
+            "node": "electronics",
+            "status": "PASS",
+            "errors": [],
+            "source": "actual owner held electrical output over completed thermal intervals",
+            "electrical_energy_j": 0.0,
+            "deposited_heat_energy_j": 0.0,
+            "efficiency": 0.95,
+            "conversion_residual_j": 0.0,
+            "bridge_received_heater_heat_j": 0.0,
+            "completed_until_s": 3540.0,
+            "power_observed_until_s": 3540.0,
+            "pending_electrical_energy_j": 0.0,
+            "pending_heat_energy_j": 0.0
+          }
+        ],
+        "source_routes": [
+          {
+            "source_id": "thermal_input_0",
+            "heat_fraction_sum": 1.0,
+            "destinations": [
+              {
+                "node": "adcs",
+                "label": "bus_adcs",
+                "heat_fraction": 0.16666666666666666
+              },
+              {
+                "node": "battery",
+                "label": "bus_battery",
+                "heat_fraction": 0.1111111111111111
+              },
+              {
+                "node": "electronics",
+                "label": "bus_electronics",
+                "heat_fraction": 0.4444444444444444
+              },
+              {
+                "node": "solar_panel",
+                "label": "bus_solar_panel",
+                "heat_fraction": 0.2777777777777778
+              }
+            ]
+          },
+          {
+            "source_id": "thermal_input_1",
+            "heat_fraction_sum": 0.9,
+            "destinations": [
+              {
+                "node": "adcs",
+                "label": "adcs_rw_0",
+                "heat_fraction": 0.9
+              }
+            ]
+          },
+          {
+            "source_id": "thermal_input_2",
+            "heat_fraction_sum": 0.9,
+            "destinations": [
+              {
+                "node": "adcs",
+                "label": "adcs_rw_1",
+                "heat_fraction": 0.9
+              }
+            ]
+          },
+          {
+            "source_id": "thermal_input_3",
+            "heat_fraction_sum": 0.9,
+            "destinations": [
+              {
+                "node": "adcs",
+                "label": "adcs_rw_2",
+                "heat_fraction": 0.9
+              }
+            ]
+          },
+          {
+            "source_id": "thermal_input_4",
+            "heat_fraction_sum": 1.0,
+            "destinations": [
+              {
+                "node": "battery",
+                "label": "heater.battery",
+                "heat_fraction": 1.0
+              }
+            ]
+          },
+          {
+            "source_id": "thermal_input_5",
+            "heat_fraction_sum": 0.9,
+            "destinations": [
+              {
+                "node": "comm",
+                "label": "comm_antenna_tx",
+                "heat_fraction": 0.9
+              }
+            ]
+          },
+          {
+            "source_id": "thermal_input_6",
+            "heat_fraction_sum": 0.9,
+            "destinations": [
+              {
+                "node": "comm",
+                "label": "comm_base_tx",
+                "heat_fraction": 0.9
+              }
+            ]
+          },
+          {
+            "source_id": "thermal_input_7",
+            "heat_fraction_sum": 1.0,
+            "destinations": [
+              {
+                "node": "electronics",
+                "label": "heater.electronics",
+                "heat_fraction": 1.0
+              }
+            ]
+          },
+          {
+            "source_id": "thermal_input_8",
+            "heat_fraction_sum": 0.95,
+            "destinations": [
+              {
+                "node": "payload",
+                "label": "payload.instrument_active",
+                "heat_fraction": 0.95
+              }
+            ]
+          }
+        ],
+        "routing_errors": [],
+        "published_heat_energy_j": 240471.64510544477,
+        "received_heat_energy_j": 240471.64510544477,
+        "pending_external_heat_energy_j": 0.0,
+        "pending_heater_heat_energy_j": 0.0,
+        "pending_heat_energy_j": 0.0
+      }
+    },
+    "module_count_scope": "legacy construction ledger; full scheduled census in power_authority_inventory.scheduled_models"
+  },
+  "model_telemetry": {
+    "file": "model_telemetry.csv.gz",
+    "sha256": "be8831bb0c944242ca073cc9212115ece95dc92607194853234b9dd942e7b44e",
+    "size_bytes": 2523204
+  },
+  "statistics_definition": "等间隔采样算术均值、总体标准差(ddof=0)、线性分位数、最小二乘线性趋势；末600秒仅诊断，不替代全窗",
+  "eps_scope": {
+    "current_channels_available": false,
+    "voltage_available": false,
+    "power_is_not_current": true,
+    "charge_current_limiter_available": false,
+    "invalid_zero_startup_rows_excluded_from_power_statistics": 1,
+    "positive_net_power_sample_fraction": 0.5235593220338983,
+    "negative_net_power_sample_fraction": 0.4764406779661017,
+    "zero_net_power_sample_fraction": 0.0,
+    "fraction_scope": "功率符号采样比例，不是参考调节器充放电占空比；正净输入不保证满电池仍吸收能量",
+    "startup_exclusion_scope": "仅电池相关字段；原生全零或Unified展示floor，限t=0且E=P=0；太阳阵首帧单独保留"
+  },
+  "attitude_scope": "本模型B相对N的真实角速度在B系表达；欧拉角由官方MRP2Euler321生成、先弧度展开再转度；参考坐标及旋转顺序未知",
+  "fields": {
+    "eps.net_power_w": {
+      "full_window": {
+        "sample_count": 11800,
+        "start_s": 0.30000000000000004,
+        "end_s": 3540.0,
+        "mean": 426.6440441104101,
+        "median": 868.6361134411641,
+        "std_population": 475.90582891464817,
+        "rms": 639.1490423757389,
+        "minimum": -80.0,
+        "maximum": 884.7831771025559,
+        "max_absolute": 884.7831771025559,
+        "p01_p05_p95_p99": [
+          -80.0,
+          -80.0,
+          884.7756521597194,
+          884.7819213593519
+        ],
+        "linear_slope_per_hour": -1450.832401208186
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -78.16491754122939,
+        "median": -80.0,
+        "std_population": 4.318965370868325,
+        "rms": 78.28414779571882,
+        "minimum": -80.0,
+        "maximum": -68.0,
+        "max_absolute": 80.0,
+        "p01_p05_p95_p99": [
+          -80.0,
+          -80.0,
+          -68.0,
+          -68.0
+        ],
+        "linear_slope_per_hour": -55.932433383707746
+      }
+    },
+    "eps.solar_array_power_w": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 497.95590883941463,
+        "median": 952.6703253469371,
+        "std_population": 475.544601723567,
+        "rms": 688.5512002578411,
+        "minimum": 0.0,
+        "maximum": 952.7890746849617,
+        "max_absolute": 952.7890746849617,
+        "p01_p05_p95_p99": [
+          0.0,
+          0.0,
+          952.7848552238632,
+          952.7873063524547
+        ],
+        "linear_slope_per_hour": -1450.2565796703739
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std_population": 0.0,
+        "rms": 0.0,
+        "minimum": 0.0,
+        "maximum": 0.0,
+        "max_absolute": 0.0,
+        "p01_p05_p95_p99": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "linear_slope_per_hour": 0.0
+      }
+    },
+    "eps.battery_energy_j": {
+      "full_window": {
+        "sample_count": 11800,
+        "start_s": 0.30000000000000004,
+        "end_s": 3540.0,
+        "mean": 540465.6586866647,
+        "median": 565391.6168049561,
+        "std_population": 45308.58661461004,
+        "rms": 542361.4995928674,
+        "minimum": 357386.6012541723,
+        "maximum": 576000.0,
+        "max_absolute": 576000.0,
+        "p01_p05_p95_p99": [
+          388074.7718255521,
+          459943.4168046746,
+          576000.0,
+          576000.0
+        ],
+        "linear_slope_per_hour": -70898.94110437579
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 479156.4782739399,
+        "median": 479240.6168046746,
+        "std_population": 13733.816995900352,
+        "rms": 479353.2605512991,
+        "minimum": 455240.6168046746,
+        "maximum": 502141.41680467466,
+        "max_absolute": 502141.41680467466,
+        "p01_p05_p95_p99": [
+          455720.6168046746,
+          457640.6168046746,
+          500101.41680467466,
+          501733.41680467466
+        ],
+        "linear_slope_per_hour": -285281.00726859365
+      }
+    },
+    "eps.battery_capacity_j": {
+      "full_window": {
+        "sample_count": 11800,
+        "start_s": 0.30000000000000004,
+        "end_s": 3540.0,
+        "mean": 576000.0,
+        "median": 576000.0,
+        "std_population": 0.0,
+        "rms": 576000.0,
+        "minimum": 576000.0,
+        "maximum": 576000.0,
+        "max_absolute": 576000.0,
+        "p01_p05_p95_p99": [
+          576000.0,
+          576000.0,
+          576000.0,
+          576000.0
+        ],
+        "linear_slope_per_hour": 0.0
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 576000.0,
+        "median": 576000.0,
+        "std_population": 0.0,
+        "rms": 576000.0,
+        "minimum": 576000.0,
+        "maximum": 576000.0,
+        "max_absolute": 576000.0,
+        "p01_p05_p95_p99": [
+          576000.0,
+          576000.0,
+          576000.0,
+          576000.0
+        ],
+        "linear_slope_per_hour": 0.0
+      }
+    },
+    "eps.battery_soc": {
+      "full_window": {
+        "sample_count": 11800,
+        "start_s": 0.30000000000000004,
+        "end_s": 3540.0,
+        "mean": 0.9383084352199039,
+        "median": 0.98158266806416,
+        "std_population": 0.07866074065036464,
+        "rms": 0.9415998256820614,
+        "minimum": 0.6204628493996046,
+        "maximum": 1.0,
+        "max_absolute": 1.0,
+        "p01_p05_p95_p99": [
+          0.6737409233082502,
+          0.7985128763970046,
+          1.0,
+          1.0
+        ],
+        "linear_slope_per_hour": -0.12308843941731909
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 0.8318688858922568,
+        "median": 0.8320149597303379,
+        "std_population": 0.023843432284549222,
+        "rms": 0.8322105217904497,
+        "minimum": 0.7903482930636712,
+        "maximum": 0.8717732930636712,
+        "max_absolute": 0.8717732930636712,
+        "p01_p05_p95_p99": [
+          0.7911816263970045,
+          0.7945149597303379,
+          0.8682316263970046,
+          0.8710649597303379
+        ],
+        "linear_slope_per_hour": -0.49527952650797497
+      }
+    },
+    "attitude.truth.omega_BN_B_x": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": -3.90161265010103e-05,
+        "median": -1.0481725941436422e-41,
+        "std_population": 0.000413517373940674,
+        "rms": 0.00041535391737400774,
+        "minimum": -0.0041051992475378525,
+        "maximum": 0.01,
+        "max_absolute": 0.01,
+        "p01_p05_p95_p99": [
+          -0.0018540332072310265,
+          -1.696001358286969e-05,
+          2.6674879062892712e-11,
+          4.428182535152924e-10
+        ],
+        "linear_slope_per_hour": 0.0002316810292459058
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -9.758641424294476e-42,
+        "median": -3.109620614100555e-44,
+        "std_population": 2.6167685542967855e-41,
+        "rms": 2.792810142354122e-41,
+        "minimum": -1.5794802757890157e-40,
+        "maximum": 2.7400017077941234e-49,
+        "max_absolute": 1.5794802757890157e-40,
+        "p01_p05_p95_p99": [
+          -1.3459753590885654e-40,
+          -7.065551826522639e-41,
+          -1.2067268858627041e-48,
+          1.3769753843575918e-49
+        ],
+        "linear_slope_per_hour": 3.085835254655877e-40
+      }
+    },
+    "attitude.truth.omega_BN_B_y": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": -5.3808747364617996e-08,
+        "median": 8.507457602639849e-48,
+        "std_population": 7.757387741020243e-05,
+        "rms": 7.757389607228973e-05,
+        "minimum": -0.004,
+        "maximum": 0.00011183772113774478,
+        "max_absolute": 0.004,
+        "p01_p05_p95_p99": [
+          -5.845873537565644e-13,
+          -6.644209168200986e-14,
+          5.683297493883749e-06,
+          9.526707156294517e-05
+        ],
+        "linear_slope_per_hour": 1.1317529058136377e-06
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -3.957148121753501e-42,
+        "median": 4.6796407717562436e-46,
+        "std_population": 1.279735781997551e-41,
+        "rms": 1.3395200201190932e-41,
+        "minimum": -8.669860058622814e-41,
+        "maximum": 1.2544514426314604e-43,
+        "max_absolute": 8.669860058622814e-41,
+        "p01_p05_p95_p99": [
+          -7.0465480807089e-41,
+          -3.0092777721467075e-41,
+          1.143596469834993e-43,
+          1.2495408815629763e-43
+        ],
+        "linear_slope_per_hour": 1.3079481341480045e-40
+      }
+    },
+    "attitude.truth.omega_BN_B_z": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 4.125346762610292e-07,
+        "median": -2.5475078558206873e-30,
+        "std_population": 3.3120460181049586e-05,
+        "rms": 3.312302926158187e-05,
+        "minimum": -9.641091807748846e-05,
+        "maximum": 0.002,
+        "max_absolute": 0.002,
+        "p01_p05_p95_p99": [
+          -2.8351368831881015e-05,
+          -2.468678738572223e-06,
+          5.1888852952769e-22,
+          5.992664477109021e-21
+        ],
+        "linear_slope_per_hour": -2.777234932790384e-06
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 2.18562358810717e-42,
+        "median": -4.9953254068590035e-48,
+        "std_population": 5.967433248538898e-42,
+        "rms": 6.355093236503927e-42,
+        "minimum": -8.80902931747004e-46,
+        "maximum": 3.599013190950254e-41,
+        "max_absolute": 3.599013190950254e-41,
+        "p01_p05_p95_p99": [
+          -8.778397395204182e-46,
+          -8.120946603562436e-46,
+          1.609641845570369e-41,
+          3.0721282718592866e-41
+        ],
+        "linear_slope_per_hour": -6.954373774279708e-41
+      }
+    },
+    "attitude.truth.mrp_BN_x": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 0.0004616958963785533,
+        "median": 1.1662658646793855e-40,
+        "std_population": 0.003374997857877369,
+        "rms": 0.0034064312177717066,
+        "minimum": -1.0357742620310794e-08,
+        "maximum": 0.04175529667506514,
+        "max_absolute": 0.04175529667506514,
+        "p01_p05_p95_p99": [
+          -8.801598459116234e-09,
+          -4.766690258569769e-10,
+          0.00014390331136658008,
+          0.017706161838099598
+        ],
+        "linear_slope_per_hour": -0.0027666986449680353
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 8.873835078989535e-41,
+        "median": 2.5000654886215964e-43,
+        "std_population": 2.3999393585315283e-40,
+        "rms": 2.5587415685683805e-40,
+        "minimum": -1.07793870945362e-47,
+        "maximum": 1.4585974660950951e-39,
+        "max_absolute": 1.4585974660950951e-39,
+        "p01_p05_p95_p99": [
+          -1.0736478426508282e-47,
+          -8.302807251223198e-48,
+          6.439946464071598e-40,
+          1.2396465296648466e-39
+        ],
+        "linear_slope_per_hour": -2.8117247152579406e-39
+      }
+    },
+    "attitude.truth.mrp_BN_y": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": -5.7750887274604735e-05,
+        "median": -1.6836123121678368e-46,
+        "std_population": 0.000302862317414994,
+        "rms": 0.00030831923114036313,
+        "minimum": -0.002331950577158577,
+        "maximum": 1.2773175697904597e-11,
+        "max_absolute": 0.002331950577158577,
+        "p01_p05_p95_p99": [
+          -0.002025707583654773,
+          -0.00011057128952476794,
+          7.166382620398243e-13,
+          1.0989771920072016e-11
+        ],
+        "linear_slope_per_hour": 0.00034068569358333125
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 2.4172604057441973e-41,
+        "median": -1.105019151451535e-44,
+        "std_population": 8.444660714931119e-41,
+        "rms": 8.783817077983783e-41,
+        "minimum": -2.967568664736608e-42,
+        "maximum": 5.9061410059504705e-40,
+        "max_absolute": 5.9061410059504705e-40,
+        "p01_p05_p95_p99": [
+          -2.955699381833266e-42,
+          -2.7068099945528604e-42,
+          1.87562456816305e-40,
+          4.73142466780981e-40
+        ],
+        "linear_slope_per_hour": -8.140534445005295e-40
+      }
+    },
+    "attitude.truth.mrp_BN_z": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 2.0168776468928658e-05,
+        "median": 7.437902183033706e-29,
+        "std_population": 9.96216923575057e-05,
+        "rms": 0.00010164281151378647,
+        "minimum": -1.1625955986655721e-19,
+        "maximum": 0.000751953183512479,
+        "max_absolute": 0.000751953183512479,
+        "p01_p05_p95_p99": [
+          -9.683571929783795e-20,
+          -3.39950039113738e-21,
+          5.847405937862764e-05,
+          0.00065308983205543
+        ],
+        "linear_slope_per_hour": -0.00011838243404803184
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -1.8975919883161759e-41,
+        "median": 1.251963128990764e-46,
+        "std_population": 5.31301514733434e-41,
+        "rms": 5.641718294094971e-41,
+        "minimum": -3.26656186191137e-40,
+        "maximum": 2.200873181762736e-44,
+        "max_absolute": 3.26656186191137e-40,
+        "p01_p05_p95_p99": [
+          -2.767211615806519e-40,
+          -1.407286096953804e-40,
+          2.0291036443436152e-44,
+          2.1932451703057637e-44
+        ],
+        "linear_slope_per_hour": 6.074244036677453e-40
+      }
+    },
+    "thermal.battery_temp_c": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 13.43104015718794,
+        "median": 13.807443536398353,
+        "std_population": 2.220576108794066,
+        "rms": 13.613368354633693,
+        "minimum": 9.30554444029525,
+        "maximum": 16.850000000000023,
+        "max_absolute": 16.850000000000023,
+        "p01_p05_p95_p99": [
+          9.384310488913172,
+          9.690801929835686,
+          16.534332561681254,
+          16.786302896397103
+        ],
+        "linear_slope_per_hour": -7.76797811480048
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 9.943923401800998,
+        "median": 9.945287018465365,
+        "std_population": 0.3661526868765214,
+        "rms": 9.950662310167724,
+        "minimum": 9.30554444029525,
+        "maximum": 10.648091968240237,
+        "max_absolute": 10.648091968240237,
+        "p01_p05_p95_p99": [
+          9.318953196554503,
+          9.372349261796046,
+          10.55104736760029,
+          10.628730205993634
+        ],
+        "linear_slope_per_hour": -7.597877268293738
+      }
+    },
+    "thermal.electronics_temp_c": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 14.793200636298115,
+        "median": 15.64034063059222,
+        "std_population": 4.02478393937915,
+        "rms": 15.330938354336153,
+        "minimum": 6.550944726713567,
+        "maximum": 21.850000000000023,
+        "max_absolute": 21.850000000000023,
+        "p01_p05_p95_p99": [
+          6.758774627450407,
+          7.5884029115504745,
+          20.751788604543833,
+          21.614722341950085
+        ],
+        "linear_slope_per_hour": -14.019306473247621
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 8.301311322394328,
+        "median": 8.305581271659094,
+        "std_population": 1.0067653222587052,
+        "rms": 8.36213765047042,
+        "minimum": 6.550944726713567,
+        "maximum": 10.034161654079867,
+        "max_absolute": 10.034161654079867,
+        "p01_p05_p95_p99": [
+          6.586178656642744,
+          6.727079727815465,
+          9.863203177984076,
+          10.000016676068242
+        ],
+        "linear_slope_per_hour": -20.91461431086251
+      }
+    },
+    "thermal.payload_temp_c": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 32.62419604428608,
+        "median": 34.027829258995155,
+        "std_population": 3.7543325381416475,
+        "rms": 32.8395063961528,
+        "minimum": 21.850000000000023,
+        "maximum": 36.05600178413533,
+        "max_absolute": 36.05600178413533,
+        "p01_p05_p95_p99": [
+          22.32175384478967,
+          24.11713888223437,
+          36.03990823311119,
+          36.05534658957998
+        ],
+        "linear_slope_per_hour": 9.798491461760534
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 33.680845334547755,
+        "median": 33.705572444343716,
+        "std_population": 0.5871178558380633,
+        "rms": 33.685962207221735,
+        "minimum": 32.61817529889953,
+        "maximum": 34.64463469056244,
+        "max_absolute": 34.64463469056244,
+        "p01_p05_p95_p99": [
+          32.641136874969334,
+          32.7325340789086,
+          34.55850439047913,
+          34.62755979715638
+        ],
+        "linear_slope_per_hour": -12.1882361996613
+      }
+    },
+    "thermal.adcs_temp_c": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 20.342856734222167,
+        "median": 21.04055163814718,
+        "std_population": 1.967591698088411,
+        "rms": 20.437789440139426,
+        "minimum": 14.828196587689945,
+        "maximum": 22.19185043450807,
+        "max_absolute": 22.19185043450807,
+        "p01_p05_p95_p99": [
+          15.041559177981242,
+          15.883358869299343,
+          22.168569377065182,
+          22.188894868233774
+        ],
+        "linear_slope_per_hour": -4.569030718147974
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 16.577839672413777,
+        "median": 16.59698547706057,
+        "std_population": 0.9902667795065442,
+        "rms": 16.60738981594791,
+        "minimum": 14.828196587689945,
+        "maximum": 18.250514486885038,
+        "max_absolute": 18.250514486885038,
+        "p01_p05_p95_p99": [
+          14.864434958239428,
+          15.00908203653563,
+          18.091718207391864,
+          18.21888852485864
+        ],
+        "linear_slope_per_hour": -20.568918385320973
+      }
+    },
+    "thermal.structure_temp_c": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 7.907779171836477,
+        "median": 12.945413649151817,
+        "std_population": 8.991058009313491,
+        "rms": 11.973808732286109,
+        "minimum": -11.781919679285068,
+        "maximum": 15.533389323474353,
+        "max_absolute": 15.533389323474353,
+        "p01_p05_p95_p99": [
+          -11.36940908393018,
+          -9.685981209881106,
+          15.515290820302425,
+          15.532662930414517
+        ],
+        "linear_slope_per_hour": -27.051398312336563
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -8.098649305445695,
+        "median": -8.168667792691338,
+        "std_population": 2.1995844717465207,
+        "rms": 8.392037441583808,
+        "minimum": -11.781919679285068,
+        "maximum": -4.133387621620329,
+        "max_absolute": 11.781919679285068,
+        "p01_p05_p95_p99": [
+          -11.712210792186227,
+          -11.432528864974074,
+          -4.56389762904962,
+          -4.220040801445236
+        ],
+        "linear_slope_per_hour": -45.675784272394516
+      }
+    },
+    "thermal.solar_panel_temp_c": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": -0.4044393389520945,
+        "median": 40.02549692370212,
+        "std_population": 49.34642965296122,
+        "rms": 49.34808700115479,
+        "minimum": -62.12627158942084,
+        "maximum": 52.01289160583076,
+        "max_absolute": 62.12627158942084,
+        "p01_p05_p95_p99": [
+          -61.57321321449737,
+          -59.62153456351362,
+          51.52284611196552,
+          51.992789176360304
+        ],
+        "linear_slope_per_hour": -157.74061275180134
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -58.90980172198546,
+        "median": -58.419932276875926,
+        "std_population": 1.3978362250356167,
+        "rms": 58.92638360730838,
+        "minimum": -62.12627158942084,
+        "maximum": -57.508740584508274,
+        "max_absolute": 62.12627158942084,
+        "p01_p05_p95_p99": [
+          -62.031169306962795,
+          -61.65628796901629,
+          -57.511504533658126,
+          -57.5088505190088
+        ],
+        "linear_slope_per_hour": -27.64900219516132
+      }
+    },
+    "thermal.comm_temp_c": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 8.386375543106736,
+        "median": 8.883678382626215,
+        "std_population": 8.655428322742376,
+        "rms": 12.05187679161008,
+        "minimum": -7.107466300697524,
+        "maximum": 21.850000000000023,
+        "max_absolute": 21.850000000000023,
+        "p01_p05_p95_p99": [
+          -6.794117650472856,
+          -5.5327187052257045,
+          21.36741443434306,
+          21.747989571885967
+        ],
+        "linear_slope_per_hour": -30.460181179274574
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -4.419478667806917,
+        "median": -4.427694890170528,
+        "std_population": 1.5624817713434123,
+        "rms": 4.6875517043528,
+        "minimum": -7.107466300697524,
+        "maximum": -1.698491384891554,
+        "max_absolute": 7.107466300697524,
+        "p01_p05_p95_p99": [
+          -7.054415545856784,
+          -6.841970965507812,
+          -1.9734500134054542,
+          -1.7535148122346982
+        ],
+        "linear_slope_per_hour": -32.458987555293454
+      }
+    },
+    "thermal.propulsion_temp_c": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 6.830182606381592,
+        "median": 7.45417651838477,
+        "std_population": 6.930494145537501,
+        "rms": 9.730526375168365,
+        "minimum": -5.973704748395676,
+        "maximum": 18.850000000000023,
+        "max_absolute": 18.850000000000023,
+        "p01_p05_p95_p99": [
+          -5.697219002010058,
+          -4.588634039635394,
+          17.42632390784206,
+          18.55706562464394
+        ],
+        "linear_slope_per_hour": -24.37189226146432
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -3.622023124645443,
+        "median": -3.6234204693213883,
+        "std_population": 1.360474891618799,
+        "rms": 3.8691011160464024,
+        "minimum": -5.973704748395676,
+        "maximum": -1.26463874362031,
+        "max_absolute": 5.973704748395676,
+        "p01_p05_p95_p99": [
+          -5.926864578040863,
+          -5.739414739888275,
+          -1.5005906862234042,
+          -1.3118251056065446
+        ],
+        "linear_slope_per_hour": -28.262799194050444
+      }
+    },
+    "model.euler321_yaw_wrapped_deg": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 0.004221260797174031,
+        "median": 1.7046416140758914e-26,
+        "std_population": 0.020636750807340835,
+        "rms": 0.021064057695563812,
+        "minimum": -2.6644728433609026e-17,
+        "maximum": 0.1554118891305674,
+        "max_absolute": 0.1554118891305674,
+        "p01_p05_p95_p99": [
+          -2.2193112087518617e-17,
+          -7.791080994609777e-19,
+          0.013394051311625086,
+          0.13624637210723914
+        ],
+        "linear_slope_per_hour": -0.024722730542041136
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -4.348960486734204e-39,
+        "median": 2.8692881358865387e-44,
+        "std_population": 1.21765337772534e-38,
+        "rms": 1.2929865898135535e-38,
+        "minimum": -7.486408328236701e-38,
+        "maximum": 5.044029782341347e-42,
+        "max_absolute": 7.486408328236701e-38,
+        "p01_p05_p95_p99": [
+          -6.341981864211624e-38,
+          -3.225262156915654e-38,
+          4.650363000620144e-42,
+          5.0265476678388694e-42
+        ],
+        "linear_slope_per_hour": 1.3921141881365058e-37
+      }
+    },
+    "model.euler321_yaw_unwrapped_deg": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 0.004221260797174031,
+        "median": 1.7046416140758914e-26,
+        "std_population": 0.020636750807340835,
+        "rms": 0.021064057695563812,
+        "minimum": -2.6644728433609026e-17,
+        "maximum": 0.1554118891305674,
+        "max_absolute": 0.1554118891305674,
+        "p01_p05_p95_p99": [
+          -2.2193112087518617e-17,
+          -7.791080994609777e-19,
+          0.013394051311625086,
+          0.13624637210723914
+        ],
+        "linear_slope_per_hour": -0.024722730542041136
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -4.348960486734204e-39,
+        "median": 2.8692881358865387e-44,
+        "std_population": 1.21765337772534e-38,
+        "rms": 1.2929865898135535e-38,
+        "minimum": -7.486408328236701e-38,
+        "maximum": 5.044029782341347e-42,
+        "max_absolute": 7.486408328236701e-38,
+        "p01_p05_p95_p99": [
+          -6.341981864211624e-38,
+          -3.225262156915654e-38,
+          4.650363000620144e-42,
+          5.0265476678388694e-42
+        ],
+        "linear_slope_per_hour": 1.3921141881365058e-37
+      }
+    },
+    "model.euler321_pitch_wrapped_deg": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": -0.013337851918440625,
+        "median": -3.858555192939164e-44,
+        "std_population": 0.07006408771265846,
+        "rms": 0.0713223294684445,
+        "minimum": -0.5408410659211491,
+        "maximum": 2.9273962363161162e-09,
+        "max_absolute": 0.5408410659211491,
+        "p01_p05_p95_p99": [
+          -0.4687854157141015,
+          -0.02534488703897825,
+          1.64241391410078e-10,
+          2.5186701959833073e-09
+        ],
+        "linear_slope_per_hour": 0.07869208423667236
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 5.539952769328936e-39,
+        "median": -2.532517346372019e-42,
+        "std_population": 1.9353736735419262e-38,
+        "rms": 2.0131025863336232e-38,
+        "minimum": -6.801166396187232e-40,
+        "maximum": 1.3535878114004496e-37,
+        "max_absolute": 1.3535878114004496e-37,
+        "p01_p05_p95_p99": [
+          -6.7739640035389e-40,
+          -6.20355154526833e-40,
+          4.2986148682716143e-38,
+          1.0843626581983586e-37
+        ],
+        "linear_slope_per_hour": -1.865673066718701e-37
+      }
+    },
+    "model.euler321_pitch_unwrapped_deg": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": -0.013337851918440625,
+        "median": -3.858555192939164e-44,
+        "std_population": 0.07006408771265846,
+        "rms": 0.0713223294684445,
+        "minimum": -0.5408410659211491,
+        "maximum": 2.9273962363161162e-09,
+        "max_absolute": 0.5408410659211491,
+        "p01_p05_p95_p99": [
+          -0.4687854157141015,
+          -0.02534488703897825,
+          1.64241391410078e-10,
+          2.5186701959833073e-09
+        ],
+        "linear_slope_per_hour": 0.07869208423667236
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 5.539952769328936e-39,
+        "median": -2.532517346372019e-42,
+        "std_population": 1.9353736735419262e-38,
+        "rms": 2.0131025863336232e-38,
+        "minimum": -6.801166396187232e-40,
+        "maximum": 1.3535878114004496e-37,
+        "max_absolute": 1.3535878114004496e-37,
+        "p01_p05_p95_p99": [
+          -6.7739640035389e-40,
+          -6.20355154526833e-40,
+          4.2986148682716143e-38,
+          1.0843626581983586e-37
+        ],
+        "linear_slope_per_hour": -1.865673066718701e-37
+      }
+    },
+    "model.euler321_roll_wrapped_deg": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 0.1057722885655952,
+        "median": 2.672884473452175e-38,
+        "std_population": 0.7731491869997724,
+        "rms": 0.7803508457013505,
+        "minimum": -2.3738219479602954e-06,
+        "maximum": 9.563837257471954,
+        "max_absolute": 9.563837257471954,
+        "p01_p05_p95_p99": [
+          -2.017178345286828e-06,
+          -1.0924449369639241e-07,
+          0.03297720095417547,
+          4.0568382628095065
+        ],
+        "linear_slope_per_hour": -0.6338362053399286
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 2.0337331924849592e-38,
+        "median": 5.729728040173176e-41,
+        "std_population": 5.500255853247627e-38,
+        "rms": 5.864203709746093e-38,
+        "minimum": -2.470453545018845e-45,
+        "maximum": 3.3428591526290054e-37,
+        "max_absolute": 3.3428591526290054e-37,
+        "p01_p05_p95_p99": [
+          -2.4606196026887344e-45,
+          -1.902863254422822e-45,
+          1.4759270107260016e-37,
+          2.8410605695133885e-37
+        ],
+        "linear_slope_per_hour": -6.443998373476126e-37
+      }
+    },
+    "model.euler321_roll_unwrapped_deg": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 0.1057722885655952,
+        "median": 2.672884473452175e-38,
+        "std_population": 0.7731491869997724,
+        "rms": 0.7803508457013505,
+        "minimum": -2.3738219479602954e-06,
+        "maximum": 9.563837257471954,
+        "max_absolute": 9.563837257471954,
+        "p01_p05_p95_p99": [
+          -2.017178345286828e-06,
+          -1.0924449369639241e-07,
+          0.03297720095417547,
+          4.0568382628095065
+        ],
+        "linear_slope_per_hour": -0.6338362053399286
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 2.0337331924849592e-38,
+        "median": 5.729728040173176e-41,
+        "std_population": 5.500255853247627e-38,
+        "rms": 5.864203709746093e-38,
+        "minimum": -2.470453545018845e-45,
+        "maximum": 3.3428591526290054e-37,
+        "max_absolute": 3.3428591526290054e-37,
+        "p01_p05_p95_p99": [
+          -2.4606196026887344e-45,
+          -1.902863254422822e-45,
+          1.4759270107260016e-37,
+          2.8410605695133885e-37
+        ],
+        "linear_slope_per_hour": -6.443998373476126e-37
+      }
+    },
+    "model.true_body_rate_x_deg_s": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": -0.002235459381456414,
+        "median": -6.005586584570964e-40,
+        "std_population": 0.02369280028213367,
+        "rms": 0.023798026469756157,
+        "minimum": -0.23521059094420027,
+        "maximum": 0.5729577951308232,
+        "max_absolute": 0.5729577951308232,
+        "p01_p05_p95_p99": [
+          -0.10622827785144176,
+          -0.0009717371987829831,
+          1.5283579893256369e-09,
+          2.5371617017780384e-08
+        ],
+        "linear_slope_per_hour": 0.013274345169037399
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -5.5912896739360785e-40,
+        "median": -1.7816813707484105e-42,
+        "std_population": 1.4992979412375583e-39,
+        "rms": 1.600162341382218e-39,
+        "minimum": -9.049755362686991e-39,
+        "maximum": 1.569905337152411e-47,
+        "max_absolute": 9.049755362686991e-39,
+        "p01_p05_p95_p99": [
+          -7.711870740438025e-39,
+          -4.048262995906972e-39,
+          -6.914035758489795e-47,
+          7.889487801709436e-48
+        ],
+        "linear_slope_per_hour": 1.7680533636445942e-38
+      }
+    },
+    "model.true_body_rate_y_deg_s": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": -3.083014124878293e-06,
+        "median": 4.8744141501774876e-46,
+        "std_population": 0.004444655776069836,
+        "rms": 0.004444656845328675,
+        "minimum": -0.2291831180523293,
+        "maximum": 0.006407829411553811,
+        "max_absolute": 0.2291831180523293,
+        "p01_p05_p95_p99": [
+          -3.349438812697237e-11,
+          -3.8068514354004376e-12,
+          0.0003256289601168166,
+          0.005458401127127541
+        ],
+        "linear_slope_per_hour": 6.484466495478842e-05
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": -2.267278862845964e-40,
+        "median": 2.681236658589761e-44,
+        "std_population": 7.332345920033367e-40,
+        "rms": 7.674884372610316e-40,
+        "minimum": -4.9674639032813174e-39,
+        "maximum": 7.187477326688019e-42,
+        "max_absolute": 4.9674639032813174e-39,
+        "p01_p05_p95_p99": [
+          -4.0373746516063057e-39,
+          -1.7241891572653734e-39,
+          6.552325118760506e-42,
+          7.15934188426148e-42
+        ],
+        "linear_slope_per_hour": 7.493990790869149e-39
+      }
+    },
+    "model.true_body_rate_z_deg_s": {
+      "full_window": {
+        "sample_count": 11801,
+        "start_s": 0.0,
+        "end_s": 3540.0,
+        "mean": 2.3636495852552745e-05,
+        "median": -1.459614484149472e-28,
+        "std_population": 0.0018976625839052395,
+        "rms": 0.0018978097813769686,
+        "minimum": -0.005523938704821621,
+        "maximum": 0.11459155902616465,
+        "max_absolute": 0.11459155902616465,
+        "p01_p05_p95_p99": [
+          -0.001624413777485529,
+          -0.0001414448726938683,
+          2.973012277968603e-20,
+          3.4335438257631924e-19
+        ],
+        "linear_slope_per_hour": -0.00015912384036518792
+      },
+      "last_600_s_diagnostic_only": {
+        "sample_count": 2001,
+        "start_s": 2940.0,
+        "end_s": 3540.0,
+        "mean": 1.2522700720278027e-40,
+        "median": -2.8621106310749172e-46,
+        "std_population": 3.4190873966732125e-40,
+        "rms": 3.641200208638097e-40,
+        "minimum": -5.047202014980415e-44,
+        "maximum": 2.0620826625336062e-39,
+        "max_absolute": 2.0620826625336062e-39,
+        "p01_p05_p95_p99": [
+          -5.02965121633835e-44,
+          -4.652959660352281e-44,
+          9.222568427883076e-40,
+          1.760199841003563e-39
+        ],
+        "linear_slope_per_hour": -3.984562664226924e-39
+      }
+    }
+  },
+  "model_execution_sources_sha256": {
+    "src/sat_sim/bsk_engine/unified_native.py": "ffe06564175c1a78eca3570fb206f8ce2af2b8726781f3226af3e9fec2753c49",
+    "src/sat_sim/bsk_engine/project_native_modules.py": "5268342b6cb304ca0079337101da59d2b627740d316e91083f3529f7e1c72509",
+    "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml": "b4cc77eb58699487474a529a06ba1425bd8a4f9c42b604846699d3f43cf14c3a",
+    "src/subsystems/thermal/network_config.py": "16711fce53f8575a3b017958811fbc9dd7b5ec9ebfedfd1ec4e5e6a0993358f3",
+    "src/subsystems/thermal/thermal_network.py": "f918c16bf72c3b65d64a789be4a07c8b4f529c59d0e278bf40cce5aedcff31df",
+    "src/integration/resource_feedback.py": "a6d1c999dd942a337106dc7b7d5b3d289acf82512c5a6c2bafb655d95f42513d",
+    "scripts/run_external_reference_alignment.py": "7dec7794b98460fc3fb056695ed799c91409aa262661821ef25858988eba8f43",
+    "configs/reference_alignment/external_reference_statistics.json": "2d7a9f50daaa5ddeda89a720e4628bfbc6a5147a7d8505bf6740514f8eff4e58"
+  },
+  "analysis_sources_sha256": {
+    "scripts/run_external_reference_alignment.py": "70a7bcd84f84f0fd0e73452ed1d1073d8ff87f3b6ed0a81f0a575547c64ce8a0"
+  },
+  "execution_script_snapshot": "initial_measurement_source.txt",
+  "statistics_correction": {
+    "original_report": "initial_statistics_pre_correction.json",
+    "original_report_sha256": "e60ec74bfa2756714a047dfa9e8d8b3a956c34ab56ec22cca5a98bcfd833b3a1",
+    "reason": "原统计未识别 Unified 首帧容量 1e-12 J 展示占位；原始遥测保持不变",
+    "physics_rerun": false,
+    "external_reference_timeseries_used": false,
+    "solar_first_sample_retained": true
+  },
+  "runtime_spec_provenance": {
+    "file": "baseline_runtime_spec.json",
+    "sha256": "becdc084512cab4ad9d8cca107c59d956158286bc88ab87dc022581472a658df",
+    "capture": "recreated_after_run_from_saved_request_not_execution_time_snapshot",
+    "limitation": "首轮只保存了模板请求；此文件事后经同工作树编译重建，不冒充当时直接保存的执行输入",
+    "compiler_source_sha256": {
+      "src/sat_sim/task_compiler.py": "efea1ad3eb071761970cd43378ed8b4fde50ecb25d00190704b95157a8eaf8eb",
+      "src/sat_sim/unified_execution.py": "c6284f3faa9890f34405ad007ec89db3e331bd41a1c3d06b2b86877ead113714",
+      "src/sat_sim/capability_registry.py": "0bc311eb79973551388ecd3123fa4360e5be21e089827550cdefc1db699d8a51"
+    }
+  }
+}
