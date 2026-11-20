@@ -25,3 +25,10 @@
 ## 经验记录
 
 保留失败证据和残差本身，出现坐标、单位、时间、系数版本不符时先核对来源，不允许放宽误差阈值或者改物理参数制造通过；任何变化必须重新跑真实原生 CI。
+
+## 首轮真实 CI 的来源差异与处理
+
+- Run `44784554104` 的独立对照未进入磁场计算：安装的 PyPI `ppigrf==2.0.0` 源码 `ppigrf.py` Git blob **与官方标签一致**，但其默认内置 `IGRF14.shc` 的 Git blob 为 `6c6c817e9c3a2ad8ebd5180aa4a9ce5685d3125a`，与 IAGA V-MOD `IGRF14eval` 正式发布文件 `782112655bfab891f8d24d3b2a0225e72f0ad6fc` 不一致，来源锁定失败是正确行为。
+- 不更改 `ppigrf` 计算函数或接受非原始系数，也不伪称 wheel 自带数据是正式文件。单独保留 IAGA 官方 `data/release/IGRF14.shc` 原始 42,115 字节于 `tests/fixtures/IGRF14-IAGA-final.shc`，每次真实测试用 Git blob SHA 验证后，**通过 `coeff_fn` 明确传入独立计算器**；这样既隔离默认 wheel 数据，也不依赖额外 CI 在线下载。
+- IAGA-VMOD/IGRF14eval 原仓软件/文件附 MIT / CC-BY 4.0 授权声明，来源及不可变 commit 保留；本文件是测试/审计参考数据，非运行时资产。
+- 另一个无关 CI 失败为 P10-A 运行准备从公共服务获取资产时 HTTP 503 `Backend.max_conn reached`。这不是磁场计算失败；仅在新的 exact-head CI 中真实重试，不能解释为 PASS。

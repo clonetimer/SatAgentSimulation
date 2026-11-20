@@ -43,10 +43,18 @@ def _git_blob_sha1(data: bytes) -> str:
 def _pin_ppigrf_reference():
     assert version("ppigrf") == "2.0.0"
     library_py = Path(igrf_gc.__code__.co_filename).resolve()
-    original_shc = library_py.with_name("IGRF14.shc")
+    official_shc = Path(__file__).parent / "fixtures" / "IGRF14-IAGA-final.shc"
+    packaged_shc = library_py.with_name("IGRF14.shc")
+    # Published PyPI 2.0.0 wheel is bytewise different from official IAGA
+    # release SHC; never silently substitute its packaged dataset. This
+    # deliberately pins the original *published* IAGA coefficients instead.
     assert _git_blob_sha1(library_py.read_bytes()) == PPIGRF_SCRIPT_BLOB_SHA1, library_py
-    assert _git_blob_sha1(original_shc.read_bytes()) == PPIGRF_SHC_BLOB_SHA1
-    return library_py, original_shc
+    assert official_shc.is_file()
+    assert official_shc.stat().st_size == 42115
+    assert _git_blob_sha1(official_shc.read_bytes()) == PPIGRF_SHC_BLOB_SHA1
+    assert official_shc.read_text(encoding="ascii").startswith("# IGRF 14\n")
+    assert packaged_shc.is_file()
+    return library_py, official_shc
 
 
 def _config(epoch: str, inclination: float, raan: float, *, model="igrf14"):
@@ -122,14 +130,16 @@ def test_ppigrf_exact_official_reference_is_pinned_and_not_native_basilisk():
     library_py, shc = _pin_ppigrf_reference()
     assert library_py.name == "ppigrf.py"
     assert shc.stat().st_size == 42115
-    assert shc.name == "IGRF14.shc"
+    assert shc.name == "IGRF14-IAGA-final.shc"
     assert "Basilisk" not in str(library_py)
-    assert "IGRF" in shc.read_text(encoding="utf-8")[:1100] or shc.stat().st_size == 42115
+    packaged_blob = _git_blob_sha1(library_py.with_name("IGRF14.shc").read_bytes())
     print(
         "DT1_PPIGRF_SOURCE_PIN "
         f"version={version('ppigrf')} "
         f"code_git_blob_sha1={PPIGRF_SCRIPT_BLOB_SHA1} "
-        f"igrf14_shc_git_blob_sha1={PPIGRF_SHC_BLOB_SHA1} "
+        f"official_igrf14_shc_git_blob_sha1={PPIGRF_SHC_BLOB_SHA1} "
+        f"packaged_default_shc_git_blob_sha1={packaged_blob} "
+        f"explicit_official_coefficient_source=true "
         f"commit={PPIGRF_COMMIT}", flush=True
     )
 
