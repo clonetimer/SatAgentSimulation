@@ -202,3 +202,9 @@ Canonical TaskSpec 已有 demo、engineering_estimate、ground_calibrated、flig
 5. 高能粒子辐射带、TID 和 SEE 仍是独立缺口，不能由 EarthRadiationModel 或 albedo 替代。
 
 官方版本依据：Basilisk v2.11.0 Release Notes 的 “Spacecraft dynamics and effectors” 和 “Environment, gravity, and ephemerides” 条目；对应源码目录位于 AVSLab/basilisk v2.11.0 的 facetSRPDynamicEffector、facetedSRPEffector、earthRadiationModel 和 albedo。
+
+## 11. DT1-A1 接入状态（实施候选，尚待 CI）
+
+当前 DT1-A1 feature branch 正在将官方 Basilisk v2.11.0 的 SpaceWeatherData、MsisAtmosphere、ZeroWindModel 和 DragDynamicEffector 接入推荐整星统一图。实现使用离线 CelesTrak CSV，并在运行前检查三日 Ap 回看窗口和整个仿真时间弧的日期连续性。
+
+该 feature branch 的代码、测试和 CI 尚未完成，因此本节记录的是实现设计和待验收合同，不将其标记为 main 已具备或已通过的能力。固定面积/Cd 仍是工程假设。
