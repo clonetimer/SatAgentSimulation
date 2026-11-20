@@ -134,7 +134,26 @@ def test_dt41_real_browser_rw_overlay_and_rejection(tmp_path, monkeypatch):
             assert accepted is True
             assert page.locator("#simulationRwReferenceToggle").is_enabled()
             page.locator("#simulationRwReferenceToggle").click()
-            page.locator("#simulationRwReferenceStatus").filter(has_text="已验证").wait_for(timeout=60000)
+            try:
+                page.wait_for_function("""() => {
+                  const status = document.getElementById('simulationRwReferenceStatus');
+                  return status?.dataset.state === 'verified'
+                    || status?.dataset.state === 'error';
+                }""", timeout=60000)
+            except Exception as exc:
+                raise AssertionError(
+                    "DT41_REFERENCE_LOAD_TIMED_OUT: "
+                    f"status={page.locator('#simulationRwReferenceStatus').inner_text()!r} "
+                    f"page_errors={failures!r} "
+                    f"diagnostics={page.evaluate('window.RwReferenceOverlay.getDiagnostics()')!r}"
+                ) from exc
+            load_status = page.locator("#simulationRwReferenceStatus").inner_text()
+            load_kind = page.locator("#simulationRwReferenceStatus").get_attribute("data-state")
+            assert load_kind == "verified" and "已验证" in load_status, (
+                f"DT41_REFERENCE_LOAD_FAILED status={load_status!r} "
+                f"kind={load_kind!r} page_errors={failures!r} "
+                f"diagnostics={page.evaluate('window.RwReferenceOverlay.getDiagnostics()')!r}"
+            )
             actual = page.evaluate("window.RwReferenceOverlay.getDiagnostics()")
             assert actual["verified"] is True
             assert actual["sha256"] == RW_EXPECTED_SHA256
