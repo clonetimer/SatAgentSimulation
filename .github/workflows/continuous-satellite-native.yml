@@ -10,6 +10,8 @@ on:
       - "integrated/orbit_environment/**"
       - "scripts/fetch_environment_assets.py"
       - "tests/test_native_orbital_environment.py"
+      - "tests/test_native_srp_spice_eclipse.py"
+      - "src/sat_sim/bsk_engine/srp_environment.py"
       - "src/sat_sim/adapters/whole_spacecraft_composite_digital_twin.py"
       - "src/subsystems/thermal/thermal_network.py"
       - "src/integration/resource_feedback.py"
@@ -138,6 +140,11 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           python -m pytest -q tests/test_native_orbital_environment.py --disable-warnings
+      - name: Verify real SPICE/Eclipse/Cannonball SRP force and orbit A/B
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pytest -q tests/test_native_srp_spice_eclipse.py --capture=tee-sys --disable-warnings
       - name: Run native continuous and segmented execution regression tests
         env:
           PYTHONPATH: "src:."

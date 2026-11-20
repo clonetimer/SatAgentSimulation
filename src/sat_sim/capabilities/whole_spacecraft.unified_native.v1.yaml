@@ -84,6 +84,26 @@ parameters:
     default: simplified
     enum: [simplified, spice_wmm]
     description: Explicit reference environment or offline DE430, Earth J2, Sun/Moon gravity and WMM2025. No fallback.
+  srp_model:
+    type: string
+    required: false
+    default: disabled
+    enum: [disabled, cannonball]
+    description: Explicit opt-in official Basilisk cannonball SRP with real SPICE Sun and Eclipse; never uses reference CAD as area source.
+  srp_reference_area_m2:
+    type: number
+    unit: m^2
+    required: false
+    min: 0.000001
+    max: 1000.0
+    description: Explicit scalar engineering reference area for opt-in cannonball SRP, not attitude-dependent or inferred from CAD.
+  srp_coefficient_reflection:
+    type: number
+    unit: '1'
+    required: false
+    min: 0.000001
+    max: 2.0
+    description: Explicit engineering cannonball optical coefficient Cr for opt-in SRP, not flight-calibrated.
   epoch_utc:
     type: string
     default: '2026-01-01T00:00:00Z'
@@ -1198,6 +1218,9 @@ outputs:
   - orbit.sun_position_m_*
   - orbit.phase_rad
   - orbit.eclipse_factor
+  - orbit.srp_force_norm_n
+  - orbit.srp_force_n_*
+  - orbit.srp_sun_distance_m
   - adcs.pointing_error_deg
   - attitude.truth.pointing_error_deg
   - adcs.body_rate_rad_s_*
@@ -1543,6 +1566,7 @@ operator:
       - eps.battery_soc
   limitations:
   - The simplified environment uses fixed reference ephemerides and point-mass Earth gravity; spice_wmm uses offline DE430, Earth J2, Sun/Moon gravity and WMM2025 during 2025-2029.
+  - Opt-in cannonball SRP uses an explicit scalar reference area/Cr; its real SPICE Sun/Eclipse force is not CAD-derived faceted radiation pressure, Earth radiation force, independent tool correlation, or flight calibration.
   - Generic spacecraft parameters are engineering assumptions unless separately sourced; atmospheric drag and Earth gravity harmonics above J2 are not modeled by these environment profiles.
   - Project sensor fusion, event managers and mode gate are native SysModels but not official Basilisk modules.
   - Only effects listed in modes.*.effects are accepted by the unified runtime.
