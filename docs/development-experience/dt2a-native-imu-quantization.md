@@ -14,7 +14,7 @@
 | 检查 | 判据 | 当前证据状态 |
 |---|---|---|
 | 0 默认不变 | 未选择与显式 `LSB=0` 的 raw 陀螺/加速度输出逐点相同 | **INCONCLUSIVE**；待 PR 原生 CI |
-| 原生 gyro / accel 输出量化 | 官方原始 recorder 输出每个非初始化采样满足 `max |raw/LSB - round(raw/LSB)| < 1e-8`；量化与未量化 A/B 最大差 `>1e-6` 且 `<LSB+1e-6` | **INCONCLUSIVE**；待 PR 原生 CI 实测值 |
+| 原生 gyro / accel 输出量化 | 官方原始 recorder 输出每个非初始化采样满足 `max |raw/LSB - round(raw/LSB)| < 1e-8`；量化与未量化 A/B 最大差 `>1e-6`（闭环轨迹不同，不将跨运行差值误当单次量化误差） | **INCONCLUSIVE**；待 PR 原生 CI 实测值 |
 | 混合白噪声/量化种子复现 | 相同 `simulation_seed=331` 下两次 raw 输出逐轴对应 `abs/rel <=1e-12` | **INCONCLUSIVE**；待 PR 原生 CI |
 | 参数边界 | 负值、溢出、非数、布尔与非法字符串必须预启动或 native 入口拒绝；default 0 | **INCONCLUSIVE**；待 PR CI |
 | 全仓库既有原生回归 | 继续执行原 `continuous-satellite-native` 全链路与既有白噪声测试，不关闭任何物理门禁 | **INCONCLUSIVE**；待 PR CI |
