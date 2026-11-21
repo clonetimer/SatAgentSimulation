@@ -12,6 +12,7 @@ on:
       - "scripts/fetch_igrf14_asset.py"
       - "src/sat_sim/bsk_engine/igrf14_asset.py"
       - "tests/test_native_igrf14_field.py"
+      - "tests/test_native_igrf14_ppigrf_correlation.py"
       - "tests/test_native_orbital_environment.py"
       - "src/sat_sim/adapters/whole_spacecraft_composite_digital_twin.py"
       - "src/subsystems/thermal/thermal_network.py"
@@ -147,6 +148,12 @@ jobs:
           PYTHONPATH: "src:."
         run: |
           python -m pytest -q tests/test_native_igrf14_field.py --capture=tee-sys --disable-warnings
+      - name: Independently correlate IGRF14 native field to pinned IAGA PPIGRF
+        env:
+          PYTHONPATH: "src:."
+        run: |
+          python -m pip install --disable-pip-version-check "ppigrf==2.0.0" "pandas==2.3.3"
+          python -m pytest -q tests/test_native_igrf14_ppigrf_correlation.py --capture=tee-sys --disable-warnings
       - name: Verify actual native SPICE WMM environment and orbit-step convergence
         env:
           PYTHONPATH: "src:."

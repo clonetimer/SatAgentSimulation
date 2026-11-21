@@ -971,6 +971,21 @@ def _build_unified_rows(
             row[f'orbit.velocity_m_s_{component}'] = float(state.v_BN_N[index][axis])
             if 'sun_ephemeris' in recorder_map:
                 row[f'orbit.sun_position_m_{component}'] = float(recorder_map['sun_ephemeris'].PositionVector[index][axis])
+        if "igrf14_earth_frame" in recorder_map:
+            # Read-only SPICE frame evidence for independent, test-only
+            # geocentric field correlation; no physical force or sensor edit.
+            earth_ref = recorder_map["igrf14_earth_frame"]
+            dcm_np = np.asarray(earth_ref.J20002Pfix[index], dtype=float).reshape(3, 3)
+            row["environment.igrf14.earth_orientation_computed"] = int(earth_ref.computeOrient[index])
+            for axis, component in enumerate("xyz"):
+                row[f"environment.igrf14.earth_center_n_m_{component}"] = float(
+                    earth_ref.PositionVector[index][axis]
+                )
+            for row_index in range(3):
+                for col_index in range(3):
+                    row[f"environment.igrf14.earth_j20002pfix_{row_index}{col_index}"] = float(
+                        dcm_np[row_index, col_index]
+                    )
         wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
         for wheel_index in range(3, wheel_count):
             torque_constant = float(cfg.values.get(
@@ -2470,6 +2485,8 @@ class UnifiedNativeRuntime:
                     messages[f"propulsion_thruster_{thruster_index}"] = thruster_msg
         if ephemeris is not None:
             messages['sun_ephemeris'] = sun_msg
+            if self._orbital_environment.igrf14_asset is not None:
+                messages["igrf14_earth_frame"] = earth_msg
         for name, message in messages.items():
             recorder = message.recorder(macros.sec2nano(cfg.sample_s))
             sim.AddModelToTask(task_name, recorder, None, 1)
