@@ -472,7 +472,10 @@ def test_dt12_four_native_environment_effects_and_rw_deadband_in_same_run(tmp_pa
     with_deadband = run_whole({**four, "rw_command_deadband_nm": .2}, duration=60.)
     times = [row["time_s"] for row in nominal.trace_rows]
     assert times == [row["time_s"] for row in with_deadband.trace_rows]
-    assert len(times) == 7 and times[0] == 0. and times[-1] == 60.
+    # Preserve the existing native time-grid representation contract: a
+    # double-precision 60 s sample may be 60.00000000000001. No change to
+    # integration step, sampling grid, physics or the A/B acceptance criteria.
+    assert len(times) == 7 and abs(times[0]) < 1e-9 and abs(times[-1] - 60.) < 1e-6
 
     for name, result in (("nominal", nominal), ("deadband", with_deadband)):
         environment = result.summary["orbital_environment"]
