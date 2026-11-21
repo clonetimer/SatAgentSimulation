@@ -1766,6 +1766,21 @@ class UnifiedNativeRuntime:
             if native_accel_sigma > 0.:
                 imu.PMatrixAccel = (np.eye(3) * native_accel_sigma).tolist()
                 imu.setAMatrixAccel(zero)
+        # DT-2A: hardware-like sample quantization on the official native IMU
+        # BEFORE the raw recorder and sensor fusion, not postprocessed telemetry.
+        # Upstream bsk 2.11.0 setLSBs(accel, gyro) defaults to TO_ZERO with
+        # carryError disabled. Both zero preserves the original call graph.
+        gyro_lsb = values.get("imu_gyro_lsb_rad_s", 0.)
+        accel_lsb = values.get("imu_accel_lsb_m_s2", 0.)
+        if any(type(v) not in (int, float) for v in (gyro_lsb, accel_lsb)):
+            raise ValueError("NATIVE_IMU_QUANTIZATION_INVALID")
+        gyro_lsb, accel_lsb = float(gyro_lsb), float(accel_lsb)
+        if (not math.isfinite(gyro_lsb) or not 0. <= gyro_lsb <= .1
+                or not math.isfinite(accel_lsb) or not 0. <= accel_lsb <= 1.):
+            raise ValueError("NATIVE_IMU_QUANTIZATION_INVALID")
+        if gyro_lsb > 0. or accel_lsb > 0.:
+            imu.setLSBs(accel_lsb, gyro_lsb)
+
         gyro_max = float(values.get("imu_gyro_max_rad_s", 0.0))
         accel_max = float(values.get("imu_accel_max_m_s2", 0.0))
         if not all(math.isfinite(v) for v in (gyro_max, accel_max)) or not (
