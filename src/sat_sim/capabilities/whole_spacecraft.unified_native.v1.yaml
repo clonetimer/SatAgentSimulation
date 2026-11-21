@@ -648,6 +648,14 @@ parameters:
     required: false
     min: 0.0
     max: 0.01
+  rw_command_deadband_nm:
+    type: number
+    unit: N*m
+    required: false
+    default: 0.0
+    min: 0.0
+    max: 0.2
+    description: Optional project SysModel driver command deadband applied upstream of official RW dynamics; 0 preserves historical behavior. Not a measured/as-built wheel electronics parameter.
   rw_motor_current_limit_a:
     type: number
     unit: A

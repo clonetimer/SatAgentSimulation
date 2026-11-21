@@ -1333,8 +1333,9 @@
                     <label id="continuousRwFriction_viscous_1" class="hidden">RW2 粘滞摩擦（N·m·s/rad）<input data-native-group="adcs" data-native-key="rw_viscous_friction_nms_1" type="number" min="0" max="0.01" step="any" value="0" disabled title="仅逐轮模式启用；直接设置原生 cViscous"></label>
                     <label id="continuousRwFriction_viscous_2" class="hidden">RW3 粘滞摩擦（N·m·s/rad）<input data-native-group="adcs" data-native-key="rw_viscous_friction_nms_2" type="number" min="0" max="0.01" step="any" value="0" disabled title="仅逐轮模式启用；直接设置原生 cViscous"></label>
                     <label id="continuousRwFriction_viscous_3" class="hidden">RW4 粘滞摩擦（N·m·s/rad，仅四轮）<input data-native-group="adcs" data-native-key="rw_viscous_friction_nms_3" type="number" min="0" max="0.01" step="any" value="0" disabled title="仅逐轮模式启用；直接设置原生 cViscous"></label>
-                    <details><summary>反作用轮驱动器电流限制与扭矩常数（展开设置）</summary>
+                    <details><summary>反作用轮驱动器电流限制、指令死区与扭矩常数（展开设置）</summary>
                       <p class="continuous-muted">电机的实际力矩指令上限为 min(官方 Basilisk RW u_max, 最大电流 Imax × 扭矩常数 Kt)。限幅在调度链路中施加到真实 RW 命令，而不是只修改电流曲线。默认 10 A × 0.02 N·m/A = 0.2 N·m，不改变旧场景。当前不模拟电驱功耗或电池的电机电流负载。</p>
+                      <label>RW 驱动指令死区（N·m）<input data-native-group="adcs" data-native-key="rw_command_deadband_nm" type="number" min="0" max="0.2" step="any" value="0" required title="项目 SysModel 在官方 Basilisk RW 输入前对限幅驱动力矩施加死区；0=关闭，不抑制故障制动力矩"></label>
                       <label>RW 驱动器最大电流 Imax（A）<input data-native-group="adcs" data-native-key="rw_motor_current_limit_a" type="number" min="0" max="20" step="any" value="10" required title="0 A 表示电机不可输出力矩；上限 20 A"></label>
                       <label>RW 电机扭矩常数 Kt（N·m/A）<input data-native-group="adcs" data-native-key="rw_motor_torque_constant_nm_per_a" type="number" min="0.000001" max="0.2" step="any" value="0.02" required title="额定电流与本参数之积是电气力矩上限"></label>
                       <label class="continuous-muted"><input id="continuousRwElectricalIndependentToggle" type="checkbox"> 启用 RW1～RW4 独立电流上限与扭矩常数</label>

@@ -47,10 +47,10 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     whole = report["whole_spacecraft"]
     assert report["physics_validated_by_this_audit"] is False
     assert report["source_lookup_is_not_physical_proof"] is True
-    assert whole["continuous_initial_field_count"] == 165
+    assert whole["continuous_initial_field_count"] == 166
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 16
-    assert whole["registered_parameter_count"] == 169
+    assert whole["registered_parameter_count"] == 170
     assert "propulsion_power_w" not in whole["native_source_keys_missing_whole_registry"]
     assert "propulsion_power_w" in whole["continuous_groups"]["propulsion"]
     for key in (f"rw_initial_speed_rad_s_{i}" for i in range(4)):
@@ -73,12 +73,14 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert "rw_configuration" not in whole["native_source_keys_missing_whole_registry"]
     assert "rw_friction_mode" not in whole["native_source_keys_missing_whole_registry"]
     assert "gyro_base_noise_std_rad_s" in whole["native_source_keys_missing_whole_registry"]
+    assert "rw_command_deadband_nm" not in whole["native_source_keys_missing_whole_registry"]
+    assert "rw_command_deadband_nm" in whole["continuous_groups"]["adcs"]
     assert "rw_motor_current_limit_a" not in whole["native_source_keys_missing_whole_registry"]
     assert "rw_motor_torque_constant_nm_per_a" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs_drive_efficiency" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs_max_power_w" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs" in whole["continuous_groups"]
-    assert len(whole["continuous_groups"]["adcs"]) == 101
+    assert len(whole["continuous_groups"]["adcs"]) == 102
     assert len(whole["continuous_groups"]["orbit"]) == 12
     assert {"environment_profile", "epoch_utc", "raan_deg", "arg_perigee_deg"}.issubset(whole["continuous_groups"]["orbit"])
     assert "spacecraft_mass_kg" in whole["continuous_groups"]["orbit"]
