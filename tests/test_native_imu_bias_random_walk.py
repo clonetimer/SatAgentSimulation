@@ -197,7 +197,7 @@ def test_whole_spacecraft_bias_walk_is_seeded_recorded_and_precedes_native_quant
         [row[f"adcs.sensor.gyro_bias_walk_rad_s_{axis}"] for axis in "xyz"]
         for row in repeated.trace_rows
     ]
-    assert gyro_walk == pytest.approx(gyro_repeat, rel=1e-12, abs=1e-12)
+    assert np.allclose(np.asarray(gyro_walk), np.asarray(gyro_repeat), rtol=1e-12, atol=1e-12)
     alternate = [
         [row[f"adcs.sensor.gyro_bias_walk_rad_s_{axis}"] for axis in "xyz"]
         for row in other_seed.trace_rows
