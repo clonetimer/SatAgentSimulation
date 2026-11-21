@@ -111,6 +111,7 @@ on:
       - "tests/test_native_sun_sensor_geometry.py"
       - "tests/test_native_magnetometer_calibration.py"
       - "tests/test_native_imu_white_noise.py"
+      - "tests/test_native_imu_quantization.py"
       - "tests/test_native_rw_geometry.py"
       - "tests/test_native_rw_power_consistency.py"
       - "tests/test_composite_native_adcs_power.py"
@@ -307,6 +308,13 @@ jobs:
         run: >-
           python -m pytest -q -s
           tests/test_native_imu_white_noise.py
+          --disable-warnings
+      - name: DT-2A official native IMU quantization raw A/B and fail-closed inputs
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_native_imu_quantization.py
           --disable-warnings
       - name: Genuine Basilisk RW 3D position/axis SWIG and closed-loop physical response A/B
         env:
