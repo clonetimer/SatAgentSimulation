@@ -47,10 +47,23 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     whole = report["whole_spacecraft"]
     assert report["physics_validated_by_this_audit"] is False
     assert report["source_lookup_is_not_physical_proof"] is True
-    assert whole["continuous_initial_field_count"] == 167
+    # Integration-safe exact census: the two opt-in RW driver controls from
+    # DT-2 #216 are either both absent on this isolated IMU candidate or
+    # both present once #216 is merged into main. Keep the strict 2026-11-21
+    # census and do not silently accept a partially merged RW implementation.
+    rw_driver_keys = ("rw_command_deadband_nm", "rw_motor_response_time_constant_s")
+    rw_driver_present = tuple(
+        key for key in rw_driver_keys if key in whole["continuous_groups"]["adcs"]
+    )
+    assert len(rw_driver_present) in (0, 2), rw_driver_present
+    for key in rw_driver_present:
+        assert key not in whole["native_source_keys_missing_whole_registry"]
+        assert key not in whole["continuous_fields_without_source_lookup"]
+        assert key not in whole["whole_registry_keys_without_direct_lookup"]
+    assert whole["continuous_initial_field_count"] == 167 + len(rw_driver_present)
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 16
-    assert whole["registered_parameter_count"] == 179
+    assert whole["registered_parameter_count"] == 179 + len(rw_driver_present)
     for key in ("imu_gyro_quantization_lsb_rad_s", "imu_accel_quantization_lsb_m_s2"):
         assert key in whole["continuous_groups"]["adcs"]
         assert key not in whole["native_source_keys_missing_whole_registry"]
@@ -86,7 +99,7 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert "adcs_drive_efficiency" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs_max_power_w" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs" in whole["continuous_groups"]
-    assert len(whole["continuous_groups"]["adcs"]) == 103
+    assert len(whole["continuous_groups"]["adcs"]) == 103 + len(rw_driver_present)
     assert len(whole["continuous_groups"]["orbit"]) == 12
     assert {"environment_profile", "epoch_utc", "raan_deg", "arg_perigee_deg"}.issubset(whole["continuous_groups"]["orbit"])
     assert "spacecraft_mass_kg" in whole["continuous_groups"]["orbit"]
