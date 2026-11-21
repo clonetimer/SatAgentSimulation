@@ -197,7 +197,8 @@ def test_motor_response_time_constant_rejects_invalid_native_and_dialogue_values
         })
 
 
-def _scheduled_rw_lag_trace(commands, times_nanos, *, response_time_constant_s, events=()):
+def _scheduled_rw_lag_trace(commands, times_nanos, *, response_time_constant_s,
+                            deadband_nm=0.0, current_limits_a=None, events=()):
     """Run the actual project SysModel against Basilisk message readers/writers."""
     pytest.importorskip("Basilisk")
     from Basilisk.architecture import messaging
@@ -206,6 +207,8 @@ def _scheduled_rw_lag_trace(commands, times_nanos, *, response_time_constant_s, 
     manager = ReactionWheelCommandFaultManager(
         events=events, wheel_count=3,
         motor_response_time_constant_s=response_time_constant_s,
+        command_deadband_nm=deadband_nm,
+        wheel_current_limits_a=current_limits_a,
     )
     command_msg = messaging.ArrayMotorTorqueMsg()
     speed_msg = messaging.RWSpeedMsg()
@@ -249,6 +252,61 @@ def test_motor_response_time_constant_matches_exact_scheduler_time_first_order_s
     print("DT2_RW_FIRST_ORDER_RESPONSE_NATIVE_MSG_VERIFIED "
           f"tau_s={tau} times_s=0,0.25,1,2.5 output_nm="
           + ",".join(f"{x:.9e}" for x in actual), flush=True)
+
+
+def test_deadband_then_lag_joint_native_message_and_current_authority():
+    """Prove both opt-ins in ONE message path, not by adding independent PASSes.
+
+    A thresholded drive request must first respect hardware/current authority,
+    then deadband, then the first-order lag. Subthreshold commands do not
+    instantaneously erase a previously applied torque; they decay causally.
+    """
+    tau = 1.0
+    deadband = 0.05
+    times = [0, 250_000_000, 1_000_000_000, 2_000_000_000,
+             3_000_000_000]
+    requests = [0.04, 0.08, 0.08, 0.04, -0.08]
+    targets = [0.0, 0.08, 0.08, 0.0, -0.08]
+
+    actual = _scheduled_rw_lag_trace(
+        requests, times, response_time_constant_s=tau,
+        deadband_nm=deadband)
+    expected = []
+    state = 0.0
+    last = times[0]
+    for index, (target, now) in enumerate(zip(targets, times, strict=True)):
+        dt_s = 0.0 if index == 0 else (now - last) * 1e-9
+        alpha = -math.expm1(-dt_s / tau) if dt_s else 0.0
+        state += alpha * (target - state)
+        expected.append(state)
+        last = now
+    assert actual == pytest.approx(expected, rel=1e-12, abs=1e-12)
+    assert actual[0] == 0.0
+    assert 0.0 < actual[1] < actual[2] < 0.08
+    assert 0.0 < actual[3] < actual[2]  # lag memory decays after deadband
+    assert actual[4] < actual[3]  # negative drive reverses the response
+
+    # Exact zero-tau bypass keeps the threshold mapping, not filter memory.
+    no_lag = _scheduled_rw_lag_trace(
+        requests, times, response_time_constant_s=0.0,
+        deadband_nm=deadband)
+    assert no_lag == pytest.approx(targets, abs=1e-12)
+
+    # Electrical Imax * Kt = 0.02 N*m. It is BELOW the 0.05 N*m deadband,
+    # even though the raw controller continuously requests 0.18 N*m.
+    # The driver must never store hidden 0.02 N*m lagged authority.
+    current_limited = _scheduled_rw_lag_trace(
+        [0.18, 0.18, 0.18], [0, 1_000_000_000, 2_000_000_000],
+        response_time_constant_s=tau, deadband_nm=deadband,
+        current_limits_a=(1.0, 10.0, 10.0))
+    assert current_limited == pytest.approx([0.0, 0.0, 0.0], abs=1e-12)
+    print(
+        "DT2_RW_DEADBAND_LAG_JOINT_NATIVE_MSG_VERIFIED "
+        "deadband_nm=0.05 tau_s=1 current_limited_target_nm=0.02 "
+        f"applied_nm={','.join(f'{v:.9e}' for v in actual)} "
+        "bounded_below_deadband_zero=true",
+        flush=True,
+    )
 
 
 def test_motor_response_lag_rejects_nonmonotonic_scheduler_time():
