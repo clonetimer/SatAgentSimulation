@@ -120,7 +120,12 @@ def test_dt2_basilisk_imu_raw_gyro_and_accel_are_quantized_before_fusion():
         lattice_error = np.max(np.abs(quant / lsb - np.round(quant / lsb)))
         response_delta = np.max(np.abs(quant - original))
         assert lattice_error < 1e-8, (kind, lattice_error)
-        assert 1e-6 < response_delta < lsb + 1e-6, (kind, response_delta)
+        # The sensor feeds a CLOSED LOOP. Once quantization alters FSW,
+        # the reference and quantized spacecraft trajectories can diverge;
+        # therefore their cross-run raw difference is NOT bounded by 1 LSB.
+        # The per-sample raw LSB lattice test above is the valid native
+        # quantization proof; this A/B only proves a nonzero physical change.
+        assert response_delta > 1e-6, (kind, response_delta)
         print(
             "DT2_NATIVE_IMU_LSB_MEASURED "
             f"channel={kind} samples={len(quant)} lsb={lsb:.8f} "
