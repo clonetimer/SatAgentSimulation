@@ -271,6 +271,18 @@ def test_motor_response_lag_fault_overrides_bypass_filter_and_clear_drive_memory
     assert applied[0] == pytest.approx(-0.1, abs=1e-12)
     assert authority[0] == pytest.approx(0.0, abs=1e-12)
 
+    overspeed = BSKEventSpec(
+        event_id="dt2_lag_overspeed", category="constraint",
+        effect="adcs_reaction_wheel_speed_limit", target="adcs",
+        start_s=0., end_s=2.,
+        parameters={"wheel_index": 0, "max_speed_rad_s": 10.,
+                    "overspeed_brake_gain_nms": 0.02})
+    brake, overspeed_authority = _scheduled_rw_command_snapshot(
+        (0.1, 0., 0.), (25., 0., 0.), deadband_nm=0.0,
+        events=(overspeed,), response_time_constant_s=1.0)
+    assert brake[0] == pytest.approx(-0.2, abs=1e-12)
+    assert overspeed_authority[0] == pytest.approx(0.2, abs=1e-12)
+
     motor_open = BSKEventSpec(
         event_id="dt2_lag_motor_open", category="fault",
         effect="adcs_rw_motor_failure", target="adcs",
