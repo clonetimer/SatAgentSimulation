@@ -26,7 +26,7 @@
 | spice_wmm | 离线 DE430、地球 J2、日月第三体、WMM2025 | 已接入推荐整星路径；WMM2025 有效年份限定 2025–2029；依赖本地固定版本资源，无隐式联网或代理回退。 |
 | Eclipse | Basilisk Eclipse | 推荐整星环境中有真实消息连接；需要继续核验本影/半影边界和各下游模型同时间使用。 |
 
-当前 spice_wmm 使用的地球重力文件为 GGM03S-J2-only；整星能力文件明确说明高于 J2 的地球谐项和大气阻力未建模。
+当前 spice_wmm 使用的地球重力文件为 GGM03S-J2-only，高于 J2 的地球谐项尚未建模。主干基线未启用大气阻力；PR #206 已在推荐整星图增加显式 opt-in 的 NRLMSISE-00 + 固定面积/Cd 阻力路径，并完成分支原生 CI 验证；尚未合并 main。
 
 ### 2.2 独立 Basilisk 轨道扩展
 
@@ -42,8 +42,8 @@
 ### 2.3 轨道环境缺口
 
 - J3/J4：需要完整重力场系数文件、系数归一化/参考半径/阶次核对、独立测试和任务级误差预算。
-- NRLMSISE-00：当前没有整星正式接入；需定义 F10.7、Ap、UTC 和空间天气数据来源。
-- 阻力：需要姿态相关投影面积、质量、气动系数和轨道/姿态一致的相对大气速度。
+- NRLMSISE-00：PR #206 候选分支已接入推荐整星图，并验证 F10.7/Ap/UTC、离线空间天气日期覆盖与 SHA-256 检查；尚未合并 main，合成测试数据不能代替真实来源与任务级验证。
+- 阻力：PR #206 已验证固定面积/Cd、地球共转相对速度下的非零力、耗散功率和轨道 A/B；姿态相关投影面积、经过审定的气动系数及热层风场仍是缺口。
 - SRP：需要真实太阳星历、日食遮挡、航天器表面法向/面积/反射率；当前 Cannonball 烟测不能替代该路径。
 - 固体潮/海潮：当前未发现正式接入；按 LEO-Precision 任务需求决定。
 - 地磁：推荐整星使用 WMM2025；用户需求中提到 IGRF，二者须作为显式模型选项或经过评审后选择，不能直接将 WMM 标成 IGRF。
@@ -179,7 +179,7 @@ Canonical TaskSpec 已有 demo、engineering_estimate、ground_calibrated、flig
 
 不新增 Python NRLMSISE-00 代理，也不重复实现 NRLMSISE 公式。DT-1 应直接复用 Basilisk 2.11.0 官方模块，并为数据文件增加版本、来源、检索时间、SHA-256、有效日期范围和运行质量检查。
 
-当前项目状态仍是“官方模块可复用、推荐整星路径尚未接入”，不能把上游模块存在误标为本项目已经具备 NRLMSISE-00。
+本节记录官方模块的复用依据；PR #206 已在候选分支实现并通过原生整星阻力验收，但尚未合入 main，不能把分支候选误标为主干或任务级高保真能力。
 
 ## 10. Basilisk 2.11.0 的 SRP 与地球辐射模块复用选项
 
@@ -203,8 +203,10 @@ Canonical TaskSpec 已有 demo、engineering_estimate、ground_calibrated、flig
 
 官方版本依据：Basilisk v2.11.0 Release Notes 的 “Spacecraft dynamics and effectors” 和 “Environment, gravity, and ephemerides” 条目；对应源码目录位于 AVSLab/basilisk v2.11.0 的 facetSRPDynamicEffector、facetedSRPEffector、earthRadiationModel 和 albedo。
 
-## 11. DT1-A1 接入状态（实施候选，尚待 CI）
+## 11. DT1-A1 接入状态（PR #206 已完成方案 a，未合并）
 
-当前 DT1-A1 feature branch 正在将官方 Basilisk v2.11.0 的 SpaceWeatherData、MsisAtmosphere、ZeroWindModel 和 DragDynamicEffector 接入推荐整星统一图。实现使用离线 CelesTrak CSV，并在运行前检查三日 Ap 回看窗口和整个仿真时间弧的日期连续性。
+PR [#206](https://github.com/clonetimer/SatAgentSimulation/pull/206) 在 HEAD `ffecb139f1f9861a80e1ba6ff7d091eff66f7a30` 将 Basilisk v2.11.0 的 SpaceWeatherData、MsisAtmosphere、ZeroWindModel、DragDynamicEffector 接入推荐整星统一图；必须显式启用 `atmosphere_model=nrlmsise00` 和 `environment_profile=spice_wmm`。离线 CelesTrak 兼容 CSV 在运行前接受 epoch 前三日 Ap 回看窗口、日期连续性、必需列及 SHA-256/来源校验。
 
-该 feature branch 的代码、测试和 CI 尚未完成，因此本节记录的是实现设计和待验收合同，不将其标记为 main 已具备或已通过的能力。固定面积/Cd 仍是工程假设。
+**真实原生 CI 证据：** [workflow #44755915226](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44755915226)，job `native-whole-spacecraft`，step `Verify native SPICE WMM, NRLMSISE-00 drag and orbit-step convergence` SUCCESS，`tests/test_native_orbital_environment.py:165-200` 环境测试 12/12 PASS。61 个采样点的大气密度 `6.100284068e-11`～`6.256561193e-11 kg/m³`；官方 `DragDynamicEffector.forceExternal_B` 最大阻力模长 `3.725094387e-02 N`；最小耗散功率 `-2.740595737e+02 W`；600 s 同初始状态轨道 A/B：无阻力末端半长轴 `6647253.359927486 m`、有阻力 `6643441.055106110 m`、差 `-3812.304821376 m`。代码在 `src/sat_sim/bsk_engine/unified_native.py:979-1001` 读取官方模块实际赋值的 `forceExternal_B`，而不是未更新的 `forceExternal_N`。
+
+**能力界限：** 测试夹具仅使用质量 `10 kg`、固定迎风面积 `10 m²`、`Cd=2.2`、600 s 与合成空间天气 CSV，非默认物理值或真实飞行数据。ZeroWindModel 只处理地球共转，不处理热层风；固定面积/Cd 不等于姿态相关 CAD 气动，更不证明独立 STK/GMAT 轨道精度、硬件标定或飞行级精度。PR #206 已 Ready for Review，**未合并 main**；合并由维护者决定。
