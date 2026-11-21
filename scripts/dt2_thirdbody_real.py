@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Genuine DT-2 Sun/Luna ON/OFF dynamics in separate Basilisk and GMAT engines.
 
+用途：基于哈希认证的原始轨道和星历，分别执行真实 Basilisk/GMAT 日月第三体 ON/OFF 对照。
+参数：action(bsk-off/bsk-on/gmat-off/gmat-on/compare)、--output、--gmat-root、--gmat-executable。
+输出：各引擎原始 91 点轨道、GMAT Mu 实际回读、执行日志、响应 CSV 和 SHA-256 凭证。
+
 Original 91-state point-mass runs are immutable. Require actual GMAT body-mu
 readbacks, real DE421 kernels and raw independent engine outputs. No scientific
 frame/timing/tolerance PASS is allowed by this experiment.

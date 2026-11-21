@@ -115,6 +115,8 @@
 | `audit_capability_output_surfaces.py` | 组件输出审计 | active | 真实注册执行链的默认工况输出与合同对照，不自动改合同或生成标签 |
 | `convert_birds4_step.py` | BIRDS-4 CAD 参考资产转换 | active | 固定上游 commit 与 Git blob SHA-1，核验 STEP 来源、单位、装配树并导出米制 GLB；仅生成参考模型和证据，不认定 as-built 安装状态 |
 
+| `dt2_thirdbody_real.py` | DT-2 日月第三体真实双引擎 ON/OFF | active | 用途：执行独立 Basilisk 与 NASA GMAT R2026a 日月第三体开关对照；参数：bsk-off/on、gmat-off/on、compare、--output、--gmat-root、--gmat-executable；输出：91 点六维状态、GMAT Mu 回读、原始日志、响应 CSV 和 SHA-256；科学结论保留 INCONCLUSIVE |
+
 ## 交叉检查结论
 
 - `tools/` 与 `scripts/` 的并列入口已合并，`tools/` 已删除。
