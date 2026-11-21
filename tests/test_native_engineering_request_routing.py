@@ -75,3 +75,24 @@ def test_native_drag_does_not_waive_flight_accuracy_claims(claim):
     assert not result.supported
     assert result.unsupported_requirements
 
+
+
+@pytest.mark.parametrize('mechanism', [
+    'IGRF-14 geomagnetic field', 'GGM03S degree 4 gravity',
+    'J4 gravity', 'Cannonball SRP',
+])
+def test_named_native_models_route_to_real_whole_spacecraft(mechanism):
+    result = plan_capability_for_request(
+        f'Use {mechanism} in a satellite engineering simulation for 20 seconds')
+    assert result.supported, result
+    assert result.selected_capability_id == 'whole_spacecraft.unified_native.v1'
+
+
+@pytest.mark.parametrize('mechanism', [
+    'IGRF-14', 'GGM03S degree 4', 'Cannonball SRP',
+])
+def test_adcs_only_does_not_claim_environment_models(mechanism):
+    result = plan_capability_for_request(
+        f'capability_id=subsystem.adcs_unified_native.v1 使用 {mechanism}')
+    assert not result.supported
+    assert any(x.domain == 'high_fidelity_orbit' for x in result.unsupported_requirements)

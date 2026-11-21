@@ -199,3 +199,91 @@ def test_flight_grade_disclaimer_is_not_a_model_disable_request():
     request = 'whole_spacecraft.unified_native.v1 使用 NRLMSISE-00，但不要声称飞行级精度'
     assert _requests_native_nrlmsise(request)
     assert not _forbids_native_nrlmsise(request)
+
+
+@pytest.mark.parametrize('phrase,field,value', [
+    ('IGRF-14 地磁模型', 'magnetic_field_model', 'igrf14'),
+    ('GGM03S degree 4 重力', 'earth_gravity_model', 'ggm03s_degree4'),
+    ('J4 gravity', 'earth_gravity_model', 'ggm03s_degree4'),
+    ('GGM03S degree 3', 'earth_gravity_model', 'ggm03s_degree3'),
+    ('GGM03S degree 2', 'earth_gravity_model', 'ggm03s_degree2'),
+])
+def test_named_field_and_gravity_template_exports_real_native_opt_in(tmp_path, phrase, field, value):
+    result = run_capability_script_generation(CapabilityAgentRequest(
+        request=f'whole_spacecraft.unified_native.v1 使用 {phrase}，仿真20秒',
+        backend='template',
+        allowed_capabilities=('whole_spacecraft.unified_native.v1',),
+        output_dir=tmp_path / 'script', run_task=False))
+    assert result.ok, result.validation.to_dict()
+    values = canonicalize_task_spec(result.task_spec)['parameters']['values']
+    assert values[field] == value
+    assert values['environment_profile'] == 'spice_wmm'
+    assert value in result.script.output_path.read_text(encoding='utf-8')
+    assert values.get('atmosphere_model', 'none') == 'none'
+    assert values.get('srp_model', 'disabled') == 'disabled'
+
+
+@pytest.mark.parametrize('phrase,field,value', [
+    ('IGRF14', 'magnetic_field_model', 'igrf14'),
+    ('GGM03S degree 4', 'earth_gravity_model', 'ggm03s_degree4'),
+])
+def test_named_native_draft_must_not_silently_fall_back_to_default(phrase, field, value):
+    draft = instantiate_scenario_template('whole_spacecraft_unified_native')
+    original = copy.deepcopy(draft)
+    instruction = f'whole_spacecraft.unified_native.v1 使用 {phrase}'
+    issues = _explicit_literal_requirement_issues(draft, instruction)
+    assert '$.parameters.' + field in {issue.path for issue in issues}
+    assert draft == original
+    draft['parameters']['values'][field] = value
+    draft['parameters']['values']['environment_profile'] = 'spice_wmm'
+    assert not _explicit_literal_requirement_issues(draft, instruction)
+
+
+@pytest.mark.parametrize('instruction,field,value', [
+    ('不要启用 IGRF-14', 'magnetic_field_model', 'igrf14'),
+    ('不使用 GGM03S degree 4', 'earth_gravity_model', 'ggm03s_degree4'),
+    ('禁用 Cannonball SRP', 'srp_model', 'cannonball'),
+])
+def test_named_native_model_disable_is_never_positive_opt_in(tmp_path, instruction, field, value):
+    request = 'whole_spacecraft.unified_native.v1 ' + instruction
+    result = run_capability_script_generation(CapabilityAgentRequest(
+        request=request, backend='template',
+        allowed_capabilities=('whole_spacecraft.unified_native.v1',),
+        output_dir=tmp_path / 'disabled', run_task=False))
+    assert result.ok, result.validation.to_dict()
+    values = canonicalize_task_spec(result.task_spec)['parameters']['values']
+    assert values.get(field) != value
+    draft = instantiate_scenario_template('whole_spacecraft_unified_native')
+    draft['parameters']['values'][field] = value
+    assert '$.parameters.' + field in {
+        issue.path for issue in _explicit_literal_requirement_issues(draft, request)}
+
+
+def test_named_cannonball_srp_requires_area_and_cr_without_guessing(tmp_path):
+    instruction = 'whole_spacecraft.unified_native.v1 使用 Cannonball SRP，仿真20秒'
+    draft = instantiate_scenario_template('whole_spacecraft_unified_native')
+    errors = _explicit_literal_requirement_issues(draft, instruction)
+    assert {i.path for i in errors if i.code == 'USER_PHYSICS_INPUT_REQUIRED'} == {
+        '$.parameters.srp_reference_area_m2', '$.parameters.srp_coefficient_reflection'}
+    result = run_capability_script_generation(CapabilityAgentRequest(
+        request=instruction + '，srp_reference_area_m2=20，srp_coefficient_reflection=1.5',
+        backend='template',
+        allowed_capabilities=('whole_spacecraft.unified_native.v1',),
+        output_dir=tmp_path / 'srp', run_task=False))
+    assert result.ok, result.validation.to_dict()
+    values = canonicalize_task_spec(result.task_spec)['parameters']['values']
+    assert values['srp_model'] == 'cannonball'
+    assert values['environment_profile'] == 'spice_wmm'
+    assert values['srp_reference_area_m2'] == 20
+    assert values['srp_coefficient_reflection'] == 1.5
+    assert 'cannonball' in result.script.output_path.read_text(encoding='utf-8')
+
+
+def test_unspecified_and_conflicting_ggm03s_degrees_fail_closed():
+    draft = instantiate_scenario_template('whole_spacecraft_unified_native')
+    prefix = 'whole_spacecraft.unified_native.v1 使用 '
+    assert 'USER_PHYSICS_INPUT_REQUIRED' in {
+        x.code for x in _explicit_literal_requirement_issues(draft, prefix + 'GGM03S')}
+    assert 'USER_PARAMETER_REQUIREMENT_INVALID' in {
+        x.code for x in _explicit_literal_requirement_issues(
+            draft, prefix + 'GGM03S degree 3 和 GGM03S degree 4')}
