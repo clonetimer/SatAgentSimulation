@@ -295,3 +295,58 @@ def test_unspecified_and_conflicting_ggm03s_degrees_fail_closed():
     assert 'USER_PARAMETER_REQUIREMENT_INVALID' in {
         x.code for x in _explicit_literal_requirement_issues(
             draft, prefix + 'GGM03S degree 3 和 GGM03S degree 4')}
+
+
+def test_natural_language_four_effects_preserved_across_taskspec_and_actual_export(tmp_path):
+    """Check the user-facing selection chain, not just direct Basilisk A/B."""
+    from sat_sim.capability_planner import plan_capability_for_request
+
+    instruction = (
+        '整星工程仿真，使用 NRLMSISE-00 大气阻力、IGRF-14 地磁、'
+        'GGM03S degree 4 重力及 Cannonball SRP。'
+        'srp_reference_area_m2=20，srp_coefficient_reflection=1.5，仿真20秒。'
+    )
+    plan = plan_capability_for_request(instruction)
+    assert plan.supported, plan
+    assert plan.selected_capability_id == 'whole_spacecraft.unified_native.v1'
+    result = run_capability_script_generation(CapabilityAgentRequest(
+        request=instruction, backend='template',
+        allowed_capabilities=('whole_spacecraft.unified_native.v1',),
+        output_dir=tmp_path / 'four_effects', run_task=False))
+    assert result.ok, result.validation.to_dict()
+    assert result.script is not None
+    spec = canonicalize_task_spec(result.task_spec)
+    values = spec['parameters']['values']
+    assert values['environment_profile'] == 'spice_wmm'
+    assert values['atmosphere_model'] == 'nrlmsise00'
+    assert values['earth_gravity_model'] == 'ggm03s_degree4'
+    assert values['magnetic_field_model'] == 'igrf14'
+    assert values['srp_model'] == 'cannonball'
+    assert values['srp_reference_area_m2'] == 20
+    assert values['srp_coefficient_reflection'] == 1.5
+    script = result.script.output_path.read_text(encoding='utf-8')
+    for selected_model in ('nrlmsise00', 'ggm03s_degree4', 'igrf14', 'cannonball'):
+        assert selected_model in script
+    assert not _explicit_literal_requirement_issues(spec, instruction)
+
+
+def test_four_effect_request_rejects_missing_named_choice_without_model_repair():
+    instruction = (
+        'whole_spacecraft.unified_native.v1 使用 NRLMSISE-00、'
+        'GGM03S degree 4、IGRF-14、Cannonball SRP，'
+        'srp_reference_area_m2=20，srp_coefficient_reflection=1.5'
+    )
+    draft = instantiate_scenario_template('whole_spacecraft_unified_native')
+    draft['parameters']['values'].update(
+        environment_profile='spice_wmm',
+        atmosphere_model='nrlmsise00',
+        earth_gravity_model='ggm03s_degree4',
+        srp_model='cannonball',
+        srp_reference_area_m2=20,
+        srp_coefficient_reflection=1.5)
+    original = copy.deepcopy(draft)
+    issues = _explicit_literal_requirement_issues(draft, instruction)
+    assert any(issue.code == 'USER_PARAMETER_REQUIREMENT_MISMATCH'
+               and issue.path == '$.parameters.magnetic_field_model'
+               for issue in issues)
+    assert draft == original
