@@ -50,6 +50,7 @@ def test_dt2_native_imu_quantization_is_opt_in_across_capability_form_and_html()
 @pytest.mark.parametrize("bad", [
     {GYRO: -1e-6}, {ACCEL: -1e-6}, {GYRO: 0.2}, {ACCEL: 1.1},
     {GYRO: float("nan")}, {ACCEL: float("inf")}, {GYRO: "not-a-number"},
+    {GYRO: True}, {ACCEL: False}, {GYRO: "0.0043"},
 ])
 def test_dt2_prestart_rejects_invalid_lsb(bad):
     with pytest.raises(ValidationError):
