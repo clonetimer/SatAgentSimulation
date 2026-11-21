@@ -169,7 +169,7 @@ def native(out:Path,root:Path,binary:Path,mode:str)->dict:
     return rec
 
 
-def gmat_script(initial:dict,raw:Path,mu_report:Path,mode:str)->str:
+def gmat_script(initial:dict,raw:Path,mode:str)->str:
     if mode not in MODES: raise ValueError("DT2_THIRDBODY_BAD_MODE")
     script=baseline._gmat_script(
         initial,report_path=str(raw),earth_mu_km3_s2=MU["earth"],state_frame="EarthICRF")
@@ -184,54 +184,23 @@ def gmat_script(initial:dict,raw:Path,mu_report:Path,mode:str)->str:
             raise ValueError("DT2_THIRDBODY_MISSING_FORCE_SWITCH")
         script=script.replace("CrossGravity.PointMasses = {Earth};",
             "CrossGravity.PointMasses = {Earth, Sun, Luna};",1)
-    declaration="\n".join([
-        # R2026a Report rejects direct CelestialBody object properties. A
-        # Variable is the documented ReportFile interface for real values.
-        "Create Variable EarthMuRead SunMuRead LunaMuRead;",
-        "Create ReportFile ThirdBodyMu;",
-        f"ThirdBodyMu.Filename = '{str(mu_report.resolve()).replace(chr(92),'/').replace(chr(39),'')}';",
-        "ThirdBodyMu.Precision = 16;",
-        "ThirdBodyMu.WriteHeaders = false;",
-        "ThirdBodyMu.FixedWidth = false;",
-        "ThirdBodyMu.Delimiter = ',';",
-        "ThirdBodyMu.WriteReport = false;",
-        "ThirdBodyMu.AppendToExistingFile = false;",
-    ])
-    if script.count("BeginMissionSequence;")!=1: raise ValueError("DT2_THIRDBODY_GMAT_BAD_MISSION")
-    script=script.replace("BeginMissionSequence;",
-        declaration+"\nBeginMissionSequence;\n"
-        "GMAT EarthMuRead = Earth.Mu;\n"
-        "GMAT SunMuRead = Sun.Mu;\n"
-        "GMAT LunaMuRead = Luna.Mu;\n"
-        "Report ThirdBodyMu EarthMuRead SunMuRead LunaMuRead;",1)
+    # Authentic GMAT R2026a forbids CelestialBody.Mu in BOTH Report and
+    # Variable-expression RHS; retain explicit declarations but NEVER claim
+    # an independently observed effective force-model mu readback.
+    if script.count("BeginMissionSequence;")!=1:
+        raise ValueError("DT2_THIRDBODY_GMAT_BAD_MISSION")
     if not script.isascii():raise ValueError("DT2_THIRDBODY_GMAT_NONASCII")
     return script
-
-
-def read_mu(path:Path)->dict:
-    with path.open(newline="",encoding="utf-8-sig") as f:
-        rows=[r for r in csv.reader(f) if any(x.strip() for x in r)]
-    if len(rows)!=1 or len(rows[0])!=3:
-        raise ValueError("DT2_THIRDBODY_REAL_MU_READBACK_REQUIRED")
-    vals=[float(x.strip()) for x in rows[0]]
-    if not all(math.isfinite(v) for v in vals):
-        raise ValueError("DT2_THIRDBODY_NONFINITE_MU_READBACK")
-    reported=dict(zip(("earth","sun","moon"),vals))
-    for name,v in reported.items():
-        # Strict input serialization gate, not a post-hoc orbit tolerance.
-        if not math.isclose(v,MU[name],rel_tol=5e-14,abs_tol=1e-9):
-            raise ValueError("DT2_THIRDBODY_ACTUAL_GMAT_MU_MISMATCH: "+name)
-    return reported
 
 
 def gmat(out:Path,root:Path,binary:Path,mode:str)->dict:
     if mode not in MODES: raise ValueError("DT2_THIRDBODY_BAD_MODE")
     src=_source(out,root,binary)
     files={k:_name(src["out"],"gmat",mode,k) for k in (
-        "state.csv","raw.txt","mu.txt","executed.script","stdout.log","stderr.log","execution.json")}
+        "state.csv","raw.txt","executed.script","stdout.log","stderr.log","execution.json")}
     if any(p.exists() for p in files.values()):
         raise FileExistsError("DT2_THIRDBODY_GMAT_IMMUTABLE_OUTPUT")
-    script=gmat_script(src["initial"],files["raw.txt"],files["mu.txt"],mode)
+    script=gmat_script(src["initial"],files["raw.txt"],mode)
     files["executed.script"].write_text(script,encoding="ascii")
     run=subprocess.run(
         [str(src["binary"]),"--run",str(files["executed.script"].resolve())],
@@ -247,18 +216,17 @@ def gmat(out:Path,root:Path,binary:Path,mode:str)->dict:
              "stdout_sha256":baseline._sha256(files["stdout.log"]),
              "stderr_sha256":baseline._sha256(files["stderr.log"]),
              "raw_report_present":files["raw.txt"].is_file(),
-             "mu_report_present":files["mu.txt"].is_file(),
+             "declared_earth_sun_moon_mu_km3_s2":dict(MU),
+             "effective_mu_independently_verified":False,
+             "effective_mu_independent_readback_status":"UNSUPPORTED_BY_R2026a_REPORT_AND_VARIABLE",
              "physical_N_to_EarthICRF_approved":False,"mission_budget_approved":False}
     baseline._write_json(files["execution.json"],receipt)
-    if run.returncode!=0 or not files["raw.txt"].is_file() or not files["mu.txt"].is_file():
-        raise RuntimeError("DT2_THIRDBODY_REAL_GMAT_MISSING_SOURCE_OR_MU_REPORT")
-    mu=read_mu(files["mu.txt"])
+    if run.returncode!=0 or not files["raw.txt"].is_file():
+        raise RuntimeError("DT2_THIRDBODY_REAL_GMAT_EXECUTION_OR_REPORT_FAILED")
     rows=baseline._read_gmat_report(files["raw.txt"],baseline.CASE["epoch_utc"])
     baseline._write_state_csv(files["state.csv"],rows)
     receipt.update(status="REAL_GMAT_THIRDBODY_EXECUTED_INCONCLUSIVE",
         real_force_model_executed=True,rows=len(rows),
-        actual_mu_readback_km3_s2=mu,
-        mu_sha256=baseline._sha256(files["mu.txt"]),
         raw_sha256=baseline._sha256(files["raw.txt"]),
         state_sha256=baseline._sha256(files["state.csv"]))
     baseline._write_json(files["execution.json"],receipt)
@@ -279,12 +247,19 @@ def compare(out:Path,root:Path,binary:Path)->dict:
                 or baseline._sha256(sf)!=receipt.get("state_sha256")):
                 raise ValueError("DT2_THIRDBODY_ENGINE_OUTPUT_INVALID: "+engine+mode)
             if engine=="gmat":
-                mu=_name(src["out"],engine,mode,"mu.txt")
                 raw=_name(src["out"],engine,mode,"raw.txt")
-                if (baseline._sha256(mu)!=receipt["mu_sha256"] or
-                    baseline._sha256(raw)!=receipt["raw_sha256"]):
+                script_path=_name(src["out"],engine,mode,"executed.script")
+                if (baseline._sha256(raw)!=receipt["raw_sha256"] or
+                    baseline._sha256(script_path)!=receipt["script_sha256"]):
                     raise ValueError("DT2_THIRDBODY_GMAT_RAW_HASH_INVALID")
-                read_mu(mu)
+                if receipt.get("effective_mu_independently_verified") is not False:
+                    raise ValueError("DT2_THIRDBODY_FALSE_GMAT_MU_READBACK_CLAIM")
+                if receipt.get("declared_earth_sun_moon_mu_km3_s2")!=MU:
+                    raise ValueError("DT2_THIRDBODY_GMAT_MU_DECLARATIONS_CHANGED")
+                script=script_path.read_text(encoding="ascii")
+                for obj,key in (("Earth","earth"),("Sun","sun"),("Luna","moon")):
+                    if f"GMAT {obj}.Mu = {MU[key]:.15g};" not in script:
+                        raise ValueError("DT2_THIRDBODY_MISSING_DECLARED_MU: "+obj)
             traces[engine,mode]=baseline._read_states(
                 sf,baseline.CASE["epoch_utc"],
                 tick_skew_budget_s=(
@@ -335,6 +310,8 @@ def compare(out:Path,root:Path,binary:Path)->dict:
             max(x["conditional_UNAPPROVED_vector_response_delta_m"] for x in result),
         "source_frame_equivalence_unapproved":True,
         "source_absolute_clock_alignment_unapproved":True,
+        "GMAT_effective_three_body_mu_readback_verified":False,
+        "GMAT_mu_declarations_present_not_effective_mu_certification":True,
         "mission_accuracy_budget_approved":False,
         "scientific_verdict":"INCONCLUSIVE",
         "real_engine_state_sha256":state_hashes,

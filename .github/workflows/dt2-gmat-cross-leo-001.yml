@@ -515,6 +515,8 @@ jobs:
           assert d["samples_per_engine_mode"]==91
           assert d["source_frame_equivalence_unapproved"]
           assert d["source_absolute_clock_alignment_unapproved"]
+          assert d["GMAT_effective_three_body_mu_readback_verified"] is False
+          assert d["GMAT_mu_declarations_present_not_effective_mu_certification"]
           assert not d["mission_accuracy_budget_approved"]
           assert d["max_Basilisk_ON_OFF_position_m"]>0
           assert d["max_GMAT_ON_OFF_position_m"]>0
@@ -529,8 +531,10 @@ jobs:
                   assert hashlib.sha256((root/f"{stem}_state.csv").read_bytes()).hexdigest()==rec["state_sha256"]
                   if engine=="gmat":
                       assert rec["return_code"]==0
-                      assert set(rec["actual_mu_readback_km3_s2"])=={"earth","sun","moon"}
-                      assert hashlib.sha256((root/f"{stem}_mu.txt").read_bytes()).hexdigest()==rec["mu_sha256"]
+                      assert rec["declared_earth_sun_moon_mu_km3_s2"]=={
+                          "earth":398600.436,"sun":132712440023.310,"moon":4902.799}
+                      assert rec["effective_mu_independently_verified"] is False
+                      assert rec["effective_mu_independent_readback_status"]=="UNSUPPORTED_BY_R2026a_REPORT_AND_VARIABLE"
                       assert hashlib.sha256((root/f"{stem}_raw.txt").read_bytes()).hexdigest()==rec["raw_sha256"]
                   else:
                       assert rec["true_spice_kernel_pool_count"]==3
