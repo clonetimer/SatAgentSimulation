@@ -22,6 +22,14 @@ def validate_native_rw_settings(values):
             value = values.get(path, values.get(key, default))
             if type(value) not in (int, float) or not math.isfinite(value) or not lower <= value <= upper or positive and value <= 0:
                 raise ValueError(f'Invalid native RW driver setting: {path}')
+    deadband = values.get('rw_command_deadband_nm', 0.)
+    if (type(deadband) not in (int, float) or not math.isfinite(deadband)
+            or not 0. <= deadband <= .2):
+        raise ValueError('NATIVE_RW_COMMAND_DEADBAND_INVALID')
+    response_tau = values.get('rw_motor_response_time_constant_s', 0.)
+    if (type(response_tau) not in (int, float) or not math.isfinite(response_tau)
+            or not 0. <= response_tau <= 5.):
+        raise ValueError('NATIVE_RW_RESPONSE_TIME_CONSTANT_INVALID')
     mode = values.get('rw_friction_mode', 'disabled')
     c, v = values.get('rw_coulomb_friction_nm', 0.), values.get('rw_viscous_friction_nms', 0.)
     if mode not in {'disabled','coulomb_viscous','per_wheel'}:

@@ -588,6 +588,8 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
         motor_torque_constant_nm_per_a: float = 0.02,
         wheel_current_limits_a: Sequence[float] | None = None,
         wheel_torque_constants_nm_per_a: Sequence[float] | None = None,
+        command_deadband_nm: float = 0.0,
+        motor_response_time_constant_s: float = 0.0,
     ) -> None:
         super().__init__()
         self.ModelTag = "project_rw_command_fault_manager"
@@ -636,6 +638,22 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
                 limits, self.wheel_current_limits_a, self.wheel_torque_constants_nm_per_a
             )
         )
+        # Optional project-driver dead zone, scheduled upstream of the official
+        # Basilisk ReactionWheelStateEffector. Zero preserves the old path.
+        if (type(command_deadband_nm) not in (int, float)
+                or not math.isfinite(command_deadband_nm)
+                or not 0.0 <= command_deadband_nm <= 0.2):
+            raise ValueError("NATIVE_RW_COMMAND_DEADBAND_INVALID")
+        self.command_deadband_nm = float(command_deadband_nm)
+        # Optional project-owned first-order motor-drive response lag. This is
+        # a command-path engineering model, not an OEM/Honeywell motor model.
+        if (type(motor_response_time_constant_s) not in (int, float)
+                or not math.isfinite(motor_response_time_constant_s)
+                or not 0.0 <= motor_response_time_constant_s <= 5.0):
+            raise ValueError("NATIVE_RW_RESPONSE_TIME_CONSTANT_INVALID")
+        self.motor_response_time_constant_s = float(motor_response_time_constant_s)
+        self._lagged_drive_torque_nm = [0.0] * self.wheel_count
+        self._last_update_nanos: int | None = None
         self.commandInMsg = messaging.ArrayMotorTorqueMsgReader()
         self.speedInMsg = messaging.RWSpeedMsgReader()
         self.commandOutMsg = messaging.ArrayMotorTorqueMsg()
@@ -644,6 +662,8 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
         self.speedLimitOutMsg = messaging.RWSpeedMsg()
 
     def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
+        self._lagged_drive_torque_nm = [0.0] * self.wheel_count
+        self._last_update_nanos = None
         self.UpdateState(current_sim_nanos)
 
     def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
@@ -651,6 +671,45 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
         speed_payload = self.speedInMsg()
         source = list(command_payload.motorTorque)
         output = list(source)
+        if self.command_deadband_nm > 0.0:
+            # Compare the *nominal hardware/electrical bounded* motor drive.
+            # Do not suppress jam/overspeed brake events: they run afterwards.
+            for index in range(min(self.wheel_count, len(output))):
+                limit = self.effective_nominal_max_torques_nm[index]
+                bounded = max(-limit, min(limit, float(output[index])))
+                if abs(bounded) <= self.command_deadband_nm:
+                    output[index] = 0.0
+        # Exact discrete first-order response under a zero-order-held drive
+        # command: T[k] = T[k-1] + (1-exp(-dt/tau)) * (u[k]-T[k-1]).
+        # dt comes from the actual Basilisk scheduler timestamp, not a guessed
+        # task period. tau=0 deliberately bypasses the filter to preserve the
+        # historical command path exactly. Fault brakes below are explicit
+        # overrides and therefore do not inherit normal motor-drive lag.
+        now_nanos = int(current_sim_nanos)
+        if self.motor_response_time_constant_s == 0.0:
+            for index in range(min(self.wheel_count, len(output))):
+                self._lagged_drive_torque_nm[index] = float(output[index])
+            self._last_update_nanos = now_nanos
+        else:
+            if self._last_update_nanos is None:
+                dt_s = 0.0
+            else:
+                elapsed_nanos = now_nanos - self._last_update_nanos
+                if elapsed_nanos < 0:
+                    raise ValueError("NATIVE_RW_RESPONSE_TIME_NOT_MONOTONIC")
+                dt_s = float(elapsed_nanos) * macros.NANO2SEC
+            alpha = (-math.expm1(-dt_s / self.motor_response_time_constant_s)
+                     if dt_s > 0.0 else 0.0)
+            for index in range(min(self.wheel_count, len(output))):
+                previous = self._lagged_drive_torque_nm[index]
+                # Current/u_max authority is the motor-drive target limit; do
+                # not let an over-limit FSW request wind up hidden lag state.
+                drive_limit = self.effective_nominal_max_torques_nm[index]
+                target = max(-drive_limit, min(drive_limit, float(output[index])))
+                state = previous + alpha * (target - previous)
+                self._lagged_drive_torque_nm[index] = state
+                output[index] = state
+            self._last_update_nanos = now_nanos
         drag = [0.0] * len(output)
         # Available drive authority and the actual output-command clamp differ
         # for a jam: the wheel has zero drive authority but can still receive a
@@ -672,25 +731,30 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
                 # a binary fault into a partial loss.
                 scale = 0.0
                 output[index] = 0.0
+                self._lagged_drive_torque_nm[index] = 0.0
                 torque_limits[index] = 0.0
                 command_limits[index] = 0.0
             elif event.effect == "rw_motor_failure":
                 # Retain the legacy generic alias for older TaskSpecs.
                 scale = max(0.0, min(_event_number(event, ("torque_scale", "remaining_torque_ratio"), 0.0), 1.0))
                 output[index] *= scale
+                self._lagged_drive_torque_nm[index] *= scale
                 torque_limits[index] = self.effective_nominal_max_torques_nm[index] * scale
                 command_limits[index] = torque_limits[index]
             elif event.effect == "adcs_actuator_failure":
                 output[index] = 0.0
+                self._lagged_drive_torque_nm[index] = 0.0
                 torque_limits[index] = 0.0
                 command_limits[index] = 0.0
             elif event.effect == "adcs_control_loop_failure":
                 scale = max(0.0, min(_event_number(event, ("command_scale",), 0.0), 1.0))
                 for wheel_index in range(self.wheel_count):
                     output[wheel_index] *= scale
+                    self._lagged_drive_torque_nm[wheel_index] *= scale
             elif event.effect == "adcs_rw_torque_authority_loss":
                 scale = max(0.0, min(_event_number(event, ("torque_scale", "remaining_torque_ratio"), 0.5), 1.0))
                 output[index] *= scale
+                self._lagged_drive_torque_nm[index] *= scale
                 torque_limits[index] = self.effective_nominal_max_torques_nm[index] * scale
                 command_limits[index] = torque_limits[index]
             elif event.effect == "rw_friction_degradation":
@@ -705,11 +769,13 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
                     gain = max(_event_number(event, ("overspeed_brake_gain_nms",), 0.02), 0.0)
                     brake = min(self.effective_nominal_max_torques_nm[index], gain * max(0.0, abs(speed) - limit))
                     output[index] = -math.copysign(brake, speed)
+                    self._lagged_drive_torque_nm[index] = 0.0
             elif event.effect in {"rw_jamming", "adcs_rw_jamming"}:
                 brake = min(max(_event_number(event, ("brake_torque_nm",), self.effective_nominal_max_torques_nm[index]), 0.0), self.effective_nominal_max_torques_nm[index])
                 tolerance = max(_event_number(event, ("lock_tolerance_rad_s",), 0.25), 0.0)
                 speed = float(speeds[index])
                 output[index] = -math.copysign(brake, speed) if abs(speed) > tolerance else 0.0
+                self._lagged_drive_torque_nm[index] = 0.0
                 torque_limits[index] = 0.0
 
         for index in range(len(output)):
