@@ -161,3 +161,68 @@ def test_runtime_rejects_nonphysical_native_imu_lsb(bad):
     with pytest.raises(ValueError, match="NATIVE_IMU_QUANTIZATION_INVALID"):
         get_adapter_for_capability(WHOLE_ID).run(
             _short_spec(WHOLE_ID, duration_s=2., values=bad))
+
+
+def test_official_basilisk_imu_gyro_accel_saturation_on_raw_sensor_message():
+    """DT-2: prove native saturation, not just senRotMax/senTransMax setters.
+
+    The fixture uses the existing bias in _native_run to excite both axes.
+    No postprocessed measurement or actual hardware range calibration.
+    """
+    baseline = _native_run({})
+    zero_range_override = _native_run({
+        "imu_gyro_max_rad_s": 0., "imu_accel_max_m_s2": 0.,
+    })
+    gyro_limit = .005
+    accel_limit = .01
+    limited = _native_run({
+        "imu_gyro_max_rad_s": gyro_limit,
+        "imu_accel_max_m_s2": accel_limit,
+    })
+
+    assert [r["time_s"] for r in baseline.trace_rows] == [
+        r["time_s"] for r in limited.trace_rows
+    ]
+    for key in (*RAW_GYRO, *RAW_ACCEL):
+        assert [row[key] for row in baseline.trace_rows] == pytest.approx(
+            [row[key] for row in zero_range_override.trace_rows],
+            rel=1e-12, abs=1e-12,
+        )
+
+    for row in limited.trace_rows[1:]:
+        for key in RAW_GYRO:
+            assert math.isfinite(float(row[key]))
+            assert abs(float(row[key])) <= gyro_limit + 1e-12
+        for key in RAW_ACCEL:
+            assert math.isfinite(float(row[key]))
+            assert abs(float(row[key])) <= accel_limit + 1e-12
+
+    gyro_delta = max(
+        abs(float(a[k]) - float(b[k]))
+        for a, b in zip(baseline.trace_rows[1:], limited.trace_rows[1:], strict=True)
+        for k in RAW_GYRO
+    )
+    accel_delta = max(
+        abs(float(a[k]) - float(b[k]))
+        for a, b in zip(baseline.trace_rows[1:], limited.trace_rows[1:], strict=True)
+        for k in RAW_ACCEL
+    )
+    assert gyro_delta > 1e-4
+    assert accel_delta > 1e-4
+    assert any(
+        abs(float(row["adcs.sensor.raw_gyro_rad_s_x"])) >= gyro_limit - 1e-12
+        for row in limited.trace_rows[1:]
+    )
+    assert any(
+        abs(float(row["adcs.sensor.raw_accel_m_s2_x"])) >= accel_limit - 1e-12
+        for row in limited.trace_rows[1:]
+    )
+    print(
+        "DT2_NATIVE_IMU_SATURATION_AB_MEASURED "
+        f"gyro_limit_rad_s={gyro_limit:.9e} accel_limit_m_s2={accel_limit:.9e} "
+        f"gyro_raw_delta_max_rad_s={gyro_delta:.9e} "
+        f"accel_raw_delta_max_m_s2={accel_delta:.9e} "
+        "official_imu_sensor_out=true zero_override_unchanged=true "
+        "engineering_limits_only=true",
+        flush=True,
+    )
