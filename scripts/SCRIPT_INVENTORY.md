@@ -117,6 +117,8 @@
 
 | `dt2_thirdbody_real.py` | DT-2 日月第三体真实双引擎 ON/OFF | active | 用途：执行独立 Basilisk 与 NASA GMAT R2026a 日月第三体开关对照；参数：bsk-off/on、gmat-off/on、compare、--output、--gmat-root、--gmat-executable；输出：91 点六维状态、GMAT Mu 回读、原始日志、响应 CSV 和 SHA-256；科学结论保留 INCONCLUSIVE |
 
+| `dt2_mu_probe.py` | DT-2 GMAT 实际 μ 因果扰动 | active | 用途：已核验原始 Sun/Luna ON 轨道中单独倍增太阳或月球 μ 并运行真实 GMAT；参数：sun2x、moon2x、aggregate、--output、--gmat-root、--gmat-executable；输出：两份真实原始 91 点轨道、脚本日志、响应数据和 SHA-256；不替代有效 μ 独立回读或科学精度验收 |
+
 ## 交叉检查结论
 
 - `tools/` 与 `scripts/` 的并列入口已合并，`tools/` 已删除。
