@@ -47,10 +47,15 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     whole = report["whole_spacecraft"]
     assert report["physics_validated_by_this_audit"] is False
     assert report["source_lookup_is_not_physical_proof"] is True
-    assert whole["continuous_initial_field_count"] == 167
+    assert whole["continuous_initial_field_count"] == 169
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 16
-    assert whole["registered_parameter_count"] == 179
+    assert whole["registered_parameter_count"] == 181
+    for key in ("imu_gyro_bias_random_walk_std_rad_s_sqrt_s",
+                "imu_accel_bias_random_walk_std_m_s2_sqrt_s"):
+        assert key in whole["continuous_groups"]["adcs"]
+        assert key not in whole["native_source_keys_missing_whole_registry"]
+        assert key not in whole["continuous_fields_without_source_lookup"]
     for key in ("imu_gyro_quantization_lsb_rad_s", "imu_accel_quantization_lsb_m_s2"):
         assert key in whole["continuous_groups"]["adcs"]
         assert key not in whole["native_source_keys_missing_whole_registry"]
@@ -86,7 +91,7 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert "adcs_drive_efficiency" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs_max_power_w" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs" in whole["continuous_groups"]
-    assert len(whole["continuous_groups"]["adcs"]) == 103
+    assert len(whole["continuous_groups"]["adcs"]) == 105
     assert len(whole["continuous_groups"]["orbit"]) == 12
     assert {"environment_profile", "epoch_utc", "raan_deg", "arg_perigee_deg"}.issubset(whole["continuous_groups"]["orbit"])
     assert "spacecraft_mass_kg" in whole["continuous_groups"]["orbit"]
