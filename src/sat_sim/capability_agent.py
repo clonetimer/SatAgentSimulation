@@ -776,12 +776,15 @@ def _explicit_literal_requirement_issues(spec: Mapping[str, Any], text: str, *, 
                 ))
         if named.get("srp_model") == "cannonball":
             for field in ("srp_reference_area_m2", "srp_coefficient_reflection"):
-                if not any(field in values for values in carriers):
+                # Required *from the user*, not merely present in an LLM draft.
+                # An external model inventing a plausible number is still a
+                # violation even when it passes the capability numeric range.
+                if field not in expected:
                     issues.append(ValidationIssue(
                         severity="error", path=f"$.parameters.{field}",
                         code="USER_PHYSICS_INPUT_REQUIRED",
-                        message=f"Explicit {field} required for cannonball SRP. "
-                                "Do not infer vehicle area or Cr from reference CAD."
+                        message=f"User must explicitly supply {field} for cannonball SRP. "
+                                "Neither an LLM guess nor reference CAD is a source."
                     ))
         # The pinned GGM03S asset supports three distinct degrees. Mentioning
         # the family alone must not silently select an arbitrary degree.

@@ -265,6 +265,14 @@ def test_named_cannonball_srp_requires_area_and_cr_without_guessing(tmp_path):
     errors = _explicit_literal_requirement_issues(draft, instruction)
     assert {i.path for i in errors if i.code == 'USER_PHYSICS_INPUT_REQUIRED'} == {
         '$.parameters.srp_reference_area_m2', '$.parameters.srp_coefficient_reflection'}
+    # Even an LLM that invented plausible area/Cr must be rejected when
+    # the user provided neither number.
+    draft['parameters']['values'].update(
+        srp_model='cannonball', environment_profile='spice_wmm',
+        srp_reference_area_m2=20, srp_coefficient_reflection=1.5)
+    guessed = _explicit_literal_requirement_issues(draft, instruction)
+    assert {i.path for i in guessed if i.code == 'USER_PHYSICS_INPUT_REQUIRED'} == {
+        '$.parameters.srp_reference_area_m2', '$.parameters.srp_coefficient_reflection'}
     result = run_capability_script_generation(CapabilityAgentRequest(
         request=instruction + '，srp_reference_area_m2=20，srp_coefficient_reflection=1.5',
         backend='template',
