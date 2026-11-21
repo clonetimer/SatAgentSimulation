@@ -26,6 +26,15 @@ MU={"earth":398600.436,"sun":132712440023.310,"moon":4902.799}
 AXES=("x_m","y_m","z_m","vx_m_s","vy_m_s","vz_m_s")
 MODES=("off","on")
 ROT_MODES=("rot-off","rot-on")
+REFINED_STEPS={"step2p5-off":2.5,"step2p5-on":2.5,
+               "step1-off":1.0,"step1-on":1.0}
+
+
+def step_s(mode:str)->float:
+    if mode not in MODES+ROT_MODES+tuple(REFINED_STEPS):
+        raise ValueError("DT2_CONVERGENCE_INVALID_STEP_MODE")
+    return REFINED_STEPS.get(mode,5.0)
+
 
 
 def rotate_input_qz90(initial:dict)->dict:
@@ -43,9 +52,8 @@ def rotate_input_qz90(initial:dict)->dict:
 
 
 def base_mode(mode:str)->str:
-    if mode not in MODES+ROT_MODES:
-        raise ValueError("DT2_ROT90_INVALID_MODE")
-    return mode.removeprefix("rot-")
+    step_s(mode)
+    return mode.rsplit("-",1)[1] if mode in REFINED_STEPS else mode.removeprefix("rot-")
 
 
 def q90(v:list[float])->list[float]:
@@ -107,7 +115,7 @@ def _source(out:Path,root:Path,binary:Path)->dict:
 
 
 def _name(out:Path,engine:str,mode:str,key:str)->Path:
-    if engine not in ("bsk","gmat") or mode not in MODES+ROT_MODES:
+    if engine not in ("bsk","gmat") or mode not in MODES+ROT_MODES+tuple(REFINED_STEPS):
         raise ValueError("DT2_THIRDBODY_BAD_ENGINE_MODE")
     return out/("thirdbody_"+engine+"_"+mode+"_"+key)
 
@@ -132,7 +140,7 @@ def native(out:Path,root:Path,binary:Path,mode:str)->dict:
     sim=SimulationBaseClass.SimBaseClass()
     process=sim.CreateNewProcess("dt2_real_thirdbody_process")
     task="dt2_thirdbody_5s"
-    process.addTask(sim.CreateNewTask(task,macros.sec2nano(5.0)))
+    process.addTask(sim.CreateNewTask(task,macros.sec2nano(step_s(mode))))
     spice=spiceInterface.SpiceInterface(auto_configure_kernels=False)
     spice.ModelTag="DT2_ACTUAL_DE421_THIRDBODY"
     spice.addKernelPaths([str(src["kernels"][k]) for k in ("lsk","pck","spk")])
@@ -194,7 +202,7 @@ def native(out:Path,root:Path,binary:Path,mode:str)->dict:
          "true_spice_kernel_pool_count":3,
          "kernel_sha256":{k:baseline._sha256(v) for k,v in src["kernels"].items()},
          "source_sha256":src["source_sha256"],
-         "step_s":5,"output_s":60,"rows":91,"state_sha256":baseline._sha256(state),
+         "step_s":step_s(mode),"output_s":60,"rows":91,"state_sha256":baseline._sha256(state),
          "physical_N_to_GMAT_ICRF_approved":False,"mission_budget_approved":False,
          "scientific_verdict":"INCONCLUSIVE"}
     baseline._write_json(receipt,rec)
@@ -202,7 +210,7 @@ def native(out:Path,root:Path,binary:Path,mode:str)->dict:
 
 
 def gmat_script(initial:dict,raw:Path,mode:str)->str:
-    if mode not in MODES: raise ValueError("DT2_THIRDBODY_BAD_MODE")
+    natural=_physical_mode(mode)
     script=baseline._gmat_script(
         initial,report_path=str(raw),earth_mu_km3_s2=MU["earth"],state_frame="EarthICRF")
     earth_line=f"GMAT Earth.Mu = {MU['earth']:.15g};"
@@ -211,7 +219,7 @@ def gmat_script(initial:dict,raw:Path,mode:str)->str:
         f"\nGMAT Sun.Mu = {MU['sun']:.15g};\nGMAT Luna.Mu = {MU['moon']:.15g};",1)
     script=script.replace("Create Spacecraft CrossSat;",
         "GMAT SolarSystem.EphemerisSource = 'SPICE';\nCreate Spacecraft CrossSat;",1)
-    if mode=="on":
+    if natural=="on":
         if script.count("CrossGravity.PointMasses = {Earth};")!=1:
             raise ValueError("DT2_THIRDBODY_MISSING_FORCE_SWITCH")
         script=script.replace("CrossGravity.PointMasses = {Earth};",
@@ -221,6 +229,13 @@ def gmat_script(initial:dict,raw:Path,mode:str)->str:
     # an independently observed effective force-model mu readback.
     if script.count("BeginMissionSequence;")!=1:
         raise ValueError("DT2_THIRDBODY_GMAT_BAD_MISSION")
+    if mode in REFINED_STEPS:
+        for label in ("InitialStepSize","MaxStep"):
+            before="CrossProp."+label+" = 5;"
+            after="CrossProp."+label+" = "+format(step_s(mode),".15g")+";"
+            if script.count(before)!=1:
+                raise ValueError("DT2_CONVERGENCE_UNEXPECTED_GMAT_STEP_SOURCE")
+            script=script.replace(before,after,1)
     if not script.isascii():raise ValueError("DT2_THIRDBODY_GMAT_NONASCII")
     return script
 
@@ -234,7 +249,7 @@ def gmat(out:Path,root:Path,binary:Path,mode:str)->dict:
         "state.csv","raw.txt","executed.script","stdout.log","stderr.log","execution.json")}
     if any(p.exists() for p in files.values()):
         raise FileExistsError("DT2_THIRDBODY_GMAT_IMMUTABLE_OUTPUT")
-    script=gmat_script(initial,files["raw.txt"],natural_mode)
+    script=gmat_script(initial,files["raw.txt"],mode if mode in REFINED_STEPS else natural_mode)
     files["executed.script"].write_text(script,encoding="ascii")
     run=subprocess.run(
         [str(src["binary"]),"--run",str(files["executed.script"].resolve())],
@@ -256,6 +271,10 @@ def gmat(out:Path,root:Path,binary:Path,mode:str)->dict:
              "effective_mu_independently_verified":False,
              "effective_mu_independent_readback_status":"UNSUPPORTED_BY_R2026a_REPORT_AND_VARIABLE",
              "physical_N_to_EarthICRF_approved":False,"mission_budget_approved":False}
+    if mode in REFINED_STEPS:
+        receipt["requested_initial_step_s"]=step_s(mode)
+        receipt["requested_max_step_s"]=step_s(mode)
+        receipt["actual_RK89_internal_accepted_steps_independently_logged"]=False
     baseline._write_json(files["execution.json"],receipt)
     if run.returncode!=0 or not files["raw.txt"].is_file():
         raise RuntimeError("DT2_THIRDBODY_REAL_GMAT_EXECUTION_OR_REPORT_FAILED")
@@ -466,7 +485,12 @@ def compare_qz90(out:Path,root:Path,binary:Path)->dict:
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action",choices=("bsk-off","bsk-on","gmat-off","gmat-on","bsk-rot-off","bsk-rot-on","gmat-rot-off","gmat-rot-on","compare","compare-qz90"))
+    parser.add_argument("action",choices=(
+        "bsk-off","bsk-on","gmat-off","gmat-on",
+        "bsk-rot-off","bsk-rot-on","gmat-rot-off","gmat-rot-on",
+        "bsk-step2p5-off","bsk-step2p5-on","bsk-step1-off","bsk-step1-on",
+        "gmat-step2p5-off","gmat-step2p5-on","gmat-step1-off","gmat-step1-on",
+        "compare","compare-qz90"))
     parser.add_argument("--output",type=Path,required=True)
     parser.add_argument("--gmat-root",type=Path,required=True)
     parser.add_argument("--gmat-executable",type=Path,required=True)
