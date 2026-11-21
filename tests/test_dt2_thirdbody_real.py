@@ -80,3 +80,72 @@ def test_true_Qz90_initial_input_and_GMAT_absolute_source_contract():
 def test_Qz90_comparison_fail_closed_when_authentic_replay_missing(tmp_path):
     with pytest.raises(FileNotFoundError):
         tb.compare_qz90(tmp_path,tmp_path,tmp_path/"no-real-GMATConsole")
+
+
+
+def _four_synthetic_engine_traces(*, rotate_gmat=False):
+    """Mathematics-only inputs, explicitly NOT physical engine evidence."""
+    import math
+    traces={}
+    for engine in ("bsk","gmat"):
+        for mode in ("off","on"):
+            rows=[]
+            for i in range(91):
+                dp=[0.012*i,0.02*math.sin(i/13.),-0.03*math.cos(i/17.)]
+                dv=[0.0009*i,0.0003*math.sin(i/9.),-0.0002*math.cos(i/8.)]
+                if engine=="gmat" and rotate_gmat:
+                    dp=tb.q90(dp)
+                    dv=tb.q90(dv)
+                row={k:0. for k in tb.AXES}
+                row["time_s"]=float(60*i)
+                if mode=="on":
+                    row.update(zip(tb.AXES,dp+dv,strict=True))
+                rows.append(row)
+            traces[engine,mode]=rows
+    return traces
+
+
+def test_rotation_invariant_geometry_resists_unknown_constant_frame_rotation():
+    baseline=tb.frame_invariant_response_geometry(_four_synthetic_engine_traces())
+    rotated=tb.frame_invariant_response_geometry(
+        _four_synthetic_engine_traces(rotate_gmat=True))
+    metric_keys=("position_norm_gap_m","velocity_norm_gap_m_s",
+                 "position_chord_gap_m","velocity_chord_gap_m_s",
+                 "position_dot_gap_m2")
+    assert rotated["sample_count_per_engine_mode"]==91
+    assert rotated["cross_time_pair_count"]==4095
+    assert all(rotated[k]==pytest.approx(baseline[k],abs=1e-12)
+               for k in metric_keys)
+    assert all(rotated[k]<1e-12 for k in metric_keys)
+    assert rotated["status"]==rotated["scientific_verdict"]=="INCONCLUSIVE"
+    assert rotated["frame_rotation_fitted"] is False
+    assert rotated["original_BSK_N_to_GMAT_EarthICRF_approved"] is False
+    assert rotated["absolute_BSK_ET_to_GMAT_A1_approved"] is False
+    assert rotated["effective_GMAT_mu_readback_verified"] is False
+    assert rotated["mission_accuracy_budget_approved"] is False
+
+
+def test_invariant_geometry_detects_true_response_shape_change_not_axis_rotation():
+    original=_four_synthetic_engine_traces(rotate_gmat=True)
+    control=tb.frame_invariant_response_geometry(original)
+    original["gmat","on"][50]["y_m"] += 1.0
+    changed=tb.frame_invariant_response_geometry(original)
+    assert changed["position_norm_gap_m"]>0.01
+    assert changed["position_chord_gap_m"]>0.01
+    assert changed["position_dot_gap_m2"]>0.01
+    assert changed["position_chord_gap_m"]>control["position_chord_gap_m"]
+
+
+def test_invariant_geometry_fails_closed_on_misaligned_missing_or_nan_traces():
+    rows=_four_synthetic_engine_traces()
+    rows["gmat","on"][7]["time_s"] += 0.01
+    with pytest.raises(ValueError,match="DT2_INVARIANT_TIMELINE_NOT_INDEX_ALIGNED"):
+        tb.frame_invariant_response_geometry(rows)
+    rows=_four_synthetic_engine_traces()
+    rows["bsk","off"][15]["x_m"]=float("nan")
+    with pytest.raises(ValueError,match="DT2_INVARIANT_NONFINITE_PHYSICAL_RESPONSE"):
+        tb.frame_invariant_response_geometry(rows)
+    rows=_four_synthetic_engine_traces()
+    rows.pop(("gmat","off"))
+    with pytest.raises(ValueError,match="DT2_INVARIANT_REQUIRES_FOUR_REAL_91_ROW_TRACES"):
+        tb.frame_invariant_response_geometry(rows)

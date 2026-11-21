@@ -291,6 +291,74 @@ def gmat(out:Path,root:Path,binary:Path,mode:str)->dict:
     return receipt
 
 
+
+def frame_invariant_response_geometry(traces:dict)->dict:
+    """Rotation-invariant geometry of four genuine ON/OFF engine trajectories.
+
+    Call ONLY after the original four engine state CSVs and receipts are
+    hash-verified by compare(). This diagnostic cannot certify absolute epoch,
+    inertial axes, model input equality or mission-error limits.
+    """
+    keys={(e,m) for e in ("bsk","gmat") for m in MODES}
+    if set(traces)!=keys or any(len(traces[k])!=91 for k in keys):
+        raise ValueError("DT2_INVARIANT_REQUIRES_FOUR_REAL_91_ROW_TRACES")
+    response={}
+    for engine in ("bsk","gmat"):
+        vec=[]
+        for i in range(91):
+            off=traces[engine,"off"][i]
+            on=traces[engine,"on"][i]
+            limit=(1e-6 if engine=="bsk" else
+                   baseline.GMAT_REPORT_FLOAT_TIME_SKEW_BUDGET_S)
+            try:
+                times=[float(off["time_s"]),float(on["time_s"])]
+                dp=[float(on[k])-float(off[k]) for k in AXES[:3]]
+                dv=[float(on[k])-float(off[k]) for k in AXES[3:]]
+            except (KeyError,ValueError,TypeError,OverflowError) as e:
+                raise ValueError("DT2_INVARIANT_BAD_ENGINE_SAMPLE") from e
+            if not all(math.isfinite(t) and abs(t-60*i)<=limit for t in times):
+                raise ValueError("DT2_INVARIANT_TIMELINE_NOT_INDEX_ALIGNED")
+            if not all(math.isfinite(x) for x in dp+dv):
+                raise ValueError("DT2_INVARIANT_NONFINITE_PHYSICAL_RESPONSE")
+            vec.append((dp,dv))
+        response[engine]=vec
+    gaps={"position_norm_gap_m":0.,"velocity_norm_gap_m_s":0.,
+          "position_chord_gap_m":0.,"velocity_chord_gap_m_s":0.,
+          "position_dot_gap_m2":0.}
+    for i in range(91):
+        bp,bv=response["bsk"][i]
+        gp,gv=response["gmat"][i]
+        gaps["position_norm_gap_m"]=max(gaps["position_norm_gap_m"],
+            abs(math.hypot(*bp)-math.hypot(*gp)))
+        gaps["velocity_norm_gap_m_s"]=max(gaps["velocity_norm_gap_m_s"],
+            abs(math.hypot(*bv)-math.hypot(*gv)))
+        for j in range(i+1,91):
+            bp2,bv2=response["bsk"][j]
+            gp2,gv2=response["gmat"][j]
+            gaps["position_chord_gap_m"]=max(gaps["position_chord_gap_m"],
+                abs(math.dist(bp,bp2)-math.dist(gp,gp2)))
+            gaps["velocity_chord_gap_m_s"]=max(gaps["velocity_chord_gap_m_s"],
+                abs(math.dist(bv,bv2)-math.dist(gv,gv2)))
+            gaps["position_dot_gap_m2"]=max(gaps["position_dot_gap_m2"],
+                abs(sum(x*y for x,y in zip(bp,bp2,strict=True))-
+                    sum(x*y for x,y in zip(gp,gp2,strict=True))))
+    if not all(math.isfinite(x) for x in gaps.values()):
+        raise ValueError("DT2_INVARIANT_NONFINITE_GEOMETRY")
+    return {
+        "status":"INCONCLUSIVE","scientific_verdict":"INCONCLUSIVE",
+        "sample_count_per_engine_mode":91,
+        "cross_time_pair_count":4095,
+        "frame_invariance_scope":"single fixed orthogonal 3D rotation",
+        "frame_rotation_fitted":False,
+        "original_BSK_N_to_GMAT_EarthICRF_approved":False,
+        "absolute_BSK_ET_to_GMAT_A1_approved":False,
+        "effective_GMAT_mu_readback_verified":False,
+        "mission_accuracy_budget_approved":False,
+        **gaps,
+    }
+
+
+
 def compare(out:Path,root:Path,binary:Path)->dict:
     src=_source(out,root,binary)
     traces={};state_hashes={}
@@ -346,6 +414,7 @@ def compare(out:Path,root:Path,binary:Path)->dict:
         })
     if not all(math.isfinite(x) for row in result for x in row.values()):
         raise ValueError("DT2_THIRDBODY_NONFINITE_ENGINE_RESPONSE")
+    invariant=frame_invariant_response_geometry(traces)
     bmax=max(x["BSK_true_ON_OFF_position_response_m"] for x in result)
     gmax=max(x["GMAT_true_ON_OFF_position_response_m"] for x in result)
     if bmax<=0 or gmax<=0:
@@ -373,6 +442,7 @@ def compare(out:Path,root:Path,binary:Path)->dict:
         "mission_accuracy_budget_approved":False,
         "scientific_verdict":"INCONCLUSIVE",
         "real_engine_state_sha256":state_hashes,
+        "frame_invariant_geometry":invariant,
         "comparison_rows_sha256":baseline._sha256(csv_path)}
     baseline._write_json(json_path,diag)
     return diag

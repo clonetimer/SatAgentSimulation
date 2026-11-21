@@ -524,6 +524,25 @@ jobs:
           assert not d["mission_accuracy_budget_approved"]
           assert d["max_Basilisk_ON_OFF_position_m"]>0
           assert d["max_GMAT_ON_OFF_position_m"]>0
+          geom=d["frame_invariant_geometry"]
+          assert geom["status"]==geom["scientific_verdict"]=="INCONCLUSIVE"
+          assert geom["sample_count_per_engine_mode"]==91
+          assert geom["cross_time_pair_count"]==4095
+          assert geom["frame_rotation_fitted"] is False
+          assert geom["original_BSK_N_to_GMAT_EarthICRF_approved"] is False
+          assert geom["absolute_BSK_ET_to_GMAT_A1_approved"] is False
+          assert geom["effective_GMAT_mu_readback_verified"] is False
+          assert geom["mission_accuracy_budget_approved"] is False
+          for key in ("position_norm_gap_m","velocity_norm_gap_m_s",
+                      "position_chord_gap_m","velocity_chord_gap_m_s",
+                      "position_dot_gap_m2"):
+              assert math.isfinite(geom[key]) and geom[key]>=0
+          print("DT2_REAL_THIRDBODY_FRAME_INVARIANT_GEOMETRY",
+                f"norm_gap_m={geom['position_norm_gap_m']:.9e}",
+                f"chord_gap_m={geom['position_chord_gap_m']:.9e}",
+                f"velocity_chord_gap_m_s={geom['velocity_chord_gap_m_s']:.9e}",
+                f"pair_count={geom['cross_time_pair_count']}",
+                "scientific_verdict=INCONCLUSIVE")
           for engine in ("bsk","gmat"):
               for mode in ("off","on"):
                   stem=f"thirdbody_{engine}_{mode}"
