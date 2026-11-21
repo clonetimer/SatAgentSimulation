@@ -1766,6 +1766,21 @@ class UnifiedNativeRuntime:
             if native_accel_sigma > 0.:
                 imu.PMatrixAccel = (np.eye(3) * native_accel_sigma).tolist()
                 imu.setAMatrixAccel(zero)
+        # DT-2 native LSB quantization on the official ImuSensor output, not
+        # a Python telemetry post-processor. Basilisk setLSBs takes (accel, gyro)
+        # in that order; either zero argument disables that channel.
+        raw_gyro_lsb = values.get("imu_gyro_quantization_lsb_rad_s", 0.)
+        raw_accel_lsb = values.get("imu_accel_quantization_lsb_m_s2", 0.)
+        if any(type(v) not in (int, float) for v in (raw_gyro_lsb, raw_accel_lsb)):
+            raise ValueError("NATIVE_IMU_QUANTIZATION_INVALID")
+        gyro_lsb, accel_lsb = float(raw_gyro_lsb), float(raw_accel_lsb)
+        if (not math.isfinite(gyro_lsb) or not 0. <= gyro_lsb <= .1
+                or not math.isfinite(accel_lsb) or not 0. <= accel_lsb <= 1.):
+            raise ValueError("NATIVE_IMU_QUANTIZATION_INVALID")
+        # Omitted/zero controls leave Basilisk's original discretization
+        # configuration untouched, for strict legacy-default compatibility.
+        if gyro_lsb > 0. or accel_lsb > 0.:
+            imu.setLSBs(accel_lsb, gyro_lsb)
         gyro_max = float(values.get("imu_gyro_max_rad_s", 0.0))
         accel_max = float(values.get("imu_accel_max_m_s2", 0.0))
         if not all(math.isfinite(v) for v in (gyro_max, accel_max)) or not (
@@ -3164,6 +3179,15 @@ class UnifiedNativeRuntime:
             "runtime_message_read_error_count": len(runtime_read_errors),
             "runtime_message_read_errors": runtime_read_errors[:20],
         }
+        if gyro_lsb > 0. or accel_lsb > 0.:
+            summary["imu_quantization"] = {
+                "source": "Basilisk.simulation.imuSensor.ImuSensor.setLSBs",
+                "gyro_lsb_rad_s": gyro_lsb,
+                "accel_lsb_m_s2": accel_lsb,
+                "applies_to": "official_native_raw_imu_sensor_output",
+                "installation_evidence": "NOT_PROVIDED",
+                "hardware_calibration": False,
+            }
         if self._orbital_environment.drag_enabled:
             density_values = [
                 float(row["environment.atmosphere_density_kg_m3"])
