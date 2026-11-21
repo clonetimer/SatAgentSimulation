@@ -588,6 +588,7 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
         motor_torque_constant_nm_per_a: float = 0.02,
         wheel_current_limits_a: Sequence[float] | None = None,
         wheel_torque_constants_nm_per_a: Sequence[float] | None = None,
+        command_deadband_nm: float = 0.0,
     ) -> None:
         super().__init__()
         self.ModelTag = "project_rw_command_fault_manager"
@@ -636,6 +637,13 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
                 limits, self.wheel_current_limits_a, self.wheel_torque_constants_nm_per_a
             )
         )
+        # Optional project-driver dead zone, scheduled upstream of the official
+        # Basilisk ReactionWheelStateEffector. Zero preserves the old path.
+        if (type(command_deadband_nm) not in (int, float)
+                or not math.isfinite(command_deadband_nm)
+                or not 0.0 <= command_deadband_nm <= 0.2):
+            raise ValueError("NATIVE_RW_COMMAND_DEADBAND_INVALID")
+        self.command_deadband_nm = float(command_deadband_nm)
         self.commandInMsg = messaging.ArrayMotorTorqueMsgReader()
         self.speedInMsg = messaging.RWSpeedMsgReader()
         self.commandOutMsg = messaging.ArrayMotorTorqueMsg()
@@ -651,6 +659,14 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
         speed_payload = self.speedInMsg()
         source = list(command_payload.motorTorque)
         output = list(source)
+        if self.command_deadband_nm > 0.0:
+            # Compare the *nominal hardware/electrical bounded* motor drive.
+            # Do not suppress jam/overspeed brake events: they run afterwards.
+            for index in range(min(self.wheel_count, len(output))):
+                limit = self.effective_nominal_max_torques_nm[index]
+                bounded = max(-limit, min(limit, float(output[index])))
+                if abs(bounded) <= self.command_deadband_nm:
+                    output[index] = 0.0
         drag = [0.0] * len(output)
         # Available drive authority and the actual output-command clamp differ
         # for a jam: the wheel has zero drive authority but can still receive a
