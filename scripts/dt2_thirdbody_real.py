@@ -52,7 +52,10 @@ def rotate_input_qz90(initial:dict)->dict:
 
 
 def base_mode(mode:str)->str:
-    step_s(mode)
+    # Preserve the existing rotation-mode error contract; the separate
+    # step_s() contract remains specific to convergence-input validation.
+    if mode not in MODES+ROT_MODES+tuple(REFINED_STEPS):
+        raise ValueError("DT2_ROT90_INVALID_MODE")
     return mode.rsplit("-",1)[1] if mode in REFINED_STEPS else mode.removeprefix("rot-")
 
 
@@ -210,7 +213,7 @@ def native(out:Path,root:Path,binary:Path,mode:str)->dict:
 
 
 def gmat_script(initial:dict,raw:Path,mode:str)->str:
-    natural=_physical_mode(mode)
+    natural=base_mode(mode)
     script=baseline._gmat_script(
         initial,report_path=str(raw),earth_mu_km3_s2=MU["earth"],state_frame="EarthICRF")
     earth_line=f"GMAT Earth.Mu = {MU['earth']:.15g};"

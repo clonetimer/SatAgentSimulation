@@ -462,3 +462,8 @@ The real-response diagnostic separately calculates within-engine ON-minus-OFF tr
 Physical N/EarthICRF mapping, absolute GMAT A1/Basilisk ET timing, independently read effective GMAT mu, approved mission accuracy budget and flight truth remain NOT APPROVED. This quantitative numerical robustness experiment does not alone qualify scientific BE-26 V&V. The isolated CROSS-LEO-001 f=0-degree case is not the original full-force #213 Sun-aligned initial condition.
 
 Development lesson: numerical convergence must use matched ON and OFF integrations at each step, and meaningful scheduler effects must not be misreported as pure solver truncation error.
+
+
+#### Exact-head CI correction — preserve prior rotation modes while extending convergence
+
+First convergence-head [run 44847581849](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44847581849) failed 5 pure Python tests before downloading/running GMAT because the new GMAT script path referred to a nonexistent `_physical_mode` function instead of the already existing `base_mode`; reuse of the new `step_s` validator also unintentionally changed the old rotation-API error tag. Corrected only the function reference and restored the existing `DT2_ROT90_INVALID_MODE` contract while keeping the new step validation separate. No numerical or force-model settings, source data, execution test criteria or scientifically unapproved flags are changed. This is a genuine software regression, not evidence of physical model failure. Development lesson: extending a proven shared engine entry point must preserve its previous caller/error contracts and validate the new mode dispatch before expensive real GMAT CI.
