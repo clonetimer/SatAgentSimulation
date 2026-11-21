@@ -395,3 +395,147 @@ def test_real_basilisk_motor_response_lag_changes_applied_torque_and_native_whee
           f"applied_torque_delta_max_nm={torque_delta:.9e} "
           f"rw0_speed_delta_max_rad_s={speed_delta:.9e} "
           "duration_s=25 step_s=0.2 zero_default=0", flush=True)
+
+
+def test_dt2_official_imu_lever_arm_acceleration_matches_rigid_body_terms():
+    """Actual upstream ImuSensor raw payload, not reconstructed telemetry.
+
+    Isolated prescribed SCStates truth makes the rotational contribution
+    identifiable: a_sensor_B - a_origin_B = omega_dot x r + omega x (omega x r).
+    This is an engineering sensor response A/B, not hardware calibration.
+    """
+    pytest.importorskip("Basilisk")
+    import numpy as np
+    from Basilisk.architecture import messaging
+    from Basilisk.simulation import imuSensor
+    from Basilisk.utilities import SimulationBaseClass, macros
+
+    omega = np.array([.03, -.04, .05], dtype=float)
+    omega_dot = np.array([.012, -.007, .015], dtype=float)
+    base_accel = np.array([.002, -.003, .004], dtype=float)
+    lever = np.array([.2, -.13, .07], dtype=float)
+    expected_arm = np.cross(omega_dot, lever) + np.cross(
+        omega, np.cross(omega, lever))
+    assert float(np.linalg.norm(expected_arm)) > 1e-4
+
+    state = messaging.SCStatesMsgPayload()
+    state.omega_BN_B = omega.tolist()
+    state.omegaDot_BN_B = omega_dot.tolist()
+    state.nonConservativeAccelpntB_B = base_accel.tolist()
+    source = messaging.SCStatesMsg().write(state)
+    sim = SimulationBaseClass.SimBaseClass()
+    process = sim.CreateNewProcess("DT2IMULeverArmProcess")
+    task = "DT2IMULeverArmTask"
+    process.addTask(sim.CreateNewTask(task, macros.sec2nano(.2)))
+    recorders = {}
+    sensors = {}
+    for name, xyz, yaw_deg in (
+        ("origin", (0., 0., 0.), 0.),
+        ("lever", tuple(lever), 0.),
+        ("lever_rotated", tuple(lever), 17.),
+    ):
+        sensor = imuSensor.ImuSensor()
+        sensor.ModelTag = "dt2_imu_" + name
+        sensor.setBodyToPlatformDCM(math.radians(yaw_deg), 0., 0.)
+        sensor.sensorPos_B = list(xyz)
+        sensor.scStateInMsg.subscribeTo(source)
+        sim.AddModelToTask(task, sensor, None, 80)
+        rec = sensor.sensorOutMsg.recorder(macros.sec2nano(.2))
+        sim.AddModelToTask(task, rec, None, 5)
+        recorders[name] = rec
+        sensors[name] = sensor
+
+    sim.InitializeSimulation()
+    sim.ConfigureStopTime(macros.sec2nano(1.))
+    sim.ExecuteSimulation()
+    raw = {}
+    for name, rec in recorders.items():
+        values = np.asarray(rec.AccelPlatform, dtype=float)
+        assert values.shape[0] >= 3 and values.shape[1] == 3
+        assert np.all(np.isfinite(values))
+        # Upstream Basilisk 2.11.0 first frame is initialization-only.
+        raw[name] = values[-1]
+
+    np.testing.assert_allclose(raw["origin"], base_accel, rtol=0., atol=1e-10)
+    np.testing.assert_allclose(
+        raw["lever"] - raw["origin"], expected_arm, rtol=1e-9, atol=1e-10)
+    expected_rotated = np.asarray(sensors["lever_rotated"].dcm_PB, dtype=float) @ (
+        base_accel + expected_arm)
+    np.testing.assert_allclose(
+        raw["lever_rotated"], expected_rotated, rtol=1e-9, atol=1e-10)
+    measured = float(np.linalg.norm(raw["lever"] - raw["origin"]))
+    print(
+        "DT2_NATIVE_IMU_LEVER_ARM_SWIG_MEASURED "
+        f"arm_accel_norm_m_s2={measured:.9e} "
+        f"analytic_norm_m_s2={np.linalg.norm(expected_arm):.9e} "
+        "official_raw_sensor=true body_to_platform_verified=true "
+        "source=prescribed_scstates_not_flight",
+        flush=True,
+    )
+
+
+def test_dt2_rw_deadband_changes_real_imu_lever_arm_acceleration():
+    """Genuine integrated BSK RW -> spacecraft angular dynamics -> raw IMU."""
+    pytest.importorskip("Basilisk")
+    from sat_sim.capability_registry import get_adapter_for_capability
+    from test_unified_native_migration import WHOLE_ID, _short_spec
+
+    adapter = get_adapter_for_capability(WHOLE_ID)
+    position = {
+        "imu_position_b_x_m": .2,
+        "imu_position_b_y_m": -.13,
+        "imu_position_b_z_m": .07,
+    }
+
+    def run(values):
+        result = adapter.run(_short_spec(
+            WHOLE_ID, duration_s=25., values={
+                "initial_pointing_error_deg": 35., **values,
+            }))
+        assert result.summary["runtime_truth_status"] == (
+            "instantiated_connected_recorded_unified")
+        assert "imu" in result.metadata["model_source_boundary"]["basilisk_official_native"]
+        assert "reaction_wheels" in result.metadata["model_source_boundary"]["basilisk_official_native"]
+        assert len(result.trace_rows) >= 5
+        return result.trace_rows
+
+    origin = run({})
+    mounted = run(position)
+    blocked = run({**position, "rw_command_deadband_nm": .2})
+    assert [r["time_s"] for r in origin] == [r["time_s"] for r in mounted]
+    assert [r["time_s"] for r in mounted] == [r["time_s"] for r in blocked]
+
+    # IMU position is an observer-only setting: nominal RW dynamics must
+    # remain unchanged when only the sensor lever arm is displaced.
+    for a, b in zip(origin, mounted, strict=True):
+        for wheel in range(3):
+            key = f"adcs.rw.speed_rad_s_{wheel}"
+            assert a[key] == pytest.approx(b[key], rel=1e-10, abs=1e-10)
+
+    axes = tuple(f"adcs.sensor.raw_accel_m_s2_{axis}" for axis in "xyz")
+    lever_response = max(
+        abs(float(a[key]) - float(b[key]))
+        for a, b in zip(origin[1:], mounted[1:], strict=True)
+        for key in axes
+    )
+    deadband_imu_response = max(
+        abs(float(a[key]) - float(b[key]))
+        for a, b in zip(mounted[1:], blocked[1:], strict=True)
+        for key in axes
+    )
+    wheel_response = max(
+        abs(float(a["adcs.rw.speed_rad_s_0"]) -
+            float(b["adcs.rw.speed_rad_s_0"]))
+        for a, b in zip(mounted[1:], blocked[1:], strict=True)
+    )
+    assert math.isfinite(lever_response) and lever_response > 1e-8
+    assert math.isfinite(deadband_imu_response) and deadband_imu_response > 1e-8
+    assert math.isfinite(wheel_response) and wheel_response > 1e-5
+    print(
+        "DT2_RW_IMU_LEVER_ARM_COUPLING_MEASURED "
+        f"lever_arm_ab_max_accel_m_s2={lever_response:.9e} "
+        f"deadband_imu_ab_max_accel_m_s2={deadband_imu_response:.9e} "
+        f"rw0_speed_ab_max_rad_s={wheel_response:.9e} "
+        "official_imu_raw=true official_rw_dynamics=true",
+        flush=True,
+    )
