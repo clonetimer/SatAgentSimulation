@@ -430,3 +430,96 @@ def test_four_effects_pass_canonical_taskspec_exported_script_and_sealed_run_bun
         "fixture_source=test-fixture://celestrak-compatible-sample",
         flush=True,
     )
+
+
+def test_dt12_four_native_environment_effects_and_rw_deadband_in_same_run(tmp_path, monkeypatch):
+    """A/B on the SAME five-effect whole-spacecraft graph, not separate PR tests.
+
+    Controlled project RW deadband is a test-only electrical-driver assumption;
+    all four external physics models are genuinely enabled in both Basilisk runs.
+    No flight, calibrated motor electronics, or as-built CAD claims.
+    """
+    configure_weather(tmp_path, monkeypatch)
+    base = {
+        "environment_profile": "spice_wmm",
+        "epoch_utc": "2026-03-04T21:48:00Z",
+        "orbit_radius_m": 6_650_000.,
+        "eccentricity": 0.,
+        "inclination_deg": 0.,
+        "spacecraft_mass_kg": 100.,
+        "initial_pointing_error_deg": 35.,
+    }
+    # Genuine DE430 first-tick Sun direction fixes the physical orbit phase;
+    # it is not guessed or borrowed from the separate f=0 GMAT case.
+    probe = run_whole(base, duration=10.)
+    sun = vector(probe.trace_rows[0], "orbit.sun_position_m")
+    base["initial_true_anomaly_rad"] = math.atan2(
+        float(sun[1]), float(sun[0])) % (2. * math.pi)
+    four = {
+        **base,
+        "atmosphere_model": "nrlmsise00",
+        "drag_area_m2": 1.,
+        "drag_coefficient": 2.2,
+        "srp_model": "cannonball",
+        "srp_reference_area_m2": 20.,
+        "srp_coefficient_reflection": 1.5,
+        "earth_gravity_model": "ggm03s_degree4",
+        "magnetic_field_model": "igrf14",
+    }
+    # Only one scalar physical input changes between these two independent
+    # real Basilisk runs; physics, initial state, seed, grid and assets do not.
+    nominal = run_whole({**four, "rw_command_deadband_nm": 0.}, duration=60.)
+    with_deadband = run_whole({**four, "rw_command_deadband_nm": .2}, duration=60.)
+    times = [row["time_s"] for row in nominal.trace_rows]
+    assert times == [row["time_s"] for row in with_deadband.trace_rows]
+    assert len(times) == 7 and times[0] == 0. and times[-1] == 60.
+
+    for name, result in (("nominal", nominal), ("deadband", with_deadband)):
+        environment = result.summary["orbital_environment"]
+        assert environment["drag_enabled"] is True
+        assert environment["space_weather"]["coverage_status"] == "PASS"
+        assert environment["gravity_model"] == "ggm03s_degree4"
+        assert environment["gravity_degree"] == 4
+        assert environment["magnetic_field_model_id"] == "IGRF14_2025_2030"
+        assert result.summary["aerodynamic_environment"]["status"] == "PASS"
+        assert result.summary["solar_radiation_pressure"]["status"] == "PASS"
+        assert result.summary["runtime_message_read_error_count"] == 0
+        modules = {m["tag"] for m in result.metadata["runtime_manifest"]["instantiated_modules"]}
+        assert {"reaction_wheels", "project_rw_command_fault_manager",
+                "msis_atmosphere", "nrlmsise_drag_effector",
+                "spice_eclipse_cannonball_srp", "magnetic_field",
+                "magnetometer"}.issubset(modules)
+        for row in result.trace_rows[1:]:
+            density = float(row["environment.atmosphere_density_kg_m3"])
+            drag = float(row["orbit.drag_force_norm_n"])
+            solar = float(row["orbit.srp_force_norm_n"])
+            work = float(row["orbit.drag_force_relative_velocity_power_w"])
+            field = float(np.linalg.norm(vector(row, "adcs.magnetometer.tesla")))
+            assert all(math.isfinite(x) for x in (density, drag, solar, work, field))
+            assert density > 0. and drag > 0. and work < 0.
+            assert solar > 0. and field > 1e-8
+        assert max(abs(float(row["adcs.rw.command_torque_nm_0"]))
+                   for row in result.trace_rows[1:]) > 1e-5, name
+
+    nominal_torque = max(abs(float(row["adcs.control.applied_torque_nm_0"]))
+                         for row in nominal.trace_rows[1:])
+    blocked_torque = max(abs(float(row["adcs.control.applied_torque_nm_0"]))
+                         for row in with_deadband.trace_rows[1:])
+    speed_delta = max(abs(float(a["adcs.rw.speed_rad_s_0"]) -
+                          float(b["adcs.rw.speed_rad_s_0"]))
+                      for a, b in zip(nominal.trace_rows[1:],
+                                      with_deadband.trace_rows[1:]))
+    assert nominal_torque > 1e-5
+    assert blocked_torque < 1e-12
+    assert math.isfinite(speed_delta) and speed_delta > 1e-5
+    print(
+        "DT12_FIVE_EFFECTS_SAME_RUN_AB_MEASURED "
+        f"nominal_applied_rw0_torque_max_nm={nominal_torque:.9e} "
+        f"deadband_applied_rw0_torque_max_nm={blocked_torque:.9e} "
+        f"rw0_speed_delta_max_rad_s={speed_delta:.9e} "
+        f"duration_s={times[-1]:.0f} step_s=1 sample_s=10 "
+        "environment=nrlmsise00+spice_eclipse_srp+ggm03s_degree4+igrf14 "
+        "rw_deadband_off_nm=0 rw_deadband_on_nm=0.2 "
+        "weather_source=test-fixture://celestrak-compatible-sample",
+        flush=True,
+    )
