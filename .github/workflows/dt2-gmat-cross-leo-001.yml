@@ -448,6 +448,44 @@ jobs:
                 "status=INCONCLUSIVE independent_N_tie=false")
           PY
 
+      - name: Preregister directional tidal force analytic preflight on genuine BSK GMAT NAIF records
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py directional-preflight \
+            --output reports/dt2-cross-leo-001
+          python - <<'PY'
+          import csv,hashlib,json,math
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          r=json.loads((root/"directional_thirdbody_analytic_preflight.json").read_text())
+          assert r["status"]=="INCONCLUSIVE"
+          assert r["real_source_sample_count"]==3
+          assert r["sample_times_s"]==[0,2700,5400]
+          assert r["force_model_executed_in_new_basilisk_run"] is False
+          assert r["force_model_executed_in_new_gmat_run"] is False
+          assert r["counterfactual_is_real_trajectory"] is False
+          assert r["conditional_Basilisk_N_as_J2000"] is True
+          assert r["independent_absolute_frame_tie_approved"] is False
+          assert r["mission_error_budget_approved"] is False
+          assert r["physical_cross_engine_acceleration_VV_pass"] is False
+          assert r["max_analytic_actual_source_tidal_accel_m_s2"]>0
+          assert r["max_counterfactual_only_spacecraft_rotation_delta_m_s2"]>0
+          assert r["mu_sun_km3_s2"]==132712440023.310
+          assert r["mu_moon_km3_s2"]==4902.799
+          for name,sha in r["original_file_sha256"].items():
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==sha
+          csv_path=root/"directional_thirdbody_analytic_preflight_rows.csv"
+          assert hashlib.sha256(csv_path.read_bytes()).hexdigest()==r["three_sample_csv_sha256"]
+          with csv_path.open(newline="") as source:
+              rows=list(csv.DictReader(source))
+          assert [int(row["time_s"]) for row in rows]==[0,2700,5400]
+          assert all(math.isfinite(float(v)) for row in rows for v in row.values())
+          print("DT2_DIRECTIONAL_FORCE_ANALYTIC_PREFLIGHT "
+                f"true_reference_accel_m_s2={r['max_analytic_actual_source_tidal_accel_m_s2']:.9e} "
+                f"orientation_counterfactual_delta_m_s2={r['max_counterfactual_only_spacecraft_rotation_delta_m_s2']:.9e} "
+                "status=INCONCLUSIVE real_force_models_executed=false")
+          PY
+
       - name: Upload all acquired raw provenance and engine outputs including failure logs
         if: always()
         uses: actions/upload-artifact@v7

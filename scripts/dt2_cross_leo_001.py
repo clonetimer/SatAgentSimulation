@@ -593,6 +593,169 @@ def run_gmat_icrf_numeric_control(out: Path, binary: Path, *,
     return receipt
 
 
+
+# These are the EXACT official Basilisk 2.11.0 astroConstants.h values in
+# km^3/s^2; not a substitute for checking GMAT's celestial-body mu settings.
+# Source: AVSLab/basilisk v2.11.0, src/architecture/utilities/astroConstants.h
+DT2_DIRECTIONAL_MU_KM3_S2 = {
+    "sun": 132712440023.310,
+    "moon": 4902.799,
+}
+
+
+def _dt2_tidal_acceleration(r_m: list[float], r_body_m: list[float],
+                            mu_m3_s2: float) -> list[float]:
+    """Exact Newtonian Earth-relative third-body DIFFERENTIAL acceleration.
+
+    This is an analytic candidate force signal, not a native Basilisk or
+    independently evaluated GMAT force-model output.
+    """
+    if (len(r_m)!=3 or len(r_body_m)!=3 or
+        not all(math.isfinite(float(v)) for v in (*r_m,*r_body_m)) or
+        not math.isfinite(float(mu_m3_s2)) or mu_m3_s2<=0):
+        raise ValueError("DT2_DIRECTIONAL_INVALID_GEOMETRY_OR_MU")
+    nr=math.sqrt(sum(v*v for v in r_body_m))
+    delta=[r_body_m[i]-r_m[i] for i in range(3)]
+    nd=math.sqrt(sum(v*v for v in delta))
+    if nr<=0 or nd<=0:
+        raise ValueError("DT2_DIRECTIONAL_SINGULAR_THIRD_BODY_GEOMETRY")
+    return [mu_m3_s2*(delta[i]/nd**3-r_body_m[i]/nr**3) for i in range(3)]
+
+
+def _dt2_norm(x: list[float]) -> float:
+    return math.sqrt(sum(v*v for v in x))
+
+
+def _dt2_directional_row(r: list[float], r_sun: list[float],
+                          r_moon: list[float]) -> dict:
+    a_sun=_dt2_tidal_acceleration(
+        r,r_sun,DT2_DIRECTIONAL_MU_KM3_S2["sun"]*1e9)
+    a_moon=_dt2_tidal_acceleration(
+        r,r_moon,DT2_DIRECTIONAL_MU_KM3_S2["moon"]*1e9)
+    total=[a_sun[i]+a_moon[i] for i in range(3)]
+    return {"total":total,"sun":a_sun,"moon":a_moon}
+
+
+def run_directional_tidal_preflight(out: Path) -> dict:
+    """Observe actual source geometry, without executing a *new* force model.
+
+    Existing native/GMAT/NAIF trajectories must have been executed, sealed
+    and SHA-verified. The 90deg rotation changes ONLY the spacecraft position
+    in this analytic counterfactual. It is not a simulated trajectory.
+    """
+    out=out.resolve(strict=True)
+    manifest=json.loads((out/"case_manifest.json").read_text(encoding="utf-8"))
+    celestial=json.loads((out/"sun_anchor_execution.json").read_text(encoding="utf-8"))
+    icrf=json.loads((out/"gmat_icrf_numeric_execution.json").read_text(encoding="utf-8"))
+    if (manifest.get("schema")!=SCHEMA
+        or not manifest.get("evidence",{}).get("basilisk_executed")
+        or not manifest.get("evidence",{}).get("gmat_executed")
+        or not celestial.get("basilisk_spice_kernel_pool_verified")
+        or celestial.get("real_sample_count")!=3
+        or celestial.get("real_moon_sample_count")!=3
+        or celestial.get("scientific_verdict")!="INCONCLUSIVE"
+        or icrf.get("status")!="GMAT_ICRF_NUMERIC_INITIAL_EXECUTED_UNQUALIFIED_N_TIE"
+        or icrf.get("rows")!=91 or icrf.get("return_code")!=0
+        or icrf.get("scientific_verdict")!="INCONCLUSIVE"):
+        raise ValueError("DT2_DIRECTIONAL_REQUIRES_REAL_BSK_GMAT_NAIF_EVIDENCE")
+    checks=(
+        ("basilisk_state.csv",manifest["evidence"]["basilisk_state_csv_sha256"]),
+        ("gmat_icrf_numeric_state.csv",icrf.get("normalized_csv_sha256")),
+        ("sun_anchor_three_engines.csv",celestial.get("sun_anchor_comparison_csv_sha256")),
+        ("moon_anchor_three_engines.csv",celestial.get("moon_anchor_comparison_csv_sha256")),
+    )
+    for name,expected in checks:
+        if not expected or _sha256(out/name)!=expected:
+            raise ValueError("DT2_DIRECTIONAL_REAL_SOURCE_HASH_INVALID: "+name)
+    import csv as csv_module
+    with (out/"sun_anchor_three_engines.csv").open(newline="",encoding="utf-8") as stream:
+        sun=list(csv_module.DictReader(stream))
+    with (out/"moon_anchor_three_engines.csv").open(newline="",encoding="utf-8") as stream:
+        moon=list(csv_module.DictReader(stream))
+    if len(sun)!=3 or len(moon)!=3:
+        raise ValueError("DT2_DIRECTIONAL_THREE_REAL_CELESTIAL_ROWS_REQUIRED")
+    bsk=_read_states(out/"basilisk_state.csv",CASE["epoch_utc"])
+    gmat=_read_states(out/"gmat_icrf_numeric_state.csv",CASE["epoch_utc"],
+                      tick_skew_budget_s=GMAT_REPORT_FLOAT_TIME_SKEW_BUDGET_S)
+    body_names=("sun","moon")
+    rows=[]
+    for j,index in enumerate((0,45,90)):
+        t=index*CASE["sample_s"]
+        if int(float(sun[j]["time_s"]))!=t or int(float(moon[j]["time_s"]))!=t:
+            raise ValueError("DT2_DIRECTIONAL_CELESTIAL_TIME_NOT_SOURCE_GRID")
+        r_bsk=[float(bsk[index][k]) for k in ("x_m","y_m","z_m")]
+        r_gmat=[float(gmat[index][k]) for k in ("x_m","y_m","z_m")]
+        def pos(body,name,engine):
+            return [float(body[f"{engine}_{name}_{axis}_km"])*1000
+                    for axis in "xyz"]
+        rn_sun=pos(sun[j],"sun","naif_j2000")
+        rn_moon=pos(moon[j],"moon","naif_j2000")
+        gm_sun=pos(sun[j],"sun","gmat_icrf")
+        gm_moon=pos(moon[j],"moon","gmat_icrf")
+        predicted_bsk=_dt2_directional_row(r_bsk,rn_sun,rn_moon)
+        predicted_gmat=_dt2_directional_row(r_gmat,gm_sun,gm_moon)
+        # Counterfactual orientation-only falsification: rotate spacecraft
+        # position by +90deg about J2000 z; DO NOT rotate third-body ephemerides.
+        rotated=[-r_bsk[1],r_bsk[0],r_bsk[2]]
+        counterfactual=_dt2_directional_row(rotated,rn_sun,rn_moon)
+        delta=[counterfactual["total"][k]-predicted_bsk["total"][k]
+               for k in range(3)]
+        agreement=[predicted_bsk["total"][k]-predicted_gmat["total"][k]
+                   for k in range(3)]
+        row={
+            "time_s":t,
+            "analytic_bsk_source_sun_tidal_accel_m_s2":_dt2_norm(predicted_bsk["sun"]),
+            "analytic_bsk_source_moon_tidal_accel_m_s2":_dt2_norm(predicted_bsk["moon"]),
+            "analytic_bsk_source_total_tidal_accel_m_s2":_dt2_norm(predicted_bsk["total"]),
+            "analytic_gmat_source_total_tidal_accel_m_s2":_dt2_norm(predicted_gmat["total"]),
+            "analytic_source_prediction_delta_norm_m_s2":_dt2_norm(agreement),
+            "counterfactual_rotate_only_spacecraft_90deg_delta_norm_m_s2":_dt2_norm(delta),
+            "earth_central_pointmass_accel_norm_m_s2":
+                float(manifest["gravity"]["mu_m3_s2"])/_dt2_norm(r_bsk)**2,
+        }
+        if not all(math.isfinite(v) and v>=0 for v in row.values()):
+            raise ValueError("DT2_DIRECTIONAL_NONFINITE_OR_NEGATIVE_DIAGNOSTIC")
+        rows.append(row)
+    outputs={
+        "rows":out/"directional_thirdbody_analytic_preflight_rows.csv",
+        "receipt":out/"directional_thirdbody_analytic_preflight.json",
+    }
+    if any(p.exists() for p in outputs.values()):
+        raise FileExistsError("DT2_DIRECTIONAL_PREVIEW_REFUSES_OVERWRITE")
+    with outputs["rows"].open("w",newline="",encoding="utf-8") as stream:
+        writer=csv.DictWriter(stream,fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    summary={
+        "case_id":CASE_ID,
+        "status":"INCONCLUSIVE",
+        "source_kind":"true archived BSK/GMAT/NAIF states and ephemerides; NEWTONIAN FORMULA POSTPROCESSING ONLY",
+        "force_model_executed_in_new_basilisk_run":False,
+        "force_model_executed_in_new_gmat_run":False,
+        "counterfactual_is_real_trajectory":False,
+        "conditional_Basilisk_N_as_J2000":True,
+        "independent_absolute_frame_tie_approved":False,
+        "mission_error_budget_approved":False,
+        "physical_cross_engine_acceleration_VV_pass":False,
+        "celestial_ephemeris_source":"pinned official GMAT R2026a DE421 SPK, exact hash from sun_anchor_execution.json",
+        "mu_source":"official Basilisk 2.11.0 astroConstants.h, not independently verified GMAT body μ",
+        "mu_sun_km3_s2":DT2_DIRECTIONAL_MU_KM3_S2["sun"],
+        "mu_moon_km3_s2":DT2_DIRECTIONAL_MU_KM3_S2["moon"],
+        "real_source_sample_count":len(rows),
+        "sample_times_s":[r["time_s"] for r in rows],
+        "max_analytic_actual_source_tidal_accel_m_s2":
+            max(r["analytic_bsk_source_total_tidal_accel_m_s2"] for r in rows),
+        "max_counterfactual_only_spacecraft_rotation_delta_m_s2":
+            max(r["counterfactual_rotate_only_spacecraft_90deg_delta_norm_m_s2"] for r in rows),
+        "max_analytic_BSK_source_vs_GMAT_source_prediction_delta_m_s2":
+            max(r["analytic_source_prediction_delta_norm_m_s2"] for r in rows),
+        "original_file_sha256":{name:sha for name,sha in checks},
+        "three_sample_csv_sha256":_sha256(outputs["rows"]),
+    }
+    _write_json(outputs["receipt"],summary)
+    return summary
+
+
 def compare(out: Path) -> dict:
     """Diagnostic only. Never label an unreviewed two-engine residual PASS."""
     manifest = json.loads((out / "case_manifest.json").read_text(encoding="utf-8"))
@@ -1126,6 +1289,8 @@ def main(argv: list[str] | None = None) -> int:
     q.add_argument("--output",type=Path,required=True)
     q.add_argument("--executable",type=Path,required=True)
     q.add_argument("--timeout-s",type=int,default=600)
+    d=sub.add_parser("directional-preflight",help="Analytic Sun/Moon tidal sensitivity from SHA-verified real source data; no new force run")
+    d.add_argument("--output",type=Path,required=True)
     args=parser.parse_args(argv)
     if args.action=="basilisk":
         result=run_basilisk(args.output,args.checkout_sha)
@@ -1140,6 +1305,8 @@ def main(argv: list[str] | None = None) -> int:
         result=run_gmat_frame_time_probe(args.output,args.executable,timeout_s=args.timeout_s)
     elif args.action=="gmat-icrf-numeric-control":
         result=run_gmat_icrf_numeric_control(args.output,args.executable,timeout_s=args.timeout_s)
+    elif args.action=="directional-preflight":
+        result=run_directional_tidal_preflight(args.output)
     else:
         result=analyze_closed_form_two_body(args.output)
     print(json.dumps({"case_id":CASE_ID,"action":args.action,"result":result.get("external_vv_status",result.get("status","BASILISK_EXECUTED"))},sort_keys=True))

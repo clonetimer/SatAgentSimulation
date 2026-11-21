@@ -308,3 +308,32 @@ def test_basilisk_initial_phase_is_not_falsely_claimed_to_be_213_phase():
     assert "NOT claimed" in cross.CASE["source_note"]
     assert cross.MODEL_FLAGS["earth_point_mass"]
     assert sum(bool(x) for x in cross.MODEL_FLAGS.values()) == 1
+
+def test_analytic_tidal_acceleration_is_direction_sensitive_not_new_engine_truth():
+    # Synthetic geometry is ONLY a formula unit contract. External truth
+    # requires native BSK and genuine GMAT force execution in a future case.
+    r=[6650000.,0.,0.]
+    sun=[149597870000.,-30000000000.,0.]
+    moon=[384400000.,5000000.,-2500000.]
+    expected=cross._dt2_directional_row(r,sun,moon)
+    assert cross._dt2_norm(expected["total"])>0
+    rotated=cross._dt2_directional_row([0.,6650000.,0.],sun,moon)
+    assert cross._dt2_norm([rotated["total"][i]-expected["total"][i]
+                          for i in range(3)])>0
+    # Rotating both ephemeris and spacecraft together must rotate the tidal
+    # vector; otherwise the acceleration formula is frame-inconsistent.
+    q=lambda x:[-x[1],x[0],x[2]]
+    transformed=cross._dt2_directional_row(q(r),q(sun),q(moon))
+    assert transformed["total"]==pytest.approx(q(expected["total"]),rel=1e-6,abs=1e-15)
+    with pytest.raises(ValueError,match="DT2_DIRECTIONAL_INVALID"):
+        cross._dt2_tidal_acceleration([float("nan"),0.,0.],moon,1.)
+    with pytest.raises(ValueError,match="DT2_DIRECTIONAL_SINGULAR"):
+        cross._dt2_tidal_acceleration(r,r,1.)
+
+
+def test_directional_preflight_refuses_synthetic_unverified_files(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        cross.run_directional_tidal_preflight(tmp_path)
+    assert cross.DT2_DIRECTIONAL_MU_KM3_S2["sun"]==132712440023.310
+    assert cross.DT2_DIRECTIONAL_MU_KM3_S2["moon"]==4902.799
+
