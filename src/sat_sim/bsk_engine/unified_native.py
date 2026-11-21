@@ -963,6 +963,14 @@ def _build_unified_rows(
             "adcs.fusion.estimated_omega_BN_B_y": float(recorder_map["fusion_attitude"].omega_BN_B[index][1]),
             "adcs.fusion.estimated_omega_BN_B_z": float(recorder_map["fusion_attitude"].omega_BN_B[index][2]),
         }
+        if "imu_bias_walk" in recorder_map:
+            for axis, component in enumerate("xyz"):
+                row[f"adcs.sensor.gyro_bias_walk_rad_s_{component}"] = float(
+                    recorder_map["imu_bias_walk"].AngVelPlatform[index][axis]
+                )
+                row[f"adcs.sensor.accel_bias_walk_m_s2_{component}"] = float(
+                    recorder_map["imu_bias_walk"].AccelPlatform[index][axis]
+                )
         row.update(attitude_truth)
         for axis, component in enumerate('xyz'):
             row[f"attitude.truth.omega_BN_B_{component}"] = float(state.omega_BN_B[index][axis])
@@ -1293,6 +1301,7 @@ class UnifiedNativeRuntime:
         from .project_native_modules import (
             AdcsSensorFusion,
             EarthHorizonSensor,
+            ImuBiasRandomWalk,
             ImuFaultInjector,
             NativeEventStatus,
             NativeRfDownlinkGate,
@@ -1781,6 +1790,15 @@ class UnifiedNativeRuntime:
         # configuration untouched, for strict legacy-default compatibility.
         if gyro_lsb > 0. or accel_lsb > 0.:
             imu.setLSBs(accel_lsb, gyro_lsb)
+        raw_gyro_walk = values.get("imu_gyro_bias_random_walk_std_rad_s_sqrt_s", 0.)
+        raw_accel_walk = values.get("imu_accel_bias_random_walk_std_m_s2_sqrt_s", 0.)
+        if any(type(v) not in (int, float) for v in (raw_gyro_walk, raw_accel_walk)):
+            raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_INVALID")
+        gyro_walk_std = float(raw_gyro_walk)
+        accel_walk_std = float(raw_accel_walk)
+        if (not math.isfinite(gyro_walk_std) or not 0. <= gyro_walk_std <= .01
+                or not math.isfinite(accel_walk_std) or not 0. <= accel_walk_std <= .1):
+            raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_INVALID")
         gyro_max = float(values.get("imu_gyro_max_rad_s", 0.0))
         accel_max = float(values.get("imu_accel_max_m_s2", 0.0))
         if not all(math.isfinite(v) for v in (gyro_max, accel_max)) or not (
@@ -1796,6 +1814,18 @@ class UnifiedNativeRuntime:
         imu.scStateInMsg.subscribeTo(sc.scStateOutMsg)
         add(imu, "imu", "basilisk_official_native", 90)
         connected("spacecraft.scStateOutMsg", "imu")
+        imu_bias_walk = None
+        if gyro_walk_std > 0. or accel_walk_std > 0.:
+            imu_bias_walk = ImuBiasRandomWalk(
+                imu,
+                gyro_bias_rad_s=gyro_bias,
+                accel_bias_m_s2=accel_bias,
+                gyro_random_walk_std_rad_s_sqrt_s=gyro_walk_std,
+                accel_random_walk_std_m_s2_sqrt_s=accel_walk_std,
+                seed=int(values.get("simulation_seed", values.get("random_seed", 0))),
+            )
+            add(imu_bias_walk, "project_imu_bias_random_walk", "basilisk_project_native", 91)
+            connected("project_imu_bias_random_walk", "imu.senRotBias+senTransBias")
 
         sun_sensor = coarseSunSensor.CoarseSunSensor()
         from .sun_sensor_geometry import resolve_sun_sensor_boresight
@@ -2597,6 +2627,8 @@ class UnifiedNativeRuntime:
             "event_degradation": event_status.degradationOutMsg,
             "event_constraint": event_status.constraintOutMsg,
         }
+        if imu_bias_walk is not None:
+            messages["imu_bias_walk"] = imu_bias_walk.biasWalkOutMsg
         if space_weather is not None and atmosphere_model is not None and wind_model is not None:
             messages["atmosphere"] = atmosphere_model.envOutMsgs[0]
             messages["wind"] = wind_model.envOutMsgs[0]
@@ -3177,6 +3209,17 @@ class UnifiedNativeRuntime:
             "runtime_message_read_error_count": len(runtime_read_errors),
             "runtime_message_read_errors": runtime_read_errors[:20],
         }
+        if gyro_walk_std > 0. or accel_walk_std > 0.:
+            summary["imu_bias_random_walk"] = {
+                "source": "project_native_modules.ImuBiasRandomWalk",
+                "target": "official Basilisk ImuSensor.senRotBias/senTransBias before measurement update",
+                "gyro_increment_std_rad_s_sqrt_s": gyro_walk_std,
+                "accel_increment_std_m_s2_sqrt_s": accel_walk_std,
+                "sample_clock": "Basilisk scheduler current_sim_nanos",
+                "seed_streams": "simulation_seed with distinct deterministic gyro/accelerometer derivations",
+                "installation_evidence": "NOT_PROVIDED",
+                "hardware_calibration": False,
+            }
         if gyro_lsb > 0. or accel_lsb > 0.:
             summary["imu_quantization"] = {
                 "source": "Basilisk.simulation.imuSensor.ImuSensor.setLSBs",
