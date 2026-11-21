@@ -1,0 +1,775 @@
+name: DT2 CROSS-LEO-001 real GMAT R2026a independent execution
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/dt2-gmat-cross-leo-001.yml"
+      - "scripts/dt2_cross_leo_001.py"
+      - "scripts/dt2_sun_anchor.py"
+      - "tests/test_dt2_sun_anchor.py"
+      - "tests/test_dt2_cross_leo_001.py"
+      - "scripts/dt2_thirdbody_real.py"
+      - "tests/test_dt2_thirdbody_real.py"
+      - "scripts/dt2_mu_probe.py"
+      - "tests/test_dt2_mu_probe.py"
+      - "scripts/dt2_step_convergence.py"
+      - "tests/test_dt2_step_convergence.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actual-gmat-execution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install exact genuine Basilisk source runtime
+        run: |
+          python -m pip install "bsk==2.11.0" "numpy==2.3.5" "pytest==9.0.3"
+          python -m pytest -q tests/test_dt2_cross_leo_001.py tests/test_dt2_sun_anchor.py tests/test_dt2_thirdbody_real.py tests/test_dt2_mu_probe.py tests/test_dt2_step_convergence.py
+      - name: Run actual Basilisk and freeze source-state CSV
+        run: |
+          python scripts/dt2_cross_leo_001.py basilisk \
+            --output reports/dt2-cross-leo-001 \
+            --checkout-sha "$(git rev-parse HEAD)"
+      - name: Download and record official GMAT R2026a Ubuntu binary archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/gmat-release"
+          release="https://downloads.sourceforge.net/project/gmat/GMAT/GMAT-R2026a/gmat-ubuntu-x64-R2026a.tar.gz"
+          archive="$RUNNER_TEMP/gmat-ubuntu-x64-R2026a.tar.gz"
+          curl -fLsS --retry 3 --retry-delay 6 --connect-timeout 30 --max-time 900 \
+            --write-out "effective_url=%{url_effective}\nhttp_code=%{http_code}\n" \
+            -o "$archive" "$release" > reports/dt2-cross-leo-001/gmat_archive_download.txt
+          python - "$archive" <<'PY'
+          import hashlib, json, pathlib, sys
+          src=pathlib.Path(sys.argv[1])
+          size=src.stat().st_size
+          if size < 250_000_000:
+              raise RuntimeError(f"GMAT_RELEASE_TOO_SMALL_OR_HTML: {size}")
+          info={
+            "release": "GMAT R2026a (official published Ubuntu archive)",
+            "url": "https://downloads.sourceforge.net/project/gmat/GMAT/GMAT-R2026a/gmat-ubuntu-x64-R2026a.tar.gz",
+            "bytes": size,
+            "archive_sha256": hashlib.file_digest(src.open("rb"), "sha256").hexdigest(),
+            "note": "SHA documents the fetched bytes; independent publisher signature not established",
+          }
+          pathlib.Path("reports/dt2-cross-leo-001/gmat_release_archive.json").write_text(
+              json.dumps(info, indent=2, sort_keys=True)+"\n", encoding="utf-8")
+          print("REAL_GMAT_RELEASE_ARCHIVE", json.dumps(info, sort_keys=True))
+          PY
+          # Observe the official archive's actual layout instead of assuming
+          # that its launcher is a regular file named exactly GmatConsole.
+          # On failure, the file inventories are uploaded as immutable evidence.
+          tar -tzf "$archive" > reports/dt2-cross-leo-001/gmat_archive_filelist.txt
+          tar -xzf "$archive" -C "$RUNNER_TEMP/gmat-release"
+          find "$RUNNER_TEMP/gmat-release" -maxdepth 8 -print \
+            > reports/dt2-cross-leo-001/gmat_extracted_filelist.txt
+          grep -i 'console' reports/dt2-cross-leo-001/gmat_archive_filelist.txt | head -40 || true
+          binary="$(find "$RUNNER_TEMP/gmat-release" -iname '*gmatconsole*' -print -quit)"
+          if [ -z "$binary" ]; then
+            echo "GMAT_CONSOLE_NOT_FOUND: inspect the archived original file listing"
+            sed -n '1,80p' reports/dt2-cross-leo-001/gmat_archive_filelist.txt
+            exit 1
+          fi
+          if [ -d "$binary" ]; then echo "GMAT_CONSOLE_MATCH_IS_DIRECTORY=$binary"; exit 1; fi
+          binary="$(readlink -f "$binary")"
+          if [ ! -f "$binary" ]; then echo "GMAT_CONSOLE_SYMLINK_TARGET_MISSING=$binary"; exit 1; fi
+          chmod +x "$binary"
+          printf 'GMAT_BIN=%s\n' "$binary" >> "$GITHUB_ENV"
+          echo "ACTUAL_GMAT_BINARY=$binary"
+          sha256sum "$binary" | tee reports/dt2-cross-leo-001/gmat_console_binary_sha256.txt
+          ldd "$binary" > reports/dt2-cross-leo-001/gmat_binary_ldd.txt 2>&1 || true
+      - name: Execute actual GMATConsole and require authentic 91-state report
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py gmat \
+            --output reports/dt2-cross-leo-001 \
+            --executable "$GMAT_BIN" --timeout-s 600
+      - name: Execute genuine GMAT matched Earth-Mu control using same initial state
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py gmat-mu-control \
+            --output reports/dt2-cross-leo-001 \
+            --executable "$GMAT_BIN" --timeout-s 600
+      - name: Compare genuine dual-engine state traces without claiming flight PASS
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py compare --output reports/dt2-cross-leo-001
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          info=json.loads((root/"gmat_execution.json").read_text())
+          manifest=json.loads((root/"case_manifest.json").read_text())
+          result=json.loads((root/"comparison_diagnostic.json").read_text())
+          assert info["status"]=="GMAT_EXECUTED_UNQUALIFIED_ALIGNMENT"
+          assert info["rows"]==91
+          assert info["report_present"]
+          assert info["binary_sha256"]==hashlib.sha256(Path(info["binary_path"]).read_bytes()).hexdigest()
+          assert info["report_sha256"]==hashlib.sha256((root/"gmat_raw.txt").read_bytes()).hexdigest()
+          assert manifest["evidence"]["basilisk_executed"]
+          assert manifest["evidence"]["gmat_executed"]
+          assert any("actual GMAT executed" in note
+                     for note in manifest["limitations"])
+          assert not any("no external GMAT execution" in note
+                         for note in manifest["limitations"])
+          assert manifest["external_vv_status"]=="INCONCLUSIVE"
+          assert manifest["evidence"]["gmat_report_sha256"]==info["report_sha256"]
+          assert not manifest["frames"]["independent_alignment_approved"]
+          assert result["paired_samples"]==91 and result["aligned_samples"]==0
+          assert result["status"]=="INCONCLUSIVE"
+          assert result["time_alignment_status"]=="UNAPPROVED_RAW_ENGINE_TIME_SKEW_RETAINED"
+          assert 0. <= result["reported_gmat_time_skew_max_abs_s"] <= result["input_representation_budget_s"]
+          print("DT2_REAL_GMAT_EXECUTED rows=91 status=INCONCLUSIVE "
+                "flight_validation=false independent_time_frame_mu_alignment=false")
+          PY
+      - name: Diagnose actual GMAT constant-sensitivity without declaring V-and-V PASS
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py compare-mu-control \
+            --output reports/dt2-cross-leo-001
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          m=json.loads((root/"case_manifest.json").read_text())
+          c=json.loads((root/"gmat_mu_control_execution.json").read_text())
+          d=json.loads((root/"mu_control_diagnostic.json").read_text())
+          assert m["evidence"]["gmat_executed"]
+          assert m["evidence"]["gmat_mu_control_executed"]
+          assert c["status"]=="GMAT_MU_CONTROL_EXECUTED_UNQUALIFIED_ALIGNMENT"
+          assert c["rows"]==91
+          assert c["return_code"]==0
+          assert c["release_r2026a_verified"]
+          assert hashlib.sha256((root/"gmat_mu_control_raw.txt").read_bytes()).hexdigest()==c["report_sha256"]
+          assert d["status"]=="INCONCLUSIVE" and d["paired_samples"]==91
+          assert d["approved_aligned_samples"]==0
+          assert d["mu_actual_basilisk_m3_s2"]==d["mu_overridden_in_actual_gmat_m3_s2"]
+          assert not d["model_acceptance_limits_approved"]
+          assert not d["independent_frame_time_alignment_approved"]
+          print("DT2_REAL_GMAT_MU_CONTROL "
+                f"original_final_m={d['original_final_pos_m']:.9e} "
+                f"matched_final_m={d['matched_mu_final_pos_m']:.9e} "
+                "status=INCONCLUSIVE approval=false")
+          PY
+
+      - name: Independently diagnose real three-state evidence against exact circular two-body solution
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py analytic-reference --output reports/dt2-cross-leo-001
+          python - <<'PY'
+          import csv,json,math
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          d=json.loads((root/"analytic_reference_diagnostic.json").read_text())
+          with (root/"analytic_reference_difference_rows.csv").open() as f:
+              rows=list(csv.DictReader(f))
+          assert d["status"]=="INCONCLUSIVE" and len(rows)==91
+          assert d["paired_samples"]==91 and d["approved_frame_time_aligned_samples"]==0
+          assert not d["independent_frame_mapping_approved"]
+          assert not d["absolute_time_scale_mapping_approved"]
+          assert not d["mission_residual_acceptance_limits_approved"]
+          assert not d["reference_is_flight_measurement"]
+          pos=d["nominal_time_closed_form_position_m"]
+          raw=d["raw_reported_time_closed_form_position_m"]
+          assert all(math.isfinite(pos[name]["max"]) and pos[name]["max"]>=0
+                     for name in ("basilisk","gmat_default_mu","gmat_basilisk_mu_control"))
+          assert math.isfinite(raw["gmat_basilisk_mu_control"]["max"])
+          print("DT2_CLOSED_FORM_ACTUAL_DIAGNOSTIC "
+                f"bsk_nominal_max_m={pos['basilisk']['max']:.9e} "
+                f"gmat_matched_nominal_max_m={pos['gmat_basilisk_mu_control']['max']:.9e} "
+                f"gmat_matched_raw_clock_max_m={raw['gmat_basilisk_mu_control']['max']:.9e} "
+                "status=INCONCLUSIVE frame_time_approved=false")
+          PY
+
+      - name: Execute actual GMAT EarthMJ2000Eq ICRF UTC TAI TT frame-time probe
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py gmat-frame-time-probe \
+            --output reports/dt2-cross-leo-001 \
+            --executable "$GMAT_BIN" --timeout-s 600
+      - name: Verify real GMAT two-frame and absolute numerical epoch report without scientific PASS
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv,hashlib,json
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          manifest=json.loads((root/"case_manifest.json").read_text())
+          receipt=json.loads((root/"gmat_frame_time_execution.json").read_text())
+          diag=json.loads((root/"gmat_frame_time_diagnostic.json").read_text())
+          assert receipt["status"]=="GMAT_FRAME_TIME_REPORTED_UNQUALIFIED_ABSOLUTE_TIE"
+          assert receipt["return_code"]==0 and receipt["rows"]==91
+          assert receipt["executable_sha256"]==manifest["evidence"]["gmat_binary_sha256"]
+          assert manifest["evidence"]["gmat_frame_time_probe_executed"]
+          assert hashlib.sha256((root/"gmat_frame_time_raw.txt").read_bytes()).hexdigest()==receipt["frame_time_report_sha256"]
+          assert hashlib.sha256((root/"gmat_frame_time_executed.script").read_bytes()).hexdigest()==receipt["script_sha256"]
+          with (root/"gmat_frame_time_rows.csv").open() as stream:
+              rows=list(csv.DictReader(stream))
+          assert len(rows)==91
+          assert diag["status"]=="INCONCLUSIVE"
+          assert diag["gmat_epoch_jd_offset"]==2430000.
+          assert diag["certified_basilisk_n_axis_aligned_samples"]==0
+          assert not diag["independent_basilisk_n_to_gmat_axis_mapping_approved"]
+          assert not diag["independent_absolute_basilisk_clock_alignment_approved"]
+          assert not diag["mission_accuracy_budget_approved"]
+          print("DT2_ACTUAL_GMAT_FRAME_TIME "
+                f"tai_utc_s={diag['tai_minus_utc_s']:.9f} "
+                f"tt_tai_s={diag['tt_minus_tai_s']:.9f} "
+                f"mj_icrf_max_delta_m={diag['max_same_gmat_mj2000eq_icrf_position_difference_m']:.9e} "
+                "status=INCONCLUSIVE cross_engine_frame_certified=false")
+          PY
+      - name: Execute actual pinned-DE421 Sun and Luna vectors in GMAT Basilisk and NAIF
+        shell: bash
+        run: |
+          python -m pip install "spiceypy==8.4.0"
+          python scripts/dt2_sun_anchor.py \
+            --output reports/dt2-cross-leo-001 \
+            --gmat-root "$RUNNER_TEMP/gmat-release/GMAT/R2026a" \
+            --gmat-executable "$GMAT_BIN"
+      - name: Verify authentic three-engine celestial evidence without declaring frame PASS
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv,hashlib,json,math
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          r=json.loads((root/"sun_anchor_execution.json").read_text())
+          assert r["status"]=="REAL_THREE_ENGINE_CELESTIAL_SOURCE_OBSERVED_INCONCLUSIVE"
+          assert r["gmat_exit_code"]==0
+          assert r["real_sample_count"]==3
+          assert r["real_moon_sample_count"]==3
+          assert r["same_process_native_clock_real_sample_count"]==3
+          assert r["same_process_native_spacecraft_real_sample_count"]==91
+          assert r["spacecraft_N_axis_independently_certified"] is False
+          assert r["a1_tt_to_et_real_sample_count"]==3
+          assert r["gmat_full_grid_native_SPICE_message_count"]==91
+          assert r["gmat_full_grid_real_source_sample_count"]==91
+          assert r["gmat_full_grid_physical_time_certified"] is False
+          assert r["GMAT_A1_TT_to_absolute_Basilisk_time_certified"] is False
+          clock=json.loads((root/"basilisk_same_process_clock_diagnostic.json").read_text())
+          assert clock["status"]=="INCONCLUSIVE"
+          assert clock["native_spacecraft_replay_rows"]==91
+          assert clock["native_spice_time_message_rows"]==3
+          time_audit=json.loads((root/"gmat_a1_tt_naif_ET_diagnostic.json").read_text())
+          assert time_audit["status"]=="INCONCLUSIVE"
+          assert time_audit["real_samples"]==3
+          full=json.loads((root/"gmat_full_grid_ET_diagnostic.json").read_text())
+          assert full["status"]=="INCONCLUSIVE"
+          assert full["native_spice_message_samples"]==91
+          assert full["gmat_original_report_samples"]==91
+          assert full["native_clock_source_is_direct_message"]
+          assert full["clock_time_offset_as_physical_error_budget"] is False
+          assert full["independently_aligned_original_two_engine_states"]==0
+          assert not full["mission_accuracy_budget_approved"]
+          for name,sha in (
+              ("basilisk_same_process_spice_ET_91.csv",r["native_spice_clock_91_sha256"]),
+              ("gmat_full_grid_a1_tt_to_ET_91.csv",r["gmat_full_grid_a1_tt_to_ET_91_sha256"]),
+              ("gmat_full_grid_ET_diagnostic.json",r["gmat_full_grid_ET_diagnostic_sha256"]),
+              ("basilisk_state.csv",full["original_Basilisk_state_sha256"]),
+              ("gmat_frame_time_rows.csv",full["original_GMAT_frame_time_sha256"])):
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==sha
+          with (root/"basilisk_same_process_spice_ET_91.csv").open(newline="") as stream:
+              native_rows=list(csv.DictReader(stream))
+          with (root/"gmat_full_grid_a1_tt_to_ET_91.csv").open(newline="") as stream:
+              full_rows=list(csv.DictReader(stream))
+          assert len(native_rows)==len(full_rows)==91
+          assert [int(t["sample_index"]) for t in full_rows]==list(range(91))
+          assert all(math.isfinite(float(t["native_j2000_ET_s"])) for t in full_rows)
+          assert all(math.isfinite(float(t["GMAT_TT_ET_minus_NAIF_ET_s"])) for t in full_rows)
+          assert not time_audit["GMAT_A1_to_original_Basilisk_absolute_clock_approved"]
+          assert not time_audit["original_Basilisk_spacecraft_N_axes_independently_qualified"]
+          assert time_audit["aligned_original_two_engine_state_samples"]==0
+          assert not time_audit["mission_accuracy_budget_approved"]
+          assert time_audit["official_gmat_A1_minus_TAI_s"]==0.0343817
+          assert time_audit["NAIF_conversion"].startswith("genuine spiceypy")
+          for name,sha in (
+              ("gmat_a1_tt_naif_ET_rows.csv",r["a1_tt_to_et_rows_sha256"]),
+              ("gmat_a1_tt_naif_ET_diagnostic.json",r["a1_tt_to_et_diagnostic_sha256"]),
+              ("gmat_frame_time_rows.csv",time_audit["original_GMAT_frame_time_csv_sha256"]),
+              ("basilisk_same_process_clock.csv",time_audit["native_same_process_clock_csv_sha256"])):
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==sha
+          assert hashlib.sha256((root/"gmat_a1_tt_naif_ET_rows.csv").read_bytes()).hexdigest()==time_audit["three_time_chain_rows_sha256"]
+          with (root/"gmat_a1_tt_naif_ET_rows.csv").open(newline="") as stream:
+              time_rows=list(csv.DictReader(stream))
+          assert [int(t["sample_index"]) for t in time_rows]==[0,45,90]
+          assert all(math.isfinite(float(t[key])) for t in time_rows for key in (
+              "gmat_raw_elapsed_s","spice_unitim_GMAT_TT_to_ET_s",
+              "spice_unitim_GMAT_A1_via_TAI_TT_to_ET_s",
+              "GMAT_TT_ET_minus_naif_UTC_ET_s",
+              "GMAT_A1_ET_minus_naif_UTC_ET_s"))
+          assert not clock["original_spacecraft_baseline_mutated"]
+          assert not clock["absolute_Basilisk_spacecraft_N_to_EarthICRF_approved"]
+          assert not clock["absolute_GMAT_A1_to_Basilisk_ET_approved"]
+          assert clock["independently_qualified_cross_engine_samples"]==0
+          assert not clock["mission_accuracy_budget_approved"]
+          for file,sha in (
+              ("basilisk_same_process_spacecraft.csv",r["same_process_native_replay_states_sha256"]),
+              ("basilisk_same_process_clock.csv",r["same_process_native_clock_rows_sha256"]),
+              ("basilisk_same_process_clock_diagnostic.json",r["same_process_native_clock_diagnostic_sha256"]),
+              ("basilisk_state.csv",clock["source_baseline_sha256"]),
+              ("gmat_frame_time_rows.csv",clock["original_GMAT_frame_time_csv_sha256"])):
+              assert hashlib.sha256((root/file).read_bytes()).hexdigest()==sha
+          with (root/"basilisk_same_process_clock.csv").open(newline="") as f:
+              clock_rows=list(csv.DictReader(f))
+          assert [int(float(x["sample_index"])) for x in clock_rows]==[0,45,90]
+          assert all(math.isfinite(float(x["native_minus_naif_ET_s"])) for x in clock_rows)
+          print("DT2_NATIVE_BSK_SAME_PROCESS_CLOCK "
+                f"native_naif_et_delta_max_s={clock['max_native_spice_ET_minus_naif_ET_abs_s']:.9e} "
+                f"replay_position_max_m={clock['max_native_spacecraft_replay_position_vs_sealed_baseline_m']:.9e} "
+                f"replay_velocity_max_m_s={clock['max_native_spacecraft_replay_velocity_vs_sealed_baseline_m_s']:.9e} "
+                f"gmat_tt_naif_et_max_s={time_audit['max_abs_GMAT_TT_to_NAIF_ET_delta_s']:.9e} "
+                f"gmat_a1_naif_et_max_s={time_audit['max_abs_GMAT_A1_to_NAIF_ET_delta_s']:.9e} "
+                f"a1_tai_offset_error_max_s={time_audit['max_abs_reported_A1_TAI_offset_error_s']:.9e} "
+                f"full91_gmat_tt_naif_max_s={full['max_abs_GMAT_TT_ET_minus_NAIF_ET_s']:.9e} "
+                f"full91_skew_equivalent_max_m={full['max_raw_report_time_skew_times_actual_native_speed_m_diagnostic']:.9e} "
+                "status=INCONCLUSIVE certified_absolute_N=false")
+          assert r["gmat_moon_report_produced"]
+          assert hashlib.sha256((root/"gmat_moon_anchor_raw.txt").read_bytes()).hexdigest()==r["gmat_moon_report_sha256"]
+          assert hashlib.sha256((root/"moon_anchor_three_engines.csv").read_bytes()).hexdigest()==r["moon_anchor_comparison_csv_sha256"]
+          with (root/"moon_anchor_three_engines.csv").open(newline="") as f:
+              moon_rows=list(csv.DictReader(f))
+          assert [int(row["time_s"]) for row in moon_rows]==[0,2700,5400]
+          assert all(math.isfinite(float(v)) for row in moon_rows for v in row.values())
+          pair=r["sun_moon_direction_geometry"]
+          bridge=json.loads((root/"gmat_mj_naif_frame_probe.json").read_text())
+          assert hashlib.sha256((root/"gmat_mj_naif_frame_probe.json").read_bytes()).hexdigest()==r["frame_bridge_diagnostic_sha256"]
+          assert hashlib.sha256((root/"gmat_mj_naif_frame_probe_rows.csv").read_bytes()).hexdigest()==r["frame_bridge_rows_sha256"]
+          assert hashlib.sha256((root/"gmat_mj_naif_frame_probe_rows.csv").read_bytes()).hexdigest()==bridge["holdout_rows_csv_sha256"]
+          assert bridge["status"]=="INCONCLUSIVE"
+          assert bridge["spacecraft_holdout_samples"]==91
+          assert bridge["original_pointmass_orbit_frame_time_qualified_samples"]==0
+          assert not bridge["original_basilisk_N_to_ICRF_approved"]
+          assert not bridge["mission_accuracy_budget_approved"]
+          assert math.isclose(bridge["reference_rotation_determinant"],1.,rel_tol=0,abs_tol=1e-12)
+          assert all(math.isfinite(v) and v>=0 for v in (
+              bridge["max_position_residual_m"],bridge["max_velocity_residual_m_s"]))
+          for source_file,sha in (
+              ("gmat_sun_anchor_raw.txt",bridge["source_sha256"]["gmat_sun_raw"]),
+              ("gmat_moon_anchor_raw.txt",bridge["source_sha256"]["gmat_moon_raw"]),
+              ("gmat_frame_time_rows.csv",bridge["source_sha256"]["gmat_frame_time_rows"])):
+              assert hashlib.sha256((root/source_file).read_bytes()).hexdigest()==sha
+          with (root/"gmat_mj_naif_frame_probe_rows.csv").open(newline="") as f:
+              heldout=list(csv.DictReader(f))
+          assert len(heldout)==91
+          assert float(heldout[-1]["gmat_original_elapsed_s"])<5400
+          assert len(pair["sun_moon_separation_deg_by_epoch"])==3
+          assert len(pair["rotation_information_condition_by_epoch"])==3
+          assert pair["scientific_verdict"]=="INCONCLUSIVE"
+          assert pair["original_pointmass_n_axes_externally_certified"] is False
+          assert r["basilisk_spice_kernel_pool_verified"] is True
+          assert r["basilisk_spice_pinned_kernel_count"]==3
+          geometry=r["sun_direction_triplet_geometry"]
+          assert geometry["absolute_inertial_frame_tie_approved"] is False
+          assert len(geometry["normalized_sun_direction_singular_values"])==3
+          assert len(geometry["rotation_information_eigenvalues"])==3
+          assert all(math.isfinite(v) and v>=0
+                     for v in geometry["rotation_information_eigenvalues"])
+          assert all(math.isfinite(v) and v>=0
+                     for v in geometry["normalized_sun_direction_singular_values"])
+          assert 0<=geometry["max_pairwise_sun_direction_separation_deg"]<=180
+          assert r["scientific_verdict"]=="INCONCLUSIVE"
+          assert not r["independent_physical_basilisk_n_to_icrf_tie_approved"]
+          assert not r["original_pointmass_n_axes_externally_certified"]
+          for name,field in (("gmat_sun_anchor_executed.script","gmat_script_sha256"),
+                              ("gmat_sun_anchor_raw.txt","gmat_sun_report_sha256"),
+                              ("sun_anchor_three_engines.csv","sun_anchor_comparison_csv_sha256")):
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==r[field]
+          with (root/"sun_anchor_three_engines.csv").open(newline="") as f:
+              rows=list(csv.DictReader(f))
+          assert [int(row["time_s"]) for row in rows]==[0,2700,5400]
+          assert all(math.isfinite(float(v)) for row in rows for v in row.values())
+          print("DT2_REAL_SUN_FRAME_ANCHOR "
+                f"gmat_naif_arcsec={r['max_gmat_icrf_vs_naif_j2000_angle_arcsec']:.9e} "
+                f"bsk_naif_arcsec={r['max_basilisk_n_vs_naif_j2000_angle_arcsec']:.9e} "
+                f"sun_max_sep_deg={geometry['max_pairwise_sun_direction_separation_deg']:.9e} "
+                f"sun_triplet_condition={geometry['sun_triplet_condition_number']} "
+                f"rotation_information_condition={geometry['rotation_information_condition_number']} "
+                f"sun_moon_sep_deg={pair['sun_moon_separation_deg_by_epoch']} "
+                f"moon_gmat_naif_max_m={r['max_gmat_moon_icrf_vs_naif_j2000_pos_m']:.9e} "
+                f"moon_bsk_naif_max_m={r['max_basilisk_moon_n_vs_naif_j2000_pos_m']:.9e} "
+                f"mj_naif_heldout_max_pos_m={bridge['max_position_residual_m']:.9e} "
+                f"mj_naif_heldout_max_vel_m_s={bridge['max_velocity_residual_m_s']:.9e} "
+                "status=INCONCLUSIVE original_pointmass_n_axis_certified=false")
+          PY
+      - name: Execute genuine EarthICRF GMAT numeric-state control, hold original baseline fixed
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py gmat-icrf-numeric-control \
+            --output reports/dt2-cross-leo-001 \
+            --executable "$GMAT_BIN" --timeout-s 600
+          python - <<'PY'
+          import csv,hashlib,json,math
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          receipt=json.loads((root/"gmat_icrf_numeric_execution.json").read_text())
+          d=json.loads((root/"gmat_icrf_numeric_diagnostic.json").read_text())
+          assert receipt["status"]=="GMAT_ICRF_NUMERIC_INITIAL_EXECUTED_UNQUALIFIED_N_TIE"
+          assert receipt["scientific_verdict"]=="INCONCLUSIVE"
+          assert receipt["rows"]==91 and receipt["return_code"]==0
+          assert receipt["state_input_frame_declared_in_GMAT"]=="EarthICRF"
+          assert not receipt["original_basilisk_N_to_EarthICRF_tie_independently_approved"]
+          assert not receipt["absolute_time_alignment_approved"]
+          assert not receipt["mission_accuracy_budget_approved"]
+          assert d["status"]=="INCONCLUSIVE"
+          assert d["paired_samples"]==91 and d["independently_frame_time_aligned_samples"]==0
+          assert d["frozen_source_initial_components_unchanged"]
+          assert d["no_rotation_or_state_adjustment_applied"]
+          assert d["raw_reported_gmat_times_retained"]
+          assert not d["mission_accuracy_budget_approved"]
+          assert not d["original_basilisk_N_to_EarthICRF_tie_independently_approved"]
+          for name, sha in (
+              ("gmat_icrf_numeric_executed.script",receipt["script_sha256"]),
+              ("gmat_icrf_numeric_raw.txt",receipt["raw_report_sha256"]),
+              ("gmat_icrf_numeric_state.csv",receipt["normalized_csv_sha256"]),
+              ("gmat_icrf_numeric_difference_rows.csv",receipt["difference_rows_sha256"]),
+              ("gmat_icrf_numeric_diagnostic.json",receipt["diagnostic_sha256"])):
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==sha
+          for name,sha in receipt["source_sha256"].items():
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==sha
+          script=(root/"gmat_icrf_numeric_executed.script").read_text()
+          assert "CrossSat.CoordinateSystem = EarthICRF;" in script
+          assert "CrossSat.EarthICRF.X" in script
+          assert "CrossGravity.Drag = None;" in script
+          assert "CrossGravity.SRP = Off;" in script
+          assert all(math.isfinite(d[k]) and d[k]>=0 for k in (
+              "position_delta_m_first","position_delta_m_mid","position_delta_m_last",
+              "position_delta_m_max","velocity_delta_m_s_max",
+              "max_reported_gmat_time_skew_s"))
+          with (root/"gmat_icrf_numeric_difference_rows.csv").open(newline="") as stream:
+              rows=list(csv.DictReader(stream))
+          assert len(rows)==91
+          assert float(rows[-1]["gmat_original_elapsed_s"])<5400.
+          print("DT2_REAL_GMAT_ICRF_NUMERIC_CONTROL "
+                f"position_final_m={d['position_delta_m_last']:.9e} "
+                f"position_max_m={d['position_delta_m_max']:.9e} "
+                f"velocity_max_m_s={d['velocity_delta_m_s_max']:.9e} "
+                "status=INCONCLUSIVE independent_N_tie=false")
+          PY
+
+      - name: Preregister directional tidal force analytic preflight on genuine BSK GMAT NAIF records
+        shell: bash
+        run: |
+          python scripts/dt2_cross_leo_001.py directional-preflight \
+            --output reports/dt2-cross-leo-001
+          python - <<'PY'
+          import csv,hashlib,json,math
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          r=json.loads((root/"directional_thirdbody_analytic_preflight.json").read_text())
+          assert r["status"]=="INCONCLUSIVE"
+          assert r["real_source_sample_count"]==3
+          assert r["sample_times_s"]==[0,2700,5400]
+          assert r["force_model_executed_in_new_basilisk_run"] is False
+          assert r["force_model_executed_in_new_gmat_run"] is False
+          assert r["counterfactual_is_real_trajectory"] is False
+          assert r["conditional_Basilisk_N_as_J2000"] is True
+          assert r["independent_absolute_frame_tie_approved"] is False
+          assert r["mission_error_budget_approved"] is False
+          assert r["physical_cross_engine_acceleration_VV_pass"] is False
+          assert r["max_analytic_actual_source_tidal_accel_m_s2"]>0
+          assert r["max_counterfactual_only_spacecraft_rotation_delta_m_s2"]>0
+          assert r["mu_sun_km3_s2"]==132712440023.310
+          assert r["mu_moon_km3_s2"]==4902.799
+          for name,sha in r["original_file_sha256"].items():
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==sha
+          csv_path=root/"directional_thirdbody_analytic_preflight_rows.csv"
+          assert hashlib.sha256(csv_path.read_bytes()).hexdigest()==r["three_sample_csv_sha256"]
+          with csv_path.open(newline="") as source:
+              rows=list(csv.DictReader(source))
+          assert [int(row["time_s"]) for row in rows]==[0,2700,5400]
+          assert all(math.isfinite(float(v)) for row in rows for v in row.values())
+          print("DT2_DIRECTIONAL_FORCE_ANALYTIC_PREFLIGHT "
+                f"true_reference_accel_m_s2={r['max_analytic_actual_source_tidal_accel_m_s2']:.9e} "
+                f"orientation_counterfactual_delta_m_s2={r['max_counterfactual_only_spacecraft_rotation_delta_m_s2']:.9e} "
+                "status=INCONCLUSIVE real_force_models_executed=false")
+          PY
+
+      - name: Run real Sun Luna third-body OFF and ON in both independent engines
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=reports/dt2-cross-leo-001
+          gmat_root="$RUNNER_TEMP/gmat-release/GMAT/R2026a"
+          for mode in off on; do
+            log="$root/thirdbody_bsk_$mode"
+            python scripts/dt2_thirdbody_real.py "bsk-$mode" --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN" > "$log.runtime.log" 2>&1 || { cat "$log.runtime.log"; exit 1; }
+            cat "$log.runtime.log"
+          done
+          for mode in off on; do
+            python scripts/dt2_thirdbody_real.py "gmat-$mode" --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN"
+          done
+          python scripts/dt2_thirdbody_real.py compare --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN"
+          python - <<'PY'
+          import hashlib,json,math,csv
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          d=json.loads((root/"thirdbody_two_engine_ON_OFF_diagnostic.json").read_text())
+          assert d["status"]=="INCONCLUSIVE"
+          assert d["true_native_Basilisk_on_off_executed"]
+          assert d["true_GMAT_R2026a_on_off_executed"]
+          assert d["actual_independently_executed_directional_force_response_observed"]
+          assert d["samples_per_engine_mode"]==91
+          assert d["source_frame_equivalence_unapproved"]
+          assert d["source_absolute_clock_alignment_unapproved"]
+          assert d["GMAT_effective_three_body_mu_readback_verified"] is False
+          assert d["GMAT_mu_declarations_present_not_effective_mu_certification"]
+          assert not d["mission_accuracy_budget_approved"]
+          assert d["max_Basilisk_ON_OFF_position_m"]>0
+          assert d["max_GMAT_ON_OFF_position_m"]>0
+          geom=d["frame_invariant_geometry"]
+          assert geom["status"]==geom["scientific_verdict"]=="INCONCLUSIVE"
+          assert geom["sample_count_per_engine_mode"]==91
+          assert geom["cross_time_pair_count"]==4095
+          assert geom["frame_rotation_fitted"] is False
+          assert geom["original_BSK_N_to_GMAT_EarthICRF_approved"] is False
+          assert geom["absolute_BSK_ET_to_GMAT_A1_approved"] is False
+          assert geom["effective_GMAT_mu_readback_verified"] is False
+          assert geom["mission_accuracy_budget_approved"] is False
+          for key in ("position_norm_gap_m","velocity_norm_gap_m_s",
+                      "position_chord_gap_m","velocity_chord_gap_m_s",
+                      "position_dot_gap_m2"):
+              assert math.isfinite(geom[key]) and geom[key]>=0
+          print("DT2_REAL_THIRDBODY_FRAME_INVARIANT_GEOMETRY",
+                f"norm_gap_m={geom['position_norm_gap_m']:.9e}",
+                f"chord_gap_m={geom['position_chord_gap_m']:.9e}",
+                f"velocity_chord_gap_m_s={geom['velocity_chord_gap_m_s']:.9e}",
+                f"pair_count={geom['cross_time_pair_count']}",
+                "scientific_verdict=INCONCLUSIVE")
+          for engine in ("bsk","gmat"):
+              for mode in ("off","on"):
+                  stem=f"thirdbody_{engine}_{mode}"
+                  rec=json.loads((root/f"{stem}_execution.json").read_text())
+                  assert rec["scientific_verdict"]=="INCONCLUSIVE"
+                  assert rec["third_body_enabled"]==(mode=="on")
+                  assert rec["real_force_model_executed"]
+                  assert rec["rows"]==91
+                  assert hashlib.sha256((root/f"{stem}_state.csv").read_bytes()).hexdigest()==rec["state_sha256"]
+                  if engine=="gmat":
+                      assert rec["return_code"]==0
+                      assert rec["declared_earth_sun_moon_mu_km3_s2"]=={
+                          "earth":398600.436,"sun":132712440023.310,"moon":4902.799}
+                      assert rec["effective_mu_independently_verified"] is False
+                      assert rec["effective_mu_independent_readback_status"]=="UNSUPPORTED_BY_R2026a_REPORT_AND_VARIABLE"
+                      assert hashlib.sha256((root/f"{stem}_raw.txt").read_bytes()).hexdigest()==rec["raw_sha256"]
+                  else:
+                      assert rec["true_spice_kernel_pool_count"]==3
+          with (root/"thirdbody_two_engine_ON_OFF_response_rows.csv").open(newline="") as f:
+              rows=list(csv.DictReader(f))
+          assert len(rows)==91
+          assert all(math.isfinite(float(v)) for row in rows for v in row.values())
+          assert hashlib.sha256((root/"thirdbody_two_engine_ON_OFF_response_rows.csv").read_bytes()).hexdigest()==d["comparison_rows_sha256"]
+          print("DT2_REAL_THIRDBODY_ON_OFF",
+              f"native_BSK_delta_max_m={d['max_Basilisk_ON_OFF_position_m']:.9e}",
+              f"real_GMAT_delta_max_m={d['max_GMAT_ON_OFF_position_m']:.9e}",
+              f"conditional_response_disagreement_m={d['max_conditional_unapproved_response_vector_delta_m']:.9e}",
+              "scientific_verdict=INCONCLUSIVE")
+          PY
+
+      - name: Observe genuine GMAT Sun and Moon Mu causal response with independent 2x runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=reports/dt2-cross-leo-001
+          gmat_root="$RUNNER_TEMP/gmat-release/GMAT/R2026a"
+          for target in sun2x moon2x; do
+            python scripts/dt2_mu_probe.py "$target" --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN"
+          done
+          python scripts/dt2_mu_probe.py aggregate --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN"
+          python - <<'PY'
+          import hashlib,json,math,csv
+          from pathlib import Path
+          root=Path("reports/dt2-cross-leo-001")
+          d=json.loads((root/"thirdbody_gmat_mu2x_causal_diagnostic.json").read_text())
+          assert d["scientific_verdict"]=="INCONCLUSIVE"
+          assert d["real_independent_GMAT_engine_interventions"]==2
+          assert d["real_GMAT_samples_per_intervention"]==91
+          assert d["real_mu_targets"]==["sun2x","moon2x"]
+          assert d["nonphysical_mu_multiplier"]==2.0
+          assert d["causal_nonzero_GMAT_trajectory_response_observed"]
+          assert d["GMAT_effective_mu_runtime_readback_verified"] is False
+          assert not d["physical_N_to_GMAT_EarthICRF_frame_approved"]
+          assert not d["absolute_clock_alignment_approved"]
+          assert not d["mission_accuracy_budget_approved"]
+          for target in ("sun2x","moon2x"):
+              p=root/f"thirdbody_gmat_{target}_"
+              receipt=root/("thirdbody_gmat_"+target+"_execution.json")
+              assert hashlib.sha256(receipt.read_bytes()).hexdigest()==d["intervention_receipt_sha256"][target]
+              report=json.loads(receipt.read_text())
+              assert report["real_GMAT_samples"]==91
+              assert report["return_code"]==0
+              assert not report["GMAT_effective_Mu_independently_read_back"]
+              assert d["max_real_GMAT_position_responses_m"][target]>0
+              for suffix,field in (("raw.txt","raw_sha256"),
+                                   ("state.csv","state_sha256"),
+                                   ("executed.script","script_sha256")):
+                  f=root/("thirdbody_gmat_"+target+"_"+suffix)
+                  assert hashlib.sha256(f.read_bytes()).hexdigest()==report[field]
+          csv_path=root/"thirdbody_gmat_mu2x_causal_response_rows.csv"
+          assert hashlib.sha256(csv_path.read_bytes()).hexdigest()==d["response_csv_sha256"]
+          with csv_path.open(newline="") as f:
+              rows=list(csv.DictReader(f))
+          assert len(rows)==182
+          assert all(math.isfinite(float(r["actual_position_response_m"])) for r in rows)
+          print("DT2_REAL_GMAT_MU_CAUSAL_FALSIFICATION",
+                f"sun2x_max_m={d['max_real_GMAT_position_responses_m']['sun2x']:.9e}",
+                f"moon2x_max_m={d['max_real_GMAT_position_responses_m']['moon2x']:.9e}",
+                "effective_mu_readback=false scientific_verdict=INCONCLUSIVE")
+          PY
+
+      - name: Genuine Qz90 physical inertial orientation negative and positive controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=reports/dt2-cross-leo-001
+          gmat_root="$RUNNER_TEMP/gmat-release/GMAT/R2026a"
+          for mode in rot-off rot-on; do
+            log="$root/bsk_rotation_$mode.runtime.log"
+            python scripts/dt2_thirdbody_real.py "bsk-$mode" --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN" > "$log" 2>&1 || { cat "$log"; exit 1; }
+            cat "$log"
+          done
+          for mode in rot-off rot-on; do
+            python scripts/dt2_thirdbody_real.py "gmat-$mode" --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN"
+          done
+          python scripts/dt2_thirdbody_real.py compare-qz90 --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN"
+          python - <<'PY'
+          import json,csv,hashlib,math
+          from pathlib import Path
+          p=Path("reports/dt2-cross-leo-001")
+          d=json.loads((p/"thirdbody_Qz90_physical_rotation_diagnostic.json").read_text())
+          assert d["status"]==d["scientific_verdict"]=="INCONCLUSIVE"
+          assert d["actual_real_original_traces"]==4
+          assert d["actual_new_independent_rotated_engine_runs"]==4
+          assert d["real_state_rows_each_engine_mode"]==91
+          assert d["comparison_rows"]==182
+          assert d["initial_r_and_v_rotated_by_predeclared_Qz90"]
+          assert d["official_DE421_Sun_Luna_ephemerides_not_rotated"]
+          assert d["genuine_off_central_force_rotation_symmetry_control"]
+          assert d["genuine_on_third_body_directional_symmetry_break_control"]
+          assert not d["original_effective_GMAT_Mu_independent_readback_verified"]
+          assert not d["Basilisk_N_to_GMAT_EarthICRF_physical_frame_approved"]
+          assert not d["absolute_Basilisk_ET_GMAT_A1_mapping_approved"]
+          assert not d["mission_accuracy_budget_approved"]
+          for engine in ("bsk","gmat"):
+              vals=d["engine_metrics"][engine]
+              assert vals["ON_fixed_solar_lunar_directional_break_max_position_m"]>0
+              assert all(math.isfinite(v) and v>=0 for v in vals.values())
+              for mode in ("off","on","rot-off","rot-on"):
+                  stem="thirdbody_"+engine+"_"+mode+"_"
+                  rec=json.loads((p/(stem+"execution.json")).read_text())
+                  assert rec["real_force_model_executed"] and rec["rows"]==91
+                  assert rec["scientific_verdict"]=="INCONCLUSIVE"
+                  assert rec["third_body_enabled"] is mode.endswith("on")
+                  assert rec["Qz90_counterfactual_input"] is mode.startswith("rot-")
+                  state=p/(stem+"state.csv")
+                  assert hashlib.sha256(state.read_bytes()).hexdigest()==d["real_source_state_hashes"][engine+"_"+mode]
+                  if engine=="gmat" and mode.startswith("rot-"):
+                      assert rec["return_code"]==0
+                      assert not rec["effective_mu_independently_verified"]
+                      for suffix,key in (("raw.txt","raw_sha256"),("executed.script","script_sha256")):
+                          file=p/(stem+suffix)
+                          assert hashlib.sha256(file.read_bytes()).hexdigest()==rec[key]
+                  if engine=="bsk":
+                      assert rec["true_spice_kernel_pool_count"]==3
+          for name,sha in d["original_source_sha256"].items():
+              assert hashlib.sha256((p/name).read_bytes()).hexdigest()==sha
+          file=p/"thirdbody_Qz90_physical_rotation_rows.csv"
+          assert hashlib.sha256(file.read_bytes()).hexdigest()==d["true_output_sha256"]
+          with file.open(newline="") as io:
+              assert len(list(csv.DictReader(io)))==182
+          print("DT2_REAL_QZ90_DIRECTIONAL",
+                f"Basilisk_OFF_covariance_m={d['engine_metrics']['bsk']['OFF_central_rotation_covariance_max_position_m']:.9e}",
+                f"GMAT_OFF_covariance_m={d['engine_metrics']['gmat']['OFF_central_rotation_covariance_max_position_m']:.9e}",
+                f"Basilisk_ON_direction_break_m={d['engine_metrics']['bsk']['ON_fixed_solar_lunar_directional_break_max_position_m']:.9e}",
+                f"GMAT_ON_direction_break_m={d['engine_metrics']['gmat']['ON_fixed_solar_lunar_directional_break_max_position_m']:.9e}",
+                "scientific_verdict=INCONCLUSIVE")
+          PY
+
+      - name: Execute true 5 to 2p5 to 1 second numerical and SPICE cadence convergence
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=reports/dt2-cross-leo-001
+          gmat_root="$RUNNER_TEMP/gmat-release/GMAT/R2026a"
+          for stage in step2p5 step1; do
+            for force in off on; do
+              mode="$stage-$force"
+              log="$root/thirdbody_bsk_$mode.runtime.log"
+              python scripts/dt2_thirdbody_real.py "bsk-$mode" --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN" > "$log" 2>&1 || { cat "$log"; exit 1; }
+              cat "$log"
+            done
+          done
+          for stage in step2p5 step1; do
+            for force in off on; do
+              python scripts/dt2_thirdbody_real.py "gmat-$stage-$force" --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN"
+            done
+          done
+          python scripts/dt2_step_convergence.py aggregate --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN"
+          python - <<'PY'
+          import json,csv,hashlib,math
+          from pathlib import Path
+          p=Path("reports/dt2-cross-leo-001")
+          r=json.loads((p/"thirdbody_step_convergence_real_diagnostic.json").read_text())
+          assert r["status"]==r["scientific_verdict"]=="INCONCLUSIVE"
+          assert r["prior_true_5s_BSK_GMAT_engine_runs"]==4
+          assert r["additional_true_BSK_GMAT_refined_engine_runs"]==8
+          assert r["genuine_samples_per_engine_mode"]==91
+          assert r["comparison_source_rows"]==273
+          assert r["native_BSK_integrator_and_SPICE_message_joint_refinement"]
+          assert r["GMAT_requested_maxstep_not_observed_internal_substep"]
+          assert r["requested_step_seconds"]=={"baseline":5.0,"step2p5":2.5,"step1":1.0}
+          assert not r["effective_GMAT_mu_independently_read_back"]
+          assert not r["independent_N_to_EarthICRF_frame_approved"]
+          assert not r["absolute_GMAT_A1_to_BSK_ET_approved"]
+          assert not r["mission_accuracy_budget_approved"]
+          for engine in ("bsk","gmat"):
+              for label,step in (("baseline",5.0),("step2p5",2.5),("step1",1.0)):
+                  for force in ("off","on"):
+                      mode=force if label=="baseline" else label+"-"+force
+                      name="thirdbody_"+engine+"_"+mode+"_"
+                      rec=json.loads((p/(name+"execution.json")).read_text())
+                      assert rec["status"].startswith("REAL_")
+                      assert rec["rows"]==91 and rec["real_force_model_executed"]
+                      assert rec["third_body_enabled"]==(force=="on")
+                      assert rec["scientific_verdict"]=="INCONCLUSIVE"
+                      assert hashlib.sha256((p/(name+"state.csv")).read_bytes()).hexdigest()==r["engine_state_sha256"][engine+"_"+mode]
+                      if engine=="bsk":
+                          assert rec["step_s"]==step and rec["true_spice_kernel_pool_count"]==3
+                      else:
+                          assert rec["return_code"]==0 and not rec["effective_mu_independently_verified"]
+                          if label!="baseline":
+                              assert rec["requested_initial_step_s"]==step
+                              assert rec["requested_max_step_s"]==step
+                              assert rec["actual_RK89_internal_accepted_steps_independently_logged"] is False
+          for source,sha in r["prior_real_source_sha256"].items():
+              assert hashlib.sha256((p/source).read_bytes()).hexdigest()==sha
+          csvfile=p/"thirdbody_step_convergence_real_rows.csv"
+          assert hashlib.sha256(csvfile.read_bytes()).hexdigest()==r["comparison_rows_sha256"]
+          with csvfile.open(newline="") as f:
+              rows=list(csv.DictReader(f))
+          assert len(rows)==273
+          for row in rows:
+              assert all(math.isfinite(float(v)) for k,v in row.items() if k!="step_label")
+          print("DT2_TRUE_THIRDBODY_CONVERGENCE",
+                f"Basilisk_5_to_1_m={r['within_engine_real_response_changes_m']['bsk']['baseline_to_step1_max_position_change_m']:.9e}",
+                f"GMAT_5_to_1_m={r['within_engine_real_response_changes_m']['gmat']['baseline_to_step1_max_position_change_m']:.9e}",
+                f"cross5={r['conditional_cross_engine_response_maximum_by_step_m']['baseline']:.9e}",
+                f"cross2p5={r['conditional_cross_engine_response_maximum_by_step_m']['step2p5']:.9e}",
+                f"cross1={r['conditional_cross_engine_response_maximum_by_step_m']['step1']:.9e}",
+                "scientific_verdict=INCONCLUSIVE")
+          PY
+
+      - name: Upload all acquired raw provenance and engine outputs including failure logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dt2-cross-leo-001-real-gmat-attempt
+          path: reports/dt2-cross-leo-001/
+          if-no-files-found: warn
