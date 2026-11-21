@@ -284,8 +284,10 @@ UNSUPPORTED_DOMAIN_KEYWORDS: dict[str, tuple[str, ...]] = {
         "third-body", "third body", "third-body forces",
         "force-model tolerance", "force-model tolerances",
         "calibrated force", "calibrated force-model", "calibrated tolerances", "spice", "spice ephemeris",
-        "nrlmsise", "nrlmsise-00", "external truth orbit", "truth ephemeris", "validated ephemeris",
-        "高保真轨道", "完整轨道动力学", "三体摄动", "第三体摄动", "spice 星历", "外部真值", "轨道真值", "力模型容差", "校准力模型",
+        "nrlmsise", "nrlmsise-00", "igrf-14", "igrf14", "ggm03s",
+        "j4 gravity", "j4 摄动", "j3/j4", "cannonball srp",
+        "external truth orbit", "truth ephemeris", "validated ephemeris",
+        "高保真轨道", "飞行级轨道", "完整轨道动力学", "三体摄动", "第三体摄动", "spice 星历", "外部真值", "轨道真值", "力模型容差", "校准力模型",
     ),
     "high_fidelity_whole_spacecraft": (
         "工程级全卫星高保真", "全卫星高保真", "高保真全卫星", "高保真整星",
@@ -449,6 +451,18 @@ def _score_capability(capability_id: str, request_text: str) -> CapabilityRouteC
         if matches:
             score += 110.0
             reasons.append("explicit recommended whole-spacecraft unified-runtime cue")
+        # The whole-spacecraft native runtime (not the ORB-1 proxy) now owns
+        # opt-in NRLMSISE-00 + DragDynamicEffector. Route positive requests
+        # there rather than into an orbit-only engineering proxy.
+        native_environment_cues = _filter_negated_matches(
+            request_text, _contains_any(text, (
+                "nrlmsise-00", "nrlmsise", "igrf-14", "igrf14",
+                "ggm03s", "j4 gravity", "j4 摄动", "j3/j4",
+                "cannonball srp", "cannonball solar radiation pressure",
+            )))
+        if native_environment_cues:
+            score += 112.0
+            reasons.append("named native environment model requires whole-spacecraft runtime")
         requested_domains = sum(bool(item) for item in (adcs_matches or adcs_fidelity_matches, eps_matches or battery_matches, thermal_matches, comm_matches, payload_matches or data_queue_matches or onboard_storage_matches, orbit_matches))
         if unified_runtime_cues and (whole_matches or requested_domains >= 2):
             score += 90.0
@@ -784,7 +798,9 @@ def _is_negated_keyword_use(request_text: str, keyword: str) -> bool:
     suffix = lower[start:start + len(kw) + 20]
     negators = (
         "不要", "不用", "不做", "不要做", "不要假装", "不要声称", "不要宣称",
-        "不需要", "避免", "先不要", "只要", "not ", "do not", "don't", "without",
+        "不需要", "不使用", "不启用", "禁用", "停用", "关闭",
+        "避免", "先不要", "只要", "not ", "do not", "don't", "without",
+        "disable ", "disabled ", "turn off ", "switch off ",
         "must not", "do not claim", "not full", "not high",
     )
     if any(token in prefix for token in negators):
@@ -812,6 +828,14 @@ def _detect_unsupported(request_text: str, selected_capability_id: str | None) -
             supported_cues = {'spice', 'spice ephemeris', 'spice 星历',
                               'third-body', 'third body', 'third-body forces',
                               '三体摄动', '第三体摄动'}
+            if selected_capability_id == 'whole_spacecraft.unified_native.v1':
+                # These are implemented opt-in mechanisms; flight-grade
+                # accuracy, calibrated tolerances and external truth are
+                # *not* exempted, nor is ADCS-only drag falsely advertised.
+                supported_cues.update({
+                    'nrlmsise', 'nrlmsise-00', 'igrf-14', 'igrf14', 'ggm03s',
+                    'j4 gravity', 'j4 摄动', 'j3/j4', 'cannonball srp',
+                })
             matches = tuple(match for match in matches if match not in supported_cues)
         if domain == 'thermal_advanced' and selected_capability_id == 'whole_spacecraft.unified_native.v1':
             matches = tuple(match for match in matches if match not in {

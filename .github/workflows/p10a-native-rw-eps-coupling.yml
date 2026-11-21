@@ -1,6 +1,16 @@
 name: P10-A native whole-spacecraft power coupling
 
 on:
+  # Reverify the actual merged main SHA. This does not authorize a merge.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/p10a-native-rw-eps-coupling.yml"
+      - "src/sat_sim/bsk_engine/unified_native.py"
+      - "src/sat_sim/capabilities/whole_spacecraft.unified_native.v1.yaml"
+      - "src/integration/**"
+      - "src/subsystems/**"
+      - "src/whole_spacecraft/**"
   pull_request:
     paths:
       - "src/sat_sim/bsk_engine/unified_native.py"

@@ -16,6 +16,7 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[3]
 THIRD_PARTY_DIR = PACKAGE_ROOT / "third_party"
 DEFAULT_WMM_DIR = THIRD_PARTY_DIR / "wmm"
 DEFAULT_SPICE_DIR = THIRD_PARTY_DIR / "spice"
+DEFAULT_SPACE_WEATHER_DIR = THIRD_PARTY_DIR / "space_weather"
 
 DEFAULT_SPICE_KERNEL_NAMES: tuple[str, ...] = (
     "naif0012.tls",
@@ -174,3 +175,47 @@ def write_environment_asset_manifest(root: Path, *, wmm_path: str | None = None,
         "spice_searched": list(spice_searched),
         "package_root": str(root.resolve()),
     }
+
+def resolve_space_weather_asset(
+    path: str | None = None,
+    *,
+    strict: bool = False,
+) -> tuple[ResolvedAsset | None, tuple[str, ...]]:
+    """Resolve an offline CelesTrak CSV used by Basilisk SpaceWeatherData.
+
+    The runtime never downloads data. An explicit file/directory, the
+    SAT_SIM_SPACE_WEATHER_PATH environment variable, SAT_SIM_ASSET_ROOT, or
+    the packaged third_party/space_weather directory may supply the asset.
+    """
+    names = ("SW-Last5Years.csv", "SW-All.csv")
+    configured = path or os.environ.get("SAT_SIM_SPACE_WEATHER_PATH")
+    if configured:
+        configured_path = Path(configured).expanduser()
+        if configured_path.is_file():
+            if configured_path.suffix.lower() != ".csv":
+                raise ValueError("SPACE_WEATHER_ASSET_MUST_BE_CSV")
+            return _asset(configured_path), ()
+        if configured_path.is_dir():
+            for name in names:
+                candidate = configured_path / name
+                if candidate.is_file():
+                    return _asset(candidate), (str(configured_path),)
+
+    searched: list[str] = []
+    for directory in _candidate_dirs(
+        path,
+        DEFAULT_SPACE_WEATHER_DIR,
+        specific_env="SAT_SIM_SPACE_WEATHER_PATH",
+        asset_subdir="space_weather",
+    ):
+        searched.append(str(directory))
+        if not directory.exists():
+            continue
+        for name in names:
+            candidate = directory / name
+            if candidate.is_file():
+                return _asset(candidate), tuple(searched)
+    if strict:
+        raise FileNotFoundError(f"SPACE_WEATHER_ASSET_NOT_FOUND; searched: {searched}")
+    return None, tuple(searched)
+

@@ -971,6 +971,80 @@ def _build_unified_rows(
             row[f'orbit.velocity_m_s_{component}'] = float(state.v_BN_N[index][axis])
             if 'sun_ephemeris' in recorder_map:
                 row[f'orbit.sun_position_m_{component}'] = float(recorder_map['sun_ephemeris'].PositionVector[index][axis])
+        if "srp_force" in recorder_map:
+            srp_n = np.asarray(recorder_map["srp_force"].forceExternal_N[index], dtype=float).reshape(3)
+            sun_n = np.asarray(recorder_map["sun_ephemeris"].PositionVector[index], dtype=float).reshape(3)
+            spacecraft_n = np.asarray(position, dtype=float).reshape(3)
+            row.update({
+                "orbit.srp_force_norm_n": float(np.linalg.norm(srp_n)),
+                "orbit.srp_force_n_x": float(srp_n[0]),
+                "orbit.srp_force_n_y": float(srp_n[1]),
+                "orbit.srp_force_n_z": float(srp_n[2]),
+                "orbit.srp_sun_distance_m": float(np.linalg.norm(sun_n - spacecraft_n)),
+            })
+        if "atmosphere" in recorder_map:
+            atmosphere_sample = recorder_map["atmosphere"]
+            row["environment.atmosphere_density_kg_m3"] = float(atmosphere_sample.neutralDensity[index])
+            row["environment.atmosphere_temperature_k"] = float(atmosphere_sample.localTemp[index])
+        if "drag_force" in recorder_map:
+            drag_force_b = np.asarray(recorder_map["drag_force"].forceExternal_B[index], dtype=float).reshape(3)
+            drag_velocity_b = np.asarray(recorder_map["drag_force"].v_B[index], dtype=float).reshape(3)
+            drag_direction_b = np.asarray(recorder_map["drag_force"].v_hat_B[index], dtype=float).reshape(3)
+            # DragDynamicEffector owns forceExternal_B.  Its inherited
+            # forceExternal_N field is not populated by this module; compute
+            # the frame-invariant magnitude from the authoritative body force.
+            drag_force_norm = float(np.linalg.norm(drag_force_b))
+            drag_power_w = float(drag_force_b @ drag_velocity_b)
+            spacecraft_mass = float(cfg.values.get("spacecraft_mass_kg", 100.0))
+            row.update({
+                "orbit.drag_force_norm_n": drag_force_norm,
+                "orbit.drag_force_b_x": float(drag_force_b[0]),
+                "orbit.drag_force_b_y": float(drag_force_b[1]),
+                "orbit.drag_force_b_z": float(drag_force_b[2]),
+                "orbit.drag_force_relative_velocity_power_w": drag_power_w,
+                "orbit.drag_relative_velocity_b_m_s_x": float(drag_velocity_b[0]),
+                "orbit.drag_relative_velocity_b_m_s_y": float(drag_velocity_b[1]),
+                "orbit.drag_relative_velocity_b_m_s_z": float(drag_velocity_b[2]),
+                "orbit.drag_relative_speed_m_s": float(np.linalg.norm(drag_velocity_b)),
+                "orbit.drag_direction_b_x": float(drag_direction_b[0]),
+                "orbit.drag_direction_b_y": float(drag_direction_b[1]),
+                "orbit.drag_direction_b_z": float(drag_direction_b[2]),
+                "orbit.drag_acceleration_m_s2": drag_force_norm / spacecraft_mass,
+            })
+        for weather_index, weather_name in enumerate((
+            "ap_24_0", "ap_3_0", "ap_3_-3", "ap_3_-6", "ap_3_-9", "ap_3_-12",
+            "ap_3_-15", "ap_3_-18", "ap_3_-21", "ap_3_-24", "ap_3_-27",
+            "ap_3_-30", "ap_3_-33", "ap_3_-36", "ap_3_-39", "ap_3_-42",
+            "ap_3_-45", "ap_3_-48", "ap_3_-51", "ap_3_-54", "ap_3_-57",
+            "f107_1944_0", "f107_24_-24",
+        )):
+            recorder_name = f"space_weather_{weather_index:02d}"
+            if recorder_name in recorder_map:
+                row[f"environment.space_weather.{weather_name}"] = float(
+                    recorder_map[recorder_name].dataValue[index]
+                )
+        if "earth_orientation" in recorder_map:
+            earth_orient = recorder_map["earth_orientation"]
+            earth_dcm = np.asarray(earth_orient.J20002Pfix[index], dtype=float).reshape(3, 3)
+            row["orbit.earth_orientation_computed"] = int(earth_orient.computeOrient[index])
+            for r_idx in range(3):
+                for c_idx in range(3):
+                    row[f"orbit.earth_fixed_dcm_{r_idx}{c_idx}"] = float(earth_dcm[r_idx, c_idx])
+        if "igrf14_earth_frame" in recorder_map:
+            # SPICE Earth center and orientation are reference observations
+            # only, not a substitute for the native geomagnetic model.
+            earth_ref = recorder_map["igrf14_earth_frame"]
+            dcm_np = np.asarray(earth_ref.J20002Pfix[index], dtype=float).reshape(3, 3)
+            row["environment.igrf14.earth_orientation_computed"] = int(earth_ref.computeOrient[index])
+            for axis, component in enumerate("xyz"):
+                row[f"environment.igrf14.earth_center_n_m_{component}"] = float(
+                    earth_ref.PositionVector[index][axis]
+                )
+            for row_index in range(3):
+                for col_index in range(3):
+                    row[f"environment.igrf14.earth_j20002pfix_{row_index}{col_index}"] = float(
+                        dcm_np[row_index, col_index]
+                    )
         wheel_count = len(_reaction_wheel_axes(str(cfg.values.get("rw_configuration", "orthogonal_3"))))
         for wheel_index in range(3, wheel_count):
             torque_constant = float(cfg.values.get(
@@ -1203,6 +1277,13 @@ class UnifiedNativeRuntime:
 
     def run(self) -> SimulationResult:
         from .orbital_environment import NativeOrbitalEnvironment
+        from .srp_environment import NativeSrpSelection
+        # Reject unsupported SRP selections before scheduling any native physics.
+        self._srp_selection = NativeSrpSelection.from_values(
+            self.config.values,
+            environment_profile=str(self.config.values.get("environment_profile", "simplified")),
+            adcs_only=self.config.adcs_only,
+        )
         with NativeOrbitalEnvironment(self.config.values, self.config.duration_s) as environment:
             self._orbital_environment = environment
             return self._run()
@@ -1227,21 +1308,26 @@ class UnifiedNativeRuntime:
         from Basilisk.fswAlgorithms import attTrackingError, inertial3D, mrpFeedback, rwMotorTorque  # type: ignore
         from Basilisk.simulation import (  # type: ignore
             coarseSunSensor,
+            dragDynamicEffector,
             eclipse,
             imuSensor,
+            msisAtmosphere,
             magneticFieldCenteredDipole,
             magnetometer,
             reactionWheelStateEffector,
+            radiationPressure,
             simpleBattery,
             simpleInstrument,
             simplePowerSink,
             simpleSolarPanel,
             simpleStorageUnit,
+            spaceWeatherData,
             spacecraft,
             starTracker,
+            zeroWindModel,
         )
         from Basilisk.utilities import (  # type: ignore
-            RigidBodyKinematics, SimulationBaseClass, macros, orbitalMotion, simIncludeGravBody, simIncludeRW,
+            RigidBodyKinematics, SimulationBaseClass, macros, orbitalMotion, simHelpers, simIncludeGravBody, simIncludeRW,
         )
 
         cfg = self.config
@@ -1510,12 +1596,89 @@ class UnifiedNativeRuntime:
         if ephemeris is not None:
             sun_msg, earth_msg = ephemeris
 
+        space_weather = None
+        atmosphere_model = None
+        wind_model = None
+        drag_effector = None
+        if self._orbital_environment.drag_enabled:
+            if cfg.adcs_only:
+                raise ValueError("NRLMSISE00_REQUIRES_WHOLE_SPACECRAFT_RUNTIME")
+            month_name = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")[self._orbital_environment.epoch.month - 1]
+            epoch_string = self._orbital_environment.epoch.strftime(f"%Y {month_name} %d %H:%M:%S.%f")
+            epoch_message = simHelpers.timeStringToGregorianUTCMsg(epoch_string)
+
+            # Official Basilisk CelesTrak publisher. It must update before
+            # MsisAtmosphere reads its 23 input channels in the same task.
+            space_weather = spaceWeatherData.SpaceWeatherData()
+            space_weather.loadSpaceWeatherFile(self._orbital_environment.space_weather_asset.path)
+            space_weather.epochInMsg.subscribeTo(epoch_message)
+            add(space_weather, "space_weather_data", "basilisk_official_native", 98)
+
+            atmosphere_model = msisAtmosphere.MsisAtmosphere()
+            atmosphere_model.planetPosInMsg.subscribeTo(earth_msg)
+            atmosphere_model.epochInMsg.subscribeTo(epoch_message)
+            atmosphere_model.addSpacecraftToModel(sc.scStateOutMsg)
+            for message_index in range(23):
+                atmosphere_model.swDataInMsgs[message_index].subscribeTo(
+                    space_weather.swDataOutMsgs[message_index]
+                )
+                connected(
+                    f"space_weather_data.swDataOutMsgs[{message_index}]",
+                    f"msis_atmosphere.swDataInMsgs[{message_index}]",
+                )
+            add(atmosphere_model, "msis_atmosphere", "basilisk_official_native", 97)
+            connected("spice_ephemeris.earth", "msis_atmosphere.planetPosInMsg")
+            connected("spacecraft.scStateOutMsg", "msis_atmosphere.scStateInMsgs")
+
+            # ZeroWindModel represents atmospheric co-rotation with Earth.
+            # It is not a thermospheric wind model.
+            wind_model = zeroWindModel.ZeroWindModel()
+            wind_model.planetPosInMsg.subscribeTo(earth_msg)
+            wind_model.addSpacecraftToModel(sc.scStateOutMsg)
+            add(wind_model, "zero_wind_model", "basilisk_official_native", 96)
+            connected("spice_ephemeris.earth", "zero_wind_model.planetPosInMsg")
+            connected("spacecraft.scStateOutMsg", "zero_wind_model.scStateInMsgs")
+
+            drag_effector = dragDynamicEffector.DragDynamicEffector()
+            drag_effector.ModelTag = "nrlmsise_drag_effector"
+            # Mirror the upstream Basilisk scenario API: mutate the
+            # effector-owned coreParams in place.  Do not assign a detached
+            # DragBaseData value through the SWIG property.
+            drag_effector.coreParams.projectedArea = self._orbital_environment.drag_area_m2
+            drag_effector.coreParams.dragCoeff = self._orbital_environment.drag_coefficient
+            drag_effector.coreParams.comOffset = [0.0, 0.0, 0.0]
+            drag_effector.atmoDensInMsg.subscribeTo(atmosphere_model.envOutMsgs[0])
+            drag_effector.windVelInMsg.subscribeTo(wind_model.envOutMsgs[0])
+            sc.addDynamicEffector(drag_effector)
+            add(drag_effector, "nrlmsise_drag_effector", "basilisk_official_native", 94)
+            connected("msis_atmosphere.envOutMsgs[0]", "nrlmsise_drag_effector.atmoDensInMsg")
+            connected("zero_wind_model.envOutMsgs[0]", "nrlmsise_drag_effector.windVelInMsg")
+            connected("nrlmsise_drag_effector", "spacecraft.dynamicEffectors")
+
         eclipse_model = eclipse.Eclipse()
         eclipse_model.sunInMsg.subscribeTo(sun_msg)
         eclipse_model.addPlanetToModel(earth_msg)
         eclipse_model.addSpacecraftToModel(sc.scStateOutMsg)
-        add(eclipse_model, "eclipse", "basilisk_official_native", 95)
+        # When SRP is explicitly enabled, eclipse must publish before the
+        # SRP effector (and spacecraft dynamics) execute on the current tick.
+        # The previous R0 update order is unchanged when SRP is disabled.
+        add(eclipse_model, "eclipse", "basilisk_official_native",
+            105 if self._srp_selection.enabled else 95)
         connected("spacecraft.scStateOutMsg", "eclipse")
+
+        srp_effector = None
+        if self._srp_selection.enabled:
+            srp_effector = radiationPressure.RadiationPressure()
+            srp_effector.setUseCannonballModel()
+            srp_effector.area = self._srp_selection.reference_area_m2
+            srp_effector.coefficientReflection = self._srp_selection.coefficient_reflection
+            srp_effector.sunEphmInMsg.subscribeTo(sun_msg)
+            srp_effector.sunEclipseInMsg.subscribeTo(eclipse_model.eclipseOutMsgs[0])
+            sc.addDynamicEffector(srp_effector)
+            add(srp_effector, "spice_eclipse_cannonball_srp", "basilisk_official_native", 101)
+            connected("spice_ephemeris.sun", "spice_eclipse_cannonball_srp.sunEphmInMsg")
+            connected("eclipse.eclipseOutMsgs[0]", "spice_eclipse_cannonball_srp.sunEclipseInMsg")
+            connected("spice_eclipse_cannonball_srp", "spacecraft.dynamicEffectors")
 
         # Guard the shared random seed before the native star tracker, IMU
         # and project event injectors consume it. The SWIG RNGSeed is unsigned;
@@ -2419,6 +2582,11 @@ class UnifiedNativeRuntime:
             "event_degradation": event_status.degradationOutMsg,
             "event_constraint": event_status.constraintOutMsg,
         }
+        if space_weather is not None and atmosphere_model is not None and wind_model is not None:
+            messages["atmosphere"] = atmosphere_model.envOutMsgs[0]
+            messages["wind"] = wind_model.envOutMsgs[0]
+            for message_index, weather_message in enumerate(space_weather.swDataOutMsgs):
+                messages[f"space_weather_{message_index:02d}"] = weather_message
         for wheel_index, rw_state_msg in enumerate(rw.rwOutMsgs):
             messages[f"rw_state_{wheel_index}"] = rw_state_msg
         if not cfg.adcs_only:
@@ -2470,11 +2638,30 @@ class UnifiedNativeRuntime:
                     messages[f"propulsion_thruster_{thruster_index}"] = thruster_msg
         if ephemeris is not None:
             messages['sun_ephemeris'] = sun_msg
+            if self._orbital_environment.full_gravity:
+                messages["earth_orientation"] = earth_msg
+            if self._orbital_environment.igrf14_asset is not None:
+                messages["igrf14_earth_frame"] = earth_msg
         for name, message in messages.items():
             recorder = message.recorder(macros.sec2nano(cfg.sample_s))
             sim.AddModelToTask(task_name, recorder, None, 1)
             recorder_map[name] = recorder
             record_sources.append(name)
+        if drag_effector is not None:
+            drag_log = drag_effector.logger(
+                ["forceExternal_B", "v_B", "v_hat_B"],
+                macros.sec2nano(cfg.sample_s),
+            )
+            sim.AddModelToTask(task_name, drag_log, None, 1)
+            recorder_map["drag_force"] = drag_log
+            record_sources.append("drag_force")
+        if srp_effector is not None:
+            # RadiationPressure writes inherited forceExternal_N (inertial
+            # Newtons), NOT the DragDynamicEffector body-frame force field.
+            srp_log = srp_effector.logger(["forceExternal_N"], macros.sec2nano(cfg.sample_s))
+            sim.AddModelToTask(task_name, srp_log, None, 1)
+            recorder_map["srp_force"] = srp_log
+            record_sources.append("srp_force")
         if not cfg.adcs_only and "pdu" in whole_modules:
             # Preserve fast PDU transition evidence even when output telemetry
             # is sampled more slowly than the native simulation task. Reduced
@@ -2975,6 +3162,61 @@ class UnifiedNativeRuntime:
             "runtime_message_read_error_count": len(runtime_read_errors),
             "runtime_message_read_errors": runtime_read_errors[:20],
         }
+        if self._orbital_environment.drag_enabled:
+            density_values = [
+                float(row["environment.atmosphere_density_kg_m3"])
+                for row in rows if "environment.atmosphere_density_kg_m3" in row
+            ]
+            drag_force_values = [
+                float(row["orbit.drag_force_norm_n"])
+                for row in rows if "orbit.drag_force_norm_n" in row
+            ]
+            drag_speed_values = [
+                float(row["orbit.drag_relative_speed_m_s"])
+                for row in rows if "orbit.drag_relative_speed_m_s" in row
+            ]
+            drag_power_values = [
+                float(row["orbit.drag_force_relative_velocity_power_w"])
+                for row in rows if "orbit.drag_force_relative_velocity_power_w" in row
+            ]
+            if (
+                len(density_values) != len(rows)
+                or len(drag_force_values) != len(rows)
+                or len(drag_speed_values) != len(rows)
+                or len(drag_power_values) != len(rows)
+                or not density_values
+                or any(not math.isfinite(value) or value <= 0.0 for value in density_values)
+                or any(not math.isfinite(value) or value < 0.0 for value in drag_force_values)
+                or any(not math.isfinite(value) or value <= 1.0 for value in drag_speed_values)
+                or any(not math.isfinite(value) or value > 1.0e-12 for value in drag_power_values)
+                or min(drag_power_values, default=0.0) >= 0.0
+                or max(drag_force_values, default=0.0) <= 0.0
+            ):
+                raise RuntimeError("NRLMSISE_RUNTIME_OUTPUT_INVALID")
+            summary["aerodynamic_environment"] = {
+                "status": "PASS",
+                "atmosphere_model": "Basilisk.simulation.msisAtmosphere.MsisAtmosphere",
+                "space_weather_model": "Basilisk.simulation.spaceWeatherData.SpaceWeatherData",
+                "space_weather_asset": self._orbital_environment.space_weather_evidence,
+                "drag_model": "Basilisk.simulation.dragDynamicEffector.DragDynamicEffector",
+                "wind_model": "Basilisk.simulation.zeroWindModel.ZeroWindModel",
+                "wind_model_scope": "earth_co_rotation_zero_thermospheric_wind",
+                "projected_area_model": "constant_scalar_engineering_assumption",
+                "projected_area_m2": self._orbital_environment.drag_area_m2,
+                "drag_coefficient": self._orbital_environment.drag_coefficient,
+                "configured_dynamic_effector_area_m2": float(drag_effector.coreParams.projectedArea),
+                "configured_dynamic_effector_cd": float(drag_effector.coreParams.dragCoeff),
+                "relative_speed_max_m_s": max(
+                    float(row["orbit.drag_relative_speed_m_s"]) for row in rows
+                ),
+                "density_min_kg_m3": min(density_values),
+                "density_max_kg_m3": max(density_values),
+                "drag_force_max_n": max(drag_force_values),
+                "sample_count": len(density_values),
+                "space_weather_interpolation": False,
+                "stale_space_weather_fallback": False,
+                "flight_validation": False,
+            }
         summary["adcs_fusion"] = {
             "attitude_estimator": "star_tracker_plus_sun_magnetic_field_triad_quaternion_slerp",
             "estimator_class": "deterministic_engineering_estimator_not_mekf_or_kalman",
@@ -3115,6 +3357,49 @@ class UnifiedNativeRuntime:
                     },
                 })
 
+        if self._srp_selection.enabled:
+            srp_forces = [float(row["orbit.srp_force_norm_n"]) for row in rows]
+            srp_illuminations = [float(row["orbit.eclipse_factor"]) for row in rows]
+            srp_distances = [float(row["orbit.srp_sun_distance_m"]) for row in rows]
+            if (not srp_forces or len(srp_forces) != len(rows)
+                    or any(not math.isfinite(force) or force < 0. for force in srp_forces)
+                    or any(not math.isfinite(factor) or not 0. <= factor <= 1. for factor in srp_illuminations)
+                    or any(not math.isfinite(distance) or distance <= 0. for distance in srp_distances)
+                    or (any(factor > 0.9 for factor in srp_illuminations) and max(srp_forces) <= 0.)):
+                raise RuntimeError("NATIVE_SRP_RUNTIME_OUTPUT_INVALID")
+            summary["solar_radiation_pressure"] = {
+                "status": "PASS",
+                "model": "Basilisk.simulation.radiationPressure.RadiationPressure",
+                "model_mode": "cannonball",
+                "sun_source": "JPL_DE430_SPICE",
+                "eclipse_source": "Basilisk.simulation.eclipse.Eclipse",
+                "reference_area_m2": self._srp_selection.reference_area_m2,
+                "coefficient_reflection": self._srp_selection.coefficient_reflection,
+                "force_frame": "N_INERTIAL",
+                "force_max_n": max(srp_forces),
+                "force_min_n": min(srp_forces),
+                "illumination_min": min(srp_illuminations),
+                "illumination_max": max(srp_illuminations),
+                "sun_distance_min_m": min(srp_distances),
+                "sample_count": len(rows),
+                "engineering_assumption_only": True,
+                "flight_calibrated": False,
+                "surface_attitude_dependency": False,
+            }
+        if self._orbital_environment.full_gravity:
+            # This is evidence for the real optional model, never a promotion of
+            # a renamed J2-only file or a claim of independent orbit accuracy.
+            summary["gravity_harmonics"] = {
+                "selector": cfg.values.get("earth_gravity_model", "legacy_j2_only"),
+                "degree_and_order": self._orbital_environment.gravity_degree,
+                "source_git_blob_sha1": self._orbital_environment.gravity_asset["source_git_blob_sha1"],
+                "source_sha256": self._orbital_environment.gravity_asset["sha256"],
+                "reference_frame": "Earth_planet_fixed_from_SPICE",
+                "orientation_recorded": True,
+                "degree3_4_coefficients_present": True,
+                "flight_validation": False,
+                "tesseral_terms_included": True,
+            }
         fault_environment = BSKRLStyleFaultAdapter().summarize(cfg.events, tuple(rows))
         summary.update({
             "runtime_event_count": len(cfg.events),

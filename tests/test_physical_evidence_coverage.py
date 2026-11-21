@@ -56,6 +56,35 @@ def test_kelvin_only_valid_trace_has_measured_thermal_coverage():
     assert failed['issues'][0]['limit'].endswith(' K')
 
 
+def test_native_nrlmsise_neutral_temperature_is_not_a_spacecraft_thermal_limit():
+    # Exact native failure from DT-1 CI 44802673560: 1067..1071 K is the
+    # atmospheric neutral temperature, not a spacecraft component reading.
+    row = {
+        'environment.atmosphere_temperature_k': 1067.5690376255443,
+        'thermal.payload_temp_k': 295.0,
+        'thermal.safe': 1,
+    }
+    valid = evaluate_physical_validation([row], checks=['thermal_bounds'])
+    assert valid['status'] == 'pass'
+    assert valid['fail_count'] == 0
+    assert valid['check_results']['thermal_bounds']['status'] == 'PASS'
+    observed = valid['check_results']['thermal_bounds']['fields_observed']
+    assert 'environment.atmosphere_temperature_k' not in observed
+    assert 'thermal.payload_temp_k' in observed
+    assert 'thermal.safe' in observed
+
+    # The same exact device hard limit and safety-flag semantics stay active:
+    # neither real node overheating nor thermal.safe=0 may be waived.
+    overheat = evaluate_physical_validation(
+        [{**row, 'thermal.payload_temp_k': 500.0}], checks=['thermal_bounds'])
+    assert overheat['status'] == 'fail'
+    assert overheat['issues'][0]['path'] == 'trace[0].thermal.payload_temp_k'
+    unsafe = evaluate_physical_validation(
+        [{**row, 'thermal.safe': 0}], checks=['thermal_bounds'])
+    assert unsafe['status'] == 'fail'
+    assert unsafe['issues'][0]['path'] == 'trace[0].thermal.safe'
+
+
 def test_absent_default_inputs_are_not_a_physical_pass_but_do_not_fail_unrelated_components():
     report = evaluate_physical_validation([{'antenna.gain_dbi': 10.}])
     assert report['status'] == 'not_evaluated'

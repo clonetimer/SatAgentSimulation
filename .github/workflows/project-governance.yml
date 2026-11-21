@@ -1,6 +1,16 @@
 name: Project script and dependency governance
 
 on:
+  # Reverify the actual merged main SHA. This does not authorize a merge.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/project-governance.yml"
+      - "scripts/**"
+      - ".github/workflows/**"
+      - "pyproject.toml"
+      - "requirements*.txt"
+      - "constraints.txt"
   workflow_dispatch:
   pull_request:
     paths:

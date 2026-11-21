@@ -260,3 +260,74 @@ Basilisk 2.11.0 已提供官方 SRP 面片模型和地球反照/红外环境模�
 - 力/力矩 A/B 与理论值及 Basilisk 单元测试一致；
 - EarthRadiationModel 输出与参考输入一致；
 - 未接入的高能粒子辐射效应继续显示为 unsupported。
+
+## CHG-DT0-010：NRLMSISE-00 接入必须采用离线空间天气快照、全时段覆盖检查和真实整星阻力闭环
+
+**日期：** 2026-11-20  
+**触发证据：** Basilisk v2.11.0 MsisAtmosphere、SpaceWeatherData、DragDynamicEffector 和 ZeroWindModel 官方接口审计。
+
+**调整内容：**
+- 在推荐 whole_spacecraft.unified_native.v1 路径中增加显式 opt-in 的 NRLMSISE-00 + drag 模型，不改变 R0 默认运行。
+- 复用 Basilisk 官方 SpaceWeatherData 发布的 23 条消息、MsisAtmosphere 密度/温度模型、ZeroWindModel 地球共转速度和 DragDynamicEffector。
+- 新增离线 CelesTrak 资产获取器、SHA-256 manifest 和仿真全时段日期覆盖检查。
+- 记录实际密度、空间天气输入、阻力矢量/模长和阻力加速度；Run Bundle 保留空间天气资产指纹。
+- 当前第一版使用固定投影面积和 Cd，显式标记为工程假设；CAD 面片气动、姿态相关面积、真实热层风和高阶稀薄气体模型留待后续阶段。
+
+**必要性：**
+官方 SpaceWeatherData 在日期覆盖不足时会保留上次输出值并发出 warning；如果只调用官方模块而不做全时段覆盖检查，运行可能继续使用 stale Ap/F10.7。只记录 density 而不把 DragDynamicEffector 加入同一整星动力学图，也不能证明阻力真实改变了轨道。
+
+**充分性：**
+在运行前检查 CSV schema、严格递增/唯一日期、数值有效性、SHA-256 和 [epoch-3 days, epoch+duration] 连续覆盖；运行时将 23 消息、MSIS、ZeroWind 和 DragDynamicEffector 接入同一 Basilisk Process/Task；对密度、力和轨道响应进行独立 A/B。该路径可证明当前定义范围内的原生 NRLMSISE/阻力链，但不能证明真实气动外形或飞行精度。
+
+**影响：**
+默认 R0 不变；只有显式选择 atmosphere_model=nrlmsise00 才启用。缺少数据文件、UTC 日期覆盖不足或环境模型不匹配时拒绝运行。
+
+**验收条件：**
+- 官方 Basilisk 2.11.0 原生模块在同一 SimBase 中实例化并连接；
+- CelesTrak 文件完整覆盖整个运行窗口和三日回看窗口；
+- 所有 23 条空间天气输入均有记录且来源可追溯；
+- MSIS 密度为有限正值，DragDynamicEffector 实际力为有限且非零；
+- 有/无阻力 A/B 显示可重复的轨道能量/半长轴变化；
+- 步长细化和外部参考对比按任务容差完成；
+- 报告继续注明固定面积/Cd 工程假设，不宣称 as-built 气动精度。
+
+## CHG-DT0-011：以 Basilisk 的真实本体系力输出作为阻力验收依据
+
+**日期：** 2026-11-20  
+**触发证据：** PR #206 初次 native CI 运行中，NRLMSISE 密度输出为正，但以继承字段 forceExternal_N 计算的阻力模长为零；逐行对照 Basilisk v2.11.0 的 dragDynamicEffector.cpp，发现 cannonballDrag() 实际更新 forceExternal_B，而不更新继承的 forceExternal_N。
+
+**原方案与调整：**
+- 原方案从 drag effector 的 forceExternal_N 求模，并声明 inertial-frame force。该声明缺少模块自身赋值证据。
+- 改为从官方模块实际更新的 forceExternal_B 记录本体系阻力，以欧几里得范数求力的标量模长；原无依据的 inertial force XYZ 字段删除。
+- 同步记录大气相对速度 v_B、方向 v_hat_B，以及 F_B·v_B（理论上应非正）。
+- 将验收从“密度为正”提升为“本体系力非零、方向耗能、同初值有阻力/无阻力 600 s A/B 对比最终半长轴”，原有数值收敛断言不放宽。
+
+**必要性：** 从未更新的继承字段取值会制造“零阻力”假象，误导数据使用者；仅有模型模块实例和正密度不能证明动力学确实受阻力作用。
+
+**充分性：** 直接使用被官方 C++ 动力学计算赋值的力变量，结合非零相对速度、F_B·v_B<0 和同条件轨道能量差，可跨过字段合同、作用方向及动力学响应三个独立层面的验证。后续还必须保留数值步长收敛、任务容差和外部参考 V&V，不能把本轮工程 A/B 当成飞行精度证明。
+
+**影响：** 改变新 DT1-A1 候选模型的输出字段合同和验收测试；不影响 R0 默认配置，不改变 Basilisk C++ 模型或旧 Run Bundle。修复初次记录时尚未通过同头 native CI；后续真实验收结果见下方核销证据。
+
+**验收条件：** 当前 PR 同一 head 的官方 Basilisk 2.11.0 native CI 跑完，力、相对速度、耗散功率、半长轴 A/B 与旧回归全部 PASS；失败时先查真实物理及调用相位，不放宽断言。
+
+**核销证据（2026-11-20 原生测试；2026-11-21 集成复核）：** PR #206 原始物理验收 HEAD `ffecb139f1f9861a80e1ba6ff7d091eff66f7a30` 的 [native CI #44755915226](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44755915226) SUCCESS，环境 12/12 PASS；61 样本最大 `forceExternal_B` 阻力 `3.725094387e-02 N`、最小耗散功率 `-2.740595737e+02 W`，同初态 600 s 半长轴差 `-3812.304821376 m`。测试专用质量 10 kg、面积 10 m²、Cd=2.2 与合成天气夹具均非默认参数或飞行标定。PR #213 集成候选 HEAD `c385d9067109afe9d0b49d90e6e5cabff2030495` 的 [原生整星 CI #44810938798](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44810938798) SUCCESS，四环境效应同任务与正式 TaskSpec/脚本/Run Bundle 产品路径通过；集成 HEAD 15 SUCCESS、1 条件性 SKIPPED、0 FAIL。此核销只证明候选分支工程受力与内部动力学，不等于 main 已合并、独立轨道真值相关或飞行级验证；后继文档提交需独立检查最终 HEAD。
+
+
+## CHG-DT0-012：空间天气资产的“哈希一致”与“真实来源”分离记录
+
+**日期：** 2026-11-20  
+**触发证据：** 对离线获取脚本及测试夹具的复审发现：未实际下载的既有 CSV，如果默认使用 CelesTrak URL 作为 source_url，会把本地测试/未知来源数据错误标注为官方下载物；单纯 SHA-256 只证明当前文件身份，不证明数据来源。
+
+**原方案与调整：**
+- 实际通过下载脚本取得的快照才写入下载 URL 与真实检索时间。
+- 对已有离线 CSV，除非用户明确提供 --source-url 或已有经哈希匹配的 manifest，否则 source_url 留空、检索时间标记未知。
+- 运行时若有相邻 manifest，先核对 CSV 哈希；哈希不符即失败关闭。没有 manifest 时明示 NOT_PROVIDED，不凭空补来源。
+- 真实 Basilisk 集成测试使用合成的 CelesTrak 兼容数据，明确登记 test-fixture:// 来源，不冒充官方空间天气观测数据。
+
+**必要性：** 误标来源会破坏 DT-3 的模型/数据证据链，也会错误提高置信度；直接用哈希字段或 CI 测试定义不能证明发布者身份。
+
+**充分性：** “是否亲自下载/是否显式声明/是否未知”三种来源路径都有确定元数据和测试；基于 CSV 哈希的 manifest 绑定可以验证本地一致性，缺失的来源信息继续可见。该措施不宣称实现外部数字签名验证，也不从摘要推断真实飞行数据。
+
+**影响：** 仅改变新 DT1-A1 资产获取/证据语义及对应测试；不改变原始 CSV 或既有 R0 仿真数据。若原来源不明，使用者必须看到 UNKNOWN，不得被隐式升级。
+
+**验收条件：** 离线夹具、显式来源、未知来源、manifest 哈希篡改四类测试 PASS；Run Bundle 保留来源状态/哈希/覆盖范围；官方来源的真实性须另由可信发布渠道验证。

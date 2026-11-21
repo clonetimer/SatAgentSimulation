@@ -540,6 +540,73 @@ def _explicit_event_requirement_issues(
     return issues
 
 
+def _requests_native_nrlmsise(text: str) -> bool:
+    """A positive named NRLMSISE request is a physics requirement, not prose.
+
+    Reuse the planner's negation and latest-refinement rules: a request saying
+    'do not use NRLMSISE' is never silently turned into a drag opt-in.
+    """
+    from .capability_planner import _contains_any as _planner_contains_any, _filter_negated_matches
+    latest = text.rsplit("本轮补充指令：", 1)[-1]
+    return bool(_filter_negated_matches(
+        latest, _planner_contains_any(latest, ("nrlmsise-00", "nrlmsise"))))
+
+
+def _forbids_native_nrlmsise(text: str) -> bool:
+    """Recognize explicit *model-disable* intent, not limits on accuracy claims."""
+    latest = text.rsplit("本轮补充指令：", 1)[-1].lower()
+    compact = "".join(latest.split())
+    disable_actions = (
+        "不要使用", "不使用", "不要启用", "不启用", "禁用", "停用",
+        "关闭", "不用", "disable", "disabled", "turnoff",
+        "switchoff", "donotuse", "don'tuse", "without",
+    )
+    return any(action + "nrlmsise" in compact for action in disable_actions)
+
+
+
+# Only these physically implemented opt-in model identifiers may be selected
+# from *positive named* user language. No CAD or flight-accuracy inference.
+_NATIVE_ENVIRONMENT_OPTIONS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    ("magnetic_field_model", "igrf14", ("igrf-14", "igrf14", "igrf 14")),
+    ("earth_gravity_model", "ggm03s_degree4", (
+        "ggm03s_degree4", "ggm03s degree 4", "ggm03s 4阶",
+        "ggm03s四阶", "j4 gravity", "j4 摄动", "j4重力", "j3-j4", "j3/j4",
+    )),
+    ("earth_gravity_model", "ggm03s_degree3", (
+        "ggm03s_degree3", "ggm03s degree 3", "ggm03s 3阶",
+        "ggm03s三阶", "j3 gravity", "j3 摄动", "j3重力",
+    )),
+    ("earth_gravity_model", "ggm03s_degree2", (
+        "ggm03s_degree2", "ggm03s degree 2", "ggm03s 2阶", "ggm03s二阶",
+    )),
+    ("srp_model", "cannonball", (
+        "cannonball srp", "cannonball solar radiation pressure",
+        "cannonball 太阳光压", "cannonball光压", "spice/eclipse srp",
+    )),
+)
+
+
+def _native_model_selection_intents(text: str) -> tuple[dict[str, str], set[str], set[str]]:
+    """Select only explicit positive models; retain disabled/conflicting intent."""
+    from .capability_planner import _contains_any as contains, _filter_negated_matches
+    latest = text.rsplit("本轮补充指令：", 1)[-1]
+    selections: dict[str, set[str]] = {}
+    forbidden: set[str] = set()
+    for field, value, cues in _NATIVE_ENVIRONMENT_OPTIONS:
+        hits = contains(latest, cues)
+        if not hits:
+            continue
+        positive = _filter_negated_matches(latest, hits)
+        if positive:
+            selections.setdefault(field, set()).add(value)
+        if len(positive) < len(hits):
+            forbidden.add(field + "=" + value)
+    ambiguous = {field for field, values in selections.items() if len(values) > 1}
+    return ({field: next(iter(values)) for field, values in selections.items()
+             if len(values) == 1}, forbidden, ambiguous)
+
+
 def _registered_literal_assignments(text: str, declared: Mapping[str, Any]) -> dict[str, Any]:
     """Shared strict user-literal requirements; never infer or replace values."""
     from .explicit_parameters import explicit_parameter_assignments
@@ -650,6 +717,87 @@ def _explicit_literal_requirement_issues(spec: Mapping[str, Any], text: str, *, 
         for key,wanted in expected.items()
         if not any(key in values for values in carriers)
         or any(key in values and not same_literal(wanted, values[key]) for values in carriers)]
+    # Named native mechanisms also need strict user-intent fidelity. The old
+    # literal guard alone cannot see 'use NRLMSISE-00' without key=value; a
+    # default 'atmosphere_model=none' would otherwise silently pass planning.
+    if cid == "whole_spacecraft.unified_native.v1" and _requests_native_nrlmsise(text):
+        for name, wanted in (
+            ("atmosphere_model", "nrlmsise00"),
+            ("environment_profile", "spice_wmm"),
+        ):
+            if not any(name in values and same_literal(values[name], wanted)
+                       for values in carriers):
+                issues.append(ValidationIssue(
+                    severity="error", path=f"$.parameters.{name}",
+                    code="USER_PARAMETER_REQUIREMENT_MISMATCH",
+                    message=f"Named NRLMSISE-00 request requires {name}={wanted}; "
+                            "the model draft may not fall back to a different atmosphere."
+                ))
+    # The inverse explicit request is also binding: a returned external
+    # draft must not enable the gas model that the user expressly disabled.
+    if cid == "whole_spacecraft.unified_native.v1" and _forbids_native_nrlmsise(text):
+        if any(values.get("atmosphere_model") == "nrlmsise00" for values in carriers):
+            issues.append(ValidationIssue(
+                severity="error", path="$.parameters.atmosphere_model",
+                code="USER_PARAMETER_REQUIREMENT_MISMATCH",
+                message="User expressly disabled NRLMSISE-00; the model draft must not enable its drag."
+            ))
+    if cid == "whole_spacecraft.unified_native.v1":
+        named, disabled, ambiguous = _native_model_selection_intents(text)
+        for field in sorted(ambiguous):
+            issues.append(ValidationIssue(
+                severity="error", path=f"$.parameters.{field}",
+                code="USER_PARAMETER_REQUIREMENT_INVALID",
+                message=f"Multiple named {field} models requested; select one."
+            ))
+        for field, wanted in named.items():
+            if not any(field in values and same_literal(values[field], wanted)
+                       for values in carriers):
+                issues.append(ValidationIssue(
+                    severity="error", path=f"$.parameters.{field}",
+                    code="USER_PARAMETER_REQUIREMENT_MISMATCH",
+                    message=f"User selected {field}={wanted}; do not substitute defaults."
+                ))
+            if not any("environment_profile" in values
+                       and same_literal(values["environment_profile"], "spice_wmm")
+                       for values in carriers):
+                issues.append(ValidationIssue(
+                    severity="error", path="$.parameters.environment_profile",
+                    code="USER_PARAMETER_REQUIREMENT_MISMATCH",
+                    message=f"{field}={wanted} requires environment_profile=spice_wmm."
+                ))
+        for disabled_pair in disabled:
+            field, value = disabled_pair.split("=", 1)
+            if any(values.get(field) == value for values in carriers):
+                issues.append(ValidationIssue(
+                    severity="error", path=f"$.parameters.{field}",
+                    code="USER_PARAMETER_REQUIREMENT_MISMATCH",
+                    message=f"User explicitly disabled {field}={value}."
+                ))
+        if named.get("srp_model") == "cannonball":
+            for field in ("srp_reference_area_m2", "srp_coefficient_reflection"):
+                # Required *from the user*, not merely present in an LLM draft.
+                # An external model inventing a plausible number is still a
+                # violation even when it passes the capability numeric range.
+                if field not in expected:
+                    issues.append(ValidationIssue(
+                        severity="error", path=f"$.parameters.{field}",
+                        code="USER_PHYSICS_INPUT_REQUIRED",
+                        message=f"User must explicitly supply {field} for cannonball SRP. "
+                                "Neither an LLM guess nor reference CAD is a source."
+                    ))
+        # The pinned GGM03S asset supports three distinct degrees. Mentioning
+        # the family alone must not silently select an arbitrary degree.
+        from .capability_planner import _contains_any as contains, _filter_negated_matches
+        latest = text.rsplit("本轮补充指令：", 1)[-1]
+        if (_filter_negated_matches(latest, contains(latest, ("ggm03s",)))
+                and "earth_gravity_model" not in named
+                and "earth_gravity_model" not in ambiguous):
+            issues.append(ValidationIssue(
+                severity="error", path="$.parameters.earth_gravity_model",
+                code="USER_PHYSICS_INPUT_REQUIRED",
+                message="GGM03S requires explicit degree 2, 3 or 4."
+            ))
     # The pre-default guard owns raw parameters only. Canonical migration also
     # validates events, so leave malformed events to the normal validator rather
     # than raising while checking an unrelated parameter requirement.
@@ -2077,6 +2225,25 @@ def _apply_capability_request_overrides(spec: dict[str, Any], request: Capabilit
             "base_template": base_template,
             "selection_reason": selection_reason,
         })
+
+    if cap_id == "whole_spacecraft.unified_native.v1":
+        # The template backend may honor explicit named physical mechanisms.
+        # External model drafts are validated, NEVER silently rewritten.
+        named, _disabled, _ambiguous = _native_model_selection_intents(text)
+        if _requests_native_nrlmsise(text) or named:
+            params = spec.setdefault("parameters", {})
+            selected_values = params.get("values") if isinstance(params.get("values"), dict) else params
+            if _requests_native_nrlmsise(text):
+                selected_values["atmosphere_model"] = "nrlmsise00"
+            selected_values.update(named)
+            selected_values["environment_profile"] = "spice_wmm"
+            if named.get("srp_model") == "cannonball":
+                from .explicit_parameters import explicit_parameter_assignments
+                user_values = explicit_parameter_assignments(
+                    text, get_capability(cap_id).data.get("parameters", {}))
+                for key in ("srp_reference_area_m2", "srp_coefficient_reflection"):
+                    if key in user_values:
+                        selected_values[key] = user_values[key]
 
     duration_s = _extract_seconds(text, ["duration", "simulate", "simulation", "仿真", "时长", "运行"]) or _extract_seconds(text, ["持续"])
     sample_s = _extract_seconds(text, ["sample", "sampling", "采样", "输出间隔", "步长", "间隔"])

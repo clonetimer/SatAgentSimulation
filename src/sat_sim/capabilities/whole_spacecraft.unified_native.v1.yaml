@@ -84,10 +84,61 @@ parameters:
     default: simplified
     enum: [simplified, spice_wmm]
     description: Explicit reference environment or offline DE430, Earth J2, Sun/Moon gravity and WMM2025. No fallback.
+  srp_model:
+    type: string
+    required: false
+    default: disabled
+    enum: [disabled, cannonball]
+    description: Explicit opt-in official Basilisk cannonball SRP with real SPICE Sun and Eclipse; never uses reference CAD as area source.
+  srp_reference_area_m2:
+    type: number
+    unit: m^2
+    required: false
+    min: 0.000001
+    max: 1000.0
+    description: Explicit scalar engineering reference area for opt-in cannonball SRP, not attitude-dependent or inferred from CAD.
+  srp_coefficient_reflection:
+    type: number
+    unit: '1'
+    required: false
+    min: 0.000001
+    max: 2.0
+    description: Explicit engineering cannonball optical coefficient Cr for opt-in SRP, not flight-calibrated.
+  earth_gravity_model:
+    type: string
+    required: false
+    default: legacy_j2_only
+    enum: [legacy_j2_only, ggm03s_degree2, ggm03s_degree3, ggm03s_degree4]
+    description: Default unchanged J2-only. Explicit GGM03S 2/3/4 opt-in requires exact official full coefficient asset and SPICE Earth orientation; includes tesseral terms.
+  magnetic_field_model:
+    type: string
+    required: false
+    default: wmm2025
+    enum: [wmm2025, igrf14]
+    description: WMM2025 is unchanged default; opt-in IGRF-14 uses the pinned IAGA 2025+secular-variation coefficients through the official Basilisk MAG evaluator with verified COF conversion, not an IGRF-specific Basilisk module.
   epoch_utc:
     type: string
     default: '2026-01-01T00:00:00Z'
     description: Timezone-qualified UTC epoch; WMM2025 profile is valid during 2025-2029.
+  atmosphere_model:
+    type: string
+    default: none
+    enum: [none, nrlmsise00]
+    description: Optional official Basilisk NRLMSISE-00 atmosphere and drag path. Requires spice_wmm and a locally staged CelesTrak space-weather CSV with complete UTC coverage.
+  drag_area_m2:
+    type: number
+    unit: m^2
+    default: 0.08
+    min: 0.001
+    max: 1000.0
+    description: Constant projected-area engineering approximation used by the optional NRLMSISE drag effector; not an attitude-dependent CAD aerodynamic model.
+  drag_coefficient:
+    type: number
+    unit: '1'
+    default: 2.2
+    min: 0.01
+    max: 10.0
+    description: Constant drag coefficient used by the optional NRLMSISE drag effector; requires traceable vehicle-specific aerodynamic evidence before calibrated claims.
   spacecraft_mass_kg:
     type: number
     unit: kg
@@ -1198,6 +1249,24 @@ outputs:
   - orbit.sun_position_m_*
   - orbit.phase_rad
   - orbit.eclipse_factor
+  - orbit.earth_fixed_dcm_*
+  - orbit.earth_orientation_computed
+  - environment.igrf14.earth_center_n_m_*
+  - environment.igrf14.earth_j20002pfix_*
+  - environment.igrf14.earth_orientation_computed
+  - orbit.srp_force_norm_n
+  - orbit.srp_force_n_*
+  - orbit.srp_sun_distance_m
+  - environment.atmosphere_density_kg_m3
+  - environment.atmosphere_temperature_k
+  - environment.space_weather.*
+  - orbit.drag_force_b_*
+  - orbit.drag_force_norm_n
+  - orbit.drag_force_relative_velocity_power_w
+  - orbit.drag_relative_velocity_b_m_s_*
+  - orbit.drag_relative_speed_m_s
+  - orbit.drag_direction_b_*
+  - orbit.drag_acceleration_m_s2
   - adcs.pointing_error_deg
   - attitude.truth.pointing_error_deg
   - adcs.body_rate_rad_s_*
@@ -1543,7 +1612,10 @@ operator:
       - eps.battery_soc
   limitations:
   - The simplified environment uses fixed reference ephemerides and point-mass Earth gravity; spice_wmm uses offline DE430, Earth J2, Sun/Moon gravity and WMM2025 during 2025-2029.
-  - Generic spacecraft parameters are engineering assumptions unless separately sourced; atmospheric drag and Earth gravity harmonics above J2 are not modeled by these environment profiles.
+  - Opt-in cannonball SRP uses an explicit scalar reference area/Cr; its real SPICE Sun/Eclipse force is not CAD-derived faceted radiation pressure, Earth radiation force, independent tool correlation, or flight calibration.
+  - Opt-in full GGM03S degree/order 2, 3 or 4 uses an immutable official source and rotating Earth SPICE frame, includes tesseral terms, but does not model time-varying solid/ocean tides or prove flight-level orbit accuracy.
+  - Opt-in IGRF-14 uses separately hash-pinned IAGA coefficients and 2025-2030 predictive SV via Basilisk NOAA MAG, not WMM2025 data, storm-time field variation, or hardware calibration.
+  - Generic spacecraft parameters are engineering assumptions unless separately sourced; optional NRLMSISE-00 drag requires local SHA-256-recorded CelesTrak-compatible weather and uses scalar area/Cd instead of an attitude-dependent surface model.
   - Project sensor fusion, event managers and mode gate are native SysModels but not official Basilisk modules.
   - Only effects listed in modes.*.effects are accepted by the unified runtime.
   - Propulsion is opt-in and currently supports one scheduled burn gated by battery SOC, safe mode and timed ignition/impulse events.

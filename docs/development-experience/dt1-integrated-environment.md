@@ -1,0 +1,94 @@
+# DT-1 四项物理能力联合集成证据（与原始 PR 分离）
+
+本阶段创建独立的 **integration-preview** 候选，不自动合并 main 或修改已独立通过的 #206、#207、#208、#210、#211、#212。基底为 #209 已验证的 NRLMSISE-00 Drag + SPICE/Eclipse SRP 组合 HEAD `316d7b5996da7382feab8ce499651cd78553ed18`。
+
+合成的运行图一次性包含：
+- 官方 Basilisk NRLMSISE-00 `MsisAtmosphere` + `DragDynamicEffector`，准确读取机体系力 `forceExternal_B`，离线气象资产来源显式标为 `test-fixture://`。
+- 官方 `RadiationPressure` 接真实 SPICE Sun/Eclipse，准确读取惯性系 `forceExternal_N`。
+- 完整官方 GGM03S 球谐系数的显式 2/3/4 阶选项；默认仍是 J2-only，未把 J2 稀疏源当作全系数。
+- IAGA 固定 IGRF-14 真实系数经确定性转换的 NOAA MAG 计算模型，真实 `Basilisk Magnetometer` 接磁场消息；默认仍是 WMM2025。
+- 参考校验器 IAGA V-MOD `PPIGRF 2.0.0` 与正式 IGRF14.shc，作为仅 CI 数学相关试验，与物理主运行模块解耦。
+
+## 验收流程
+
+`tests/test_native_integrated_environment.py` 在真实 SPICE Sun 初相位下，使用同一初始轨道跑全部四项启用，以及分别关 Drag / SRP / 高阶重力 / IGRF 的四个对照，检查原生消息链与运行图、密度、能量耗散符号、光压方向、两组 SPICE Earth 朝向一致性、各种物理 A/B 的真实差值。所有物理数据来自原生 Basilisk 运行 Trace 和原生 Run Summary，不写后处理动力学。
+
+此外**同一候选 HEAD**必须通过 #206、#208、#210、#211、#212 已有的各自原生测试，独立 PPIGRF 实施一致性（<1 nT）、脚本治理与整个长时回归，不能用先前分支 PASS 代替组合版本验收。
+
+参数注册目标 `177`：原有 169 + Drag 三个 opt-in + SRP 三个 opt-in + GGM03S 选择 + IGRF14 选择，既有 169 默认参数、默认物理模型、积分步长及已有断言不变。
+
+## 保留边界
+
+所有质量、面积、反射系数、空间天气和轨道时长均为**明确测试输入**，不是 CAD 实装、物理标定或飞行精度证据。缺少高保真面片受力、地磁暴外场、固体/海洋时变潮汐、精确热层风及独立飞行数据相关。
+几何参考 PR #207 不混入此次物理运行时集成，P9-M4 的映射晋升禁令不触动。
+
+## 开发经验
+
+1. 先在 #209 验证 Drag+SRP，再复用其实际分支 HEAD 而不是把两个 PR 的通过率简单加总。
+2. 对共享源码 `orbital_environment.py` 明确合并 Drag、GGM03S、IGRF14 三条条件数据流，保留所有 fail-closed 门禁；原始默认路径不增加新必选资产。
+3. 对共享 `unified_native.py` 的 GGM 与 IGRF 位置/姿态记录保留独立字段和来源，以真实 SPICE 消息验证二者一致，不在仿真之后伪造坐标转换。
+4. 合并后的**全部物理原生数值和其他 CI 状态**未验收前不得标记为 PASS；如果 CI 失败先记录真实根因，再做不降低标准的最小修复。
+
+## 受控合并决策（2026-11-21）
+
+**源码覆盖核查**：PR #213 包含 #206、#208、#210、#211、#212 的 32 个源 PR 文件路径，26 个非冲突文件的 Git Blob SHA 与原 PR 完全一致；其余 6 个重叠文件按实际 Basilisk 共同运行验收，不把路径覆盖当成语义证明。
+
+**建议唯一物理集成入口为 #213**，不要把 #206/#208/#210/#211/#212 再逐个合入 `main`，否则会发生重复及冲突。#212 原来以 #211 为目标分支，不宜先单独落地。#209 是已关闭的历史集成实验，不恢复。#207 属于**独立 DT-4.1 档 1 参考 CAD**，不随 DT-1 物理候选进入主干，也不能晋升为真实实装几何。
+
+**发布关**：
+1. 维护者先签核 #213 是否满足目标发布范围；最终 HEAD 的完整 PR CI 无失败，审查无阻断性反馈；
+2. 受控批准后只合并 #213 一次，保留源 PR 作为来源索引；合并过程若重新生成提交 SHA，必须以该 SHA 为准；
+3. 本次增强 `.github/workflows/continuous-satellite-native.yml` 新增受限 `push/main` 路径触发，真正的 `main` 提交将自动运行原生整星 CI（已有 `workflow_dispatch` 也保留）；不可用 PR 的绿色状态替代 post-merge 主干 CI；
+4. 只有新主干 commit 的全部关键检查实际 PASS 并核对模型身份、输入来源、Run Bundle，才将源 PR #206/#208/#210/#211/#212 裁定为 superseded 关闭；此前不强制关闭、不删除审计信息。#207 保持独立；
+5. 任何红灯先定位原因，不允许改默认物理参数、放宽源 SHA/力/精度阈值或将完整模型虚报为飞行认证。
+
+**新增一轨周期验收**：此前 #213 的四模型联合 A/B 是 120 s 日照侧；已有 3600 s 耐久测试并未显式启用全部四种环境效应。现在增加 `test_all_four_effects_one_real_orbit_crosses_eclipse_with_drag_still_active`：使用相同受控天气夹具、真实 SPICE Sun 初相位，以 5400 s 覆盖一个完整 ~5397 s 轨道，检查至少 30 日照 + 10 本影采样、影内 SRP 近零但真实阻力持续为正、日照 SRP 非零、地固与 IGRF 源使用同一实际地球朝向，并用相同初态 SRP 关闭运行作终态对比。此测试只使用测试步长/面积/质量，**不改默认模型或已通过的短时物理断言**。
+
+**剩余未覆盖**：真实太阳翼/结构体面片气动与光压、固体/海洋时变潮汐、真实风场、辐射带及硬件标定，以及大规模验证以真实任务工况为准。本阶段不把环境模型集合的存在当成全面的高保真认证。
+
+
+## 受控交付新增：合并后主干多工作流重验（2026-11-21）
+
+**发现的缺口**：先前仅 `continuous-satellite-native.yml` 包含 `push: branches: [main]`。因此审查前 PR 的 15 个 PASS，不等于合并后 `main` 会自动执行资源耦合、Run Bundle、参数审计、治理、浏览器控制平面和静态/非原生回归；缺少这些结论不能声称主干联合验收完成。
+
+**本次实际修复**：不改变任何 job 或测试断言，仅为以下既有七条工作流增加严格限定 `push/main` 路径触发，并保留 `pull_request` 与 `workflow_dispatch`：
+
+- `native-rw-component-probe.yml`：独立物理组件、Run Bundle 和真实 Chromium 向导；
+- `p10a-native-rw-eps-coupling.yml`：原生整星资源、电源、热控耦合；
+- `parameter-surface-audit.yml`：177 参数注册、TaskSpec/表单结构；
+- `project-governance.yml`：脚本、依赖与工作流治理；
+- `continuous-satellite-static.yml`：静态代码和 JS 合约；
+- `continuous-satellite-unit.yml`：非 Basilisk 交互与控制平面回归；
+- `agent-automation-p0.yml`：Agent/Run API 与浏览器实际操作。
+
+**触发条件限制**：全部只在真实 `main` push 且匹配对应路径时运行，不对每个特性分支 push 重复收费；包含自身工作流文件，以确保本次 #213 合并后该作业必定满足路径匹配。已有 `native-rw-component-probe.yml` 对非 PR 事件会执行真实 Chromium 向导（原 `Determine whether browser...changed` 的 `run=true` 分支），不会悄悄跳过。
+
+**验收口径**：GitHub Actions 的触发配置仅确保能在合并事件之后执行，不保证网络、资产和 runner 一定 PASS，更不等同于 GitHub 分支保护（当前 token 无权读取设置）。维护者批准合并后必须以真实最新 `main` SHA 分别检查原生整星、独立组件/Run Bundle、P10-A、参数审计、治理、静态、非原生单测和 Agent/Run，确认全部 SUCCESS 后才可关闭被 #213 替代的五项原 PR。任何队列中、失败或条件跳过均需明确解释和补验，不能根据旧 PR 的绿色状态推断。
+
+## Product Path 最小闭环验收补强（提交后待 native CI）
+
+此前 #213 的四效应 A/B 确认了 `UnifiedNativeRuntime` 内部物理链，但**不等于**用户选择可选物理模型后经正式 TaskSpec/脚本导出/Run Bundle 路径可运行。现在在原有 `tests/test_native_integrated_environment.py` 增加产品路径测试，复用相同四项显式 opt-in 的工程夹具并在 CI 正式运行：先通过经过验证的模板生成 canonical TaskSpec；导出**真正可执行的 capability-python 脚本并在独立 Python 进程执行**；然后从同一输入创建并执行密封 Run Bundle；检查固定来源空间天气、完整 GGM03S、IGRF14、实际阻力、SRP、计划哈希以及两个产品运行结果的阻力一致性。测试不调用外部 LLM，**不能将模板输入宣称为已验证自然语言理解精度**。
+
+引入这一关只为防止模型已在底层运行而在脚本/任务/证据产品入口丢失；无物理模型、任务默认值、原有判据和积分器改动。此条款只有新的 exact-head GitHub Actions 原生测试成功后才能标为 PASS；失败必须定位哪个产品路径未闭环，不以降低接受标准替代修复。
+
+- 首轮产品链 CI `44801455983` 的新增测试失败：**正式导出脚本确实运行并输出 JSON，但退出码为 1**；已有四效应底层 A/B 仍通过。最初的失败消息只保留了 JSON 尾部，无法区分 TaskSpec 任务判据/QoI 校验与规划/脚本错误。现在补充**失败原因码及非 PASS 检查**到同一个严格断言；未修改模型、QoI 要求或成功判定。待下一次 native CI 的具体失败原因再裁决。
+
+- 第二轮 CI `44802191610` 提取到真实失败分类：`DT1_GENERATED_SCRIPT_PRODUCT_GATE_FAILED exit=1 result=FAIL reason=PHYSICAL_VALIDATION_FAILED`，但底层 `summary.overall_status=PASS`。它不是模型启动异常，也不是自然语言解析失败；具体哪项物理验证检查及观测值仍需原始 physical_validation.issues。第三轮仅在严格失败信息中列出 `physical_issues/check_results`，以区分真实违规与检查器字段解释错误；不得通过关闭 `strict_physical`、改模拟质量/面积或跳过校验放行。
+
+- 第三轮 CI [44802673560](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44802673560) 精确定位了 `physical_validation.issues`：`environment.atmosphere_temperature_k` 的 4 个有效热层中性气体温度采样分别是 **1067.569 / 1068.744 / 1069.911 / 1071.070 K**，错误套用了**设备**热控区间 `153.15..423.15 K`；设备 `thermal.*` 本身无硬限 FAIL。SOC 初始值和短时姿态收敛只产生 WARNING，仍保留。根因在 `src/sat_sim/validation/physical_checks.py::_is_temperature_field` 对任意温度后缀无差别分类。修正仅排除这个已知 **环境字段**进入设备 thermal_bounds；设备热限制、`thermal.safe=0` 失败、物理默认值及独立 SRP/Drag/IGRF/GGM04 断言**完全不变**。新增正/负对照单元测试，必须由新的 CI 证明产品脚本 + Run Bundle 路径全程通过。
+
+- 新增专门的设备/大气字段隔离 CI 门禁：在既有 `continuous-satellite-native.yml` 的联合物理测试之后，明确调用 `tests/test_physical_evidence_coverage.py::test_native_nrlmsise_neutral_temperature_is_not_a_spacecraft_thermal_limit`；同时把 `src/sat_sim/validation/physical_checks.py`、该单测及工作流文件本身放入 PR/main push 路径触发。**理由：** 不能只新增回归测试源码而不真正执行；必须在新 HEAD 证明“环境大气温度不触发设备热控 FAIL”且设备过热、`thermal.safe=0` 依旧 FAIL。只改测试选择与 workflow 触发，不修改判定口径、环境数据或模型。
+
+## NL→TaskSpec 物理路由阻断修复（2026-11-21，验收候选）
+
+此前原生四效应同任务及正式 capability-python / sealed Run Bundle 均已通过，但用户通过自然语言明确指定 NRLMSISE-00 时，`capability_planner.UNSUPPORTED_DOMAIN_KEYWORDS` 仍把这个新实现的模型当作一项未支持的高保真轨道需求。旧 `tests/test_native_engineering_request_routing.py` 还要求将这项机制拒绝。此处是可核查的产品入口合同错配，并不意味着用户要求的是飞行级精度认证。
+
+最小修复：只允许 **`whole_spacecraft.unified_native.v1`** 将 NRLMSISE-00 视为已实现的显式 opt-in 机制；自然语言确定性模板在用户明确提出该模型时设置 `environment_profile=spice_wmm`、`atmosphere_model=nrlmsise00`，其余默认模型完全不变。与现有 `key=value` 保护并行增加命名物理要求检查：外部模型输出若丢失所请求大气模型或所需环境配置，必须在编译/脚本导出前拒绝，而不是回退到 `none` / `simplified`。否定指令不得被误作正向启用。
+
+回归覆盖：纯中文/英文正向物理选择、真实模板脚本导出、模型选择字段未丢失、错误能力（ADCS-only / orbit-only）拒绝、飞行级声明不豁免、外部原始草案不得静默降级、否定指令不启用。相关测试明确纳入 Agent/Run CI 路径触发及实际测试列表。**无原生模型、质量/面积、积分步长、空间天气来源或动力学物理门禁改动**。仅在新 exact-head CI 通过后宣告该自然语言输入链验收通过，不从规划测试推断真 LLM 理解准确率。
+
+- 首轮 Agent/Run CI [44808555871](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44808555871) 发现两处真实失败：旧/已退役 `orbit_environment.medium_fidelity.v1` 被新测试通过 `capability_id=` 指定时先触发 `capability_routing` unknown-ID，而不是预期的非 native 物理拒绝分支；将负例输入改为现有测试已采用的能力名称提示，保持物理拒绝断言不变。另一处是现有 high-fidelity 拒绝词中缺少 **`飞行级轨道`**，导致含 NRLMSISE-00 的中文飞行级精度请求错误得到 supported=True。该词现补入 `high_fidelity_orbit` 拒绝域；并未解除任何飞行级、校准容差、外部真值限制。保持 NRLMSISE 仅在 whole-spacecraft native opt-in 中允许。
+
+- 第二轮 Agent/Run CI [44808983199](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44808983199) 中**唯一剩余失败**是新增负例把退役能力名称放在自然语言正文，而不是 `capability_id=` 强约束。真实规划器选择 `whole_spacecraft.unified_native.v1` 的已实现 NRLMSISE 路由，实际上属于正确的正向能力选择，不能误当成错误。已把负例改回显式强约束，并区分 `subsystem.adcs_unified_native.v1` 的物理范围拒绝 `high_fidelity_orbit` 与退役 `orbit_environment.medium_fidelity.v1` 的 `capability_routing` 拒绝。未放宽任何生产运行时判据，也未撤销中文飞行级精度拦截。
+
+- 否定语义补强（2026-11-21）：审查发现自然语言请求“不使用 / 不启用 / 禁用 / 停用 / 关闭 / disable / turn off NRLMSISE-00”会被旧的否定识别器遗漏，导致显式禁用意图可能被确定性模板当作正向阻力 opt-in。现补全否定触发词，并增加外部原始 TaskSpec 草案的禁用要求验证，防止模型返回与用户意图相反的 atmosphere_model=nrlmsise00；同时测试真实模板仍不启用阻力，以及“不要声称飞行级精度”不等于禁用模型。此项仅修改路由与校验，无 Drag 模型、质量/面积、积分步长或环境资产变更。待新 exact-head CI 通过后判定完成。
