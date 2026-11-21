@@ -243,6 +243,9 @@ def test_motor_response_time_constant_matches_exact_scheduler_time_first_order_s
     assert actual[0] == 0.0
     assert 0.0 < actual[1] < actual[2] < 0.1
     assert actual[3] < actual[2]
+    saturated = _scheduled_rw_lag_trace(
+        [1.0, 1.0], [0, 1_000_000_000], response_time_constant_s=tau)
+    assert saturated[1] == pytest.approx(0.2 * (1.0 - math.exp(-1.0)), rel=1e-12)
     print("DT2_RW_FIRST_ORDER_RESPONSE_NATIVE_MSG_VERIFIED "
           f"tau_s={tau} times_s=0,0.25,1,2.5 output_nm="
           + ",".join(f"{x:.9e}" for x in actual), flush=True)

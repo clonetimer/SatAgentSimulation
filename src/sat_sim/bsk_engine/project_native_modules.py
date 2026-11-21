@@ -702,7 +702,11 @@ class ReactionWheelCommandFaultManager(sysModel.SysModel):
                      if dt_s > 0.0 else 0.0)
             for index in range(min(self.wheel_count, len(output))):
                 previous = self._lagged_drive_torque_nm[index]
-                state = previous + alpha * (float(output[index]) - previous)
+                # Current/u_max authority is the motor-drive target limit; do
+                # not let an over-limit FSW request wind up hidden lag state.
+                drive_limit = self.effective_nominal_max_torques_nm[index]
+                target = max(-drive_limit, min(drive_limit, float(output[index])))
+                state = previous + alpha * (target - previous)
                 self._lagged_drive_torque_nm[index] = state
                 output[index] = state
             self._last_update_nanos = now_nanos
