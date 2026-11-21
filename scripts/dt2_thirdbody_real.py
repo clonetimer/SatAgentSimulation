@@ -185,6 +185,9 @@ def gmat_script(initial:dict,raw:Path,mu_report:Path,mode:str)->str:
         script=script.replace("CrossGravity.PointMasses = {Earth};",
             "CrossGravity.PointMasses = {Earth, Sun, Luna};",1)
     declaration="\n".join([
+        # R2026a Report rejects direct CelestialBody object properties. A
+        # Variable is the documented ReportFile interface for real values.
+        "Create Variable EarthMuRead SunMuRead LunaMuRead;",
         "Create ReportFile ThirdBodyMu;",
         f"ThirdBodyMu.Filename = '{str(mu_report.resolve()).replace(chr(92),'/').replace(chr(39),'')}';",
         "ThirdBodyMu.Precision = 16;",
@@ -196,7 +199,11 @@ def gmat_script(initial:dict,raw:Path,mu_report:Path,mode:str)->str:
     ])
     if script.count("BeginMissionSequence;")!=1: raise ValueError("DT2_THIRDBODY_GMAT_BAD_MISSION")
     script=script.replace("BeginMissionSequence;",
-        declaration+"\nBeginMissionSequence;\nReport ThirdBodyMu Earth.Mu Sun.Mu Luna.Mu;",1)
+        declaration+"\nBeginMissionSequence;\n"
+        "GMAT EarthMuRead = Earth.Mu;\n"
+        "GMAT SunMuRead = Sun.Mu;\n"
+        "GMAT LunaMuRead = Luna.Mu;\n"
+        "Report ThirdBodyMu EarthMuRead SunMuRead LunaMuRead;",1)
     if not script.isascii():raise ValueError("DT2_THIRDBODY_GMAT_NONASCII")
     return script
 

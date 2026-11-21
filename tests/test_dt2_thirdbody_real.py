@@ -23,7 +23,12 @@ def test_genuine_GMAT_sun_moon_on_off_scripts_same_except_force_switch():
     assert a.isascii() and b.isascii()
     assert b.count("Propagate CrossProp(CrossSat)") == 90
     assert b.count("Report CrossState CrossSat.ElapsedSecs") == 91
-    assert b.count("Report ThirdBodyMu Earth.Mu Sun.Mu Luna.Mu;") == 1
+    assert "Create Variable EarthMuRead SunMuRead LunaMuRead;" in b
+    assert "GMAT EarthMuRead = Earth.Mu;" in b
+    assert "GMAT SunMuRead = Sun.Mu;" in b
+    assert "GMAT LunaMuRead = Luna.Mu;" in b
+    assert b.count("Report ThirdBodyMu EarthMuRead SunMuRead LunaMuRead;") == 1
+    assert "Report ThirdBodyMu Earth.Mu" not in b
     assert "GMAT SolarSystem.EphemerisSource = 'SPICE';" in b
     assert "CrossSat.CoordinateSystem = EarthICRF;" in b
     for obj,key in (("Earth","earth"),("Sun","sun"),("Luna","moon")):
