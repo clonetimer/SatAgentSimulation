@@ -603,6 +603,74 @@ jobs:
                 "effective_mu_readback=false scientific_verdict=INCONCLUSIVE")
           PY
 
+      - name: Genuine Qz90 physical inertial orientation negative and positive controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=reports/dt2-cross-leo-001
+          gmat_root="$RUNNER_TEMP/gmat-release/GMAT/R2026a"
+          for mode in rot-off rot-on; do
+            log="$root/bsk_rotation_$mode.runtime.log"
+            python scripts/dt2_thirdbody_real.py "bsk-$mode" --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN" > "$log" 2>&1 || { cat "$log"; exit 1; }
+            cat "$log"
+          done
+          for mode in rot-off rot-on; do
+            python scripts/dt2_thirdbody_real.py "gmat-$mode" --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN"
+          done
+          python scripts/dt2_thirdbody_real.py compare-qz90 --output "$root" --gmat-root "$gmat_root" --gmat-executable "$GMAT_BIN"
+          python - <<'PY'
+          import json,csv,hashlib,math
+          from pathlib import Path
+          p=Path("reports/dt2-cross-leo-001")
+          d=json.loads((p/"thirdbody_Qz90_physical_rotation_diagnostic.json").read_text())
+          assert d["status"]==d["scientific_verdict"]=="INCONCLUSIVE"
+          assert d["actual_real_original_traces"]==4
+          assert d["actual_new_independent_rotated_engine_runs"]==4
+          assert d["real_state_rows_each_engine_mode"]==91
+          assert d["comparison_rows"]==182
+          assert d["initial_r_and_v_rotated_by_predeclared_Qz90"]
+          assert d["official_DE421_Sun_Luna_ephemerides_not_rotated"]
+          assert d["genuine_off_central_force_rotation_symmetry_control"]
+          assert d["genuine_on_third_body_directional_symmetry_break_control"]
+          assert not d["original_effective_GMAT_Mu_independent_readback_verified"]
+          assert not d["Basilisk_N_to_GMAT_EarthICRF_physical_frame_approved"]
+          assert not d["absolute_Basilisk_ET_GMAT_A1_mapping_approved"]
+          assert not d["mission_accuracy_budget_approved"]
+          for engine in ("bsk","gmat"):
+              vals=d["engine_metrics"][engine]
+              assert vals["ON_fixed_solar_lunar_directional_break_max_position_m"]>0
+              assert all(math.isfinite(v) and v>=0 for v in vals.values())
+              for mode in ("off","on","rot-off","rot-on"):
+                  stem="thirdbody_"+engine+"_"+mode+"_"
+                  rec=json.loads((p/(stem+"execution.json")).read_text())
+                  assert rec["real_force_model_executed"] and rec["rows"]==91
+                  assert rec["scientific_verdict"]=="INCONCLUSIVE"
+                  assert rec["third_body_enabled"] is mode.endswith("on")
+                  assert rec["Qz90_counterfactual_input"] is mode.startswith("rot-")
+                  state=p/(stem+"state.csv")
+                  assert hashlib.sha256(state.read_bytes()).hexdigest()==d["real_source_state_hashes"][engine+"_"+mode]
+                  if engine=="gmat" and mode.startswith("rot-"):
+                      assert rec["return_code"]==0
+                      assert not rec["effective_mu_independently_verified"]
+                      for suffix,key in (("raw.txt","raw_sha256"),("executed.script","script_sha256")):
+                          file=p/(stem+suffix)
+                          assert hashlib.sha256(file.read_bytes()).hexdigest()==rec[key]
+                  if engine=="bsk":
+                      assert rec["true_spice_kernel_pool_count"]==3
+          for name,sha in d["original_source_sha256"].items():
+              assert hashlib.sha256((p/name).read_bytes()).hexdigest()==sha
+          file=p/"thirdbody_Qz90_physical_rotation_rows.csv"
+          assert hashlib.sha256(file.read_bytes()).hexdigest()==d["true_output_sha256"]
+          with file.open(newline="") as io:
+              assert len(list(csv.DictReader(io)))==182
+          print("DT2_REAL_QZ90_DIRECTIONAL",
+                f"Basilisk_OFF_covariance_m={d['engine_metrics']['bsk']['OFF_central_rotation_covariance_max_position_m']:.9e}",
+                f"GMAT_OFF_covariance_m={d['engine_metrics']['gmat']['OFF_central_rotation_covariance_max_position_m']:.9e}",
+                f"Basilisk_ON_direction_break_m={d['engine_metrics']['bsk']['ON_fixed_solar_lunar_directional_break_max_position_m']:.9e}",
+                f"GMAT_ON_direction_break_m={d['engine_metrics']['gmat']['ON_fixed_solar_lunar_directional_break_max_position_m']:.9e}",
+                "scientific_verdict=INCONCLUSIVE")
+          PY
+
       - name: Upload all acquired raw provenance and engine outputs including failure logs
         if: always()
         uses: actions/upload-artifact@v7

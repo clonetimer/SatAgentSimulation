@@ -25,6 +25,34 @@ import dt2_sun_anchor as anchor
 MU={"earth":398600.436,"sun":132712440023.310,"moon":4902.799}
 AXES=("x_m","y_m","z_m","vx_m_s","vy_m_s","vz_m_s")
 MODES=("off","on")
+ROT_MODES=("rot-off","rot-on")
+
+
+def rotate_input_qz90(initial:dict)->dict:
+    """One proper fixed Qz(+90deg) rotation of BOTH input r and v."""
+    try:
+        r=[float(initial[k]) for k in AXES]
+    except (KeyError,ValueError,TypeError) as exc:
+        raise ValueError("DT2_ROT90_INVALID_INITIAL") from exc
+    if not all(math.isfinite(x) for x in r):
+        raise ValueError("DT2_ROT90_NONFINITE_INITIAL")
+    out=dict(initial)
+    out.update(x_m=-r[1],y_m=r[0],z_m=r[2],
+               vx_m_s=-r[4],vy_m_s=r[3],vz_m_s=r[5])
+    return out
+
+
+def base_mode(mode:str)->str:
+    if mode not in MODES+ROT_MODES:
+        raise ValueError("DT2_ROT90_INVALID_MODE")
+    return mode.removeprefix("rot-")
+
+
+def q90(v:list[float])->list[float]:
+    if len(v)!=3 or not all(math.isfinite(x) for x in v):
+        raise ValueError("DT2_ROT90_BAD_VECTOR")
+    return [-v[1],v[0],v[2]]
+
 
 
 def _source(out:Path,root:Path,binary:Path)->dict:
@@ -79,14 +107,16 @@ def _source(out:Path,root:Path,binary:Path)->dict:
 
 
 def _name(out:Path,engine:str,mode:str,key:str)->Path:
-    if engine not in ("bsk","gmat") or mode not in MODES:
+    if engine not in ("bsk","gmat") or mode not in MODES+ROT_MODES:
         raise ValueError("DT2_THIRDBODY_BAD_ENGINE_MODE")
     return out/("thirdbody_"+engine+"_"+mode+"_"+key)
 
 
 def native(out:Path,root:Path,binary:Path,mode:str)->dict:
-    if mode not in MODES: raise ValueError("DT2_THIRDBODY_BAD_MODE")
+    natural_mode=base_mode(mode)
+    rotated=mode in ROT_MODES
     src=_source(out,root,binary)
+    initial=rotate_input_qz90(src["initial"]) if rotated else src["initial"]
     state=_name(src["out"],"bsk",mode,"state.csv")
     receipt=_name(src["out"],"bsk",mode,"execution.json")
     if state.exists() or receipt.exists():
@@ -117,7 +147,7 @@ def native(out:Path,root:Path,binary:Path,mode:str)->dict:
     earth=grav.createEarth()
     earth.isCentralBody=True
     bodies={"earth":earth}
-    if mode=="on":
+    if natural_mode=="on":
         bodies["sun"]=grav.createSun()
         bodies["moon"]=grav.createMoon()
     for i,name in enumerate(("earth","sun","moon")):
@@ -130,8 +160,8 @@ def native(out:Path,root:Path,binary:Path,mode:str)->dict:
     craft.ModelTag="DT2_BSK_THIRDBODY_"+mode.upper()
     craft.hub.mHub=100.0
     craft.hub.IHubPntBc_B=[[100.,0.,0.],[0.,100.,0.],[0.,0.,100.]]
-    craft.hub.r_CN_NInit=[float(src["initial"][k]) for k in AXES[:3]]
-    craft.hub.v_CN_NInit=[float(src["initial"][k]) for k in AXES[3:]]
+    craft.hub.r_CN_NInit=[float(initial[k]) for k in AXES[:3]]
+    craft.hub.v_CN_NInit=[float(initial[k]) for k in AXES[3:]]
     grav.addBodiesTo(craft)
     sim.AddModelToTask(task,craft)
     recorder=craft.scStateOutMsg.recorder(macros.sec2nano(60.0))
@@ -152,10 +182,12 @@ def native(out:Path,root:Path,binary:Path,mode:str)->dict:
         row.update(time_s=float(t),utc=baseline._utc_at(baseline.CASE["epoch_utc"],float(t)))
         rows.append(row)
     baseline._assert_grid(rows)
-    if any(abs(rows[0][k]-float(src["initial"][k]))>1e-6 for k in AXES):
+    if any(abs(rows[0][k]-float(initial[k]))>1e-6 for k in AXES):
         raise ValueError("DT2_THIRDBODY_NATIVE_INITIAL_STATE_CHANGED")
     baseline._write_state_csv(state,rows)
-    rec={"engine":"ACTUAL_BASILISK_2_11_0","mode":mode,"third_body_enabled":mode=="on",
+    rec={"engine":"ACTUAL_BASILISK_2_11_0","mode":mode,"third_body_enabled":natural_mode=="on",
+         "actual_input_state_SI":{k:float(initial[k]) for k in AXES},
+         "Qz90_counterfactual_input":rotated,
          "status":"REAL_NATIVE_THIRDBODY_EXECUTED_INCONCLUSIVE","real_force_model_executed":True,
          "actual_gravity_bodies":list(bodies),
          "actual_mu_km3_s2":{k:float(v.mu)/1e9 for k,v in bodies.items()},
@@ -194,13 +226,15 @@ def gmat_script(initial:dict,raw:Path,mode:str)->str:
 
 
 def gmat(out:Path,root:Path,binary:Path,mode:str)->dict:
-    if mode not in MODES: raise ValueError("DT2_THIRDBODY_BAD_MODE")
+    natural_mode=base_mode(mode)
+    rotated=mode in ROT_MODES
     src=_source(out,root,binary)
+    initial=rotate_input_qz90(src["initial"]) if rotated else src["initial"]
     files={k:_name(src["out"],"gmat",mode,k) for k in (
         "state.csv","raw.txt","executed.script","stdout.log","stderr.log","execution.json")}
     if any(p.exists() for p in files.values()):
         raise FileExistsError("DT2_THIRDBODY_GMAT_IMMUTABLE_OUTPUT")
-    script=gmat_script(src["initial"],files["raw.txt"],mode)
+    script=gmat_script(initial,files["raw.txt"],natural_mode)
     files["executed.script"].write_text(script,encoding="ascii")
     run=subprocess.run(
         [str(src["binary"]),"--run",str(files["executed.script"].resolve())],
@@ -208,7 +242,9 @@ def gmat(out:Path,root:Path,binary:Path,mode:str)->dict:
     files["stdout.log"].write_text(run.stdout,encoding="utf-8")
     files["stderr.log"].write_text(run.stderr,encoding="utf-8")
     receipt={"status":"NOT_VERIFIED","engine":"REAL_GMAT_R2026a","mode":mode,
-             "third_body_enabled":mode=="on","scientific_verdict":"INCONCLUSIVE",
+             "third_body_enabled":natural_mode=="on","scientific_verdict":"INCONCLUSIVE",
+             "actual_input_state_SI":{k:float(initial[k]) for k in AXES},
+             "Qz90_counterfactual_input":rotated,
              "return_code":run.returncode,
              "binary_sha256":src["binary_sha256"],"startup_sha256":src["startup_sha256"],
              "source_sha256":src["source_sha256"],
@@ -320,9 +356,117 @@ def compare(out:Path,root:Path,binary:Path)->dict:
     return diag
 
 
+def compare_qz90(out:Path,root:Path,binary:Path)->dict:
+    """Real proper 90deg physical orientation test, not a fitted frame map."""
+    source=_source(out,root,binary)
+    states={};hashes={}
+    for engine in ("bsk","gmat"):
+        for mode in MODES+ROT_MODES:
+            path=_name(source["out"],engine,mode,"state.csv")
+            receipt=json.loads(_name(source["out"],engine,mode,"execution.json").read_text())
+            expected="REAL_NATIVE" if engine=="bsk" else "REAL_GMAT"
+            natural=base_mode(mode)
+            rotated=mode in ROT_MODES
+            init=rotate_input_qz90(source["initial"]) if rotated else source["initial"]
+            if (receipt.get("status")!=expected+"_THIRDBODY_EXECUTED_INCONCLUSIVE"
+                or receipt.get("scientific_verdict")!="INCONCLUSIVE"
+                or receipt.get("real_force_model_executed") is not True
+                or receipt.get("mode")!=mode or receipt.get("rows")!=91
+                or receipt.get("third_body_enabled") is not (natural=="on")
+                or receipt.get("Qz90_counterfactual_input") is not rotated
+                or receipt.get("actual_input_state_SI")!={k:float(init[k]) for k in AXES}
+                or baseline._sha256(path)!=receipt.get("state_sha256")):
+                raise ValueError("DT2_ROT90_SOURCE_ENGINE_PROVENANCE_INVALID: "+engine+mode)
+            if engine=="gmat":
+                raw=_name(source["out"],engine,mode,"raw.txt")
+                script=_name(source["out"],engine,mode,"executed.script")
+                if (receipt.get("return_code")!=0
+                    or receipt.get("effective_mu_independently_verified") is not False
+                    or receipt.get("declared_earth_sun_moon_mu_km3_s2")!=MU
+                    or baseline._sha256(raw)!=receipt.get("raw_sha256")
+                    or baseline._sha256(script)!=receipt.get("script_sha256")
+                    or script.read_text(encoding="ascii")!=gmat_script(init,raw,natural)):
+                    raise ValueError("DT2_ROT90_REAL_GMAT_SCRIPT_OR_MU_CHANGED")
+            elif receipt.get("true_spice_kernel_pool_count")!=3:
+                raise ValueError("DT2_ROT90_BASILISK_SPICE_PROVENANCE_MISSING")
+            states[engine,mode]=baseline._read_states(path,baseline.CASE["epoch_utc"],
+                tick_skew_budget_s=(baseline.GMAT_REPORT_FLOAT_TIME_SKEW_BUDGET_S if engine=="gmat" else 1e-6))
+            hashes[engine+"_"+mode]=receipt["state_sha256"]
+            if len(states[engine,mode])!=91 or any(
+                abs(states[engine,mode][0][k]-float(init[k]))>1e-6 for k in AXES
+            ):
+                raise ValueError("DT2_ROT90_UNEXPECTED_REAL_INITIAL_OR_GRID")
+    rows=[];summary={}
+    for engine in ("bsk","gmat"):
+        separate=[]
+        for i in range(91):
+            def vec(mode,keys):
+                return [float(states[engine,mode][i][k]) for k in keys]
+            def metrics(keys):
+                off=vec("off",keys);on=vec("on",keys)
+                roff=vec("rot-off",keys);ron=vec("rot-on",keys)
+                no=[on[j]-off[j] for j in range(3)]
+                nr=[ron[j]-roff[j] for j in range(3)]
+                return math.dist(roff,q90(off)),math.dist(nr,q90(no))
+            offp,dirp=metrics(AXES[:3]);offv,dirv=metrics(AXES[3:])
+            if not all(math.isfinite(v) and v>=0 for v in (offp,dirp,offv,dirv)):
+                raise ValueError("DT2_ROT90_NONFINITE_PHYSICAL_OBSERVATION")
+            separate.append({
+                "engine":engine,"sample":i,
+                "unrotated_elapsed_s":states[engine,"on"][i]["time_s"],
+                "Qz90_real_elapsed_s":states[engine,"rot-on"][i]["time_s"],
+                "OFF_central_force_rotation_covariance_position_residual_m":offp,
+                "OFF_central_force_rotation_covariance_velocity_residual_m_s":offv,
+                "fixed_Sun_Luna_directional_break_position_m":dirp,
+                "fixed_Sun_Luna_directional_break_velocity_m_s":dirv,
+            })
+        summary[engine]={
+            "OFF_central_rotation_covariance_max_position_m":
+                max(r["OFF_central_force_rotation_covariance_position_residual_m"] for r in separate),
+            "OFF_central_rotation_covariance_max_velocity_m_s":
+                max(r["OFF_central_force_rotation_covariance_velocity_residual_m_s"] for r in separate),
+            "ON_fixed_solar_lunar_directional_break_max_position_m":
+                max(r["fixed_Sun_Luna_directional_break_position_m"] for r in separate),
+            "ON_fixed_solar_lunar_directional_break_max_velocity_m_s":
+                max(r["fixed_Sun_Luna_directional_break_velocity_m_s"] for r in separate),
+        }
+        if summary[engine]["ON_fixed_solar_lunar_directional_break_max_position_m"]<=0:
+            raise ValueError("DT2_ROT90_THIRD_BODY_DIRECTIONAL_RESPONSE_MISSING: "+engine)
+        rows.extend(separate)
+    file=source["out"]/"thirdbody_Qz90_physical_rotation_rows.csv"
+    receipt=source["out"]/"thirdbody_Qz90_physical_rotation_diagnostic.json"
+    if file.exists() or receipt.exists():
+        raise FileExistsError("DT2_ROT90_IMMUTABLE_OUTPUT_ALREADY_EXISTS")
+    with file.open("w",encoding="utf-8",newline="") as io:
+        writer=csv.DictWriter(io,fieldnames=list(rows[0]))
+        writer.writeheader();writer.writerows(rows)
+    doc={
+        "scientific_verdict":"INCONCLUSIVE",
+        "status":"INCONCLUSIVE",
+        "actual_real_original_traces":4,
+        "actual_new_independent_rotated_engine_runs":4,
+        "real_state_rows_each_engine_mode":91,
+        "comparison_rows":len(rows),
+        "initial_r_and_v_rotated_by_predeclared_Qz90":True,
+        "official_DE421_Sun_Luna_ephemerides_not_rotated":True,
+        "genuine_off_central_force_rotation_symmetry_control":True,
+        "genuine_on_third_body_directional_symmetry_break_control":True,
+        "original_effective_GMAT_Mu_independent_readback_verified":False,
+        "Basilisk_N_to_GMAT_EarthICRF_physical_frame_approved":False,
+        "absolute_Basilisk_ET_GMAT_A1_mapping_approved":False,
+        "mission_accuracy_budget_approved":False,
+        "engine_metrics":summary,
+        "real_source_state_hashes":hashes,
+        "original_source_sha256":source["source_sha256"],
+        "true_output_sha256":baseline._sha256(file),
+    }
+    baseline._write_json(receipt,doc)
+    return doc
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action",choices=("bsk-off","bsk-on","gmat-off","gmat-on","compare"))
+    parser.add_argument("action",choices=("bsk-off","bsk-on","gmat-off","gmat-on","bsk-rot-off","bsk-rot-on","gmat-rot-off","gmat-rot-on","compare","compare-qz90"))
     parser.add_argument("--output",type=Path,required=True)
     parser.add_argument("--gmat-root",type=Path,required=True)
     parser.add_argument("--gmat-executable",type=Path,required=True)
@@ -332,6 +476,8 @@ def main():
         result=native(a.output,a.gmat_root,a.gmat_executable,mode)
     elif engine=="gmat":
         result=gmat(a.output,a.gmat_root,a.gmat_executable,mode)
+    elif a.action=="compare-qz90":
+        result=compare_qz90(a.output,a.gmat_root,a.gmat_executable)
     else:
         result=compare(a.output,a.gmat_root,a.gmat_executable)
     print("DT2_REAL_THIRDBODY",json.dumps({

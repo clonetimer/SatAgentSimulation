@@ -53,3 +53,30 @@ def test_true_run_cannot_start_without_real_source_files(tmp_path):
             tb.gmat(tmp_path,tmp_path,tmp_path/"missing-GmatConsole",mode)
     with pytest.raises(FileNotFoundError):
         tb.compare(tmp_path,tmp_path,tmp_path/"missing-GmatConsole")
+
+def test_true_Qz90_initial_input_and_GMAT_absolute_source_contract():
+    base=sample()
+    rotated=tb.rotate_input_qz90(base)
+    assert [rotated[k] for k in tb.AXES]==[-0.,6650000.,0.,-7742.,0.,0.]
+    assert base["x_m"]==6650000.
+    assert tb.q90([2.,3.,4.])==[-3.,2.,4.]
+    assert tb.base_mode("rot-off")=="off"
+    assert tb.base_mode("rot-on")=="on"
+    for bad in ("off-rot","unknown"):
+        with pytest.raises(ValueError,match="DT2_ROT90_INVALID_MODE"):
+            tb.base_mode(bad)
+    for mode in tb.MODES:
+        orig=tb.gmat_script(base,Path("/tmp/original.csv"),mode)
+        counter=tb.gmat_script(rotated,Path("/tmp/original.csv"),mode)
+        assert orig!=counter
+        assert counter.count("Propagate CrossProp(CrossSat)")==90
+        assert "CrossSat.CoordinateSystem = EarthICRF;" in counter
+        assert "GMAT Sun.Mu = 132712440023.31;" in counter
+    for invalid in (dict(base,x_m=float("nan")),{"x_m":123.}):
+        with pytest.raises(ValueError,match="DT2_ROT90_"):
+            tb.rotate_input_qz90(invalid)
+
+
+def test_Qz90_comparison_fail_closed_when_authentic_replay_missing(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        tb.compare_qz90(tmp_path,tmp_path,tmp_path/"no-real-GMATConsole")
