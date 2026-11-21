@@ -24,7 +24,7 @@ def test_gmat_5_to_2p5_to_1_s_only_changes_initial_and_maxstep():
                                       "CrossProp.MaxStep = "+format(sec,".15g")+";")
             assert updated==expected
             assert tb.step_s(mode)==sec
-            assert tb._physical_mode(mode)==force
+            assert tb.base_mode(mode)==force
             assert "CrossSat.CoordinateSystem = EarthICRF;" in updated
     for bad in ("step3-on","step4-off","",None):
         with pytest.raises(ValueError,match="DT2_CONVERGENCE_INVALID_STEP_MODE"):
