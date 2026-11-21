@@ -396,6 +396,24 @@ parameters:
     default: 0
     min: 0
     max: 1
+  imu_gyro_lsb_rad_s:
+    type: number
+    label: IMU 陀螺原生量化步长
+    description: 官方 Basilisk ImuSensor 的 gyro LSB，0 为关闭；使用 setLSBs(accel,gyro)，并非后处理量化。
+    unit: rad/s
+    required: false
+    default: 0
+    min: 0
+    max: 0.1
+  imu_accel_lsb_m_s2:
+    type: number
+    label: IMU 加速度计原生量化步长
+    description: 官方 Basilisk ImuSensor 的 accel LSB，0 为关闭；仅说明量化，不代表真实硬件标定精度。
+    unit: m/s^2
+    required: false
+    default: 0
+    min: 0
+    max: 1
   imu_gyro_max_rad_s:
     type: number
     unit: rad/s
