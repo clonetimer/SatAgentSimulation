@@ -396,6 +396,22 @@ parameters:
     default: 0
     min: 0
     max: 1
+  imu_gyro_quantization_lsb_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    default: 0
+    min: 0
+    max: 0.1
+    description: Official Basilisk ImuSensor gyro output LSB. 0 disables quantization; no CAD-derived or as-built sensor calibration.
+  imu_accel_quantization_lsb_m_s2:
+    type: number
+    unit: m/s^2
+    required: false
+    default: 0
+    min: 0
+    max: 1
+    description: Official Basilisk ImuSensor accelerometer output LSB. 0 disables quantization; no hardware calibration claim.
   imu_gyro_max_rad_s:
     type: number
     unit: rad/s
