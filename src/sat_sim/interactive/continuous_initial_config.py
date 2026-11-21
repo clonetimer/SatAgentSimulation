@@ -175,6 +175,22 @@ class NativeAdcsInitial(_Strict):
     rw_mount_b_x_m_3: float | None = Field(default=None, ge=-.25, le=.25, description="RW4 机体系 B 三维安装位置X 坐标（m），仅逐轮几何模式、4 轮构型")
     rw_mount_b_y_m_3: float | None = Field(default=None, ge=-.25, le=.25, description="RW4 机体系 B 三维安装位置Y 坐标（m），仅逐轮几何模式、4 轮构型")
     rw_mount_b_z_m_3: float | None = Field(default=None, ge=-.25, le=.25, description="RW4 机体系 B 三维安装位置Z 坐标（m），仅逐轮几何模式、4 轮构型")
+    rw_command_deadband_nm: float = Field(default=0., ge=0., le=.2, description="项目 Basilisk 调度 RW 驱动指令死区（N·m），位于官方飞轮输入前；0=关闭，不代表飞轮内部电路模型")
+    rw_motor_response_time_constant_s: float = Field(default=0., ge=0., le=5., description="项目 Basilisk 调度的一阶电机驱动力矩响应时间常数 τ（s）；0=关闭，不是 OEM 实测参数")
+    @field_validator("rw_command_deadband_nm", mode="before")
+    @classmethod
+    def strict_rw_command_deadband(cls, value):
+        if type(value) not in (int, float):
+            raise ValueError("NATIVE_RW_COMMAND_DEADBAND_REQUIRES_REAL_NUMBER")
+        return value
+
+    @field_validator("rw_motor_response_time_constant_s", mode="before")
+    @classmethod
+    def strict_rw_motor_response_time_constant(cls, value):
+        if type(value) not in (int, float):
+            raise ValueError("NATIVE_RW_RESPONSE_TIME_CONSTANT_REQUIRES_REAL_NUMBER")
+        return value
+
     rw_motor_current_limit_a: float = Field(default=10., ge=0., le=20., description="电机驱动器最大电流 Imax（A）；通过真实 Basilisk 任务调度命令限制 RW 力矩")
     rw_motor_torque_constant_nm_per_a: float = Field(default=.02, gt=0., le=.2, description="电机扭矩常数 Kt（N·m/A）；实际电机最大扭矩=min(官方 RW u_max, Imax×Kt)")
     rw_motor_current_limit_a_0: float | None = Field(default=None, ge=0., le=20., description="RW1 独立驱动器电流 Imax (A)，缺省继承共享值")
@@ -455,6 +471,8 @@ _UNITS = {
     "rw_mount_b_x_m_3": "m",
     "rw_mount_b_y_m_3": "m",
     "rw_mount_b_z_m_3": "m",
+    "rw_command_deadband_nm": "N·m",
+    "rw_motor_response_time_constant_s": "s",
     "rw_motor_current_limit_a": "A",
     "rw_motor_torque_constant_nm_per_a": "N·m/A",
     "rw_motor_current_limit_a_0": "A", "rw_motor_current_limit_a_1": "A",

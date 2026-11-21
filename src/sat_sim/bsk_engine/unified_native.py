@@ -1973,6 +1973,8 @@ class UnifiedNativeRuntime:
             motor_torque_constant_nm_per_a=values.get("rw_motor_torque_constant_nm_per_a", 0.02),
             wheel_current_limits_a=rw_currents_a,
             wheel_torque_constants_nm_per_a=rw_torque_constants,
+            command_deadband_nm=values.get("rw_command_deadband_nm", 0.0),
+            motor_response_time_constant_s=values.get("rw_motor_response_time_constant_s", 0.0),
         )
         rw_fault.commandInMsg.subscribeTo(motor.rwMotorTorqueOutMsg)
         rw_fault.speedInMsg.subscribeTo(rw.rwSpeedOutMsg)
