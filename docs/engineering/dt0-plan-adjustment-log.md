@@ -306,9 +306,12 @@ Basilisk 2.11.0 已提供官方 SRP 面片模型和地球反照/红外环境模�
 
 **充分性：** 直接使用被官方 C++ 动力学计算赋值的力变量，结合非零相对速度、F_B·v_B<0 和同条件轨道能量差，可跨过字段合同、作用方向及动力学响应三个独立层面的验证。后续还必须保留数值步长收敛、任务容差和外部参考 V&V，不能把本轮工程 A/B 当成飞行精度证明。
 
-**影响：** 改变新 DT1-A1 候选模型的输出字段合同和验收测试；不影响 R0 默认配置，不改变 Basilisk C++ 模型或旧 Run Bundle。尚未通过最新提交的 native CI，不得宣称正式完成。
+**影响：** 改变新 DT1-A1 候选模型的输出字段合同和验收测试；不影响 R0 默认配置，不改变 Basilisk C++ 模型或旧 Run Bundle。修复初次记录时尚未通过同头 native CI；后续真实验收结果见下方核销证据。
 
 **验收条件：** 当前 PR 同一 head 的官方 Basilisk 2.11.0 native CI 跑完，力、相对速度、耗散功率、半长轴 A/B 与旧回归全部 PASS；失败时先查真实物理及调用相位，不放宽断言。
+
+**核销证据（2026-11-20 原生测试；2026-11-21 集成复核）：** PR #206 原始物理验收 HEAD `ffecb139f1f9861a80e1ba6ff7d091eff66f7a30` 的 [native CI #44755915226](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44755915226) SUCCESS，环境 12/12 PASS；61 样本最大 `forceExternal_B` 阻力 `3.725094387e-02 N`、最小耗散功率 `-2.740595737e+02 W`，同初态 600 s 半长轴差 `-3812.304821376 m`。测试专用质量 10 kg、面积 10 m²、Cd=2.2 与合成天气夹具均非默认参数或飞行标定。PR #213 集成候选 HEAD `c385d9067109afe9d0b49d90e6e5cabff2030495` 的 [原生整星 CI #44810938798](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44810938798) SUCCESS，四环境效应同任务与正式 TaskSpec/脚本/Run Bundle 产品路径通过；集成 HEAD 15 SUCCESS、1 条件性 SKIPPED、0 FAIL。此核销只证明候选分支工程受力与内部动力学，不等于 main 已合并、独立轨道真值相关或飞行级验证；后继文档提交需独立检查最终 HEAD。
+
 
 ## CHG-DT0-012：空间天气资产的“哈希一致”与“真实来源”分离记录
 
