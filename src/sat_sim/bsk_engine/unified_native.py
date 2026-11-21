@@ -1825,7 +1825,6 @@ class UnifiedNativeRuntime:
                 seed=int(values.get("simulation_seed", values.get("random_seed", 0))),
             )
             add(imu_bias_walk, "project_imu_bias_random_walk", "basilisk_project_native", 91)
-            connected("project_imu_bias_random_walk", "imu.senRotBias+senTransBias")
 
         sun_sensor = coarseSunSensor.CoarseSunSensor()
         from .sun_sensor_geometry import resolve_sun_sensor_boresight
@@ -3216,6 +3215,8 @@ class UnifiedNativeRuntime:
                 "gyro_increment_std_rad_s_sqrt_s": gyro_walk_std,
                 "accel_increment_std_m_s2_sqrt_s": accel_walk_std,
                 "sample_clock": "Basilisk scheduler current_sim_nanos",
+                "project_sysmodel_priority": 91,
+                "official_imu_priority": 90,
                 "seed_streams": "simulation_seed with distinct deterministic gyro/accelerometer derivations",
                 "installation_evidence": "NOT_PROVIDED",
                 "hardware_calibration": False,
