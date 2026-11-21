@@ -67,6 +67,8 @@ class NativeAdcsInitial(_Strict):
     simulation_seed: StrictInt = Field(default=0, ge=0, le=2147483647, description="官方 Basilisk IMU、星敏和项目事件注入共用的仿真随机种子；相同软件环境内可复现")
     imu_gyro_white_noise_std_rad_s: float = Field(default=0., ge=0., le=.1, description="官方 Basilisk ImuSensor 陀螺三轴白噪声标准差（rad/s），直接配置 PMatrixGyro 与 A=0；0=禁用")
     imu_accel_white_noise_std_m_s2: float = Field(default=0., ge=0., le=1., description="官方 Basilisk ImuSensor 加速度计三轴白噪声标准差（m/s²），直接配置 PMatrixAccel 与 A=0；0=禁用")
+    imu_gyro_lsb_rad_s: float = Field(default=0., ge=0., le=.1, description="官方 Basilisk IMU 陀螺 LSB（rad/s），0=关闭量化；仅为工程测试设定")
+    imu_accel_lsb_m_s2: float = Field(default=0., ge=0., le=1., description="官方 Basilisk IMU 加速度计 LSB（m/s²），0=关闭量化；非实测硬件精度")
     imu_gyro_max_rad_s: float = Field(default=0., ge=0., le=1000., description="原生 IMU 陀螺最大量程（rad/s，0=保持原生默认）")
     imu_accel_max_m_s2: float = Field(default=0., ge=0., le=1000., description="原生 IMU 加速度计最大量程（m/s²，0=保持原生默认）")
     star_tracker_noise_std_arcsec: float = Field(default=0., ge=0., le=3600., description="原生星敏逐轴白噪声标准差（arcsec，0=关闭）")
@@ -414,6 +416,8 @@ _UNITS = {
     "simulation_seed": "整数",
     "imu_gyro_white_noise_std_rad_s": "rad/s",
     "imu_accel_white_noise_std_m_s2": "m/s²",
+    "imu_gyro_lsb_rad_s": "rad/s",
+    "imu_accel_lsb_m_s2": "m/s²",
     "imu_gyro_max_rad_s": "rad/s",
     "imu_accel_max_m_s2": "m/s²",
     "star_tracker_noise_std_arcsec": "arcsec",
