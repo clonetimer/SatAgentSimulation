@@ -398,7 +398,7 @@ parameters:
     max: 1
   imu_gyro_bias_random_walk_std_rad_s_sqrt_s:
     type: number
-    unit: rad/s/sqrt(s)
+    unit: rad/s/√s
     required: false
     default: 0
     min: 0
@@ -406,7 +406,7 @@ parameters:
     description: Project Basilisk-scheduled gyro bias random-walk increment standard deviation coefficient. Applied to official ImuSensor bias before its measurement update; 0 disables; not OEM calibration.
   imu_accel_bias_random_walk_std_m_s2_sqrt_s:
     type: number
-    unit: m/s^2/sqrt(s)
+    unit: m/s²/√s
     required: false
     default: 0
     min: 0
