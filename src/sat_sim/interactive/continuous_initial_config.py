@@ -205,6 +205,15 @@ class NativeAdcsInitial(_Strict):
     rw_initial_speed_rad_s_3: float | None = Field(default=None, ge=-500., le=500.,
                                                    description="仅 4 轮金字塔构型可设置 RW4 初始轮速 (rad/s)")
 
+    @field_validator("imu_gyro_lsb_rad_s", "imu_accel_lsb_m_s2", mode="before")
+    @classmethod
+    def reject_non_numeric_native_lsb(cls, value):
+        # Pydantic's float coercion otherwise silently maps True to 1.0.
+        # Native quantum is an explicitly supplied engineering number.
+        if type(value) not in (int, float):
+            raise ValueError("NATIVE_IMU_QUANTIZATION_INVALID")
+        return value
+
     @field_validator("rw_motor_current_limit_a", "rw_motor_torque_constant_nm_per_a",
                      "rw_motor_current_limit_a_0", "rw_motor_current_limit_a_1",
                      "rw_motor_current_limit_a_2", "rw_motor_current_limit_a_3",
