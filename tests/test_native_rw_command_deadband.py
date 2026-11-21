@@ -34,6 +34,10 @@ def test_rw_deadband_registry_form_and_disabled_baseline():
     validate_native_rw_settings({})
     validate_native_rw_settings({KEY: 0.0})
     validate_native_rw_settings({KEY: 0.2})
+    assert fields["rw_motor_response_time_constant_s"]["default"] == 0.0
+    assert fields["rw_motor_response_time_constant_s"]["unit"] == "s"
+    validate_native_rw_settings({"rw_motor_response_time_constant_s": 0.0})
+    validate_native_rw_settings({"rw_motor_response_time_constant_s": 5.0})
 
 
 @pytest.mark.parametrize("invalid", [-0.001, .201, float("nan"), float("inf"),
@@ -106,7 +110,7 @@ def test_real_four_rw_actuation_is_suppressed_by_explicit_deadband():
 
 
 def _scheduled_rw_command_snapshot(commands, speeds, *, deadband_nm, events=(),
-                                   current_limits_a=None):
+                                   current_limits_a=None, response_time_constant_s=0.0):
     """Read the actual Basilisk ArrayMotorTorqueMsg output of the project driver."""
     pytest.importorskip("Basilisk")
     from Basilisk.architecture import messaging
@@ -115,6 +119,7 @@ def _scheduled_rw_command_snapshot(commands, speeds, *, deadband_nm, events=(),
     manager = ReactionWheelCommandFaultManager(
         events=events, wheel_count=3, command_deadband_nm=deadband_nm,
         wheel_current_limits_a=current_limits_a,
+        motor_response_time_constant_s=response_time_constant_s,
     )
     cmd_payload = messaging.ArrayMotorTorqueMsgPayload()
     values = list(cmd_payload.motorTorque)
@@ -178,3 +183,142 @@ def test_deadband_never_masks_jam_or_overspeed_braking_and_respects_motor_open(
     assert applied[0] == pytest.approx(expected, abs=1e-12)
     assert available[0] == pytest.approx(authority, abs=1e-12)
     assert applied[1:] == pytest.approx((0., 0.), abs=1e-12)
+
+
+
+@pytest.mark.parametrize("invalid", [-0.001, 5.001, float("nan"), float("inf"),
+                                      True, "0.5", None])
+def test_motor_response_time_constant_rejects_invalid_native_and_dialogue_values(invalid):
+    with pytest.raises(ValueError, match="NATIVE_RW_RESPONSE_TIME_CONSTANT_INVALID"):
+        validate_native_rw_settings({"rw_motor_response_time_constant_s": invalid})
+    with pytest.raises(ValidationError):
+        ContinuousInitialConfiguration.model_validate({
+            "adcs": {"rw_motor_response_time_constant_s": invalid}
+        })
+
+
+def _scheduled_rw_lag_trace(commands, times_nanos, *, response_time_constant_s, events=()):
+    """Run the actual project SysModel against Basilisk message readers/writers."""
+    pytest.importorskip("Basilisk")
+    from Basilisk.architecture import messaging
+    from sat_sim.bsk_engine.project_native_modules import ReactionWheelCommandFaultManager
+
+    manager = ReactionWheelCommandFaultManager(
+        events=events, wheel_count=3,
+        motor_response_time_constant_s=response_time_constant_s,
+    )
+    command_msg = messaging.ArrayMotorTorqueMsg()
+    speed_msg = messaging.RWSpeedMsg()
+    manager.commandInMsg.subscribeTo(command_msg)
+    manager.speedInMsg.subscribeTo(speed_msg)
+    outputs = []
+    for command, now in zip(commands, times_nanos, strict=True):
+        payload = messaging.ArrayMotorTorqueMsgPayload()
+        motor_torque = list(payload.motorTorque)
+        motor_torque[:3] = [float(command), 0.0, 0.0]
+        payload.motorTorque = motor_torque
+        command_msg.write(payload, int(now), 0)
+        speed = messaging.RWSpeedMsgPayload()
+        speed_msg.write(speed, int(now), 0)
+        manager.UpdateState(int(now))
+        outputs.append(float(manager.commandOutMsg.read().motorTorque[0]))
+    return outputs
+
+
+def test_motor_response_time_constant_matches_exact_scheduler_time_first_order_solution():
+    tau = 1.0
+    commands = [0.1, 0.1, 0.1, -0.1]
+    times = [0, 250_000_000, 1_000_000_000, 2_500_000_000]
+    actual = _scheduled_rw_lag_trace(commands, times, response_time_constant_s=tau)
+    expected = []
+    state = 0.0
+    previous = times[0]
+    for index, (command, now) in enumerate(zip(commands, times, strict=True)):
+        dt_s = 0.0 if index == 0 else (now - previous) * 1e-9
+        alpha = -math.expm1(-dt_s / tau) if dt_s > 0.0 else 0.0
+        state += alpha * (command - state)
+        expected.append(state)
+        previous = now
+    assert actual == pytest.approx(expected, rel=1e-12, abs=1e-12)
+    assert actual[0] == 0.0
+    assert 0.0 < actual[1] < actual[2] < 0.1
+    assert actual[3] < actual[2]
+    print("DT2_RW_FIRST_ORDER_RESPONSE_NATIVE_MSG_VERIFIED "
+          f"tau_s={tau} times_s=0,0.25,1,2.5 output_nm="
+          + ",".join(f"{x:.9e}" for x in actual), flush=True)
+
+
+def test_motor_response_lag_rejects_nonmonotonic_scheduler_time():
+    with pytest.raises(ValueError, match="NATIVE_RW_RESPONSE_TIME_NOT_MONOTONIC"):
+        _scheduled_rw_lag_trace(
+            [0.1, 0.1, 0.1], [0, 1_000_000_000, 500_000_000],
+            response_time_constant_s=1.0)
+
+
+def test_motor_response_lag_fault_overrides_bypass_filter_and_clear_drive_memory():
+    from sat_sim.bsk_engine.types import BSKEventSpec
+
+    jam = BSKEventSpec(
+        event_id="dt2_lag_jam", category="fault", effect="adcs_rw_jamming",
+        target="adcs", start_s=0., end_s=2.,
+        parameters={"wheel_index": 0, "brake_torque_nm": 0.1})
+    applied, authority = _scheduled_rw_command_snapshot(
+        (0.1, 0., 0.), (25., 0., 0.), deadband_nm=0.0,
+        events=(jam,), response_time_constant_s=1.0)
+    assert applied[0] == pytest.approx(-0.1, abs=1e-12)
+    assert authority[0] == pytest.approx(0.0, abs=1e-12)
+
+    motor_open = BSKEventSpec(
+        event_id="dt2_lag_motor_open", category="fault",
+        effect="adcs_rw_motor_failure", target="adcs",
+        start_s=2.0, end_s=2.5, parameters={"wheel_index": 0})
+    trace = _scheduled_rw_lag_trace(
+        [0.1, 0.1, 0.1, 0.1],
+        [0, 1_000_000_000, 2_000_000_000, 3_000_000_000],
+        response_time_constant_s=1.0, events=(motor_open,))
+    assert trace[0] == pytest.approx(0.0, abs=1e-12)
+    assert trace[1] == pytest.approx(0.06321205588285576, rel=1e-12)
+    assert trace[2] == pytest.approx(0.0, abs=1e-12)
+    assert trace[3] == pytest.approx(0.06321205588285576, rel=1e-12)
+
+
+def test_real_basilisk_motor_response_lag_changes_applied_torque_and_native_wheel_speed():
+    pytest.importorskip("Basilisk")
+    from sat_sim.capability_registry import get_adapter_for_capability
+    from test_unified_native_migration import WHOLE_ID, _short_spec
+
+    adapter = get_adapter_for_capability(WHOLE_ID)
+
+    def run(values):
+        result = adapter.run(_short_spec(
+            WHOLE_ID, duration_s=25.0, values={
+                "initial_pointing_error_deg": 35.0, **values,
+            }))
+        assert result.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
+        assert "reaction_wheels" in result.metadata["model_source_boundary"]["basilisk_official_native"]
+        return list(result.trace_rows)
+
+    baseline = run({})
+    explicit_zero = run({"rw_motor_response_time_constant_s": 0.0})
+    lagged = run({"rw_motor_response_time_constant_s": 0.5})
+    assert len(baseline) == len(explicit_zero) == len(lagged) >= 5
+    assert [row["time_s"] for row in baseline] == [row["time_s"] for row in lagged]
+    for a, b in zip(baseline, explicit_zero, strict=True):
+        for wheel in range(3):
+            for key in ("adcs.control.applied_torque_nm_", "adcs.rw.speed_rad_s_"):
+                assert b[f"{key}{wheel}"] == pytest.approx(
+                    a[f"{key}{wheel}"], rel=1e-12, abs=1e-12)
+    raw = max(abs(float(row["adcs.rw.command_torque_nm_0"])) for row in lagged[1:])
+    torque_delta = max(abs(float(a["adcs.control.applied_torque_nm_0"]) -
+                            float(b["adcs.control.applied_torque_nm_0"]))
+                       for a, b in zip(baseline[1:], lagged[1:], strict=True))
+    speed_delta = max(abs(float(a["adcs.rw.speed_rad_s_0"]) -
+                           float(b["adcs.rw.speed_rad_s_0"]))
+                      for a, b in zip(baseline[1:], lagged[1:], strict=True))
+    assert raw > 1e-5
+    assert math.isfinite(torque_delta) and torque_delta > 1e-5
+    assert math.isfinite(speed_delta) and speed_delta > 1e-5
+    print(f"DT2_RW_RESPONSE_LAG_NATIVE_AB_MEASURED tau_s=0.5 "
+          f"applied_torque_delta_max_nm={torque_delta:.9e} "
+          f"rw0_speed_delta_max_rad_s={speed_delta:.9e} "
+          "duration_s=25 step_s=0.2 zero_default=0", flush=True)
