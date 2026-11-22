@@ -76,3 +76,14 @@
 四个 HTTP 客户端在本机通过回环 TCP 同时读取同一百万行源文件的不同窗口。在 `fde95c7` 上，四个首次请求最慢 10.761 s。#227 提交 `ef8d529` 让同一进程的读者共用首次建表，复测最慢 2.768 s。索引就绪后四客户端各连续请求 100 次，400 次的 P50/P95/P99 为 29.46/39.62/48.29 ms。两版本各完成 504 次请求，逐次核对全部 101 条记录的样本序号。实验各执行一轮，服务端为单个 Uvicorn 进程，测量到完整响应体读完，目标 GPU、浏览器渲染和长时运行另行验收。[复现脚本](../../reports/dt5_server_preflight/concurrent_http.py)、[修复前](../../reports/dt5_server_preflight/concurrent_http_results.json)及[修复后逐请求读数](../../reports/dt5_server_preflight/concurrent_http_shared_build.json)。
 
 在 #227 的 `ef8d529` 上使用 Windows 11、headless Chrome 157 的实际轨道画布，WebGL 报告 Intel UHD Graphics / ANGLE Direct3D 11。百万行合成源通过真实服务函数和浏览器请求产生 9,997 条概览记录；测量脚本将概览交给场景接口，1034 × 846 画布显示 589 个轨迹样本。一次绑定耗时 85.4 ms。静止画面 180 个 rAF 间隔的 P50/P95/P99 为 7.0/14.1/35.0 ms；120 次鼠标移动期间相应值为 7.0/7.2/7.3 ms。两段按顺序在同一页面采集，后段经过预热。rAF 反映浏览器调度间隔，GPU 命令耗时、显示器呈现延迟和目标机 SLA 仍待测。复现前在服务工作树按项目流程准备离线 Globe 资源，并使用同一百万行夹具。[测量脚本](../../reports/dt5_server_preflight/scene_frames.py)与[逐帧数据](../../reports/dt5_server_preflight/scene_frames.json)。
+
+### DT-3 地球引力参数的轨迹反演
+
+对 [#215 原始双引擎归档](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44993669027/artifacts/14742707931) 中两条仅含地球点质量引力的 GMAT R2026a 轨迹独立重算。每条轨迹的 91 行六维状态经 km→m 转换均与归档 CSV 逐数值一致；原始报告与归一化 CSV 的 SHA-256 均与各自执行回执一致。令 h = r × v，二体轨道的 v × h − μ r/|r| 是常向量。将两侧按全轨均值中心化，最小二乘估计标量 μ，拟合时仅输入位置、速度。
+
+| GMAT 执行 | 轨迹反演的 μ（km³/s²） |
+| --- | ---: |
+| 默认地球参数 | 398600.4415000 |
+| 脚本显式设置 398600.436 | 398600.4360000 |
+
+两条轨迹反映的参数差为 0.0055 km³/s²，与归档中记录的文档值和显式干预一致。复算覆盖历史地球二体案例；直接读取 GMAT 引擎参数、日月参数身份、绝对时标、物理轴向和任务容差仍需独立证据，#215 科学判定继续为 INCONCLUSIVE。下载上述归档后，从计划分支运行 `python reports/dt3_gmat_mu_audit/audit.py <解压目录> <输出JSON>`（依赖 NumPy）。[脚本及结果](../../reports/dt3_gmat_mu_audit/)。

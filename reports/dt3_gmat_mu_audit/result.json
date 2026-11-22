@@ -1,0 +1,14 @@
+{
+  "nominal": {
+    "source_sha256": "50534e39ed72c1964846d82acc392c6f3c9d502d731b912a2d29004a4e9f80b9",
+    "rows": 91,
+    "fitted_km3_s2": 398600.4415000005,
+    "max_vector_residual_m3_s2": 2.18950800695042
+  },
+  "controlled": {
+    "source_sha256": "834bb830d209b5f03e01cdf21f66a9928e7d645814f16ff686078e126f8994e9",
+    "rows": 91,
+    "fitted_km3_s2": 398600.43600000016,
+    "max_vector_residual_m3_s2": 1.2025176658046508
+  }
+}
