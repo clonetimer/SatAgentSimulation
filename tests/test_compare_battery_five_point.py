@@ -1,12 +1,9 @@
 import csv
 import json
-import sys
-from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent))
-from compare_battery_five_point import compare, digest, SAMPLES, STEP_S
+from scripts.compare_battery_five_point import compare, digest, SAMPLES, STEP_S
 
 
 def fixture(tmp_path, *, flags=False, anticorrelated=False):
