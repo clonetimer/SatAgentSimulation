@@ -13,6 +13,7 @@ import os
 from bisect import bisect_left
 from collections import OrderedDict
 from threading import Lock
+from weakref import WeakValueDictionary
 from pathlib import Path
 from typing import Any, Iterator, Mapping
 
@@ -27,6 +28,7 @@ def _time(row: Mapping[str, Any]) -> float | None:
 # Only completed, fully parsed files can supply seek positions. Limits apply
 # independently to the number of cached files and checkpoints per file.
 _indexes = OrderedDict()
+_building = WeakValueDictionary()
 _index_lock = Lock()
 
 
@@ -43,52 +45,67 @@ def _stream(source: Path, start_s: float | None, end_s: float | None) -> Iterato
             cached = _indexes.get(key)
             if cached is not None:
                 _indexes.move_to_end(key)
-        # False denotes a verified nonmonotonic file. Always scan it in order.
-        offset, line_no = 0, 0
-        if cached and start_s is not None:
-            times, positions = cached
-            index = bisect_left(times, start_s) - 1
-            if index >= 0:
-                offset, line_no = positions[index]
-                handle.seek(offset)
-        times_new, positions_new = [], []
-        spacing = max(128 * 1024, (identity[2] + 4095) // 4096)
-        next_offset = 0
-        previous = -math.inf
-        ordered = True
-        for line in handle:
-            beginning = offset
-            offset += len(line)
-            line_no += 1
-            if not line.strip():
-                continue
-            try:
-                value = json.loads(line.decode("utf-8"))
-            except (ValueError, TypeError) as exc:
-                raise ValueError(f"TELEMETRY_OVERVIEW_INVALID_JSON_LINE:{line_no}") from exc
-            if not isinstance(value, dict):
-                raise ValueError(f"TELEMETRY_OVERVIEW_EXPECTED_OBJECT:{line_no}")
-            t = _time(value)
-            if t is None:
-                continue
-            if cached is None and ordered:
-                ordered = t >= previous
-                previous = t
-                if beginning >= next_offset and len(times_new) < 4096:
-                    times_new.append(t)
-                    positions_new.append((beginning, line_no - 1))
-                    next_offset = beginning + spacing
-            if end_s is not None and t > end_s:
-                if cached:
-                    break
-                continue
-            if start_s is None or t >= start_s:
-                yield value
-        if cached is None and _identity(handle) == identity:
+        if cached is None:
+            # Coordinate first scans on this file. Recheck after the previous
+            # reader finishes, including when that reader failed or closed early.
             with _index_lock:
-                _indexes[key] = (times_new, positions_new) if ordered else False
-                if len(_indexes) > 16:
-                    _indexes.popitem(last=False)
+                build_lock = _building.setdefault(key, Lock())
+            with build_lock:
+                with _index_lock:
+                    cached = _indexes.get(key)
+                if cached is None:
+                    yield from _scan(handle, key, identity, cached, start_s, end_s)
+                    return
+        yield from _scan(handle, key, identity, cached, start_s, end_s)
+
+
+def _scan(handle, key, identity, cached, start_s, end_s):
+    # False denotes a verified nonmonotonic file. Always scan it in order.
+    offset, line_no = 0, 0
+    if cached and start_s is not None:
+        times, positions = cached
+        index = bisect_left(times, start_s) - 1
+        if index >= 0:
+            offset, line_no = positions[index]
+            handle.seek(offset)
+    times_new, positions_new = [], []
+    spacing = max(128 * 1024, (identity[2] + 4095) // 4096)
+    next_offset = 0
+    previous = -math.inf
+    ordered = True
+    for line in handle:
+        beginning = offset
+        offset += len(line)
+        line_no += 1
+        if not line.strip():
+            continue
+        try:
+            value = json.loads(line.decode("utf-8"))
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"TELEMETRY_OVERVIEW_INVALID_JSON_LINE:{line_no}") from exc
+        if not isinstance(value, dict):
+            raise ValueError(f"TELEMETRY_OVERVIEW_EXPECTED_OBJECT:{line_no}")
+        t = _time(value)
+        if t is None:
+            continue
+        if cached is None and ordered:
+            ordered = t >= previous
+            previous = t
+            if beginning >= next_offset and len(times_new) < 4096:
+                times_new.append(t)
+                positions_new.append((beginning, line_no - 1))
+                next_offset = beginning + spacing
+        if end_s is not None and t > end_s:
+            if cached:
+                break
+            continue
+        if start_s is None or t >= start_s:
+            yield value
+    if cached is None and _identity(handle) == identity:
+        with _index_lock:
+            _indexes[key] = (times_new, positions_new) if ordered else False
+            if len(_indexes) > 16:
+                _indexes.popitem(last=False)
 
 
 def read_telemetry_overview(
