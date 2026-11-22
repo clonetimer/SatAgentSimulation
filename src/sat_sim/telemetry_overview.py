@@ -46,7 +46,7 @@ def read_telemetry_overview(
     end_s: float | None = None,
 ) -> dict[str, Any]:
     """Two streamed passes, bounded memory regardless of original run length."""
-    if type(max_points) is not int or max_points < 100 or max_points > 5000:
+    if type(max_points) is not int or max_points < 100 or max_points > 10000:
         raise ValueError("TELEMETRY_OVERVIEW_POINT_LIMIT")
     if any(v is not None and not math.isfinite(v) for v in (start_s, end_s)):
         raise ValueError("TELEMETRY_OVERVIEW_INVALID_TIME")

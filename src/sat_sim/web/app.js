@@ -6545,7 +6545,7 @@
           ] : [];
         const overviewFields = Array.from(new Set([...plotFields, ...sceneFields]));
         const query = new URLSearchParams({
-          max_points: '3000', fields: overviewFields.join(','),
+          max_points: '10000', fields: overviewFields.join(','),
         });
         telemetryOverview = await api(`/runs/${encodeURIComponent(runId)}/telemetry/overview?${query}`);
       } catch (_) { telemetryOverview = null; }

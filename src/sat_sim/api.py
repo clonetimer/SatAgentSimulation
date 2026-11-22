@@ -5311,7 +5311,7 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
     @app.get("/runs/{run_id}/telemetry/overview")
     def get_telemetry_overview(
         run_id: str,
-        max_points: int = Query(default=3000, ge=100, le=5000),
+        max_points: int = Query(default=3000, ge=100, le=10000),
         fields: str = Query(default="", max_length=2300),
         start_s: float | None = Query(default=None, ge=0),
         end_s: float | None = Query(default=None, ge=0),
