@@ -1,5 +1,7 @@
 import csv
+import gzip
 import json
+from pathlib import Path
 
 import pytest
 
@@ -108,4 +110,41 @@ def test_changed_reference_bytes_or_time_grid_fail_closed(tmp_path):
     paths[1].write_text(json.dumps(obj))
     with pytest.raises(ValueError, match="TIME_GRID_MISMATCH"):
         compare(*paths)
+
+
+@pytest.mark.parametrize("offset, expected", [(.25, "WITHIN_FROZEN_TOLERANCE"),
+                                             (1., "OUTSIDE_FROZEN_TOLERANCE")])
+def test_real_archived_model_trace_with_explicitly_synthetic_reference(tmp_path, offset, expected):
+    root = Path(__file__).resolve().parents[1]
+    model = root / "reports/external_reference_alignment/model_telemetry.csv.gz"
+    stats = root / "reports/external_reference_alignment/baseline_statistics.json"
+    reference = tmp_path / "synthetic-reference.csv"
+    with gzip.open(model, "rt", newline="", encoding="utf-8") as f, reference.open("w", newline="", encoding="utf-8") as g:
+        source = csv.DictReader(f)
+        target = csv.writer(g)
+        target.writerow(["time_s", *(f"T{i}" for i in range(1, 6))])
+        for row in source:
+            value = float(row["thermal.battery_temp_c"]) + offset
+            target.writerow([row["time_s"], *([value] * 5)])
+    mapping = {
+        "schema_version": "battery-five-point-map.v1",
+        "source_kind": "simulation_output_not_hardware_or_flight",
+        "comparison_target": "thermal.battery_temp_c",
+        "reference_csv_sha256": digest(reference),
+        "status": "CONFIRMED_BY_REFERENCE_OWNER",
+        "mapping_evidence_uri": "test-fixture://synthetic-from-archived-model",
+        "time_column": "time_s", "quality_policy": "all_rows_reviewed_valid",
+        "channels": [
+            {"column": f"T{i}", "package_id": "SYNTHETIC", "measurement_location": f"fixture-{i}",
+             "temperature_definition": "recorded model plus controlled offset", "unit": "degC",
+             "weight": .2, "weight_basis": "synthetic equal weighting"}
+            for i in range(1, 6)
+        ],
+    }
+    mapping_path = tmp_path / "mapping.json"
+    mapping_path.write_text(json.dumps(mapping), encoding="utf-8")
+    result = compare(reference, mapping_path, model, stats)
+    assert result["status"] == expected
+    assert result["common_valid_count"] == SAMPLES
+    assert result["difference_model_minus_reference"]["mean_c"] == pytest.approx(-offset)
 
