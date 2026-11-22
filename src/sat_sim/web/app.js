@@ -7131,7 +7131,7 @@
           ? `从原始 ${overview.total} 条中选取 ${overview.count} 条，局部细节仍可能遗漏`
           : `原始 ${overview.total} 条已完整加载`)
         : '仅代表当前已加载数据';
-      status.textContent = `当前显示 ${rows.length} / ${loadedPoints.length} 条 · 可用时间 ${bounds} · ${sourceNote}。完整数据请导出 Run 数据集。`;
+      status.textContent = `当前显示 ${rows.length} / ${loadedPoints.length} 条 · ${windowRange ? '局部范围' : '完整已加载范围'} · 可用时间 ${bounds} · ${sourceNote}。完整数据请导出 Run 数据集。`;
     }
     if (!rows.length || !series.length) {
       ctx.fillStyle = themeColor('--muted', '#7890a1');
