@@ -122,3 +122,7 @@
 ### DT-2 器件候选独立本机复验
 
 在 #220 的独立工作树 `dbdac07a343751eb8986984c36b2594891d1c310` 用本机 `bsk==2.11.0+satfix2` 执行 `python -m pytest -q -s tests/test_native_imu_bias_random_walk.py`，20 项通过，0 项跳过。采样步长 0.2 s，陀螺仪随机游走增量标准差为 9.209909485e-5 rad/s，加速度计为 9.073490796e-4 m/s²，两者增量相关系数 −0.000877224。相同种子回放符合测试精度，改变种子后序列有差异。轮驱动死区及时延 A/B 在同一 IMU 设置下产生轮 0 最大转速差 0.9135334635 rad/s；11 行联合运行完成封存和完整性验证。执行计划 SHA-256 为 `5159571e0e94d54b74c500d842920fa199e329327da6eb63b3e50d4bf6a20684`。该结果支持候选分支的工程模型与接线；目标器件校准、其余器件非理想和主干交付仍待各自验收。[#220](https://github.com/clonetimer/SatAgentSimulation/pull/220)
+
+### DT-4 独立浏览器复验结果
+
+#207 提交 `e0f00d944ee661d9c810332cfaff230c83c37d1f` 的本机四项专项测试全部通过，零跳过。[测试结果](../../reports/dt4_rw_reference_audit/pytest.xml)及[真实浏览器截图](../../reports/dt4_rw_reference_audit/dt41-real-rw-reference-three-copies.png)。独立轮组 GLB 为 1,410,016 字节，SHA-256 为 `3019d97d4990553bcfab39d9cbe0ea15bad9a294f517481b65df1ec71ce4d795`。端点返回文件与制品成员字节相同。浏览器以测试提供的已校验逐轮配置生成三个实例，每个 24 个 mesh，分别位于 B 系 (0.12,0,0)、(0,−0.08,0)、(0,0,0.07) m。旧配置推断位置时图层禁用，同长度改写一个字节的 GLB 被拒绝。测试使用 Chrome 和指定的软件渲染参数；这些坐标是测试输入，安装审查仍按上表逐轮取证。[云端作业](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44826722085/job/136601077546)
