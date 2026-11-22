@@ -153,3 +153,24 @@ def test_ten_thousand_actual_samples_are_available_without_resampling(tmp_path):
         assert client.get("/runs/run-001/telemetry/overview",
                           params={"max_points": 10_001}).status_code == 422
     assert source.read_bytes() == before
+
+
+def test_cached_window_preserves_duplicates_and_detects_replaced_unordered_file(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    source_rows = [{"time_s": i // 600, "i": i, "padding": "z" * 240} for i in range(3000)]
+    root = _bundle(tmp_path, source_rows)
+    def window():
+        return read_telemetry_overview(root, start_s=2, end_s=2)["rows"]
+
+    expected = [row for row in source_rows if row["time_s"] == 2]
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        assert list(pool.map(lambda _: window(), range(3))) == [expected] * 3
+    assert window() == expected
+
+    source = root / "results/telemetry.jsonl"
+    replacement = source.with_suffix(".new")
+    unordered = [{"time_s": 5}, {"time_s": 2, "i": 1}, {"time_s": 1}, {"time_s": 2, "i": 2}]
+    replacement.write_text("".join(json.dumps(row) + "\n" for row in unordered), encoding="utf-8")
+    replacement.replace(source)
+    assert window() == window() == [unordered[1], unordered[3]]
