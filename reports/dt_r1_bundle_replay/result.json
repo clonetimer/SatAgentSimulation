@@ -1,0 +1,66 @@
+{
+  "original": {
+    "status": "SUCCEEDED",
+    "validation": "PASS",
+    "sealed": true,
+    "plan_sha256": "84486991b1f48c3fab7e9f0cc3e70cc5e1e9e5ef2940584bdc59ee4c95dc65c5",
+    "spec_sha256": "e215619534f8106829b59a1b0880e6ab48dbd55735fd937c7a3db63acd934a93",
+    "telemetry_sha256": "8bb08e130a8956eb86119d65534cdf86d8bca9f4f91fd1ed08ad665f9b642956",
+    "rows": 11,
+    "first_row_fields": 269
+  },
+  "replay": {
+    "status": "SUCCEEDED",
+    "validation": "PASS",
+    "sealed": true,
+    "plan_sha256": "84486991b1f48c3fab7e9f0cc3e70cc5e1e9e5ef2940584bdc59ee4c95dc65c5",
+    "spec_sha256": "e215619534f8106829b59a1b0880e6ab48dbd55735fd937c7a3db63acd934a93",
+    "telemetry_sha256": "8bb08e130a8956eb86119d65534cdf86d8bca9f4f91fd1ed08ad665f9b642956",
+    "rows": 11,
+    "first_row_fields": 269
+  },
+  "changed_seed": {
+    "status": "SUCCEEDED",
+    "validation": "PASS",
+    "sealed": true,
+    "plan_sha256": "9bc54cd0951947ac1dea194d95d66f789f4db2b7fb4b60eda2b038bae950c227",
+    "spec_sha256": "3c23c73ecc49018dcdee41422783900aad4ee519d6f5f372ffb6abe2946b3f5a",
+    "telemetry_sha256": "95cf500a9f25f2e7c6c98fef580c86ff14e952a19ab91d2e3f79d9ffc6f11afe",
+    "rows": 11,
+    "first_row_fields": 269
+  },
+  "max_changed_walk_rad_s": 0.00044776915112318513,
+  "environment": {
+    "python": "3.12.12",
+    "platform": {
+      "system": "Windows",
+      "release": "11",
+      "machine": "AMD64",
+      "platform": "Windows-11-10.0.26200-SP0"
+    },
+    "assurance": {
+      "parameter_profile": "demo",
+      "claim_level": "analysis_only",
+      "validation_profile": "default",
+      "allow_proxy": false,
+      "capability_trust_level": "engineering_preview",
+      "capability_fidelity_level": "unknown",
+      "capability_can_claim_high_fidelity": false,
+      "limitations": []
+    }
+  },
+  "dependencies": {
+    "schema_version": "v37d.dependency-versions.v1",
+    "dependencies": {
+      "python": "3.12.12",
+      "satellite-simulation-platform": "0.7.8",
+      "pydantic": "2.13.4",
+      "PyYAML": "6.0.3",
+      "numpy": "2.3.5",
+      "bsk": "2.11.0+satfix2",
+      "fastapi": "0.139.2",
+      "uvicorn": "0.48.0",
+      "Basilisk": "2.11.0+satfix2"
+    }
+  }
+}
