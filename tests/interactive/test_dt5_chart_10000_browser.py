@@ -11,7 +11,8 @@ from urllib.parse import parse_qs, urlsplit
 import pytest
 
 
-def test_finite_run_chart_renders_ten_thousand_actual_samples(tmp_path):
+@pytest.mark.parametrize("whole_scene", [False, True], ids=["component-chart", "whole-scene-chart"])
+def test_finite_run_chart_renders_ten_thousand_actual_samples(tmp_path, whole_scene):
     from fastapi.testclient import TestClient
     from sat_sim.api import create_app
 
@@ -20,9 +21,24 @@ def test_finite_run_chart_renders_ten_thousand_actual_samples(tmp_path):
     if not executable:
         pytest.skip("Set SAT_SIM_BROWSER_EXECUTABLE to installed Chromium")
 
-    run_id = "dt5-chart-10000"
+    run_id = "dt5-chart-10000-whole" if whole_scene else "dt5-chart-10000-component"
     rows = [{"time_s": i * .1, "sample_index": i, "signal": -42 if i == 9876 else i / 1000}
             for i in range(10_000)]
+    if whole_scene:
+        for row in rows:
+            row.update({
+                "orbit.position_m_x": 7_000_000.0,
+                "orbit.position_m_y": row["sample_index"] * 10.0,
+                "orbit.position_m_z": 0.0,
+                "attitude.truth.mrp_BN_x": 0.0,
+                "attitude.truth.mrp_BN_y": 0.0,
+                "attitude.truth.mrp_BN_z": 0.0,
+                "attitude.truth.quaternion_BN_q0": 1.0,
+                "attitude.truth.quaternion_BN_q1": 0.0,
+                "attitude.truth.quaternion_BN_q2": 0.0,
+                "attitude.truth.quaternion_BN_q3": 0.0,
+                "attitude.truth.valid": 1,
+            })
     source = tmp_path / "runs" / run_id / "results" / "telemetry.jsonl"
     source.parent.mkdir(parents=True)
     with source.open("w", encoding="utf-8") as stream:
@@ -48,7 +64,10 @@ def test_finite_run_chart_renders_ten_thousand_actual_samples(tmp_path):
                 elif path == f"/runs/{run_id}":
                     route.fulfill(json={"run": {
                         "run_id": run_id, "sealed": True, "integrity": {"ok": True},
-                        "task_spec": {"task": {"id": run_id}, "model": {"capability_id": "component.battery.v1"}},
+                        "task_spec": {"task": {"id": run_id},
+                                      "model": {"capability_id": "whole_spacecraft.unified_native.v1"
+                                                if whole_scene else "component.battery.v1"},
+                                      "simulation": {"epoch_utc": "2026-11-22T00:00:00Z", "time_system": "UTC"}},
                         "run_record": {"status": "SUCCEEDED"},
                         "available_outputs": {"fmea": False, "fault_traceability": False},
                     }})
@@ -100,13 +119,14 @@ def test_finite_run_chart_renders_ten_thousand_actual_samples(tmp_path):
                 "browser_version": browser.version, "platform": platform.platform(),
                 "viewport": {"width": 1440, "height": 960},
                 "rows": len(rows), "max_points_requested": 10_000,
+                "scene_context": "whole_spacecraft_UI_fixture" if whole_scene else "component_UI_fixture",
                 "load_s": round(load_s, 6), "chart_tab_s": round(chart_s, 6),
                 "sampled": False, "retained_extreme_index": 9876,
                 "slo_qualification": "NOT_EVALUATED_SINGLE_SAMPLE",
             }
             evidence_dir = os.environ.get("SAT_SIM_SCENE_EVIDENCE_DIR")
             if evidence_dir:
-                destination = Path(evidence_dir) / "dt5-chart-10000.json"
+                destination = Path(evidence_dir) / f"dt5-chart-10000-{'whole' if whole_scene else 'component'}.json"
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_text(json.dumps(measurement, indent=2) + "\n", encoding="utf-8")
             print(measurement)
