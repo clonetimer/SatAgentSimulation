@@ -156,14 +156,26 @@ def compare(reference_csv: Path, mapping_json: Path, model_csv: Path, model_stat
     }
 
 
+
+def write_result_once(output: Path, result: dict, inputs: tuple[Path, ...]) -> None:
+    """Create one immutable result file without risking original evidence."""
+    resolved_output = output.resolve()
+    if any(resolved_output == source.resolve() for source in inputs):
+        raise ValueError("OUTPUT_OVERLAPS_INPUT_EVIDENCE")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
+    with output.open("x", encoding="utf-8") as stream:
+        stream.write(payload)
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     for key in ("reference_csv", "mapping_json", "model_csv", "model_statistics", "output"):
         p.add_argument("--" + key.replace("_", "-"), type=Path, required=True)
     args = p.parse_args()
     result = compare(args.reference_csv, args.mapping_json, args.model_csv, args.model_statistics)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    write_result_once(args.output, result, (args.reference_csv, args.mapping_json,
+                                            args.model_csv, args.model_statistics))
     print(json.dumps({"status": result["status"], "common_valid_count": result["common_valid_count"]}))
     return 0 if result["status"] == "WITHIN_FROZEN_TOLERANCE" else 1
 
