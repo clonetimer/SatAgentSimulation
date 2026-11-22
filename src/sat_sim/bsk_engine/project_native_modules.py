@@ -428,6 +428,95 @@ class SunVectorFaultInjector(sysModel.SysModel):
         _write_status(self.validOutMsg, int(valid), current_sim_nanos, self.moduleID)
 
 
+class ImuBiasRandomWalk(sysModel.SysModel):
+    """Drive seeded gyro/accelerometer bias random walks before official IMU updates.
+
+    This is a project-owned Basilisk-scheduled SysModel. It updates the public
+    official ImuSensor bias properties before ImuSensor.UpdateState, so the
+    random-walk bias is included in the official measurement, delta-angle /
+    delta-velocity integration, quantization and saturation stages.
+    """
+
+    def __init__(
+        self,
+        imu_sensor: Any,
+        *,
+        gyro_bias_rad_s: Sequence[float],
+        accel_bias_m_s2: Sequence[float],
+        gyro_random_walk_std_rad_s_sqrt_s: float = 0.0,
+        accel_random_walk_std_m_s2_sqrt_s: float = 0.0,
+        seed: int = 0,
+    ) -> None:
+        super().__init__()
+        self.ModelTag = "project_imu_bias_random_walk"
+        self.imu_sensor = imu_sensor
+        self.base_gyro_bias = tuple(float(x) for x in gyro_bias_rad_s)
+        self.base_accel_bias = tuple(float(x) for x in accel_bias_m_s2)
+        if len(self.base_gyro_bias) != 3 or len(self.base_accel_bias) != 3:
+            raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_VECTOR_INVALID")
+        if not all(math.isfinite(x) for x in (*self.base_gyro_bias, *self.base_accel_bias)):
+            raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_VECTOR_INVALID")
+        values = (gyro_random_walk_std_rad_s_sqrt_s, accel_random_walk_std_m_s2_sqrt_s)
+        limits = (0.01, 0.1)
+        if any(type(value) not in (int, float) or not math.isfinite(value)
+               or value < 0.0 or value > limit
+               for value, limit in zip(values, limits, strict=True)):
+            raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_INVALID")
+        self.gyro_random_walk_std_rad_s_sqrt_s = float(values[0])
+        self.accel_random_walk_std_m_s2_sqrt_s = float(values[1])
+        self.seed = int(seed)
+        # Basilisk ImuSensor exposes one shared RNGSeed for its internal gyro
+        # and accelerometer Gauss-Markov streams. These project-side bias walks
+        # deliberately derive independent deterministic streams by channel.
+        self._gyro_rng = random.Random((self.seed ^ 0x9E3779B9) & 0xFFFFFFFF)
+        self._accel_rng = random.Random((self.seed ^ 0x85EBCA6B) & 0xFFFFFFFF)
+        self._gyro_walk = [0.0, 0.0, 0.0]
+        self._accel_walk = [0.0, 0.0, 0.0]
+        self._last_time_ns: int | None = None
+        self.biasWalkOutMsg = messaging.IMUSensorMsg()
+
+    def _apply_bias(self, current_sim_nanos: int) -> None:
+        self.imu_sensor.senRotBias = [
+            self.base_gyro_bias[i] + self._gyro_walk[i] for i in range(3)
+        ]
+        self.imu_sensor.senTransBias = [
+            self.base_accel_bias[i] + self._accel_walk[i] for i in range(3)
+        ]
+        payload = messaging.IMUSensorMsgPayload()
+        payload.AngVelPlatform = list(self._gyro_walk)
+        payload.AccelPlatform = list(self._accel_walk)
+        self.biasWalkOutMsg.write(payload, current_sim_nanos, self.moduleID)
+
+    def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
+        self._gyro_rng = random.Random((self.seed ^ 0x9E3779B9) & 0xFFFFFFFF)
+        self._accel_rng = random.Random((self.seed ^ 0x85EBCA6B) & 0xFFFFFFFF)
+        self._gyro_walk = [0.0, 0.0, 0.0]
+        self._accel_walk = [0.0, 0.0, 0.0]
+        self._last_time_ns = int(current_sim_nanos)
+        self._apply_bias(current_sim_nanos)
+
+    def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
+        now_ns = int(current_sim_nanos)
+        if self._last_time_ns is None:
+            dt_s = 0.0
+        else:
+            elapsed_ns = now_ns - self._last_time_ns
+            if elapsed_ns < 0:
+                raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_TIME_NOT_MONOTONIC")
+            dt_s = float(elapsed_ns) * macros.NANO2SEC
+        if dt_s > 0.0:
+            root_dt = math.sqrt(dt_s)
+            gyro_scale = self.gyro_random_walk_std_rad_s_sqrt_s * root_dt
+            accel_scale = self.accel_random_walk_std_m_s2_sqrt_s * root_dt
+            for axis in range(3):
+                if gyro_scale > 0.0:
+                    self._gyro_walk[axis] += self._gyro_rng.gauss(0.0, gyro_scale)
+                if accel_scale > 0.0:
+                    self._accel_walk[axis] += self._accel_rng.gauss(0.0, accel_scale)
+        self._last_time_ns = now_ns
+        self._apply_bias(current_sim_nanos)
+
+
 class ImuFaultInjector(sysModel.SysModel):
     """Apply gyro bias/noise events before the estimator consumes the IMU message."""
 
