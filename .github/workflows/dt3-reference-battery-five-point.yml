@@ -1,0 +1,28 @@
+name: DT3 battery five-point reference comparability contract
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/dt3-reference-battery-five-point.yml"
+      - "scripts/compare_battery_five_point.py"
+      - "tests/test_compare_battery_five_point.py"
+      - "configs/reference_alignment/battery_five_point_mapping.template.json"
+      - "docs/calibration/BATTERY_FIVE_POINT_COMPARISON.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  comparability-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install contract test dependency
+        run: python -m pip install pytest==9.0.3
+      - name: Validate synthetic five-point contract without external reference claims
+        run: python -m pytest -q tests/test_compare_battery_five_point.py
+
