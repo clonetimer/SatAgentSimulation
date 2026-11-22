@@ -616,6 +616,8 @@ function updateSimulationWheelMotion(measurements, simTimeS, wheelPhases) {
     );
     updated = true;
   });
+  window.RwReferenceOverlay?.setPhases?.(state.simulationWheelMeshes.map(({index}) =>
+    integrateWheelPhaseFromTelemetry(index, simTimeS, wheelPhases)));
   if (updated) renderSimulationGeometry();
 }
 function renderSensorTelemetry(measurements, sourceLabel, simTimeS, wheelPhases = null) {
@@ -1388,6 +1390,7 @@ function setSimulationConfiguration(payload) {
   const geometry=resolveDisplayRwGeometry(values);
   if(!geometry || !ensureSimulationGeometryViewer()) { clearSimulationConfiguration();return false; }
   state.simulationGeometry={...geometry,capabilityId:payload.capabilityId,validated:true};
+  window.RwReferenceOverlay?.setGeometry?.(geometry);
   state.simulationWheelMeshes = [];
   disposeSimulationGeometryGroup();
   geometry.positions.forEach((position,index)=>{
@@ -1410,7 +1413,7 @@ function setSimulationConfiguration(payload) {
   renderSensorGeometryRows(values);
   renderRigidBodyProperties(values);
   const badge=byId('simulationGeometryBadge');
-  if(badge){badge.textContent='TaskSpec 校验通过 · '+geometry.capabilityId;badge.dataset.state='live';}
+  if(badge){badge.textContent='TaskSpec 校验通过 · '+state.simulationGeometry.capabilityId;badge.dataset.state='live';}
   const summary=byId('simulationGeometrySummary');
   if(summary)summary.textContent=geometry.count+' 个反作用轮；构型 '+(geometry.configuration==='pyramid_4'?'四轮金字塔':'三轮正交')+'；几何模式 '+(geometry.mode==='per_wheel'?'逐轮安装':'预设轴向与共用偏置')+'。位置和轴向均以 B 系表示。';
   const status=byId('simulationGeometryStatus');
@@ -1420,6 +1423,7 @@ function setSimulationConfiguration(payload) {
 }
 function clearSimulationConfiguration() {
   state.simulationGeometry=null;
+  window.RwReferenceOverlay?.setGeometry?.(null);
   state.simulationWheelMeshes=[];
   state.simulationExplodedView=false;
   const explodeButton=byId('simulationExplodeToggle');if(explodeButton){explodeButton.setAttribute('aria-pressed','false');explodeButton.textContent='工程分解视图';}
@@ -1434,6 +1438,7 @@ function clearSimulationConfiguration() {
 }
 function setSimulationExplodedView(enabled) {
   state.simulationExplodedView=Boolean(enabled);
+  window.RwReferenceOverlay?.setExploded?.(state.simulationExplodedView);
   const count=state.simulationWheelMeshes.length;
   state.simulationWheelMeshes.forEach(({group,index,physicalPosition})=>{
     if(state.simulationExplodedView) {
@@ -1456,6 +1461,7 @@ function setSimulationExplodedView(enabled) {
 }
 function setSimulationGeometryVisible(visible) {
   state.simulationGeometryVisible=Boolean(visible);
+  window.RwReferenceOverlay?.setVisible?.(state.simulationGeometryVisible);
   if(state.simulationGeometryVisible&&ensureSimulationGeometryViewer())renderSimulationGeometry();
   else if(state.simulationGeometryFrame){cancelAnimationFrame(state.simulationGeometryFrame);state.simulationGeometryFrame=0;}
 }
@@ -1481,6 +1487,10 @@ document.addEventListener('click', event => {
 window.SatScene = {
   enter, exit: destroy, track, freeCamera, home, selectObject,
   setSimulationConfiguration, clearSimulationConfiguration, setSimulationGeometryVisible, setSimulationExplodedView,
+  getRwReferenceDisplayScene: () => state.simulationGeometryScene,
+  requestRwReferenceRender: renderSimulationGeometry,
+  getRwReferenceGeometry: () => state.simulationGeometry,
+  isRwReferenceViewportVisible: () => state.simulationGeometryVisible,
   integrateWheelPhaseFromTelemetry,
   setOrbitSceneVisible, imuPlatformAxesInBodyFrame, magnetometerAxesInBodyFrame, starTrackerAxesInBodyFrame,
   updateTelemetry, updateAdcsTelemetry, setAdcsTelemetryPending, invalidateAdcsTelemetry, createStrictTelemetryTimeJoin,

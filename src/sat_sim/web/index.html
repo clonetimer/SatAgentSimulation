@@ -171,12 +171,20 @@
             <header class="simulation-geometry-heading">
               <div><h2>ADCS 反作用轮仿真构型</h2><p>安装点 rWB_B 与自旋轴 gsHat_B，均以航天器机体系 B 表示。</p></div>
               <button id="simulationExplodeToggle" type="button" class="button button-secondary" aria-pressed="false">工程分解视图</button>
+              <button id="simulationRwReferenceToggle" type="button" class="button button-secondary" aria-pressed="false">显示 RW 参考外形</button>
+              <label class="button button-secondary dt41-rw-cad-load">选择参考 RW GLB<input id="simulationRwReferenceFile" type="file" accept=".glb,model/gltf-binary" hidden></label>
               <span id="simulationGeometryBadge" class="scene-data-source" data-state="demo">等待整星 TaskSpec 校验</span>
             </header>
             <div class="simulation-geometry-layout">
               <div class="simulation-geometry-viewport"><canvas id="simulationGeometryCanvas" aria-label="反作用轮机体系安装点与自旋轴三维视图"></canvas><div class="simulation-geometry-hint">拖动旋转 · 滚轮缩放 · X 红 / Y 绿 / Z 蓝</div></div>
               <aside class="simulation-geometry-details">
                 <h3>原生配置几何</h3>
+                <section class="dt41-rw-reference-notice" aria-label="反作用轮参考外形声明">
+                  <strong>参考外形图层（默认关闭）</strong>
+                  <p>仅采用 BIRDS-4 单只反作用轮子装配 GLB 的几何外观，不代表当前卫星的实装单机、数量、尺寸、质量或安装坐标。多轮模型均按已校验 TaskSpec 的 rw_mount_b_* 和 rw_axis_b_* 显示为几何复制；布局来自 TaskSpec，非 CAD 实装。</p>
+                  <p>CAD 来源坐标、装配树 world_transform_m、惯量与 mesh 均不得推断 B 系安装信息。参考外形仅供几何对齐，不建立正式节点映射或遥测绑定。轮体运动指示仅在有效仿真采样下更新。</p>
+                  <div id="simulationRwReferenceStatus" role="status" aria-live="polite">参考图层关闭；未校验或未加载的 GLB 不会显示。</div>
+                </section>
                 <div id="simulationGeometrySummary" class="simulation-geometry-summary">请先选择整星统一 Basilisk 模型，完成参数校验后查看物理构型。</div>
                 <div class="simulation-geometry-table-wrap"><table class="simulation-geometry-table"><thead><tr><th>轮组</th><th>安装位置 rWB_B（m）</th><th>自旋轴 gsHat_B</th></tr></thead><tbody id="simulationGeometryRows"><tr><td colspan="3">尚无已校验配置</td></tr></tbody></table></div>
                 <section class="simulation-sensor-telemetry">
@@ -1835,6 +1843,7 @@
   <script src="/assets/vendor/globe/globe.gl.min.js" defer></script>
   <script type="importmap">{"imports":{"three":"/assets/vendor/globe/three.module.js"}}</script>
   <script type="module" src="/assets/satellite-scene.js?v=p9m4-engineering-mapping-1"></script>
+  <script type="module" src="/assets/rw-reference-overlay.js?v=dt41-rw-geometry-1"></script>
   <script type="module" src="/assets/birds-cad-viewer.js?v=p9m4-d-review-5"></script>
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/object-config-panel.js?v=p9d-1" defer></script>
