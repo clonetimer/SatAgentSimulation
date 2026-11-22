@@ -118,3 +118,7 @@
 五个电池热测点需各自的热节点、传感器位置及接触边界。轮组外形不提供这些数据。当前工程状态仍为档 1 参考外形。
 
 可用于查找装配背景的既有材料见 [BIRDS-4 试验文件清单](../../assets/cad-sources/birds4/birds4-flight-unit-evidence-manifest.json)。该清单固定了源提交和各文件 Git blob，分别标识 Guarani-1、Maya-2、Tsuru 的振动试验报告，以及 BIRDS-4 FM 热真空试验报告。轮位对应关系需由适用星号的装配记录确认。
+
+### DT-2 器件候选独立本机复验
+
+在 #220 的独立工作树 `dbdac07a343751eb8986984c36b2594891d1c310` 用本机 `bsk==2.11.0+satfix2` 执行 `python -m pytest -q -s tests/test_native_imu_bias_random_walk.py`，20 项通过，0 项跳过。采样步长 0.2 s，陀螺仪随机游走增量标准差为 9.209909485e-5 rad/s，加速度计为 9.073490796e-4 m/s²，两者增量相关系数 −0.000877224。相同种子回放符合测试精度，改变种子后序列有差异。轮驱动死区及时延 A/B 在同一 IMU 设置下产生轮 0 最大转速差 0.9135334635 rad/s；11 行联合运行完成封存和完整性验证。执行计划 SHA-256 为 `5159571e0e94d54b74c500d842920fa199e329327da6eb63b3e50d4bf6a20684`。该结果支持候选分支的工程模型与接线；目标器件校准、其余器件非理想和主干交付仍待各自验收。[#220](https://github.com/clonetimer/SatAgentSimulation/pull/220)
