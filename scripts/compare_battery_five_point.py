@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Compare #202 battery temperatures only after five-point mapping is supplied.
+"""用途：仅在五测点映射确认后对照 #202 电池温度参考仿真原始时序。
 
-This reads reference simulation output; it does not calibrate hardware or change
-the frozen model and tolerances. A missing/invalid map fails closed.
+参数：--reference-csv、--mapping-json、--model-csv、--model-statistics、--output。
+输出：同窗共同有效样本的逐时加权统计与冻结容差对照 JSON。
+不做硬件标定，不改变物理模型、原始数据或容差；缺少映射时失败关闭。
 """
 from __future__ import annotations
 
