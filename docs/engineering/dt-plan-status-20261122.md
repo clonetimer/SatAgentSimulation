@@ -100,3 +100,5 @@
 | GMAT TT 经 ERFA 转 TDB − 对应名义采样序号的 Basilisk 原生 ET | −33.066 至 −22.957 |
 
 最后一项同时包含转换路径差异与采样时刻差异。约 23 μs 是本案例两条数值转换路径的观察差值；用于任务时应先明确采用的时标、转换约定和预算。原始两引擎绝对同步及物理轴向资格继续为 INCONCLUSIVE。复现命令为 `python reports/dt3_clock_audit/audit.py <归档解压目录> <输出JSON>`。[脚本及91行差值](../../reports/dt3_clock_audit/)。
+
+#227 提交 `ef8d5292656348cd23f66b615ac572edbd08c749` 的 [GitHub Checks](https://github.com/clonetimer/SatAgentSimulation/commit/ef8d5292656348cd23f66b615ac572edbd08c749/checks) 已结束，35 项 SUCCESS、2 项 SKIPPED、0 项失败。整星与官方 Basilisk 原生组件检查均通过。
