@@ -17,7 +17,7 @@
 | DT-2 器件非理想 | [#216](https://github.com/clonetimer/SatAgentSimulation/pull/216) RW 驱动和 [#219](https://github.com/clonetimer/SatAgentSimulation/pull/219) 官方 IMU LSB 已合入。[#220](https://github.com/clonetimer/SatAgentSimulation/pull/220) 在精确 HEAD `dbdac07a` 的 [原生 CI](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44988049157) 完成同图 RW/LSB/偏置随机游走与封存，属 TECH-CANDIDATE-PASS。 | #220 仍未合并；候选 CI 不替代实际 main SHA 的合并后验收。其余器件的噪声谱、安装、温漂与真实传感器边界按逐器件证据推进。 |
 | DT-3 V&V 与误差预算 | [#202](https://github.com/clonetimer/SatAgentSimulation/issues/202) 建立外部参考统计、严格容差和未对齐基线。 | 电池温度均值、波动和稳态前提未通过；热侧安装边界与五测点映射尚待参考方确认。[#226](https://github.com/clonetimer/SatAgentSimulation/pull/226) 已提供五测点共同掩码、逐时加权、冻结容差及输出证据防覆盖的可审查比较工具；精确 HEAD `b3e8eba9` 的[合同测试](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44995548184)为 9/9 PASS，但未收到原始 `10.csv`，不能执行真实对照。缺少可比的原始时序、列定义或独立参考时不拟合、不放宽容差、不宣布 R1 完成。[#228](https://github.com/clonetimer/SatAgentSimulation/pull/228) 已在四效应同图 5400 s 下完成 10/5/2.5 s 内部步长细化；精确 HEAD `fbd50713` 的[官方 Basilisk 工作流](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44998833323)通过，云端观测阶 1.92988940、细化末端位置差 1.525870860 m，测试文件 5/5 PASS。PR 已 Ready for Review、未合并；结果只覆盖内部数值收敛。GMAT 交叉对照 [#215](https://github.com/clonetimer/SatAgentSimulation/pull/215) 已在 main `4624c3a7` 测试合并树完成[真实双引擎工程复验](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44993669027)，但独立科学验收仍为 INCONCLUSIVE：原始物理轴向、绝对时标、有效 μ 读回和任务误差预算尚未批准。 |
 | DT-4 数字场景与几何 | [#207](https://github.com/clonetimer/SatAgentSimulation/pull/207) 为 opt-in BIRDS-4 参考几何候选。 | 尚未合入，且档 1 参考几何不能升格为实装安装坐标或器件物理表面。需要五测点/设备安装映射的来源、坐标系、轴向和审批，再验证场景与同一 Run 的遥测时序。 |
-| DT-5 性能与交互 | 现有离线预览、软实时和 CI 浏览器链路可作为性能基线。[#227](https://github.com/clonetimer/SatAgentSimulation/pull/227) 已将有限 Run 曲线候选扩展到 10,000 条原始遥测样本，保留极值并增加组件/整星场景的真实浏览器测量。精确 HEAD `9c80a791` 的 [P9-C 浏览器工作流](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44997318857)及全套关联 CI 完成：19 SUCCESS、1 条条件性 SKIPPED、0 FAIL；PR 已 Ready for Review，尚未合并。 | 万点曲线仍需冻结目标硬件与多次 P95/P99/SLA 测量；百万点轨迹、目标 GPU、持续多会话和交互帧时间须分别实测。CI SwiftShader 通过仅证明该环境下的浏览器合同，不等于目标 GPU 资格。 |
+| DT-5 性能与交互 | 现有离线预览、软实时和 CI 浏览器链路可作为性能基线。[#227](https://github.com/clonetimer/SatAgentSimulation/pull/227) 已将有限 Run 曲线候选扩展到 10,000 条原始遥测样本，保留极值并增加组件/整星场景的真实浏览器测量。精确 HEAD `9c80a791` 的 [P9-C 浏览器工作流](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44997318857)及全套关联 CI 完成：19 SUCCESS、1 条条件性 SKIPPED、0 FAIL；PR 已 Ready for Review，尚未合并。 | 全局概览后的局部缩放还需从原始遥测按窗口重新取样；百万行源文件的读取、目标 GPU 渲染、持续多会话和交互帧时间须分别实测。万点候选仍需冻结目标硬件与多次 P95/P99/SLA 测量。CI SwiftShader 通过仅证明该环境下的浏览器合同，不等于目标 GPU 资格。 |
 
 ## #202 独立复现带来的计划调整
 
@@ -26,6 +26,14 @@
 3. **外部参考与任务验收分层。** #202 的温度差异和三轴峰值差异是模型间对齐发现，不是硬件误差。冻结容差保持温度均值 ±0.5 °C、标准差 ±0.15 °C、角速度峰值 ±10% 等原约定；对于缺少稳态窗口、原始时序和测点映射的指标标记不可判定。角速度初值差异应先按同初值重跑，随后再分析动力学残差。
 
 ## 近期执行门槛与交付物
+
+### DT-5 百万行预检与增量门槛
+
+2026-11-22 本机探索性预检使用 1,000,000 行**合成轨道 JSONL**（164,417,899 bytes，SHA-256 `e0ac5748389b5ee2520d90b6cd0c5d4819b93bf2b64f7168a83e253004ed3e39`）。当前服务端概览读取原始文件约 5.96 s，选出 9,997 条真实记录并标记抽样；场景轨迹随后限为 600 点。这是单次开发机读数，不是 Basilisk 原生任务、目标硬件、并发吞吐或 SLA 证据。当前曲线局部缩放只过滤全局概览，可能遗漏局部瞬态；因此“能读取百万行”不能写成“百万点交互已通过”。
+
+1. **先修正确性：** 局部时间窗从原始 Run 遥测重新取样；固定种子夹具把局部极值放在全局概览遗漏的位置，浏览器通过真实 API 验证缩放后可见、复位后恢复全局范围。请求失败应显示失败，不能默默回退到有损概览。
+2. **再测服务端规模：** 固定原始文件字节、字段数、磁盘与内存条件，重复测量 10⁴、10⁵、10⁶ 行的全局概览与局部查询；记录 P50/P95/P99、RSS、CPU 与响应体大小。若每次窗口请求全文件扫描且超过已冻结交互预算，再评估索引或多级概览；不能凭单次约 6 s 读数宣布性能合格。
+3. **最后测客户端资格：** 分别测曲线 10⁴ 点、场景 600 点和目标“百万轨迹”方案在指定 GPU 上的加载、缩放、逐帧时间、内存及多会话竞争。百万行数据源、百万点一次性渲染和可查询的百万轨迹是三个不同验收对象，规格及 SLA 冻结后逐项判定。
 
 | 工作 | 现在可执行的动作 | 继续推进的外部输入或决策 | 合格的交付证据 |
 | --- | --- | --- | --- |
