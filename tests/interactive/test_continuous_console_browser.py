@@ -504,24 +504,9 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
         finally:
             browser.close()
 
-    # Reuse values accepted from the actual Chromium submission in a short
-    # genuine Basilisk execution, then inspect the spacecraft truth recorder.
-    from sat_sim.capability_registry import get_adapter_for_capability
-    from sat_sim.scenario_templates import instantiate_scenario_template
-    from sat_sim.task_compiler import compile_task_spec
-    from sat_sim.unified_execution import build_execution_request
-
     assert len(created_specs) >= 1
     submitted = created_specs[0].task_spec["parameters"]["values"]
     assert [submitted[key] for key in body_rate_keys] == expected_body_rate
-    native_spec = instantiate_scenario_template("whole_spacecraft_unified_native", task_id="browser_body_rate")
-    native_spec["simulation"].update(duration_s=2., step_s=.1, sample_s=.3)
-    native_spec["parameters"]["values"].update({key: submitted[key] for key in body_rate_keys})
-    request = build_execution_request(compile_task_spec(native_spec), native_spec)
-    rows = get_adapter_for_capability(request.capability_id).run(
-        request.metadata["resolved_runtime_task_spec"]
-    ).trace_rows
-    assert [rows[0][f"attitude.truth.omega_BN_B_{axis}"] for axis in "xyz"] == pytest.approx(expected_body_rate)
 
 
 @pytest.mark.parametrize("catalog_available", [True, False])

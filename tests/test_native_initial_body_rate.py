@@ -10,6 +10,7 @@ from sat_sim.capability_registry import get_adapter_for_capability
 from sat_sim.scenario_templates import instantiate_scenario_template
 from sat_sim.task_compiler import compile_task_spec
 from sat_sim.unified_execution import build_execution_request
+from sat_sim.interactive.continuous_initial_config import ContinuousInitialConfiguration
 
 
 @pytest.mark.parametrize("case", ["default", "legacy", "custom"])
@@ -43,3 +44,18 @@ def test_initial_rates_reach_native_spacecraft(case):
     print(json.dumps({"case": case, "samples": len(rows), "requested_rad_s": expected,
                       "initial_truth_rad_s": [rows[0][k] for k in fields],
                       "final_truth_rad_s": [rows[-1][k] for k in fields]}))
+
+
+def test_guided_adcs_payload_reaches_native_first_sample():
+    values = {f"initial_body_rate_{axis}_rad_s": value
+              for axis, value in zip("xyz", (-.003, 0., .006))}
+    reviewed = ContinuousInitialConfiguration.model_validate({"adcs": values})
+    assert reviewed.native_values() == values
+    spec = instantiate_scenario_template("whole_spacecraft_unified_native", task_id="guided_initial_rate")
+    spec["simulation"].update(duration_s=2., step_s=.1, sample_s=.3)
+    spec["parameters"]["values"].update(reviewed.native_values())
+    request = build_execution_request(compile_task_spec(spec), spec)
+    rows = get_adapter_for_capability(request.capability_id).run(
+        request.metadata["resolved_runtime_task_spec"]
+    ).trace_rows
+    assert [rows[0][f"attitude.truth.omega_BN_B_{axis}"] for axis in "xyz"] == pytest.approx(list(values.values()))
