@@ -1,0 +1,18 @@
+{
+  "schema_version": "battery-five-point-map.v1",
+  "status": "PENDING_REFERENCE_OWNER_CONFIRMATION",
+  "source_kind": "simulation_output_not_hardware_or_flight",
+  "comparison_target": "thermal.battery_temp_c",
+  "reference_csv_sha256": null,
+  "mapping_evidence_uri": null,
+  "time_column": null,
+  "quality_policy": null,
+  "channels": [
+    {"column": null, "package_id": null, "measurement_location": null, "temperature_definition": null, "unit": "degC", "weight": null, "weight_basis": null, "valid_column": null},
+    {"column": null, "package_id": null, "measurement_location": null, "temperature_definition": null, "unit": "degC", "weight": null, "weight_basis": null, "valid_column": null},
+    {"column": null, "package_id": null, "measurement_location": null, "temperature_definition": null, "unit": "degC", "weight": null, "weight_basis": null, "valid_column": null},
+    {"column": null, "package_id": null, "measurement_location": null, "temperature_definition": null, "unit": "degC", "weight": null, "weight_basis": null, "valid_column": null},
+    {"column": null, "package_id": null, "measurement_location": null, "temperature_definition": null, "unit": "degC", "weight": null, "weight_basis": null, "valid_column": null}
+  ]
+}
+
