@@ -47,10 +47,26 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     whole = report["whole_spacecraft"]
     assert report["physics_validated_by_this_audit"] is False
     assert report["source_lookup_is_not_physical_proof"] is True
-    assert whole["continuous_initial_field_count"] == 167
+    # DT-2 #216 is now integrated on main: this candidate MUST retain both
+    # real RW driver controls alongside the two official IMU LSB controls.
+    # A missing or partially dropped RW input is a blocking integration error.
+    rw_driver_keys = ("rw_command_deadband_nm", "rw_motor_response_time_constant_s")
+    rw_driver_present = tuple(
+        key for key in rw_driver_keys if key in whole["continuous_groups"]["adcs"]
+    )
+    assert rw_driver_present == rw_driver_keys, rw_driver_present
+    for key in rw_driver_present:
+        assert key not in whole["native_source_keys_missing_whole_registry"]
+        assert key not in whole["continuous_fields_without_source_lookup"]
+        assert key not in whole["whole_registry_keys_without_direct_lookup"]
+    assert whole["continuous_initial_field_count"] == 167 + len(rw_driver_present)
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 16
-    assert whole["registered_parameter_count"] == 179
+    assert whole["registered_parameter_count"] == 179 + len(rw_driver_present)
+    for key in ("imu_gyro_quantization_lsb_rad_s", "imu_accel_quantization_lsb_m_s2"):
+        assert key in whole["continuous_groups"]["adcs"]
+        assert key not in whole["native_source_keys_missing_whole_registry"]
+        assert key not in whole["continuous_fields_without_source_lookup"]
     assert "earth_gravity_model" not in whole["native_source_keys_missing_whole_registry"]
     assert "magnetic_field_model" in whole["whole_registry_keys_without_direct_lookup"]
     for key in ("srp_model", "srp_reference_area_m2", "srp_coefficient_reflection"):
@@ -77,16 +93,12 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert "rw_configuration" not in whole["native_source_keys_missing_whole_registry"]
     assert "rw_friction_mode" not in whole["native_source_keys_missing_whole_registry"]
     assert "gyro_base_noise_std_rad_s" in whole["native_source_keys_missing_whole_registry"]
-    assert "rw_command_deadband_nm" not in whole["native_source_keys_missing_whole_registry"]
-    assert "rw_command_deadband_nm" in whole["continuous_groups"]["adcs"]
-    assert "rw_motor_response_time_constant_s" not in whole["native_source_keys_missing_whole_registry"]
-    assert "rw_motor_response_time_constant_s" in whole["continuous_groups"]["adcs"]
     assert "rw_motor_current_limit_a" not in whole["native_source_keys_missing_whole_registry"]
     assert "rw_motor_torque_constant_nm_per_a" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs_drive_efficiency" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs_max_power_w" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs" in whole["continuous_groups"]
-    assert len(whole["continuous_groups"]["adcs"]) == 103
+    assert len(whole["continuous_groups"]["adcs"]) == 103 + len(rw_driver_present)
     assert len(whole["continuous_groups"]["orbit"]) == 12
     assert {"environment_profile", "epoch_utc", "raan_deg", "arg_perigee_deg"}.issubset(whole["continuous_groups"]["orbit"])
     assert "spacecraft_mass_kg" in whole["continuous_groups"]["orbit"]

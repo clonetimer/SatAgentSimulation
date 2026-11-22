@@ -309,6 +309,13 @@ jobs:
           python -m pytest -q -s
           tests/test_native_imu_white_noise.py
           --disable-warnings
+      - name: Official Basilisk IMU native LSB quantization, raw A/B and seeded replay
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_native_imu_quantization.py
+          --disable-warnings
       - name: Genuine Basilisk RW 3D position/axis SWIG and closed-loop physical response A/B
         env:
           PYTHONPATH: "src:."
