@@ -87,3 +87,16 @@
 | 脚本显式设置 398600.436 | 398600.4360000 |
 
 两条轨迹反映的参数差为 0.0055 km³/s²，与归档中记录的文档值和显式干预一致。复算覆盖历史地球二体案例；直接读取 GMAT 引擎参数、日月参数身份、绝对时标、物理轴向和任务容差仍需独立证据，#215 科学判定继续为 INCONCLUSIVE。下载上述归档后，从计划分支运行 `python reports/dt3_gmat_mu_audit/audit.py <解压目录> <输出JSON>`（依赖 NumPy）。[脚本及结果](../../reports/dt3_gmat_mu_audit/)。
+
+### DT-3 时间转换独立复算
+
+在 #215 的[运行归档](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44993669027/artifacts/14742707931)中，核验 GMAT 原始时标报告、同进程 Basilisk 原生 ET 消息文件和已封存的 NAIF 全时网对照表的 SHA-256 后，对 91 个时刻逐行复算。使用独立 uv 环境中的 PyERFA 2.0.1.5（NumPy 2.5.5）。GMAT 日期按 JD 偏移 2430000 拆分。UTC→TAI→TT 使用 ERFA 闰秒表，TT→TDB 使用地心 dtdb 模型，以 TT 作为其日期近似，距 J2000 的天数在线性项中保留十进制精度。A1 路径采用 #215 的 A1−TAI 约定 0.0343817 s。
+
+| 比较方向（前者减后者） | 91 点有符号范围 / μs |
+| --- | ---: |
+| GMAT UTC 经 ERFA 转 TT − GMAT 报告 TT | −0.346 至 +0.864 |
+| GMAT A1 经约定偏移转 TDB − 同行 TT 经 ERFA 转 TDB | −0.548 至 +0.316 |
+| 同行 GMAT TT 经 ERFA 转 TDB − 归档 NAIF TT→ET | −22.969 至 −22.549 |
+| GMAT TT 经 ERFA 转 TDB − 对应名义采样序号的 Basilisk 原生 ET | −33.066 至 −22.957 |
+
+最后一项同时包含转换路径差异与采样时刻差异。约 23 μs 是本案例两条数值转换路径的观察差值；用于任务时应先明确采用的时标、转换约定和预算。原始两引擎绝对同步及物理轴向资格继续为 INCONCLUSIVE。复现命令为 `python reports/dt3_clock_audit/audit.py <归档解压目录> <输出JSON>`。[脚本及91行差值](../../reports/dt3_clock_audit/)。
