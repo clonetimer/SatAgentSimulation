@@ -1281,6 +1281,9 @@
                       <label>输出上限 maxOutput<input data-native-group="adcs" data-native-key="sun_sensor_max_output" type="number" min="0.000001" max="1000000" step="any" value="1000000" required title="缩放后的读数上限；1000000 是 Basilisk 2.11 旧默认"></label>
                     </details>
                     <label>太阳敏感器视场（°）<input data-native-group="adcs" data-native-key="sun_sensor_fov_deg" type="number" min="0.001" max="180" step="any" value="80" required title="设置 Basilisk CoarseSunSensor.fov，不代表星敏感器视场"></label>
+                    <label>初始机体角速度 X（rad/s）<input data-native-group="adcs" data-native-key="initial_body_rate_x_rad_s" type="number" step="any" value="0.01" required></label>
+                    <label>初始机体角速度 Y（rad/s）<input data-native-group="adcs" data-native-key="initial_body_rate_y_rad_s" type="number" step="any" value="-0.004" required></label>
+                    <label>初始机体角速度 Z（rad/s）<input data-native-group="adcs" data-native-key="initial_body_rate_z_rad_s" type="number" step="any" value="0.002" required></label>
                     <label>初始指向误差（°）<input data-native-group="adcs" data-native-key="initial_pointing_error_deg" type="number" min="0" max="90" step="any" value="8" required></label>
                     <label>姿态控制 K<input data-native-group="adcs" data-native-key="controller_k" type="number" min="0.001" max="100" step="any" value="3.5" required></label>
                     <label>姿态控制 P<input data-native-group="adcs" data-native-key="controller_p" type="number" min="0.001" max="300" step="any" value="30" required></label>

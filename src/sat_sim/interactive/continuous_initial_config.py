@@ -132,6 +132,9 @@ class NativeAdcsInitial(_Strict):
         resolve_sun_sensor_boresight(specified)
         return self
 
+    initial_body_rate_x_rad_s: float = Field(default=0.01, strict=True, allow_inf_nan=False)
+    initial_body_rate_y_rad_s: float = Field(default=-0.004, strict=True, allow_inf_nan=False)
+    initial_body_rate_z_rad_s: float = Field(default=0.002, strict=True, allow_inf_nan=False)
     initial_pointing_error_deg: float = Field(default=8., ge=0., le=90.)
     controller_k: float = Field(default=3.5, gt=0., le=100.)
     controller_p: float = Field(default=30., gt=0., le=300.)
@@ -456,6 +459,9 @@ _UNITS = {
     "orbit_radius_m": "m", "eccentricity": "1", "inclination_deg": "deg",
     "raan_deg": "deg", "arg_perigee_deg": "deg", "environment_profile": "枚举", "epoch_utc": "UTC",
     "initial_true_anomaly_rad": "rad",
+    "initial_body_rate_x_rad_s": "rad/s",
+    "initial_body_rate_y_rad_s": "rad/s",
+    "initial_body_rate_z_rad_s": "rad/s",
     "initial_pointing_error_deg": "deg", "controller_k": "1", "controller_p": "1",
     "rw_geometry_mode": "枚举",
     "rw_axis_b_x_0": "1",

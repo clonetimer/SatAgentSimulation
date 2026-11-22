@@ -169,6 +169,24 @@ parameters:
     default: 0.0
     min: 0.0
     max: 6.283185307179586
+  initial_body_rate_x_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    default: 0.01
+    description: 机体相对惯性系的初始角速度，机体系 X 分量
+  initial_body_rate_y_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    default: -0.004
+    description: 机体相对惯性系的初始角速度，机体系 Y 分量
+  initial_body_rate_z_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    default: 0.002
+    description: 机体相对惯性系的初始角速度，机体系 Z 分量
   initial_pointing_error_deg:
     type: number
     unit: deg

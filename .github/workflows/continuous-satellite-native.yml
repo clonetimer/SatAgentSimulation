@@ -315,6 +315,7 @@ jobs:
         run: >-
           python -m pytest -q -s
           tests/test_native_imu_quantization.py
+          tests/test_native_initial_body_rate.py
           --disable-warnings
       - name: Genuine Basilisk RW 3D position/axis SWIG and closed-loop physical response A/B
         env:
