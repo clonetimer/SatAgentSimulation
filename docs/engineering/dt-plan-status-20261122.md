@@ -17,7 +17,7 @@
 | DT-2 器件非理想 | [#216](https://github.com/clonetimer/SatAgentSimulation/pull/216) RW 驱动和 [#219](https://github.com/clonetimer/SatAgentSimulation/pull/219) 官方 IMU LSB 已合入。[#220](https://github.com/clonetimer/SatAgentSimulation/pull/220) 在精确 HEAD `dbdac07a` 的 [原生 CI](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44988049157) 完成同图 RW/LSB/偏置随机游走与封存，属 TECH-CANDIDATE-PASS。 | #220 仍未合并；候选 CI 不替代实际 main SHA 的合并后验收。其余器件的噪声谱、安装、温漂与真实传感器边界按逐器件证据推进。 |
 | DT-3 V&V 与误差预算 | [#202](https://github.com/clonetimer/SatAgentSimulation/issues/202) 建立外部参考统计、严格容差和未对齐基线。 | 电池温度均值、波动和稳态前提未通过；热侧安装边界与五测点映射尚待参考方确认。[#226](https://github.com/clonetimer/SatAgentSimulation/pull/226) 已提供五测点共同掩码、逐时加权、冻结容差及输出证据防覆盖的可审查比较工具；精确 HEAD `b3e8eba9` 的[合同测试](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44995548184)为 9/9 PASS，但未收到原始 `10.csv`，不能执行真实对照。缺少可比的原始时序、列定义或独立参考时不拟合、不放宽容差、不宣布 R1 完成。[#228](https://github.com/clonetimer/SatAgentSimulation/pull/228) 已在四效应同图 5400 s 下完成 10/5/2.5 s 内部步长细化；精确 HEAD `fbd50713` 的[官方 Basilisk 工作流](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44998833323)通过，云端观测阶 1.92988940、细化末端位置差 1.525870860 m，测试文件 5/5 PASS。PR 已 Ready for Review、未合并；结果只覆盖内部数值收敛。GMAT 交叉对照 [#215](https://github.com/clonetimer/SatAgentSimulation/pull/215) 已在 main `4624c3a7` 测试合并树完成[真实双引擎工程复验](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44993669027)，但独立科学验收仍为 INCONCLUSIVE：原始物理轴向、绝对时标、有效 μ 读回和任务误差预算尚未批准。 |
 | DT-4 数字场景与几何 | [#207](https://github.com/clonetimer/SatAgentSimulation/pull/207) 为 opt-in BIRDS-4 参考几何候选。 | 尚未合入，且档 1 参考几何不能升格为实装安装坐标或器件物理表面。需要五测点/设备安装映射的来源、坐标系、轴向和审批，再验证场景与同一 Run 的遥测时序。 |
-| DT-5 性能与交互 | 现有离线预览、软实时和 CI 浏览器链路可作为性能基线。[#227](https://github.com/clonetimer/SatAgentSimulation/pull/227) 已将有限 Run 曲线候选扩展到 10,000 条原始遥测样本，保留极值并增加组件/整星场景的真实浏览器测量。精确 HEAD `9c80a791` 的 [P9-C 浏览器工作流](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44997318857)及全套关联 CI 完成：19 SUCCESS、1 条条件性 SKIPPED、0 FAIL；PR 已 Ready for Review，尚未合并。 | 全局概览后的局部缩放还需从原始遥测按窗口重新取样；百万行源文件的读取、目标 GPU 渲染、持续多会话和交互帧时间须分别实测。万点候选仍需冻结目标硬件与多次 P95/P99/SLA 测量。CI SwiftShader 通过仅证明该环境下的浏览器合同，不等于目标 GPU 资格。 |
+| DT-5 性能与交互 | #227 已支持局部缩放从原始遥测按窗口重新取样。百万行合成源的窗口读取、并发首次建索引和开发机 Intel GPU 浏览器已有测量。候选提交 `ef8d529` 的检查为 35 项成功、2 项跳过。[测量脚本与结果](../../reports/dt5_server_preflight/) · [提交检查](https://github.com/clonetimer/SatAgentSimulation/commit/ef8d5292656348cd23f66b615ac572edbd08c749/checks) | 先确定目标硬件、数据规模和交互 SLA，再测持续多会话下的端到端延迟、帧时间和内存。 |
 
 ## #202 独立复现带来的计划调整
 
@@ -47,7 +47,7 @@
 
 ## 接下来的执行顺序与停止条件
 
-1. 先完成 #224 的独立审查，继续保持默认、旧配置和自定义首帧回归。合并 main 是单独的维护决策；本计划更新不授权合并。若以后合并，再对实际 main SHA 做回归。
+1. #224 候选提交 `5f403b55` 已完成三种输入到同一会话原生首帧的独立回归。云端 34 项成功、2 项跳过。后续若交付到主干，在对应 main SHA 重跑这三个用例。[PR 复验记录](https://github.com/clonetimer/SatAgentSimulation/pull/224#issuecomment-7080780621)
 2. 向参考方取得热侧安装边界、五测点映射及可核验的原始数据/统计定义；没有这些输入，停止热参数「拟合通过」判断。
 3. 以冻结 TaskSpec、初值、资产哈希、时间系和采样窗口做 #202 同条件 A/B；分别报告轨道、姿态、角速度、热侧残差和不确定度，不将缺测项计为 PASS。
 4. 先完成 #220 的独立审查与候选证据核对；合并 main 需单独决定。若以后合并，再对准确 main SHA 做同图实测，随后逐器件推进 DT-2 缺口；研究探针不得升级为诊断产品。
@@ -149,14 +149,14 @@
 | 2 独立物理验证 | #215 有双引擎轨迹；[μ 反演](../../reports/dt3_gmat_mu_audit/)和[时标复算](../../reports/dt3_clock_audit/)覆盖地球二体历史工况。#226 有热比较器。 | 原始物理轴向、时标选择、热测点与安装边界待确认；其余关键模型需逐项对应独立参考。 |
 | 3 收敛及任务容差 | #228 覆盖四效应同图 5400 s 三档步长。#202 有既定统计容差。 | 轨道、姿态任务级预算须在评价前确定；#202 同工况比较仍需可比的参考数据。 |
 | 4 故障与非理想响应 | #220 的输入干预在同一任务中产生轮速差，种子干预改变 IMU 序列。 | 将目标故障清单中的每个事件关联到有效时间、目标器件、可观测响应与恢复记录。 |
-| 5 封存及来源 | 本轮三个包均通过完整性验证，包内可读取 TaskSpec、种子、运行环境与依赖版本。 | 高保真目标配置需逐项核对实际使用的外部环境资产及哈希。 |
+| 5 封存及来源 | 三个重放试验包通过完整性验证。四效应工程样例另经官方 Basilisk 2.11.0 实测，封存清单 41 个成员和 8 个外部数据文件逐一核对。见[逐文件结果](../../reports/dt_r1_asset_identity/result.json)。 | 对最终交付版本使用冻结的任务输入和可追溯的实测空间天气，按相同方法复核。 |
 | 6 场景对象与安装映射 | #207 已验证固定 RW 资产、TaskSpec 轮位和独立浏览器图层。 | 各器件实装位置、方向、变换链、参考方批准仍待取得。 |
 | 7 历史 Run 复现 | 本轮在 #220 上从封存输入重放一次，逐行及字节级比较全部输出遥测，并以不同 seed 做对照。 | 扩展至版本化 R1 基准用例和外部资产依赖；登记哪些用例支持逐字节复现，哪些须按预先约定的数值准则复核。 |
 | 8 明示未验证项 | 本轮实际封存环境标为 `analysis_only`、`engineering_preview`，`capability_can_claim_high_fidelity=false`；本计划列出未决项。 | 逐个核对目标输出在 Run Bundle、API 与结果页面的标签及含义。 |
 
 **第 7 项实测。** 使用 #220 提交 `dbdac07a343751eb8986984c36b2594891d1c310`、Windows 11、Python 3.12.12、Basilisk 2.11.0+satfix2。20 s 整星任务按 0.2 s 积分、2 s 采样。原运行、封存 TaskSpec 重放、仅改变种子的对照，三者均执行成功、validation PASS、封存完整。相同种子 811 的两份遥测（11 行，首行 269 字段）SHA-256 均为 `8bb08e130a8956eb86119d65534cdf86d8bca9f4f91fd1ed08ad665f9b642956`。种子 812 的时间轴相同，陀螺 X 偏置游走最大差为 0.000447769151 rad/s。复现时在 #220 的依赖环境中将其 src 与工作树根加入 PYTHONPATH，运行 `python audit.py result.json --keep-bundles <新目录>`。[实测脚本与结果](../../reports/dt_r1_bundle_replay/)
 
-**优先顺序。** 先推进不依赖外部批准的 LEO-02 高阶参考与截断误差比较，并记录 RTN 残差。同步等待任务容差、原始热时序及实装几何。将这些输入落实到对应出口后，再评定 R1。
+**下一项可执行工作。** LEO-02 高阶截断对照及四效应样例的资产核查已有结果。下一步针对出口 8，选同一封存 Run 核对包内、API 和结果页面呈现的模型适用范围，记录实际字段与界面证据。参考方补齐热侧原始时序、测点映射与安装边界后按 #202 原容差复验。轨道与姿态的任务级判断还需预先确认误差预算。
 
 ### LEO-02 重力场截断的原生对照
 
@@ -174,3 +174,11 @@
 上表固定步长 5 s，取各采样时刻三维位置差范数的最大值。4 阶相对 32 阶的末端 RTN 位置差为 (42.066, −79.038, −0.431) m。在两个参考阶次下，本弧段从 3 阶到 4 阶的残差均增大；不能由这一次弧段为各阶建立通用精度排序。固定 32 阶将步长 5→2.5→1.25 s，相邻解最大位置差分别为 0.2631 和 0.0657 m。32 阶与 64 阶本身相差最多 1.328 m，因此引用高阶数值解时须注明参考阶次。这里比较的是同一模型内的截断和步长效应，任务精度判定仍需独立参考和冻结容差。
 
 共 9 次原生运行、819 个六维状态。复现时将 #228 工作树的 src 与根目录加入 PYTHONPATH，并将 SAT_SIM_ASSET_ROOT 指向项目固定版本的 SPICE/WMM/GGM03S 数据目录，运行 `python audit.py result.json`。[脚本、逐样本状态与 RTN 统计](../../reports/dt3_leo02_gravity/)
+
+### R1 出口 5 的四效应工程样例
+
+在 [#228 提交 fbd50713](https://github.com/clonetimer/SatAgentSimulation/commit/fbd507130bc7eaf62124249dec81a3ca6a422211) 上用 uv 建立独立环境，安装官方 Windows wheel `bsk==2.11.0`，共用本机已安装的 Python 依赖。原有环境的 `2.11.0+satfix2` 触发了该用例的严格版本检查。官方版本通过 1 项产品入口回归，0 项跳过。30 s 场景开启 GGM03S 四阶重力、IGRF14 磁场、NRLMSISE-00 阻力与炮弹模型太阳辐射压。导出脚本与独立 Run Bundle 的阻力峰值同为 0.003022097078 N，封存遥测 4 帧。
+
+独立读取 seal、清单与磁盘文件，复算清单本身及其 41 个成员的 SHA-256，并逐一比对外部目录中 4 个 SPICE 核、1 个重力系数文件、IGRF 原表及派生 COF、1 个空间天气 CSV。8 个文件全部匹配。天气来源清单的哈希另行核验，导出脚本与封存包记录的环境信息一致。本次天气为 5 行测试夹具，获取时间未知。该结果证明本例的数据身份可核查，真实任务的空间天气来源与准确性须单独验收。[审计脚本与摘要](../../reports/dt_r1_asset_identity/)
+
+复现时从上述提交的根目录设置 `PYTHONPATH` 至该工作树的 src 和根目录，设置 `SAT_SIM_ASSET_ROOT` 至已准备好的外部资产根目录。运行 `python -m pytest -q -s tests/test_native_integrated_environment.py::test_four_effects_pass_canonical_taskspec_exported_script_and_sealed_run_bundle --basetemp <全新临时目录>`。将其中的具体测试目录、同一资产根目录和该提交的 `tests/fixtures/celestrak_space_weather_2026-03-04.csv` 依次传给 `audit.py`。清单包含本次运行的时间戳，每次复跑应核对各自的封存值。

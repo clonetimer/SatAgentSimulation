@@ -1,0 +1,70 @@
+{
+  "assets": [
+    {
+      "role": "SPICE de430.bsp",
+      "file": "de430.bsp",
+      "bytes": 119741440,
+      "sha256": "6e1b277c5f07135a84950604b83e56b736be696a7f3560bcddb1d4aeb944fca1"
+    },
+    {
+      "role": "SPICE naif0012.tls",
+      "file": "naif0012.tls",
+      "bytes": 5257,
+      "sha256": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b"
+    },
+    {
+      "role": "SPICE pck00010.tpc",
+      "file": "pck00010.tpc",
+      "bytes": 126143,
+      "sha256": "59468328349aa730d18bf1f8d7e86efe6e40b75dfb921908f99321b3a7a701d2"
+    },
+    {
+      "role": "SPICE gm_de431.tpc",
+      "file": "gm_de431.tpc",
+      "bytes": 6291,
+      "sha256": "15756c162151853f329d473fa00c38d35e62d83c3e25ddceece6516bbd98738b"
+    },
+    {
+      "role": "gravity coefficients",
+      "file": "GGM03S.txt",
+      "bytes": 1350695,
+      "sha256": "71f8736f98c5d8c972d0f6d56a2389302f72b8ac7517c605d312162ca446a3a1"
+    },
+    {
+      "role": "IGRF source",
+      "file": "igrf14coeffs.txt",
+      "bytes": 42411,
+      "sha256": "8f8d88403028fc4ee92c4f38d97b46e0a87e2cfc496045b43c9e26c1d6b0903c"
+    },
+    {
+      "role": "IGRF runtime COF",
+      "file": "IGRF14-2025.COF",
+      "bytes": 6320,
+      "sha256": "6e106e5011b13393d807a1f6304d580ba85a50fdd03f55717eb6265a5c61962b"
+    },
+    {
+      "role": "space weather fixture",
+      "file": "SW-Last5Years.csv",
+      "bytes": 781,
+      "sha256": "5290906fb326869757e7bb96ac84d35a4b583bb6a1ce171b2977067f32739b87"
+    }
+  ],
+  "weather_manifest_sha256": "6bde73722a0e234aa5d0a67bc7527a2c4b98909c25a7283a5ace4a51b7c521e4",
+  "weather_source": "test-fixture://celestrak-compatible-sample",
+  "sealed_members_checked": 41,
+  "bundle_manifest_sha256": "cd52ae93196f00773d668871dfd4f0a6f1fbdd586e526ec0de7fbad98b31d151",
+  "execution_plan_sha256": "9c829390052ced8496462a6619bd80e3cefefe1d1848f8c52fecadb987bcfa10",
+  "dependencies": {
+    "python": "3.12.12",
+    "satellite-simulation-platform": "0.7.8",
+    "pydantic": "2.13.4",
+    "PyYAML": "6.0.3",
+    "numpy": "2.3.5",
+    "bsk": "2.11.0",
+    "fastapi": "0.139.2",
+    "uvicorn": "0.48.0",
+    "Basilisk": "2.11.0"
+  },
+  "native_result": "PASS",
+  "exported_and_sealed_environment_equal": true
+}
