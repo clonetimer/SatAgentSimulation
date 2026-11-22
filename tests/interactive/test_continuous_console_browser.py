@@ -115,9 +115,11 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
     monkeypatch.setenv("SAT_SIM_INTERACTIVE_ENABLED", "1")
     monkeypatch.delenv("SAT_SIM_SUPERVISED_NATIVE_RUNTIME", raising=False)
     running = []
+    created_specs = []
     def factory(spec):
         assert spec.continuous
         assert spec.capability_id == "whole_spacecraft.unified_native.v1"
+        created_specs.append(spec)
         rw4 = spec.task_spec["parameters"]["values"].get("rw_configuration") == "pyramid_4"
         runtime = UiProtocolDouble(rw4=rw4)
         running.append(runtime)
@@ -288,6 +290,8 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert page.locator('[data-native-key="rw_initial_speed_rad_s_3"]').is_disabled()
             page.locator('[data-native-key="rw_initial_speed_rad_s_0"]').fill("-75")
             page.locator('[data-native-key="rw_max_torque_nm"]').fill("0.08")
+            for axis, value in zip("xyz", ("-0.003", "0", "0.006")):
+                page.locator(f'[data-native-key="initial_body_rate_{axis}_rad_s"]').fill(value)
             page.locator("#continuousQuantum").select_option("0.2")
             page.locator("#continuousPaced").check()
             page.locator("#continuousCreateForm button[type=submit]").click()
@@ -308,6 +312,9 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert original.json()["native_initial_values"]["initial_soc"] == .7
             assert original.json()["native_initial_values"]["rw_initial_speed_rad_s_0"] == -75.
             assert original.json()["native_initial_values"]["rw_max_torque_nm"] == .08
+            body_rate_keys = [f"initial_body_rate_{axis}_rad_s" for axis in "xyz"]
+            expected_body_rate = [-.003, 0., .006]
+            assert [original.json()["native_initial_values"][key] for key in body_rate_keys] == expected_body_rate
             assert "rw_initial_speed_rad_s_3" not in original.json()["native_initial_values"]
             assert original.json()["editable_after_prepare"] is False
             folded_proof = _navigation_snapshot(page, "#continuousInitialConfigStatus", "created-form-folded", tmp_path, navigation_records)
@@ -496,6 +503,25 @@ def test_chromium_creates_operates_and_stops_continuous_session(tmp_path, monkey
             assert failures == [], failures
         finally:
             browser.close()
+
+    # Reuse values accepted from the actual Chromium submission in a short
+    # genuine Basilisk execution, then inspect the spacecraft truth recorder.
+    from sat_sim.capability_registry import get_adapter_for_capability
+    from sat_sim.scenario_templates import instantiate_scenario_template
+    from sat_sim.task_compiler import compile_task_spec
+    from sat_sim.unified_execution import build_execution_request
+
+    assert len(created_specs) >= 1
+    submitted = created_specs[0].task_spec["parameters"]["values"]
+    assert [submitted[key] for key in body_rate_keys] == expected_body_rate
+    native_spec = instantiate_scenario_template("whole_spacecraft_unified_native", task_id="browser_body_rate")
+    native_spec["simulation"].update(duration_s=2., step_s=.1, sample_s=.3)
+    native_spec["parameters"]["values"].update({key: submitted[key] for key in body_rate_keys})
+    request = build_execution_request(compile_task_spec(native_spec), native_spec)
+    rows = get_adapter_for_capability(request.capability_id).run(
+        request.metadata["resolved_runtime_task_spec"]
+    ).trace_rows
+    assert [rows[0][f"attitude.truth.omega_BN_B_{axis}"] for axis in "xyz"] == pytest.approx(expected_body_rate)
 
 
 @pytest.mark.parametrize("catalog_available", [True, False])
