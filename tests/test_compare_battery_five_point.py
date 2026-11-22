@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.compare_battery_five_point import compare, digest, SAMPLES, STEP_S
+from scripts.compare_battery_five_point import compare, digest, write_result_once, SAMPLES, STEP_S
 
 
 def fixture(tmp_path, *, flags=False, anticorrelated=False):
@@ -148,3 +148,17 @@ def test_real_archived_model_trace_with_explicitly_synthetic_reference(tmp_path,
     assert result["common_valid_count"] == SAMPLES
     assert result["difference_model_minus_reference"]["mean_c"] == pytest.approx(-offset)
 
+
+def test_result_file_never_overwrites_input_or_prior_receipt(tmp_path):
+    reference, mapping, model, stats = fixture(tmp_path)
+    original_reference = reference.read_bytes()
+    with pytest.raises(ValueError, match="OUTPUT_OVERLAPS_INPUT_EVIDENCE"):
+        write_result_once(reference, {"status": "fixture"}, (reference, mapping, model, stats))
+    assert reference.read_bytes() == original_reference
+
+    result_path = tmp_path / "result.json"
+    write_result_once(result_path, {"status": "fixture"}, (reference, mapping, model, stats))
+    original_result = result_path.read_bytes()
+    with pytest.raises(FileExistsError):
+        write_result_once(result_path, {"status": "changed"}, (reference, mapping, model, stats))
+    assert result_path.read_bytes() == original_result
