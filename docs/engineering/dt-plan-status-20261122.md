@@ -68,3 +68,5 @@
 当前读取器在解析每行 JSON 后才按时间过滤，再次扫描以输出选中行。窗口返回量固定时，耗时仍随文件规模增长。下一步可用相同文件检验按时间定位的读取方案，同时逐行核对窗口结果。
 
 [30 次原始读数](../../reports/dt5_server_preflight/results.json)包含源文件哈希、进程 CPU 时间、读取后 RSS 和紧凑 JSON 字节数。测量范围为 Python 服务函数，文件缓存由操作系统管理。每组 5 次用于描述中位数，尾部延迟与目标硬件 SLA 仍待验收。复现时在 #227 对应源码环境设置 `PYTHONPATH=src`，从该工作树根目录依次运行本附件的 [fixture.py](../../reports/dt5_server_preflight/fixture.py) 与 [repeat.py](../../reports/dt5_server_preflight/repeat.py)，结果写入 `.tmp/dt5-repeat-results.json`。
+
+同一百万行夹具的[稀疏时间索引试验](../../reports/dt5_server_preflight/index_probe.py)每 1,024 行记录一个时间与字节偏移。一次建表耗时 2.629 s，共 977 项，计时前已读取文件做 SHA-256 校验。五种短窗口覆盖文件开头、索引边界、中段、空窗与末尾。每窗五次查找返回的每一行及其顺序均与现有概览函数一致。中段 101 行的原函数一次耗时 4.831 s，建表后读取相同行的五次中位耗时 1.115 ms。[原始测量](../../reports/dt5_server_preflight/index_results.json)仅覆盖本机已缓存文件、时间单调的合成输入与行读取。服务 API 仍走原实现。接入时需验证源文件替换、乱序、重复时间、并发读者和大窗口抽样合同。
