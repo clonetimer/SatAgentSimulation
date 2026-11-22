@@ -126,3 +126,15 @@
 ### DT-4 独立浏览器复验结果
 
 #207 提交 `e0f00d944ee661d9c810332cfaff230c83c37d1f` 的本机四项专项测试全部通过，零跳过。[测试结果](../../reports/dt4_rw_reference_audit/pytest.xml)及[真实浏览器截图](../../reports/dt4_rw_reference_audit/dt41-real-rw-reference-three-copies.png)。独立轮组 GLB 为 1,410,016 字节，SHA-256 为 `3019d97d4990553bcfab39d9cbe0ea15bad9a294f517481b65df1ec71ce4d795`。端点返回文件与制品成员字节相同。浏览器以测试提供的已校验逐轮配置生成三个实例，每个 24 个 mesh，分别位于 B 系 (0.12,0,0)、(0,−0.08,0)、(0,0,0.07) m。旧配置推断位置时图层禁用，同长度改写一个字节的 GLB 被拒绝。测试使用 Chrome 和指定的软件渲染参数；这些坐标是测试输入，安装审查仍按上表逐轮取证。[云端作业](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44826722085/job/136601077546)
+
+### #224 持续实时向导到原生首帧的本机复验
+
+在 #224 提交 `5f403b5589670659c1e18520959d0ee349617d88` 上，Chrome 157 经 Playwright 转发到 FastAPI TestClient，由真实持续会话创建并启动 Basilisk `2.11.0+satfix2`。每个用例只创建一个会话，观察器原样调用持续运行时的 advance_to 并记录其返回的首条真实动力学记录。逐项对照实际提交字段、服务端冻结配置、运行时配置和 `t=0` 三轴机体角速度。模型值的逐轴绝对容差为 1e-14 rad/s。
+
+| 输入 | 首帧 (X,Y,Z)，rad/s |
+| --- | --- |
+| 保留向导默认值 | (0.01, −0.004, 0.002) |
+| 兼容旧请求，在转发时省略三个新字段 | (0.01, −0.004, 0.002) |
+| 从界面填写自定义三轴 | (−0.003, 0, 0.006) |
+
+三项通过，零跳过。旧请求用例验证缺字段协议兼容；其余两例直接使用浏览器提交的请求体。复现时设置 PYTHONPATH 指向 #224 checkout 的 src 和根目录，SAT_SIM_BROWSER_EXECUTABLE 指向 Chrome，使用 `python -m pytest --override-ini pythonpath= -q -s reports/dt3_wizard_native_audit/test_wizard_to_native.py`。设置 DT3_AUDIT_OUTPUT 为已存在的输出目录可保存三份记录。[逐例请求字段与原生结果](../../reports/dt3_wizard_native_audit/)
