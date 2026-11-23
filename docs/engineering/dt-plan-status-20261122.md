@@ -244,3 +244,13 @@
 两对运行均为 30 s、16 帧。独立读取四份封存清单，各 41 个成员的内容哈希均匹配，逐一比对源 CSV 与来源清单的哈希。关闭推进时，30 s 末帧密度由 5.2178434×10⁻¹¹ 变为 5.0506109×10⁻¹¹ kg/m³，阻力由 3.022670 变为 2.925790 mN。点火时末帧阻力由 3.022573 变为 2.925696 mN。两例中每个正时间采样的密度和阻力均随输入改变。首帧密度已有值，阻力记录为零。这些读数验证本例观测输入的来源及传递；真实轨道上的密度、阻力误差仍需独立对照。[审计脚本与逐帧结果](../../reports/dt_r1_observed_weather/)。
 
 四个组合候选的最新 CI 均已结束。#229 `e533be7` 34 项通过，#230 `d2b035b` 和 #231 `7d0656d` 各 11 项通过，#232 `12a9e65` 10 项通过，各另有 2 项跳过。[#229](https://github.com/clonetimer/SatAgentSimulation/pull/229/checks) · [#230](https://github.com/clonetimer/SatAgentSimulation/pull/230/checks) · [#231](https://github.com/clonetimer/SatAgentSimulation/pull/231/checks) · [#232](https://github.com/clonetimer/SatAgentSimulation/pull/232/checks)
+
+### R1 出口 4 的电池容量故障窗口
+
+在组合树 `7a282dbd97024ab65841d0b186156053ee48e4ee` 上，从上一节观测天气、关闭推进的封存 TaskSpec 出发，固定 0.25 s 积分和采样步长、30 s 时长。健康组与两个故障组均完成官方 Basilisk 2.11.0 原生运行、运行验证和封存。以 8–16 s（含两端）为故障窗口，对每组 121 帧检查实际电池容量、储能和 SOC。事件目标在 TaskSpec 中为 whole_spacecraft，项目参数控制器修改原生 SimpleBattery 的容量。
+
+- 健康组容量始终为 576000 J。剩余容量设为 75% 的工况在窗口内为 432000 J，储能与健康组逐帧相同。16.25 s 起，容量、储能、SOC 三者均与健康组一致。
+- 剩余容量设为 50% 时，8 s 首帧储能被截至 288000 J，持续 33 帧达到当时容量上限。16.25 s 容量恢复到 576000 J，储能为 288212.107 J。30 s 时仍比健康组少 82517.357 J。
+- 三组在 8 s 前这三个量逐帧相同。该对照支持有时限的容量参数故障及其解除行为。现有 energy_balance_proxy 读取功率通道，未单独核算截断储能的物理去向；这里的 SOC 和能量变化是容量限制模型响应，真实电芯损伤与修复仍需实验依据。
+
+[三组逐帧数据与封存哈希](../../reports/dt_r1_eps_event/result.json) · [运行和核查脚本](../../reports/dt_r1_eps_event/audit.py)
