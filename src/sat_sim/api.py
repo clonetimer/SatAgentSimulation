@@ -27,6 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .canonical_transport import CanonicalTransportError, parse_canonical_transport, task_spec_json
 from .assertions import normalize_assertions
+from .reporting import run_model_scope
 
 from .agent_guards import agent_tool_policy_payload, evaluate_agent_guards
 from .capability_registry import capability_summary_payload
@@ -638,14 +639,18 @@ def _dataset_inventory(dataset_root: Path) -> list[dict[str, Any]]:
 
 
 def _run_payload(root: Path) -> dict[str, Any]:
+    validation = _json(root / "validation" / "validation_outcome.json")
+    claims = _json(root / "validation" / "claim_report.json")
+    environment = _json(root / "runtime" / "environment.json")
     return {
         "run_id": root.name,
         "exists": root.exists(),
         "task_spec": _json(root / "input" / "task_spec.json"),
         "prepared_run": _json(root / "runtime" / "prepared_run.json"),
         "run_record": _json(root / "run_record.json"),
-        "validation_outcome": _json(root / "validation" / "validation_outcome.json"),
-        "claim_report": _json(root / "validation" / "claim_report.json"),
+        "validation_outcome": validation,
+        "claim_report": claims,
+        "model_scope": run_model_scope(environment or {}, claims or {}, validation or {}),
         "summary": _json(root / "results" / "summary.json"),
         "metrics": _json(root / "results" / "metrics.json"),
         "events": _json(root / "results" / "events.json"),
@@ -5801,6 +5806,7 @@ Scope / Display / To Workspace 等 observer 不会进入生成的物理 runner�
             "status": (run.get("run_record") or {}).get("status"),
             "validation": run.get("validation_outcome"),
             "claim_report": run.get("claim_report"),
+            "model_scope": run["model_scope"],
             "summary": run.get("summary"),
             "metrics": run.get("metrics"),
             "events": run.get("events"),

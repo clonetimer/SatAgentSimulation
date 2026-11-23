@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from sat_sim.api import API_VERSION, WEB_WORKBENCH_VERSION, create_app
 from sat_sim.security import required_roles_for_request
+from sat_sim.reporting import run_model_scope
 
 
 def _client(tmp_path: Path) -> TestClient:
@@ -76,6 +77,12 @@ def test_release_report_is_generated_before_bundle_seal(tmp_path: Path) -> None:
         assert "浏览器“打印/另存为 PDF”" in report.text
         run = client.get(f"/runs/{run_id}").json()["run"]
         assert run["integrity"]["ok"] is True
+        scope = run["model_scope"]
+        assert scope == client.get(f"/runs/{run_id}/report").json()["model_scope"]
+        assert scope["summary"] == "仅分析用途"
+        assert scope["summary"] in report.text
+        for label, value in scope["fields"].items():
+            assert label in report.text and value in report.text
         diagnostic = client.get(f"/diagnostics/bundle?run_id={run_id}")
         with zipfile.ZipFile(io.BytesIO(diagnostic.content)) as archive:
             assert "run/input/task_spec.json" in archive.namelist()
@@ -85,3 +92,11 @@ def test_release_report_is_generated_before_bundle_seal(tmp_path: Path) -> None:
 def test_release_observability_endpoints_require_operator_or_admin() -> None:
     assert required_roles_for_request("GET", "/logs") == frozenset({"operator", "admin"})
     assert required_roles_for_request("GET", "/diagnostics/summary") == frozenset({"operator", "admin"})
+
+
+def test_requested_grade_requires_explicit_allowed_claim():
+    claim = {"requested_claim_level": "flight_correlated", "allowed_claims": ["task_requirements_satisfied"]}
+    scope = run_model_scope({}, claim, {})
+    assert scope["summary"] == "未确认声明等级"
+    assert scope["fields"]["本次禁止声明"] == "未记录"
+    assert scope["fields"]["能力允许声明高保真"] == "未记录"

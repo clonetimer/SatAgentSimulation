@@ -6813,6 +6813,19 @@
     text.style.marginTop = '4px';
     if (validation.reason_code) text.title=`原因码：${validation.reason_code}`;
     card.append(strong, text);
+    const scope = state.activeRun?.model_scope;
+    if (scope && state.activeRun?.sealed && state.activeRun?.integrity?.ok) {
+      const details = document.createElement('details');
+      const heading = document.createElement('summary');
+      heading.textContent = `模型适用范围 · ${scope.summary}`;
+      details.appendChild(heading);
+      for (const [label, value] of Object.entries(scope.fields)) {
+        const line = document.createElement('div');
+        line.textContent = `${label} · ${value}`;
+        details.appendChild(line);
+      }
+      card.appendChild(details);
+    }
     const physical = validation.physical_validation;
     if (physical && Object.keys(physical).length) {
       const coverage = document.createElement('div');
