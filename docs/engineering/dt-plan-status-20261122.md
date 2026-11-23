@@ -414,3 +414,7 @@ git -C dt-r1-source rev-parse HEAD 'HEAD^{tree}'
 Windows 联合候选的两次原门槛试跑在推进期限中止，分别在 3,415.5 仿真秒（含内存采样）与 2,884.0 仿真秒（原 pytest）留下 ABORTED 状态。另开诊断进程将推进上限设为 360 秒，封存断言仍为 15 秒。诊断从 RUNNING 到 PAUSED 实际 161.905 秒，原生推进调用累计 117.854 秒，写遥测累计 40.319 秒，文件同步累计 24.678 秒。计时存在嵌套，不能相加解释总耗时。完成后共 10,803 帧，COMPLETED 到写入封印 10.597 秒，worker 在 15 秒内退出，另行校验包通过。可据此把推进与封存分别复测；本机单次计时无从判定前两次超时的具体环境原因。[诊断脚本](../../reports/dt5_server_preflight/profile_continuous_advance.py) · [原生诊断结果](../../reports/dt5_server_preflight/seal_native_diagnostic.json)。
 
 **Windows 原测试复核。** 在同一 28c67b6 上以原始 pytest 入口、默认分段大小重跑，1 项通过，JUnit 用时 126.676 秒。RUNNING 到 PAUSED 112.143 秒，达到 3,600.0 仿真秒，7,200 段原生推进、10,802 帧遥测。COMPLETED 到写入封印为 8.635 秒，原 15 秒 worker 等待断言通过。进程退出后独立检查状态链和 Run Bundle 均通过。与先前两次 Windows 推进超时一并记账；该主机运行速率存在波动，目标环境资格仍待实测。[Windows 原测试结果与封印指纹](../../reports/dt5_server_preflight/seal_windows_original_test.json)。
+
+### DT-1 固定面积阻力的密度来源与时序
+
+[候选 #238](https://github.com/clonetimer/SatAgentSimulation/pull/238) 对照两份已封存的 5,400 秒原生轨迹。2 秒和 1 秒步长下，使用同帧新环境密度重算的三轴力最大残差分别为 1.544 µN 和 0.772 µN；用力计算前发布的密度复算，两者均低于 1.6 × 10⁻¹⁸ N。候选增加本步输入密度和来源消息写入时刻，便于输出稀疏时还原力的输入。官方 Basilisk 新跑同输入 5,400 秒，2,701 帧的 896,732 个既有字段值全部相同。4 项原生整合用例通过。此项补入 R1 出口 2、5 的力源核验。绝对密度误差仍需独立环境参考，任务误差预算及航天器有效面积、阻力系数仍待确认。[实测报告、封存指纹与复算脚本](https://github.com/clonetimer/SatAgentSimulation/tree/codex/dt-drag-density-source/reports/dt1_drag_density)。
