@@ -384,3 +384,33 @@ git -C dt-r1-source rev-parse HEAD 'HEAD^{tree}'
 原测试未通过 Windows 的 session.wait(15.0) 断言。根据同一会话持久化 COMPLETED 状态事件和 SEALED.json 的 UTC 时间，两者间隔 15.542249 s。进程结束后重新执行 SessionWorkspace.inspect 得到 COMPLETED/valid=True，verify_run_bundle 返回 ok=True。封存清单共 10803 帧，其中用户流 3601 帧、runtime.trace 7202 帧。此结果保留等待超时；无 archive_verified 末段内存采样。后续应计时遥测归并、索引写入、文件校验和复制各步骤，在目标存储上复测等待预算。
 
 [插桩与复现脚本](../../reports/dt5_server_preflight/soak_memory.py) · [逐阶段采样](../../reports/dt5_server_preflight/soak_memory_3600.json)。从指定源码树设置 PYTHONPATH=src、SAT_SIM_CONTINUOUS_SOAK_TARGET_S=3600，以独立工作目录运行 python soak_memory.py . WORKSPACE SAMPLE_JSON。该次使用测试默认分段大小。
+
+### DT-5 封存超时复验与下一期输入
+
+将原 10,803 帧会话复制到两个独立目录，在同一台 Windows 开发机复跑 finalize_telemetry 和 seal_continuous_workspace。原包留存。联合基线 cfc47059 和修复候选 28c67b6 的共同生产源码基线为 bc0a659。两者重新生成的 14 个清单成员逐文件 SHA-256 全部相同，含物理校验、语义轨迹、命令窗口、遥测及运行记录。每次封存的时间戳和封印按各次运行生成。
+
+| 步骤（秒） | 基线 | 修复候选 |
+| --- | ---: | ---: |
+| 遥测分流、校验与写清单 | 4.565 | 4.811 |
+| 封存中的工作区检查 | 2.356 | 2.646 |
+| 封存中的语义轨迹生成与物理检查 | 9.621 | 6.044 |
+| 封存全过程 | 13.042 | 9.791 |
+| 分流加封存总计 | 17.607 | 14.603 |
+
+两列各一次观测；工作区检查和语义轨迹已计入封存全过程。修复缓存上一帧字段结构对应的温度与四元数字段名，每帧仍读取实际测量值。无墙钟及序号字段时，复用已生成的规范 JSON 字节计算语义摘要。47 项回归通过，包含字段增删、同名字段值变化、原生四元数分量和故障值。另一次基于 main 的探索性运行在 180 秒加速期限内未跑满 3,600 仿真秒，未到达封存验收；其旧版物理校验范围与联合分支不同，未纳入成对结果。
+
+[草稿修复 #237](https://github.com/clonetimer/SatAgentSimulation/pull/237) · [分阶段计时及 14 个文件指纹](../../reports/dt5_server_preflight/seal_latency_comparison.json) · [副本复验脚本](../../reports/dt5_server_preflight/time_continuous_seal.py)。复验时为两版分别设置 PYTHONPATH，向脚本传入同一原始工作区和两个不同的新目录。#236 的 130403d 最终云端检查为 34 项成功、2 项跳过。
+
+| 原计划需继续的项目 | 下一期所需输入 | 收到输入后的验收动作 |
+| --- | --- | --- |
+| DT-1 / DT-3 轨道、姿态外部比对 | 参考方确认轴向、绝对时标、引力常量及任务级误差预算 | 固定同初态、同模型和时网，按预定容差复算轨道与姿态残差 |
+| DT-2 / DT-4 器件与安装 | 对应型号的噪声、温漂、部件坐标、方向、安装图与变换定义 | 逐器件核对物理模型、消息和数字场景映射 |
+| DT-3 电池热比对 | 10.csv 已有本地来源；需确认五测点身份、单位、时间对齐、安装热边界和聚合权重 | 在共同有效时间窗按冻结容差复验温度均值、波动与稳态前提 |
+| DT-5 目标环境资格 | 目标服务器、存储、GPU、并发量和交互 SLA | 在指定环境重复计时，报告封存等待、峰值内存、加载与交互延迟分布 |
+| 交付版本 | 维护者选定交付提交 | 在该 SHA 重跑 R1 出口验收，保留失败记录与封存清单 |
+
+[联合分支云端原生长程](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45204519025/job/137796526891) 按原 180 秒推进和 15 秒封存门槛通过，达到 3,600.5 仿真秒，用户流 3,601 帧，原生推进 7,201 段。#237 的 7 项云端检查均成功。此处 Windows CI 只覆盖其作业清单中的生命周期检查。
+
+Windows 联合候选的两次原门槛试跑在推进期限中止，分别在 3,415.5 仿真秒（含内存采样）与 2,884.0 仿真秒（原 pytest）留下 ABORTED 状态。另开诊断进程将推进上限设为 360 秒，封存断言仍为 15 秒。诊断从 RUNNING 到 PAUSED 实际 161.905 秒，原生推进调用累计 117.854 秒，写遥测累计 40.319 秒，文件同步累计 24.678 秒。计时存在嵌套，不能相加解释总耗时。完成后共 10,803 帧，COMPLETED 到写入封印 10.597 秒，worker 在 15 秒内退出，另行校验包通过。可据此把推进与封存分别复测；本机单次计时无从判定前两次超时的具体环境原因。[诊断脚本](../../reports/dt5_server_preflight/profile_continuous_advance.py) · [原生诊断结果](../../reports/dt5_server_preflight/seal_native_diagnostic.json)。
+
+**Windows 原测试复核。** 在同一 28c67b6 上以原始 pytest 入口、默认分段大小重跑，1 项通过，JUnit 用时 126.676 秒。RUNNING 到 PAUSED 112.143 秒，达到 3,600.0 仿真秒，7,200 段原生推进、10,802 帧遥测。COMPLETED 到写入封印为 8.635 秒，原 15 秒 worker 等待断言通过。进程退出后独立检查状态链和 Run Bundle 均通过。与先前两次 Windows 推进超时一并记账；该主机运行速率存在波动，目标环境资格仍待实测。[Windows 原测试结果与封印指纹](../../reports/dt5_server_preflight/seal_windows_original_test.json)。
