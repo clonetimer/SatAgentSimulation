@@ -515,3 +515,7 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 五入口中的自然语言失败记录和 DT-5 目标环境性能资格继续保留在台账。八项出口仍有实际资料和精度资格缺口。
 
 **云端候选终态。** #241 的 a7b38826 共 31 项检查成功，#242 的 fc0d659a 共 30 项检查成功，修订后的实时场景作业通过。两个候选均处于开放 PR 状态。[#241 提交检查](https://github.com/clonetimer/SatAgentSimulation/commit/a7b38826ccab79cbaa3d4da00ef7839d31549322/checks) · [#242 提交检查](https://github.com/clonetimer/SatAgentSimulation/commit/fc0d659af05ded1ae42e836224beaab1075cb84a/checks)
+
+**自然语言入口原失败工况复验通过。** 原两条失败回答继续保留。[草稿 PR #243](https://github.com/clonetimer/SatAgentSimulation/pull/243) 的 d6fec67 将已由用户明确指定的时长、积分步长和记录周期加入供应方结构化解码约束。此次使用与第一次失败相同的请求、提示词 SHA-256、基座模型与 v5 LoRA；变化的是解码契约。原始首答给出 20 秒时长、0.2 秒积分、1 秒记录，无模板回退或校验前修正。真实 Chrome 确认候选并从页面运行；候选、页面提交和封存 TaskSpec 的全部字段一致。Basilisk 从 0 至 20 秒按 1 秒间隔输出 21 帧，所请求的五个遥测量在每帧均有有限数值，运行验证与完整性均通过。模型调用耗时 137.935 秒，输入 9852 token、输出 1403 token；浏览器测试全程 156.38 秒。这一结果覆盖该模型和该回归工况。五种入口现均有相应工况的真实运行证据；模型泛化、经验复用收益和全平台 Stable 仍须独立评估。[原答及封存指纹索引](../../reports/dt_remaining_integration/nl_wizard_real_native.json)
+
+中间验证亦保留判定：初版约束在真实 LMFE 中排除了未枚举的仿真字段，原型运行返回 HTTP 504；修订后用生产 SimulationSpec 和 SolverSpec 的字段集合构建约束。另一次首答通过后原生执行因隔离工作树未配置必需的 SPICE 内核路径而失败。最终实测复用已固定资产目录，从自然语言输入重新开始。云端 #243 三项检查成功，本地相关契约 136 项、真实解码器 58 项通过。
