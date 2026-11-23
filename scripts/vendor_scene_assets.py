@@ -143,7 +143,7 @@ def main() -> int:
     except (OSError, RuntimeError, subprocess.CalledProcessError, json.JSONDecodeError, tarfile.TarError) as exc:
         print(f"P9-C globe asset staging failed: {exc}", file=sys.stderr)
         return 2
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    print(json.dumps(result, indent=2))
     return 0
 
 
