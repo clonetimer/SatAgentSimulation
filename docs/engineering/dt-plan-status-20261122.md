@@ -466,3 +466,17 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 ```
 
 **云端复验。** #239 的 ec536ef 共 34 项检查全部成功，覆盖整星原生作业和向导真实运行。#240 的 38f4f4e 两项检查全部成功，原生作业耗时 12 分 44 秒，实际测试选择包含 repeated_dropout，浏览器真实运行与封存归档步骤通过。[向导 CI](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45216659344) · [重复事件 CI](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45218405991)
+
+### 五种创建入口的证据覆盖
+
+以下按用户实际操作逐项跟踪，共用 TaskSpec 编译器不等于五个界面都已完成端到端验收。
+
+| 入口 | 当前实测范围 | 尚需验证 |
+| --- | --- | --- |
+| 表单 | #239 已从向导选择定时星敏掉测，真实执行并下载封存包。 | 结论限于所测能力和工况。 |
+| 拖拽画布 | 38f4f4e 的真实 Chrome 在 V15 打开默认整星图，正式校验并下载程序包。独立取 ZIP 内原始 TaskSpec，未改参数，Basilisk 执行 60 秒得到 7 帧，验证通过，封存完整。 | 既有浏览器用例对异步 Run 状态使用夹具。本次补证覆盖下载包的物理执行；还需从手动编辑节点到真实页面结果的连续操作。 |
+| JSON | 浏览器来源回归在进入旧任务中心导航时超时，尚未到达 TaskSpec 编辑器断言。 | 按当前向导操作验证输入 JSON、正式校验、运行及封存后的输入一致性。 |
+| 数字场景 | 当前实现提供离线、限时实时、持续实时三个创建选项；原浏览器用例覆盖离线转向导和实时服务缺失提示。参考装配已另行实测。 | 有服务时，从场景选择任务到真实会话并回到场景，核对 Run ID 和遥测。 |
+| 自然语言 | 已有来源测试使用固定提供方夹具。本轮上述导航超时发生在其调用之前。 | 在固定模型与候选提交上，保存实际回答并关联真实执行与封存结果。 |
+
+[本轮画布导出任务指纹与原生结果](../../reports/dt_remaining_integration/visual_export_native.json)。浏览器使用 tests/test_v15_visual_flow_run_browser.py；原生输入取自该用例下载的 v15-visual-flow-program.zip 内的 task_spec.json。来源回归为 tests/test_task_projection_source_browser.py，首个失败选择器为 .nav-button[data-view="tasks"]。

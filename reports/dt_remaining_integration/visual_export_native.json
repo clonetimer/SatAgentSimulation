@@ -1,0 +1,18 @@
+{
+  "candidate": "38f4f4e",
+  "capability": "whole_spacecraft.unified_native.v1",
+  "config": {
+    "level": "whole_spacecraft",
+    "duration_s": 60.0,
+    "step_s": 10.0,
+    "sample_s": 10.0,
+    "random_seed": 0,
+    "backend": "basilisk",
+    "time_base": "simulation_seconds",
+    "time_system": "UTC"
+  },
+  "exported_task_sha256": "2e65007d5d30cac474bc27101b70ab33cab11bf79e5e6db04d07d7f304809371",
+  "frames": 7,
+  "validation": "PASS",
+  "seal_verified": true
+}
