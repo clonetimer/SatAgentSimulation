@@ -282,3 +282,19 @@ def test_interactive_runner_mission_result_cannot_be_overridden_by_safe_final_ro
     report=_validation(SessionState.COMPLETED,[{'thermal.safe':1,'thermal.payload_temp_k':300.}],[],
         runtime_summary={'execution_status':'PASS','mission_status':status})
     assert report.result is expected
+
+
+def test_streaming_checks_follow_measurements_and_schema_changes():
+    checks = PhysicalValidationAccumulator(checks=["thermal_bounds", "quaternion_norm"])
+    first = {"thermal.bus_temp_k": 295., "adcs.quaternion_norm": 1.}
+    checks.add(first)
+    checks.add({**first, "thermal.bus_temp_k": 500.})
+    checks.add({"thermal.payload_safe": False})
+    checks.add({"attitude.truth.valid": 1, **{
+        f"attitude.truth.quaternion_BN_q{i}": value for i, value in enumerate((2., 0., 0., 0.))
+    }})
+    report = checks.result()
+    assert [item["path"] for item in report["issues"]] == [
+        "trace[1].thermal.bus_temp_k", "trace[2].thermal.payload_safe",
+        "trace[3].norm(attitude.truth.quaternion_BN_q0..q3)",
+    ]
