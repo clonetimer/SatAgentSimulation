@@ -136,3 +136,17 @@ def test_offline_asset_manifest_does_not_assume_default_celestrak_source(tmp_pat
     assert evidence["provenance_manifest_status"] == "HASH_BOUND_SOURCE_UNKNOWN"
     assert evidence["source_url"] is None
     assert evidence["retrieval_time_unknown"] is True
+
+
+def test_flux_qualifiers_count_only_covered_days_and_preserve_missing_types(tmp_path):
+    lines = FIXTURE.read_text(encoding="utf-8").splitlines()
+    epoch = datetime(2026, 3, 4, tzinfo=timezone.utc)
+    path = tmp_path / "weather.csv"
+    for i, qualifier in enumerate(("OUTSIDE", "OBS", "INT", "PRD", "PRM"), start=1):
+        lines[i] = lines[i].replace(",OBS,", f",{qualifier},")
+    path.write_text("\n".join(lines), encoding="utf-8")
+    assert validate_space_weather_coverage(path, epoch, 0)["coverage_f107_data_type_days"] == {
+        "OBS": 1, "INT": 1, "PRD": 1, "PRM": 1,
+    }
+    path.write_text("\n".join(lines).replace("F10.7_DATA_TYPE", "unused"), encoding="utf-8")
+    assert validate_space_weather_coverage(path, epoch, 0)["coverage_f107_data_type_days"] == {"UNKNOWN": 4}

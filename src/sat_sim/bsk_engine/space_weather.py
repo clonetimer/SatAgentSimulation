@@ -7,6 +7,7 @@ Ap/F10.7 inputs.
 """
 from __future__ import annotations
 
+from collections import Counter
 import csv
 from datetime import date, datetime, timedelta, timezone
 import hashlib
@@ -34,12 +35,12 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _inspect(path: Path) -> tuple[list[date], dict[str, Any]]:
+def _inspect(path: Path) -> tuple[dict[date, str], dict[str, Any]]:
     path = path.expanduser().resolve()
     if not path.is_file():
         raise FileNotFoundError(f"SPACE_WEATHER_ASSET_MISSING:{path}")
 
-    valid_dates: list[date] = []
+    flux_types: dict[date, str] = {}
     first_invalid: dict[str, Any] | None = None
     previous: date | None = None
     try:
@@ -91,22 +92,22 @@ def _inspect(path: Path) -> tuple[list[date], dict[str, Any]]:
                     first_invalid = {"row": row_number, "date": row_date.isoformat(), "reason": invalid_reason}
                     break
 
-                valid_dates.append(row_date)
+                flux_types[row_date] = (row.get("F10.7_DATA_TYPE") or "").strip() or "UNKNOWN"
                 previous = row_date
     except UnicodeDecodeError as exc:
         raise ValueError("SPACE_WEATHER_ENCODING_INVALID:expected_utf8") from exc
 
-    if not valid_dates:
+    if not flux_types:
         raise ValueError("SPACE_WEATHER_NO_VALID_OBSERVED_ROWS")
 
-    return valid_dates, {
+    return flux_types, {
         "path": str(path),
         "name": path.name,
         "sha256": _sha256(path),
         "size_bytes": path.stat().st_size,
-        "valid_row_count": len(valid_dates),
-        "valid_date_start": valid_dates[0].isoformat(),
-        "valid_date_end": valid_dates[-1].isoformat(),
+        "valid_row_count": len(flux_types),
+        "valid_date_start": next(iter(flux_types)).isoformat(),
+        "valid_date_end": next(reversed(flux_types)).isoformat(),
         "first_invalid_row": first_invalid,
         "required_columns": list(REQUIRED_COLUMNS),
         "parser": "Basilisk_SpaceWeatherData_CelesTrak_compatible",
@@ -181,7 +182,7 @@ def inspect_space_weather_file(
 ) -> dict[str, Any]:
     """Validate CSV structure and return immutable asset/provenance metadata.
 
-    Rows after the first malformed/predicted row are ignored, matching the
+    Rows after the first numerically invalid row are ignored, matching the
     official Basilisk parser. If an adjacent manifest exists, its asset hash
     must match the CSV. Simulation-specific coverage is checked separately.
     """
@@ -197,7 +198,7 @@ def validate_space_weather_coverage(
     """Require every UTC day needed by Basilisk's 3-day Ap look-back.
 
     Basilisk SpaceWeatherData requires the current day and three preceding
-    days at every update. The valid observed rows must therefore cover
+    days at every update. The numerically valid rows must therefore cover
     [epoch.date()-3 days, (epoch+duration).date()] without gaps.
     """
     if epoch.tzinfo is None or epoch.utcoffset() is None:
@@ -205,26 +206,28 @@ def validate_space_weather_coverage(
     if not math.isfinite(float(duration_s)) or float(duration_s) < 0.0:
         raise ValueError("SPACE_WEATHER_DURATION_INVALID")
 
-    valid_dates, evidence = _inspect(Path(path))
+    flux_types, evidence = _inspect(Path(path))
     evidence = _attach_provenance_manifest(Path(path), evidence, verify_manifest=True)
     epoch_utc = epoch.astimezone(timezone.utc)
     end_utc = epoch_utc + timedelta(seconds=float(duration_s))
     required_start = epoch_utc.date() - timedelta(days=3)
     required_end = end_utc.date()
-    valid_set = set(valid_dates)
+    counts: Counter[str] = Counter()
 
     missing: list[str] = []
     cursor = required_start
     while cursor <= required_end:
-        if cursor not in valid_set:
+        if cursor not in flux_types:
             missing.append(cursor.isoformat())
+        else:
+            counts[flux_types[cursor]] += 1
         cursor += timedelta(days=1)
 
     if missing:
         raise ValueError(
             "SPACE_WEATHER_COVERAGE_INCOMPLETE:"
             f"required={required_start.isoformat()}..{required_end.isoformat()}:"
-            f"available={valid_dates[0].isoformat()}..{valid_dates[-1].isoformat()}:"
+            f"available={next(iter(flux_types)).isoformat()}..{next(reversed(flux_types)).isoformat()}:"
             f"missing={','.join(missing[:12])}"
         )
 
@@ -232,6 +235,7 @@ def validate_space_weather_coverage(
         "coverage_start_utc_date": required_start.isoformat(),
         "coverage_end_utc_date": required_end.isoformat(),
         "coverage_status": "PASS",
+        "coverage_f107_data_type_days": dict(sorted(counts.items())),
         "space_weather_interpolation": False,
         "stale_value_fallback_permitted": False,
     })
