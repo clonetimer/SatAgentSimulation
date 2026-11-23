@@ -1,0 +1,91 @@
+{
+  "runs": {
+    "healthy": {
+      "manifest_sha256": "9fbd964621fd2ff1cdca829025b7c73343a261827d464ea4b3441d04b9ff66b6",
+      "steps": 120,
+      "net_electrical_input_j": 26064.001058299793,
+      "capacity_clipped_j": 0.0,
+      "unstored_input_j": 0.0,
+      "max_abs_step_residual_j": 0.0,
+      "final_energy_j": 383184.00105829973
+    },
+    "capacity75": {
+      "manifest_sha256": "c5c39e44078c30acb8ce83f113f80550a8b9e681ef481621eb97e1be4b3a10b6",
+      "steps": 120,
+      "net_electrical_input_j": 26064.001058299793,
+      "capacity_clipped_j": 0.0,
+      "unstored_input_j": 0.0,
+      "max_abs_step_residual_j": 0.0,
+      "final_energy_j": 383184.00105829973
+    },
+    "capacity50": {
+      "manifest_sha256": "4534bb0b7dbe6fcd7765b3cce9f5ea31a84a4d17d1648e9db9d5186e4a467d56",
+      "steps": 120,
+      "net_electrical_input_j": 26197.001058299793,
+      "capacity_clipped_j": 75673.28490064712,
+      "unstored_input_j": 6977.071747480601,
+      "max_abs_step_residual_j": 0.0,
+      "final_energy_j": 300666.644410172
+    }
+  },
+  "payload_power_change_samples": [
+    {
+      "time_s": 16.5,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 16.75,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 17.0,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 17.25,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 17.5,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 17.75,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 18.0,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 18.25,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 18.5,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 18.75,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 19.0,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 19.25,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 19.5,
+      "net_power_increase_w": 38.0
+    },
+    {
+      "time_s": 19.75,
+      "net_power_increase_w": 38.0
+    }
+  ],
+  "payload_energy_saved_j": 133.0,
+  "final_energy_gap_j": 82517.35664812772
+}
