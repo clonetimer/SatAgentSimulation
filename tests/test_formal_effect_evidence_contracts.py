@@ -208,3 +208,52 @@ def test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect_
         and "events.faults[0].parameters.torque_scale" in issue.path
         for issue in planning.validation.issues
     )
+
+
+@pytest.mark.parametrize("include_instance_ids", [False, True])
+def test_repeated_dropout_evidence_tracks_individual_windows(include_instance_ids):
+    effect = "adcs_star_tracker_dropout"
+    first = dict(_event(effect, target="whole_spacecraft"), id="first", start_s=1., end_s=2.)
+    second = dict(first, id="second", start_s=2., end_s=2.8)
+    spec = _spec(WHOLE_ID, category="fault", event=first)
+    spec["events"]["faults"].append(second)
+    plan = plan_task_spec(spec)
+    assert plan.validation.ok
+    rows = [
+        {"time_s": t, "label.fault_active": True, "event.active_effects": effect,
+         "adcs.star_tracker.valid": 0, "adcs.fusion.source_mode": 1}
+        for t in (1., 2.)
+    ]
+    if include_instance_ids:
+        rows[0]["modifier.active_ids"] = "first"
+        rows[1]["modifier.active_ids"] = "first,second"
+    outcome = evaluate_validation_outcome(
+        spec=spec, resolved=plan.resolved_spec, summary={"runtime_fault_triggered_count": 2},
+        trace_rows=rows,
+    )
+    a, b = outcome.injection_evidence
+    assert a.active_sample_count == (2 if include_instance_ids else 1)
+    assert a.effect_result == ValidationResult.PASS
+    assert b.active_sample_count == (1 if include_instance_ids else 0)
+    assert b.effect_result == (ValidationResult.PASS if include_instance_ids else ValidationResult.INCONCLUSIVE)
+
+
+def test_observed_repeated_dropout_uses_its_own_measurements():
+    effect = "adcs_star_tracker_dropout"
+    first = dict(_event(effect, target="whole_spacecraft"), id="first", start_s=1., end_s=2.)
+    second = dict(first, id="second", start_s=3., end_s=4.)
+    spec = _spec(WHOLE_ID, category="fault", event=first)
+    spec["events"]["faults"].append(second)
+    plan = plan_task_spec(spec)
+    assert plan.validation.ok
+    outcome = evaluate_validation_outcome(
+        spec=spec, resolved=plan.resolved_spec, summary={}, trace_rows=[
+            {"time_s": t, "label.fault_active": True, "event.active_effects": effect,
+             "adcs.star_tracker.valid": valid, "adcs.fusion.source_mode": 1}
+            for t, valid in [(1., 0), (3., 1)]
+        ],
+    )
+    a, b = outcome.injection_evidence
+    assert a.active_sample_count == b.active_sample_count == 1
+    assert a.effect_result == ValidationResult.PASS
+    assert b.effect_result == ValidationResult.FAIL
