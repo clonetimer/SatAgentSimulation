@@ -19,10 +19,13 @@ def test_v0574_matrix_requires_all_nineteen_active_runtime_couplings() -> None:
         .read_text(encoding="utf-8")
     )
     assert matrix["schema_version"].startswith("v0574")
-    assert len(matrix["cases"]) == 17
+    assert len(matrix["cases"]) == 18
     assert len(matrix["required_runtime_couplings"]) == 19
     assert len(set(matrix["required_runtime_couplings"])) == 19
     cases = {item["case_id"]: item for item in matrix["cases"]}
+    assert cases["adcs_control_effort_to_power_and_heat"]["setup_patches"] == [
+        {"path": "parameters.max_pointing_error_deg", "value": 179.0}
+    ]
     assert "spacecraft_state_to_eclipse_and_thermal_shadow" in cases
     assert "ground_access_geometry_to_rf_link_budget" in cases
     assert "gravity_to_spacecraft_orbit_dynamics" in cases

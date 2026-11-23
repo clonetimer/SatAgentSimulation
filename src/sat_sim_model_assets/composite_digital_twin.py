@@ -165,6 +165,7 @@ COMPOSITE_PARAMETERS = (
     _param("thermal_use_network", DataType.BOOLEAN, default=True),
     _param("propulsion_enabled", DataType.BOOLEAN, default=True),
     _param("propulsion_on_time_s", DataType.ARRAY, unit="s", default_is_set=False),
+    _param("propulsion_power_w", DataType.NUMBER, unit="W", default=20.0, minimum=0.0, maximum=500.0),
     _param("access_window_s", DataType.NUMBER, unit="s", default=20.0, minimum=0.0),
     _param("access_period_s", DataType.NUMBER, unit="s", default=60.0, minimum=1.0e-6),
     _param("max_pointing_error_deg", DataType.NUMBER, unit="deg", default=0.25, minimum=0.0),

@@ -82,6 +82,12 @@
     },
     {
       "case_id": "payload_fault_to_storage",
+      "setup_patches": [
+        {
+          "path": "simulation.sample_s",
+          "value": 5.0
+        }
+      ],
       "description": "A runtime payload-off fault must stop generated data and reduce accumulated storage versus the nominal counterfactual.",
       "patch": {
         "path": "modifiers.faults",
@@ -296,32 +302,6 @@
           "min_post_samples": 3,
           "min_consecutive_response_samples": 2,
           "min_response_fraction": 0.3
-        },
-        {
-          "coupling_id": "adcs_control_effort_to_eps",
-          "source_field": "adcs_control_power_w",
-          "response_field": "battery_soc",
-          "intervention_time_s": 0.0,
-          "expected_direction": "decrease",
-          "min_source_delta": 20.0,
-          "min_response_delta": 0.001,
-          "max_lag_s": 60.0,
-          "min_post_samples": 3,
-          "min_consecutive_response_samples": 2,
-          "min_response_fraction": 0.3
-        },
-        {
-          "coupling_id": "adcs_control_effort_to_thermal",
-          "source_field": "adcs_control_power_w",
-          "response_field": "thermal_adcs_temp_c",
-          "intervention_time_s": 0.0,
-          "expected_direction": "increase",
-          "min_source_delta": 20.0,
-          "min_response_delta": 0.5,
-          "max_lag_s": 30.0,
-          "min_post_samples": 3,
-          "min_consecutive_response_samples": 2,
-          "min_response_fraction": 0.3
         }
       ],
       "perturbed_run_acceptance": {
@@ -351,12 +331,66 @@
         ]
       },
       "covers_runtime_couplings": [
-        "adcs_pointing_to_payload_comm_gate",
+        "adcs_pointing_to_payload_comm_gate"
+      ]
+    },
+    {
+      "case_id": "adcs_control_effort_to_power_and_heat",
+      "description": "Apply the same large initial attitude error with the pointing gate open in both arms. Compare wheel power, battery SOC and ADCS temperature with payload operation permitted in both.",
+      "patch": {
+        "path": "parameters.mission_initial_sigma_bn",
+        "value": [
+          0.4,
+          0.0,
+          0.0
+        ]
+      },
+      "expectations": [
+        {
+          "coupling_id": "adcs_control_effort_to_eps",
+          "source_field": "adcs_control_power_w",
+          "response_field": "battery_soc",
+          "intervention_time_s": 0.0,
+          "expected_direction": "decrease",
+          "min_source_delta": 20.0,
+          "min_response_delta": 0.001,
+          "max_lag_s": 60.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        },
+        {
+          "coupling_id": "adcs_control_effort_to_thermal",
+          "source_field": "adcs_control_power_w",
+          "response_field": "thermal_adcs_temp_c",
+          "intervention_time_s": 0.0,
+          "expected_direction": "increase",
+          "min_source_delta": 20.0,
+          "min_response_delta": 0.5,
+          "max_lag_s": 30.0,
+          "min_post_samples": 3,
+          "min_consecutive_response_samples": 2,
+          "min_response_fraction": 0.3
+        }
+      ],
+      "covers_runtime_couplings": [
         "adcs_control_effort_to_eps_thermal"
+      ],
+      "setup_patches": [
+        {
+          "path": "parameters.max_pointing_error_deg",
+          "value": 179.0
+        }
       ]
     },
     {
       "case_id": "comm_link_loss_to_eps_thermal_storage",
+      "setup_patches": [
+        {
+          "path": "simulation.sample_s",
+          "value": 5.0
+        }
+      ],
       "description": "A permanent runtime downlink link-loss fault must reduce delivered data, reduce communication power/heat, preserve battery SOC, and increase onboard storage.",
       "patch": {
         "path": "modifiers.faults",
