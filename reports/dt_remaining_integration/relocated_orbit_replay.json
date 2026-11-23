@@ -1,0 +1,33 @@
+{
+  "assets": {
+    "de430.bsp": "6e1b277c5f07135a84950604b83e56b736be696a7f3560bcddb1d4aeb944fca1",
+    "naif0012.tls": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b",
+    "pck00010.tpc": "59468328349aa730d18bf1f8d7e86efe6e40b75dfb921908f99321b3a7a701d2",
+    "gm_de431.tpc": "15756c162151853f329d473fa00c38d35e62d83c3e25ddceece6516bbd98738b",
+    "GGM03S.txt": "71f8736f98c5d8c972d0f6d56a2389302f72b8ac7517c605d312162ca446a3a1",
+    "SW-Last5Years.csv": "bc963becc48620d1adfe5460b77dc4e70d070a17f2308ceeac14a7d79c729c7a",
+    "igrf14coeffs.txt": "8f8d88403028fc4ee92c4f38d97b46e0a87e2cfc496045b43c9e26c1d6b0903c",
+    "IGRF14-2025.COF": "6e106e5011b13393d807a1f6304d580ba85a50fdd03f55717eb6265a5c61962b",
+    "space_weather_manifest.json": "671e7dbec29f8d261343ef23d413e856dc79f607babdac95eed2960954d0991a"
+  },
+  "comparisons": {
+    "input/task_spec.json": {
+      "historical_sha256": "712f2827c74ef020339e51d5e3666b9616c22b6911078a478c1dab336ea6e193",
+      "replay_sha256": "712f2827c74ef020339e51d5e3666b9616c22b6911078a478c1dab336ea6e193",
+      "identical": true
+    },
+    "results/telemetry.jsonl": {
+      "historical_sha256": "b5cae6eba568a36839e308a7a80eac6ba015a86ae8641a5177d3049f1328273f",
+      "replay_sha256": "b5cae6eba568a36839e308a7a80eac6ba015a86ae8641a5177d3049f1328273f",
+      "identical": true
+    },
+    "validation/validation_outcome.json": {
+      "historical_sha256": "5be5bc9157e3947f43b2c545dc022b2d06737f52102da193b2e937b7852dcd05",
+      "replay_sha256": "5be5bc9157e3947f43b2c545dc022b2d06737f52102da193b2e937b7852dcd05",
+      "identical": true
+    }
+  },
+  "frames": 91,
+  "historical_manifest": "e8ad4909a5e5248e11fddbeaed111192a66dbbec887e0d00ddd1eb07ce409d86",
+  "replay_manifest": "bc8b19e00f0f54d41873959f56641f05caf6b3c3a4091bca38252247dbf6f3fa"
+}

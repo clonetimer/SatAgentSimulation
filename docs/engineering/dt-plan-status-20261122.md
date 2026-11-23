@@ -574,3 +574,5 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 辐射压组固定上述 1 m² 气动面积，仅将炮弹模型的辐射压参考面积从 20 改为 40 m²。两臂首帧位置与速度相同。在 12、14、16、18 秒记录到半影，20 秒起本影中两臂的辐射压力均为零。各受照帧验证力的方向背离太阳，面积加倍后的力比与 2 的绝对差小于 0.001。入影前累积的轨道差在本影中仍可观测，180 秒末位置相距 3.703 mm。两项试验均属工程实现和物理响应核对，外部轨道精度与任务级误差预算按 DT-3 移交。[复现脚本](../../reports/dt_remaining_integration/srp_orbit_pair.py) · [逐时受力和轨道差](../../reports/dt_remaining_integration/srp_orbit_pair.json)
 
 使用前述固定本地资产和候选 PYTHONPATH，先运行 python drag_orbit_pair.py eleven_task.json DRAG_DIRECTORY drag.json，再运行 python srp_orbit_pair.py DRAG_DIRECTORY/area_1 SRP_DIRECTORY srp.json。两个输出目录须使用新的运行标识空间。
+
+**R1 出口 5、7：资产迁移后的历史运行重放。** 以 b3982a9 上 LEO-03 的 180 秒面积 1 m² 封存包为输入。将 4 个 SPICE 内核、GGM03S 重力系数、IGRF14 原始及转换系数、天气 CSV 及其来源清单迁移到新目录。运行前核对 9 份文件的历史 SHA-256；封存后逐份检查运行摘要中解析的绝对路径确实指向新位置，并复核实际文件字节。两次运行的 TaskSpec、91 帧完整遥测和 validation_outcome.json 的 SHA-256 分别一致。负对照将天气 CSV 换为另一份同名文件，验收脚本在创建运行目录之前报出天气指纹不符。此验证覆盖同一 Windows 主机、相同软件、固定种子及相同内容的工程资产；原生支持数据缓存仍为同一份。独立主机复现及目标环境资格继续按各自条件验收。[复现脚本](../../reports/dt_remaining_integration/relocated_orbit_replay.py) · [九份资产和三项输出指纹](../../reports/dt_remaining_integration/relocated_orbit_replay.json)
