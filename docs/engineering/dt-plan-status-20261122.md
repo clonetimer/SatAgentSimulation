@@ -156,7 +156,16 @@
 
 **第 7 项实测。** 使用 #220 提交 `dbdac07a343751eb8986984c36b2594891d1c310`、Windows 11、Python 3.12.12、Basilisk 2.11.0+satfix2。20 s 整星任务按 0.2 s 积分、2 s 采样。原运行、封存 TaskSpec 重放、仅改变种子的对照，三者均执行成功、validation PASS、封存完整。相同种子 811 的两份遥测（11 行，首行 269 字段）SHA-256 均为 `8bb08e130a8956eb86119d65534cdf86d8bca9f4f91fd1ed08ad665f9b642956`。种子 812 的时间轴相同，陀螺 X 偏置游走最大差为 0.000447769151 rad/s。复现时在 #220 的依赖环境中将其 src 与工作树根加入 PYTHONPATH，运行 `python audit.py result.json --keep-bundles <新目录>`。[实测脚本与结果](../../reports/dt_r1_bundle_replay/)
 
-**下一项可执行工作。** GGM03S 球面高度和点火时的贮箱质量单调性已在 #230 候选上验证。[#232](https://github.com/clonetimer/SatAgentSimulation/pull/232) 已修正整星电池与负载的启动顺序。官方 Basilisk 2.11.0 在 62%、10%、1% 三种初始电量下的首帧容量均为 576000 J，正常负载启动、低电量卸载和真实低电量警告已实测，多速率记录一致。候选应与其他 DT 分支做组合复验。对指向收敛性，下一步核对显式任务要求与无闭环目标的自由响应试验如何分别判定。外部热侧数据、五测点映射、安装边界及任务误差预算仍按原要求取证。[电池时序实测](https://github.com/clonetimer/SatAgentSimulation/blob/ccf055a/reports/dt_battery_startup/result.json)
+### 11 月 23 日联合实测与执行顺序
+
+本地组合树 `8660ad1ea74cbfddb2899f8c613db20fd23e92ef` 包含 #229 `7d24a6b`、#230 `d2b035b`、#231 `c488778`、#232 `ccf055a`。官方 Basilisk 2.11.0 分别运行点火和关闭推进的同一开环任务，各 30 s、16 帧。两例封存和运行验证均通过，电池 SOC 检查均通过。点火例的八项软件物理检查为七项通过、一项指向警告。关闭推进时另有一项推进剂单调性未评估。Chrome 概览和封存报告均保留本次运行的声明边界。[逐例检查、页面读数与封存哈希](../../reports/dt_r1_combined/four_candidates.json)
+
+| 顺序 | 工作 | 完成判据 |
+| --- | --- | --- |
+| 1 | 收敛 #231 存储模块清单与 #232 电池启动顺序的云端回归 | 在各自最新 SHA 核对原生作业。#232 旧回归假定导入后的第一个电池采样为零，两种轮系实测均有正电量。逐帧核对公开 Reset 与基线的能量差，保留禁止自动恢复的断言。[失败日志](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45179102113/job/137707942114) |
+| 2 | 分开验收开环自由响应和要求收敛的指向任务 | 同初态运行三例：无收敛要求的开环、显式末端误差要求的开环、同一要求的闭环。逐例核对实际误差、物理告警、任务断言和封存结果。 |
+| 3 | 并行取得外部参考 | 热侧取得五测点映射、安装和换热边界；轨道侧固定独立参考、坐标系、历元及任务容差。记录来源，再据此作出任务精度判定。 |
+| 4 | 回到 R1 八项阶段出口 | 候选获准集成后固定实际主干 SHA，按下列各项既定判据复验，记录证据及未决项。 |
 
 截至 2026-11-23，[#230](https://github.com/clonetimer/SatAgentSimulation/pull/230) 的四元数模长检查在官方 Basilisk 四效应任务上逐帧通过。[#231](https://github.com/clonetimer/SatAgentSimulation/pull/231) 在当前整星单分区存储图上按每个动力学步长核算收支，三种工况的稀疏遥测分别与原逐步账表对照，三个封存包的数据守恒检查均为 PASS。中间步 1 bit 偏差在后续输出仍触发 FAIL。运行级声明展示、四元数和存储收支各属于对应 PR 的候选证据。见[逐时刻收支结果](https://github.com/clonetimer/SatAgentSimulation/blob/c488778/reports/dt_storage_balance/coarse_comparison.json)。
 
