@@ -35,11 +35,17 @@ def test_initial_rates_reach_native_spacecraft(case):
     assert [rows[0][k] for k in fields] == pytest.approx(expected, abs=1e-14)
     if not custom:
         archive = Path(__file__).resolve().parents[1] / "reports/external_reference_alignment/model_telemetry.csv.gz"
+        # The attitude archive predates the corrected SimpleBattery startup order.
+        fixture = Path(__file__).parent / "fixtures/battery_startup_reference.json"
+        startup = json.loads(fixture.read_bytes())
+        assert rows[0]["eps.battery_capacity_j"] == startup["first_capacity_j"]
         with gzip.open(archive, "rt") as f:
             old = csv.DictReader(f)
-            for row in rows:
+            for row, thermal in zip(rows, startup["samples"], strict=True):
                 reference = next(old)
-                for k in ["time_s", *fields, "thermal.battery_temp_c"]:
+                assert row["time_s"] == thermal["time_s"]
+                assert row["thermal.battery_temp_c"] == pytest.approx(thermal["battery_temperature_c"], abs=1e-10, rel=0)
+                for k in ["time_s", *fields]:
                     assert row[k] == pytest.approx(float(reference[k]), abs=1e-10, rel=0)
     print(json.dumps({"case": case, "samples": len(rows), "requested_rad_s": expected,
                       "initial_truth_rad_s": [rows[0][k] for k in fields],

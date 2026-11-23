@@ -1,0 +1,91 @@
+{
+  "source_commit": "12a9e653af38330dd7ceb6e6d4115a9deb40f989",
+  "bsk": "2.11.0",
+  "first_capacity_j": 576000.0,
+  "samples": [
+    {
+      "time_s": 0.0,
+      "battery_temperature_c": 16.850000000000023
+    },
+    {
+      "time_s": 0.30000000000000004,
+      "battery_temperature_c": 16.84945756022006
+    },
+    {
+      "time_s": 0.6000000000000001,
+      "battery_temperature_c": 16.848915400853173
+    },
+    {
+      "time_s": 0.9,
+      "battery_temperature_c": 16.848373485748482
+    },
+    {
+      "time_s": 1.2000000000000002,
+      "battery_temperature_c": 16.84783179315349
+    },
+    {
+      "time_s": 1.5,
+      "battery_temperature_c": 16.84729029783597
+    },
+    {
+      "time_s": 1.8,
+      "battery_temperature_c": 16.846748970546514
+    },
+    {
+      "time_s": 2.1,
+      "battery_temperature_c": 16.84620778477597
+    },
+    {
+      "time_s": 2.4000000000000004,
+      "battery_temperature_c": 16.8456667175476
+    },
+    {
+      "time_s": 2.7,
+      "battery_temperature_c": 16.845125749020383
+    },
+    {
+      "time_s": 3.0,
+      "battery_temperature_c": 16.8445848623291
+    },
+    {
+      "time_s": 3.3000000000000003,
+      "battery_temperature_c": 16.844044043087308
+    },
+    {
+      "time_s": 3.6,
+      "battery_temperature_c": 16.843503279101583
+    },
+    {
+      "time_s": 3.9000000000000004,
+      "battery_temperature_c": 16.842962560129365
+    },
+    {
+      "time_s": 4.2,
+      "battery_temperature_c": 16.842421877635047
+    },
+    {
+      "time_s": 4.5,
+      "battery_temperature_c": 16.841881224617907
+    },
+    {
+      "time_s": 4.800000000000001,
+      "battery_temperature_c": 16.84134059536018
+    },
+    {
+      "time_s": 5.1000000000000005,
+      "battery_temperature_c": 16.84079998526954
+    },
+    {
+      "time_s": 5.4,
+      "battery_temperature_c": 16.840259390769575
+    },
+    {
+      "time_s": 5.7,
+      "battery_temperature_c": 16.839718809133103
+    },
+    {
+      "time_s": 6.0,
+      "battery_temperature_c": 16.83917823833326
+    }
+  ]
+}
