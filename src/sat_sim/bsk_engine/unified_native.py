@@ -830,6 +830,7 @@ def _build_unified_rows(
     sample_interval_s: float,
     *,
     start_index: int = 0,
+    altitude_reference_radius_m: float | None = None,
 ) -> list[dict[str, Any]]:
     from Basilisk.utilities import RigidBodyKinematics, macros  # type: ignore
     recorder_map = {name: _RecorderSnapshot(recorder) for name, recorder in recorder_map.items()}
@@ -964,6 +965,8 @@ def _build_unified_rows(
             "adcs.fusion.estimated_omega_BN_B_z": float(recorder_map["fusion_attitude"].omega_BN_B[index][2]),
         }
         row.update(attitude_truth)
+        if altitude_reference_radius_m is not None:
+            row["orbit.altitude_m"] = row["orbit.radius_m"] - altitude_reference_radius_m
         for axis, component in enumerate('xyz'):
             row[f"attitude.truth.omega_BN_B_{component}"] = float(state.omega_BN_B[index][axis])
         for axis, component in enumerate('xyz'):
@@ -2854,6 +2857,8 @@ class UnifiedNativeRuntime:
                 history_bounds["data"] &= 0.0 <= row["data.storage_bits"] <= row["data.storage_capacity_bits"] + 1e-6
                 history_bounds["thermal"] &= row.get("thermal.safe", 1) == 1
 
+        gravity_source = self._orbital_environment.gravity_asset
+        altitude_radius = float(gravity_source["reference_radius_m"]) if gravity_source else None
         if cfg.execution_controller is not None:
             cfg.execution_controller.runtime_prepared()
             emitted_count = 0
@@ -2988,6 +2993,7 @@ class UnifiedNativeRuntime:
                     live_cfg,
                     cfg.sample_s,
                     start_index=emitted_count,
+                    altitude_reference_radius_m=altitude_radius,
                 )
                 if not cfg.adcs_only:
                     _overlay_exact_thermal_trace(live_rows, whole_modules["thermal"], tolerance_s=max(cfg.step_s, cfg.sample_s) + 1.0e-9)
@@ -3019,7 +3025,7 @@ class UnifiedNativeRuntime:
         if interactive_events:
             cfg = replace(cfg, events=(*cfg.events, *interactive_events), execution_controller=None)
 
-        rows = _build_unified_rows(recorder_map, cfg, cfg.sample_s)
+        rows = _build_unified_rows(recorder_map, cfg, cfg.sample_s, altitude_reference_radius_m=altitude_radius)
         if cfg.execution_controller is not None and not rows:
             # A final partial quantum may be shorter than the native recorder
             # cadence.  The preceding published row is still the correct
@@ -3030,7 +3036,8 @@ class UnifiedNativeRuntime:
             _overlay_exact_thermal_trace(rows, whole_modules["thermal"], tolerance_s=max(cfg.step_s, cfg.sample_s) + 1.0e-9)
         native_streams: list[dict[str, Any]] = []
         for group in recorder_groups.values():
-            stream_rows = _build_unified_rows(group.recorders, cfg, group.spec.sample_s)
+            stream_rows = _build_unified_rows(group.recorders, cfg, group.spec.sample_s,
+                                              altitude_reference_radius_m=altitude_radius)
             if not cfg.adcs_only:
                 _overlay_exact_thermal_trace(
                     stream_rows,

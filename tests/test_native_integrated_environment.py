@@ -80,6 +80,11 @@ def test_actual_four_effects_coexist_with_independent_ablation(tmp_path, monkeyp
     j2 = run_whole({**base,**high,**drag,**srp,
                     "earth_gravity_model":"legacy_j2_only"})
     evidence = all_on.summary["orbital_environment"]
+    ref_radius = evidence["gravity_source"]["reference_radius_m"]
+    for row in all_on.trace_rows:
+        expected = math.hypot(*(row[f"orbit.position_m_{axis}"] for axis in "xyz")) - ref_radius
+        assert math.isclose(row["orbit.altitude_m"], expected, abs_tol=1e-7, rel_tol=0)
+    assert all("orbit.altitude_m" not in row for row in j2.trace_rows)
     assert evidence["drag_enabled"] is True
     assert evidence["space_weather"]["coverage_status"] == "PASS"
     assert evidence["space_weather"]["source_url"] == "test-fixture://celestrak-compatible-sample"

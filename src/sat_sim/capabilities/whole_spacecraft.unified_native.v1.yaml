@@ -1276,6 +1276,7 @@ outputs:
   trace_fields:
   - time_s
   - orbit.radius_m
+  - orbit.altitude_m
   - orbit.position_m_*
   - orbit.velocity_m_s_*
   - orbit.sun_position_m_*

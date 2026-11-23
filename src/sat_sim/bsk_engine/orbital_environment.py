@@ -187,6 +187,7 @@ class NativeOrbitalEnvironment:
                 'gravity_degree':self.gravity_degree,
                 'gravity_model':self.gravity_model,
                 'gravity_source':self.gravity_asset,
+                'altitude_definition':'geocentric_radius_minus_gravity_source_reference_radius_m',
                 'gravity_reference_frame':'Earth_planet_fixed_from_SPICE',
                 'spherical_harmonic_scope':'full_degree_and_order_includes_tesseral_terms',
                 'tide_evolution_modeled':False,
