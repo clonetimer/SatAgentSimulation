@@ -103,6 +103,18 @@
 
 #227 提交 `ef8d5292656348cd23f66b615ac572edbd08c749` 的 [GitHub Checks](https://github.com/clonetimer/SatAgentSimulation/commit/ef8d5292656348cd23f66b615ac572edbd08c749/checks) 已结束，35 项 SUCCESS、2 项 SKIPPED、0 项失败。整星与官方 Basilisk 原生组件检查均通过。
 
+### DT-3 航天器二体状态的独立传播对照
+
+从 #215 归档读取三条轨迹的原始状态，先比对 SHA-256，再核对六个初始分量逐值相同。以该共同初态调用 NAIF CSPICE 的通用变量二体传播器 prop2b，在 0–5400 s、91 个时刻分别计算六维状态。两组地球引力参数均取自原归档，未用轨迹拟合。三条轨迹各自与两个引力参数、两套时间网格的组合比较。[NAIF 传播器定义](https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/prop2b_c.html)
+
+| 归档轨迹 | 解析参考 μ（km³/s²） | 名义 60 s 时网上最大位置差 | 最大速度差 |
+| --- | ---: | ---: | ---: |
+| Basilisk | 398600.436 | 1.160 mm | 1.323 × 10⁻⁶ m/s |
+| GMAT 默认 | 398600.4415（文档值） | 0.176 µm | 1.424 × 10⁻¹⁰ m/s |
+| GMAT 显式设置 μ | 398600.436 | 0.361 µm | 3.966 × 10⁻¹⁰ m/s |
+
+只把默认 GMAT 的解析参考 μ 换成 Basilisk 值，最大位置差增至 1.153072 m。保留各自匹配的 μ，只将 GMAT 的名义时网换成原始报告经过时间，两个 GMAT 工况的最大位置差均为 0.08274 m。前者量化本例的引力参数敏感性，后者量化报告时标对比较结果的影响。表中距离为共同数值初态下的传播残差。该平面二体轨迹对整体刚性旋转具有对称性，因此仅凭残差无法辨识绝对物理轴向；任务精度验收仍需独立的坐标、时标与容差依据。[复算脚本及十二组残差](../../reports/dt3_pointmass_propagation/)。
+
 ### DT-3 日月方向的独立解析对照
 
 对 #215 同一归档的 0、2700、5400 s 三个时刻，使用 GMAT 报告 TT 和 PyERFA 2.0.1.5 的解析模型。取地球日心位置的相反数得到几何太阳向量（epv00，地心 TT→TDB），取 moon98 得到地心月球向量（TT）。复算没有加载 DE421，也没有拟合旋转。逐行比对 GMAT ICRF、Basilisk SpiceInterface N 和 NAIF J2000 向量，并核查 GMAT 原始输出和归档校验值。epv00 的坐标定向参考了 DE405；这属于独立计算路径，仍与 JPL 星历体系有来源关联。[ERFA 太阳模型](https://github.com/liberfa/erfa/blob/master/src/epv00.c)和[月球模型](https://github.com/liberfa/erfa/blob/master/src/moon98.c)。
