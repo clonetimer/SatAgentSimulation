@@ -5387,6 +5387,7 @@
         'solar_panel_efficiency_loss',
         'thermal_radiator_rejection_loss',
         'gyro_noise_increase',
+        'adcs_rw_torque_authority_loss',
         'rw_friction_degradation',
         'propulsion_burn_impulse_loss',
       ]),
@@ -5399,7 +5400,7 @@
       ? wholeSpacecraftVerifiedEffects[kind]
       : null;
     if (wholeAllowed && !wholeAllowed.has(effect)) {
-      showNotice('整星向导仅开放已通过整星配对 A/B 与正式证据验收的 14 类事件；未声明事件保持隐藏。', 'warning');
+      showNotice('整星向导仅开放已通过整星配对 A/B 与正式证据验收的事件；未声明事件保持隐藏。', 'warning');
       return;
     }
     const template = effectCatalog(kind).find((item) => item.effect === effect);

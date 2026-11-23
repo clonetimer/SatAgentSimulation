@@ -68,6 +68,7 @@ modes:
     timed_events_supported: true
     effects:
     - gyro_noise_increase
+    - adcs_rw_torque_authority_loss
     - rw_friction_degradation
     - solar_panel_efficiency_loss
     - thermal_radiator_rejection_loss
@@ -1535,6 +1536,15 @@ operator:
     - adcs.sensor.gyro_noise_rad_s_y
     - adcs.sensor.gyro_noise_rad_s_z
     verification: declared
+  - effect_id: adcs_rw_torque_authority_loss
+    kind: degradation
+    owner: project_rw_command_fault_manager
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.rw.effective_torque_ratio_{wheel_index}
+    - adcs.rw.effective_max_torque_nm_{wheel_index}
+    - adcs.control.applied_torque_nm_{wheel_index}
+    verification: declared
   - effect_id: rw_friction_degradation
     kind: degradation
     owner: project_rw_command_fault_manager
@@ -1633,6 +1643,10 @@ operator:
       - adcs.sensor.gyro_noise_rad_s_x
       - adcs.sensor.gyro_noise_rad_s_y
       - adcs.sensor.gyro_noise_rad_s_z
+      adcs_rw_torque_authority_loss:
+      - adcs.rw.effective_torque_ratio_{wheel_index}
+      - adcs.rw.effective_max_torque_nm_{wheel_index}
+      - adcs.control.applied_torque_nm_{wheel_index}
       rw_friction_degradation:
       - adcs.rw.effective_drag_nms_{wheel_index}
       - adcs.rw.speed_rad_s_{wheel_index}

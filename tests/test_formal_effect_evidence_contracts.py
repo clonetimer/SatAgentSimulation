@@ -87,7 +87,7 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
             "payload_instrument_off", "comm_data_downlink_link_loss",
             "eps_battery_capacity_loss", "solar_panel_efficiency_loss",
             "thermal_radiator_rejection_loss", "power_safe_mode_threshold",
-            "adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step",
+            "adcs_rw_jamming", "adcs_rw_motor_failure", "adcs_rw_torque_authority_loss", "gyro_bias_step",
             "gyro_noise_increase", "rw_friction_degradation",
             "adcs_reaction_wheel_speed_limit",
             "propulsion_thruster_ignition_failure", "propulsion_burn_impulse_loss",

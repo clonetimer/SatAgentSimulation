@@ -563,6 +563,34 @@
       "rationale": "The in-task reaction-wheel command manager scales both the requested command and effective actuator torque ceiling by the configured remaining torque authority before the official Basilisk wheel dynamics."
     },
     {
+      "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "adcs_rw_torque_authority_loss",
+      "kind": "degradation",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.rw.effective_torque_ratio_{wheel_index}",
+        "adcs.rw.effective_max_torque_nm_{wheel_index}",
+        "adcs.control.applied_torque_nm_{wheel_index}"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "partial_torque_authority_matches_requested_ratio",
+          "field": "adcs.rw.effective_torque_ratio_{wheel_index}",
+          "operator": "eq",
+          "value_parameter": "torque_scale",
+          "default_value": 0.5,
+          "scope": "active_all",
+          "tolerance": 1e-9
+        }
+      ],
+      "claim_limitations": [
+        "Engineering-runtime effect evidence only; no hardware calibration or flight-validation claim."
+      ],
+      "rationale": "The in-task reaction-wheel command manager scales both the requested command and effective actuator torque ceiling by the configured remaining torque authority before the official Basilisk wheel dynamics."
+    },
+    {
       "capability_id": "subsystem.adcs_unified_native.v1",
       "effect_id": "rw_friction_degradation",
       "kind": "degradation",

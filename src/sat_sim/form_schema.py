@@ -919,6 +919,7 @@ GUIDED_EFFECT_ALLOWLISTS: dict[str, dict[str, frozenset[str]]] = {
             "thermal_radiator_rejection_loss",
             "gyro_noise_increase",
             "rw_friction_degradation",
+            "adcs_rw_torque_authority_loss",
             "propulsion_burn_impulse_loss",
         }),
         "constraint": frozenset({
