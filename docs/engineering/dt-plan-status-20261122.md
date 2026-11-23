@@ -558,3 +558,11 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 原 30 秒单次运行的九条未激发链现在均有相应的定向证据；不同的配对支持不同命题。过站改变轨道相位也会改变 RF 几何，实际成功接收与发射机启用分开计数。整套联合任务的单次验证仍保存各自的 INCONCLUSIVE 或 FAIL。试验边界另发现 360 K 能进入准备阶段后才被原生热节点拒绝。候选修复已将公开参数和执行预检对齐到 220–340 K，实测 219、360 K 在规划阶段拒绝，220、340 K 可规划。固定本地 SPICE 资产与天气后，26 项契约和脚本导出测试通过。[修复 PR #244](https://github.com/clonetimer/SatAgentSimulation/pull/244)
 
 使用前文固定的候选 PYTHONPATH、热环境和天气快照，在 BSK_SUPPORT_DATA_CACHE/supportData/EphemerisData 中提供既有四个原生内核。运行 python replay_unified_pairs.py eleven_task.json EMPTY_DIRECTORY result.json，再执行 python verify_unified_pairs.py result.json。环境仍报告天气文件未来缺值行和启动时尚未写入的大气消息。[运行脚本](../../reports/dt_remaining_integration/replay_unified_pairs.py) · [封存提取](../../reports/dt_remaining_integration/unified_power_pairs.py) · [逐采样证据](../../reports/dt_remaining_integration/unified_power_pairs.json) · [配对断言](../../reports/dt_remaining_integration/verify_unified_pairs.py)
+
+### ADCS-03 地球遮挡与星敏测量有效位（2026-11-24）
+
+在 SYS-01 的 overhead 封存任务上，分别将安装俯仰设为 −80°、+80°。假设机壳 +Z 为光轴、圆锥半视场为 10°、地球球半径为 6371 km。独立脚本由原生位置、姿态真值和安装变换逐帧计算地心方向与光轴夹角、地球视半径。首帧后，负俯仰工况的 15 帧全部全视场遮挡，正俯仰工况的 15 帧全部无遮挡。0cb0a78 上两组均报告星敏有效，暴露出几何遮挡与有效位之间的缺口。
+
+[草稿 PR #245](https://github.com/clonetimer/SatAgentSimulation/pull/245) 的 035e61c 在星敏原始测量与融合输入之间增加可选几何判断。给定半视场时，全视场被地球覆盖即抑制测量，部分遮挡允许测量。以相同两工况复验，无遮挡的 15 帧均有效，全遮挡的 15 帧均无效。保持默认配置另跑两组，完整遥测的 SHA-256 分别与原候选相同。另用原生消息驱动一次无遮挡、部分遮挡、全遮挡、部分遮挡、无遮挡序列，有效位依次为 1、1、0、1、1，原始四元数保持有效。共 11 项回归通过。
+
+复现时使用上节固定资产、天气和 SYS-01 的 overhead/input/task_spec.json。运行 python star_tracker_earth_limb.py SOURCE EMPTY_DIRECTORY OUTPUT，启用视场判断时追加 --enable。该半视场、光轴和地球球形均为工程假设。星图成像、部分遮挡下的星数、指定设备失锁概率和重新捕获延迟仍需光学参考。[脚本](../../reports/dt_remaining_integration/star_tracker_earth_limb.py) · [原实现](../../reports/dt_remaining_integration/star_tracker_earth_limb.json) · [启用几何判断](../../reports/dt_remaining_integration/star_tracker_earth_limb_enabled.json) · [默认兼容回放](../../reports/dt_remaining_integration/star_tracker_earth_limb_compat.json)

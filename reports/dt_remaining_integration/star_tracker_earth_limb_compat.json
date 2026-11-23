@@ -1,0 +1,253 @@
+{
+  "earth_radius_m": 6371000.0,
+  "assumed_half_fov_deg": 10.0,
+  "assumed_boresight_case": [
+    0,
+    0,
+    1
+  ],
+  "cases": [
+    {
+      "pitch_deg": -80,
+      "run_validation": "INCONCLUSIVE",
+      "samples": [
+        {
+          "time_s": 0.0,
+          "limb_radius_deg": 73.34444445004394,
+          "separation_deg": 9.999999999999975,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 2.0,
+          "limb_radius_deg": 73.34444523521914,
+          "separation_deg": 9.512110774604064,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 4.0,
+          "limb_radius_deg": 73.34444759079311,
+          "separation_deg": 9.309547514727159,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 6.0,
+          "limb_radius_deg": 73.34445151683208,
+          "separation_deg": 9.202825284039294,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 8.0,
+          "limb_radius_deg": 73.34445701339413,
+          "separation_deg": 9.109325086010296,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 10.0,
+          "limb_radius_deg": 73.34446408052906,
+          "separation_deg": 9.017266465442418,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 12.0,
+          "limb_radius_deg": 73.34447271827837,
+          "separation_deg": 8.925115593158505,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 14.0,
+          "limb_radius_deg": 73.34448292667531,
+          "separation_deg": 8.833259203628621,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 16.0,
+          "limb_radius_deg": 73.34449470574476,
+          "separation_deg": 8.742050519397676,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 18.0,
+          "limb_radius_deg": 73.34450805550344,
+          "separation_deg": 8.651633294302295,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 20.0,
+          "limb_radius_deg": 73.34452297595979,
+          "separation_deg": 8.562278849558805,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 22.0,
+          "limb_radius_deg": 73.34453946711382,
+          "separation_deg": 8.474068813579079,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 24.0,
+          "limb_radius_deg": 73.34455752895735,
+          "separation_deg": 8.387043919478604,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 26.0,
+          "limb_radius_deg": 73.34457716147399,
+          "separation_deg": 8.301241891641434,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 28.0,
+          "limb_radius_deg": 73.34459836463894,
+          "separation_deg": 8.216701083223198,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        },
+        {
+          "time_s": 30.000000000000004,
+          "limb_radius_deg": 73.34462113841916,
+          "separation_deg": 8.13346082790716,
+          "classification": "fully_obscured",
+          "native_valid": 1
+        }
+      ],
+      "telemetry_sha256": "25651ddc8c04279a8303d5ae62160b8b485a3e23534bfe94d272b43e806e44e2",
+      "task_sha256": "7d7a9c498dae744dd8d25770dc5591baf1b9b6f6270a3de3fd489a0ac0d53b45",
+      "manifest_sha256": "04a2f063db3df64071d76071c27d517611e5ae434e29b3d2813142978a0d1dbd"
+    },
+    {
+      "pitch_deg": 80,
+      "run_validation": "INCONCLUSIVE",
+      "samples": [
+        {
+          "time_s": 0.0,
+          "limb_radius_deg": 73.34444445004394,
+          "separation_deg": 170.00000000000003,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 2.0,
+          "limb_radius_deg": 73.34444523521914,
+          "separation_deg": 169.51096076177137,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 4.0,
+          "limb_radius_deg": 73.34444759079311,
+          "separation_deg": 169.30911493328927,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 6.0,
+          "limb_radius_deg": 73.34445151683208,
+          "separation_deg": 169.2027717872597,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 8.0,
+          "limb_radius_deg": 73.34445701339413,
+          "separation_deg": 169.10792540443936,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 10.0,
+          "limb_radius_deg": 73.34446408052906,
+          "separation_deg": 169.01272776586464,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 12.0,
+          "limb_radius_deg": 73.34447271827837,
+          "separation_deg": 168.91570040121093,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 14.0,
+          "limb_radius_deg": 73.34448292667531,
+          "separation_deg": 168.81724157681123,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 16.0,
+          "limb_radius_deg": 73.34449470574476,
+          "separation_deg": 168.7176977773751,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 18.0,
+          "limb_radius_deg": 73.34450805550344,
+          "separation_deg": 168.6172065210873,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 20.0,
+          "limb_radius_deg": 73.34452297595979,
+          "separation_deg": 168.51600462491956,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 22.0,
+          "limb_radius_deg": 73.34453946711382,
+          "separation_deg": 168.41415421753223,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 24.0,
+          "limb_radius_deg": 73.34455752895735,
+          "separation_deg": 168.3116766449833,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 26.0,
+          "limb_radius_deg": 73.34457716147399,
+          "separation_deg": 168.20858870056546,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 28.0,
+          "limb_radius_deg": 73.34459836463894,
+          "separation_deg": 168.10490629778022,
+          "classification": "clear",
+          "native_valid": 1
+        },
+        {
+          "time_s": 30.000000000000004,
+          "limb_radius_deg": 73.34462113841916,
+          "separation_deg": 168.0006448503475,
+          "classification": "clear",
+          "native_valid": 1
+        }
+      ],
+      "telemetry_sha256": "812ee06bd3ce6e028de5fca6056086362e60b621d68e937cee25fc7851af465b",
+      "task_sha256": "4f24c754da9d19a1425a28286c203dbfe99dec6705c8c60418641c920ccc1db8",
+      "manifest_sha256": "d25c0c35eea21a806e2544752d9401cbcaf4bf2f8acc212be7f205fe14d5e7a0"
+    }
+  ]
+}
