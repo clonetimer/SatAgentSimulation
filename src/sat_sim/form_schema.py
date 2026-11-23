@@ -134,6 +134,7 @@ EFFECT_LABELS_ZH: dict[str, tuple[str, str]] = {
     "rw_motor_failure": ("反作用轮电机失效", "降低指定反作用轮的有效输出力矩，严重度为1时近似完全失效。"),
     "friction_increase_pct": ("反作用轮摩擦增大", "增大反作用轮等效阻尼，使相同力矩下的转速响应减弱。"),
     "bearing_wear_factor": ("反作用轮轴承磨损", "降低反作用轮有效力矩和最高转速，并增加等效阻尼。"),
+    "adcs_star_tracker_dropout": ("星敏掉测", "在指定时间窗内将星敏测量置为无效，结束后恢复。"),
     "gyro_bias_step": ("陀螺偏置突变", "在闭环控制测量链中叠加三轴陀螺偏置增量。"),
     "gyro_noise_increase": ("陀螺噪声增大", "在闭环控制测量链中按倍数提高陀螺测量噪声。"),
     "adcs_rw_jamming": ("ADCS反作用轮卡滞", "在闭环姿态控制中使指定控制轴反作用轮卡滞。"),
@@ -272,6 +273,7 @@ EVENT_FIELD_SCHEMAS: dict[str, dict[str, Any]] = {
             {"name": "torque_scale", "label": "剩余力矩比例", "type": "number", "unit": "ratio", "minimum": 0.0, "maximum": 1.0, "default": 0.5, "description": "事件生效期间有效最大力矩相对标称值的比例。"},
         ],
     },
+    "adcs_star_tracker_dropout": {"magnitude_applicable": False, "instructions": "设置掉测开始和结束时刻。"},
     "gyro_bias_step": {
         "magnitude_applicable": False,
         "instructions": "故障：在事件时间窗内叠加陀螺三轴偏置增量。使用 bias_step_deg_s，不使用通用幅值。",
@@ -911,6 +913,7 @@ GUIDED_EFFECT_ALLOWLISTS: dict[str, dict[str, frozenset[str]]] = {
             "eps_battery_capacity_loss",
             "adcs_rw_jamming",
             "adcs_rw_motor_failure",
+            "adcs_star_tracker_dropout",
             "gyro_bias_step",
             "propulsion_thruster_ignition_failure",
         }),

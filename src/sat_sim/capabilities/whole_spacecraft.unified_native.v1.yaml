@@ -58,6 +58,7 @@ modes:
     effects:
     - adcs_rw_jamming
     - adcs_rw_motor_failure
+    - adcs_star_tracker_dropout
     - gyro_bias_step
     - payload_instrument_off
     - comm_data_downlink_link_loss
@@ -1346,6 +1347,8 @@ outputs:
   - orbit.drag_relative_speed_m_s
   - orbit.drag_direction_b_*
   - orbit.drag_acceleration_m_s2
+  - adcs.star_tracker.valid
+  - adcs.fusion.source_mode
   - adcs.pointing_error_deg
   - attitude.truth.pointing_error_deg
   - adcs.body_rate_rad_s_*
@@ -1484,6 +1487,14 @@ operator:
     - adcs.rw.effective_torque_ratio_{wheel_index}
     - adcs.rw.effective_max_torque_nm_{wheel_index}
     - adcs.control.applied_torque_nm_{wheel_index}
+    verification: declared
+  - effect_id: adcs_star_tracker_dropout
+    kind: fault
+    owner: project_star_tracker_fault_injector
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.star_tracker.valid
+    - adcs.fusion.source_mode
     verification: declared
   - effect_id: gyro_bias_step
     kind: fault
@@ -1644,6 +1655,9 @@ operator:
       - adcs.rw.effective_torque_ratio_{wheel_index}
       - adcs.rw.effective_max_torque_nm_{wheel_index}
       - adcs.control.applied_torque_nm_{wheel_index}
+      adcs_star_tracker_dropout:
+      - adcs.star_tracker.valid
+      - adcs.fusion.source_mode
       gyro_bias_step:
       - adcs.sensor.gyro_bias_norm_rad_s
       - adcs.sensor.gyro_bias_rad_s_x
