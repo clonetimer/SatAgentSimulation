@@ -272,6 +272,8 @@ class PhysicalValidationAccumulator:
         self.selected = tuple(dict.fromkeys(str(value) for value in (DEFAULT_CHECKS if checks is None else checks)))
         self.explicit_checks = checks is not None
         self.strict = bool(strict)
+        self._last_row_keys: tuple | None = None
+        self._pattern_fields: dict[str, tuple] = {}
         self.count = 0
         self.max_issue_samples = max(0, int(max_issue_samples))
         self.issues: list[PhysicalValidationIssue] = []
@@ -301,12 +303,29 @@ class PhysicalValidationAccumulator:
     def add(self, row: Mapping[str, Any]) -> None:
         index = self.count
         self.count += 1
+        # Repeated native frames share a schema. Cache field names only, so
+        # changed measurements and schema transitions are checked immediately.
+        keys = tuple(row)
+        if keys != self._last_row_keys:
+            self._last_row_keys = keys
+            self._pattern_fields = {
+                "thermal_bounds": tuple(
+                    k for k in keys if _is_temperature_field(str(k)) or _is_thermal_safety_field(str(k))
+                ),
+                "quaternion_norm": tuple(
+                    k for k in keys if str(k).endswith("quaternion_norm")
+                    or k in _NATIVE_QUATERNION or k == "attitude.truth.valid"
+                ),
+            }
         for name in self.selected:
             if name not in CHECK_FUNCTIONS:
                 continue
             coverage = self.coverage[name]
             values: dict[str, float] = {}
-            for key, raw in _check_evidence_items(name, row):
+            check_row = row
+            if name in self._pattern_fields:
+                check_row = {key: row[key] for key in self._pattern_fields[name]}
+            for key, raw in _check_evidence_items(name, check_row):
                 safety_flag = name == "thermal_bounds" and _is_thermal_safety_field(str(key))
                 value = float(raw) if safety_flag and isinstance(raw, (bool, int, float)) and raw in (0, 1) else _finite_number(raw)
                 if value is None or (safety_flag and value not in (0., 1.)):
@@ -339,7 +358,7 @@ class PhysicalValidationAccumulator:
                     state.update(count=state["count"] + 1, last=value, last_index=index,
                                  minimum=min(state["minimum"], value))
             else:
-                for issue in CHECK_FUNCTIONS[name]([row]):
+                for issue in CHECK_FUNCTIONS[name]([check_row]):
                     self._push(replace(issue, path=issue.path.replace("trace[0]", f"trace[{index}]")))
 
     def result(self, *, summary: Mapping[str, Any] | None = None) -> dict[str, Any]:

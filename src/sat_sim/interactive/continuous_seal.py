@@ -84,7 +84,9 @@ def _write_semantic_trace_and_effects(
             row = dict(frame["values"])
             checks.add(row)
             encoded = _canonical(row)
-            semantic = _canonical({k: value for k, value in row.items() if k not in {"wall_time", "sequence"}})
+            semantic = encoded
+            if "wall_time" in row or "sequence" in row:
+                semantic = _canonical({k: v for k, v in row.items() if k not in {"wall_time", "sequence"}})
             if not first:
                 handle.write(b",")
                 digest.update(b",")
