@@ -152,11 +152,13 @@
 | 5 封存及来源 | 三个重放试验包通过完整性验证。四效应工程样例另经官方 Basilisk 2.11.0 实测，封存清单 41 个成员和 8 个外部数据文件逐一核对。见[逐文件结果](../../reports/dt_r1_asset_identity/result.json)。 | 对最终交付版本使用冻结的任务输入和可追溯的实测空间天气，按相同方法复核。 |
 | 6 场景对象与安装映射 | #207 已验证固定 RW 资产、TaskSpec 轮位和独立浏览器图层。 | 各器件实装位置、方向、变换链、参考方批准仍待取得。 |
 | 7 历史 Run 复现 | 本轮在 #220 上从封存输入重放一次，逐行及字节级比较全部输出遥测，并以不同 seed 做对照。 | 扩展至版本化 R1 基准用例和外部资产依赖；登记哪些用例支持逐字节复现，哪些须按预先约定的数值准则复核。 |
-| 8 明示未验证项 | 本轮实际封存环境标为 `analysis_only`、`engineering_preview`，`capability_can_claim_high_fidelity=false`；本计划列出未决项。 | 逐个核对目标输出在 Run Bundle、API 与结果页面的标签及含义。 |
+| 8 明示未验证项 | [#229](https://github.com/clonetimer/SatAgentSimulation/pull/229) 已在同一封存 Run 对照 API、Chrome 概览和新报告的运行级声明。四项未评估的物理检查已有逐项复核，见下文。 | 各输出仍需按可用输入、模型适用范围和独立参考分别判定。 |
 
 **第 7 项实测。** 使用 #220 提交 `dbdac07a343751eb8986984c36b2594891d1c310`、Windows 11、Python 3.12.12、Basilisk 2.11.0+satfix2。20 s 整星任务按 0.2 s 积分、2 s 采样。原运行、封存 TaskSpec 重放、仅改变种子的对照，三者均执行成功、validation PASS、封存完整。相同种子 811 的两份遥测（11 行，首行 269 字段）SHA-256 均为 `8bb08e130a8956eb86119d65534cdf86d8bca9f4f91fd1ed08ad665f9b642956`。种子 812 的时间轴相同，陀螺 X 偏置游走最大差为 0.000447769151 rad/s。复现时在 #220 的依赖环境中将其 src 与工作树根加入 PYTHONPATH，运行 `python audit.py result.json --keep-bundles <新目录>`。[实测脚本与结果](../../reports/dt_r1_bundle_replay/)
 
-**下一项可执行工作。** LEO-02 高阶截断对照及四效应样例的资产核查已有结果。下一步针对出口 8，选同一封存 Run 核对包内、API 和结果页面呈现的模型适用范围，记录实际字段与界面证据。参考方补齐热侧原始时序、测点映射与安装边界后按 #202 原容差复验。轨道与姿态的任务级判断还需预先确认误差预算。
+**下一项可执行工作。** 四效应工程样例已有独立球面高度复算。下一步在有明确引力模型参考半径的工况记录高度定义、半径来源和逐帧数值，检查产品的轨道高度判定。推进剂检查应另选启用推进且实际消耗质量的工况。外部热侧数据、五测点映射、安装边界及任务误差预算仍按原要求取证。
+
+截至 2026-11-23，[#230](https://github.com/clonetimer/SatAgentSimulation/pull/230) 的四元数模长检查在官方 Basilisk 四效应任务上逐帧通过。[#231](https://github.com/clonetimer/SatAgentSimulation/pull/231) 在当前整星单分区存储图上按每个动力学步长核算收支，三种工况的稀疏遥测分别与原逐步账表对照，三个封存包的数据守恒检查均为 PASS。中间步 1 bit 偏差在后续输出仍触发 FAIL。运行级声明展示、四元数和存储收支各属于对应 PR 的候选证据。见[逐时刻收支结果](https://github.com/clonetimer/SatAgentSimulation/blob/c488778/reports/dt_storage_balance/coarse_comparison.json)。
 
 ### LEO-02 重力场截断的原生对照
 
