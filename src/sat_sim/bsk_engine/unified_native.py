@@ -62,6 +62,21 @@ RW_COMMAND_EVENT_EFFECTS = {
 }
 
 
+def _validate_wheel_target(event: BSKEventSpec, wheel_count: int) -> None:
+    value = event.parameters.get("wheel_index", 0)
+    message = f"wheel_index must be an integer between 0 and {wheel_count - 1}"
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        raise ValueError(message)
+    if isinstance(value, float) and not value.is_integer():
+        raise ValueError(message)
+    try:
+        index = int(value)
+    except ValueError as exc:
+        raise ValueError(message) from exc
+    if not 0 <= index < wheel_count:
+        raise ValueError(message)
+
+
 def _mapping(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -1264,6 +1279,10 @@ class UnifiedNativeRuntime:
         _test_only_fresh_native_graph_probe: Any = None,
     ) -> None:
         self.config = config
+        for event in config.events:
+            if event.effect in RW_COMMAND_EVENT_EFFECTS:
+                axes = _reaction_wheel_axes(str(config.values.get("rw_configuration", "orthogonal_3")))
+                _validate_wheel_target(event, len(axes))
         # Isolated test process only. This hook never appears in TaskSpec,
         # the persistent runtime, HTTP handlers or a recoverable checkpoint.
         if _test_only_fresh_native_graph_probe is not None:
@@ -3583,13 +3602,11 @@ class _BaseUnifiedAdapter:
             if event.start_s > duration_s:
                 issues.append(ValidationIssue("error", f"$.events[{index}].start_s", "must not exceed simulation duration", "time"))
             if event.effect in RW_COMMAND_EVENT_EFFECTS:
+                axes = _reaction_wheel_axes(str(_parameter_values(spec).get("rw_configuration", "orthogonal_3")))
                 try:
-                    wheel_index = int(event.parameters.get("wheel_index", 0))
-                except (TypeError, ValueError):
-                    wheel_index = -1
-                wheel_count = len(_reaction_wheel_axes(str(_parameter_values(spec).get("rw_configuration", "orthogonal_3"))))
-                if not 0 <= wheel_index < wheel_count:
-                    issues.append(ValidationIssue("error", f"$.events[{index}].parameters.wheel_index", f"must be between 0 and {wheel_count - 1}", "range"))
+                    _validate_wheel_target(event, len(axes))
+                except ValueError as exc:
+                    issues.append(ValidationIssue("error", f"$.events[{index}].parameters.wheel_index", str(exc), "range"))
         return tuple(issues)
 
     def run(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> SimulationResult:

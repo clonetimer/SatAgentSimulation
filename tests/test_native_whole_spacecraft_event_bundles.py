@@ -400,3 +400,11 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_sealed_run_bundles(
         },
     })
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8")
+
+
+@pytest.mark.parametrize("wheel", [True, 1.5, -1, 3])
+def test_whole_spacecraft_rejects_invalid_three_wheel_event_target(tmp_path, wheel):
+    spec = _spec("adcs", "invalid_target", category="degradation",
+                 effect="adcs_rw_torque_authority_loss", parameters={"wheel_index": wheel, "torque_scale": .5})
+    with pytest.raises(ValueError, match="range"):
+        prepare_run(spec, output_root=tmp_path, run_id="invalid_target")
