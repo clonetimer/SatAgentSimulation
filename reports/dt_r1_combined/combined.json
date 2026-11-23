@@ -1,0 +1,86 @@
+[
+  {
+    "run_id": "combined-control",
+    "manifest_sha256": "0747e926688f14557398158196ed528b59ed73cc4cf7e754b8593390d40dda2b",
+    "validation": "PASS",
+    "checks_run": [
+      "soc_bounds",
+      "thermal_bounds",
+      "orbit_altitude_sanity",
+      "data_conservation",
+      "quaternion_norm",
+      "pointing_convergence",
+      "energy_balance_proxy"
+    ],
+    "missing": [
+      "fuel_monotonicity"
+    ],
+    "warning_count": 2,
+    "checks": {
+      "soc_bounds": "WARNING",
+      "thermal_bounds": "PASS",
+      "orbit_altitude_sanity": "PASS",
+      "fuel_monotonicity": "NOT_EVALUATED",
+      "data_conservation": "PASS",
+      "quaternion_norm": "PASS",
+      "pointing_convergence": "WARNING",
+      "energy_balance_proxy": "PASS"
+    },
+    "rows": 16,
+    "scope": {
+      "summary": "仅分析用途",
+      "fields": {
+        "请求的声明等级": "仅分析用途",
+        "能力可信等级": "工程预览",
+        "能力允许声明高保真": "否",
+        "本次禁止声明": "高保真认证、飞行数据相关验证、飞行验证、地面标定、硬件标定",
+        "本次未评估的物理检查": "fuel_monotonicity",
+        "验证限制": "Only checks with supported finite telemetry inputs were evaluated; missing checks are not passes."
+      }
+    },
+    "overview": "验证：通过\n运行记录未提供进一步说明。\n模型适用范围 · 仅分析用途\n物理检查覆盖：部分（已执行 7 项）。未评估：推进剂单调性。警告 2 条，失败 0 条。",
+    "browser": "157.0.8103.79",
+    "sealed_report_sha256": "1d6e484be64ac2d6306dc6c12137e70f4f508bc1639cedc443fd00b7465882b8"
+  },
+  {
+    "run_id": "combined-burn",
+    "manifest_sha256": "c8c2b0304af59720263504ff30516e99b15cfdb784974924db1760c513dd31b0",
+    "validation": "PASS",
+    "checks_run": [
+      "soc_bounds",
+      "thermal_bounds",
+      "orbit_altitude_sanity",
+      "fuel_monotonicity",
+      "data_conservation",
+      "quaternion_norm",
+      "pointing_convergence",
+      "energy_balance_proxy"
+    ],
+    "missing": [],
+    "warning_count": 2,
+    "checks": {
+      "soc_bounds": "WARNING",
+      "thermal_bounds": "PASS",
+      "orbit_altitude_sanity": "PASS",
+      "fuel_monotonicity": "PASS",
+      "data_conservation": "PASS",
+      "quaternion_norm": "PASS",
+      "pointing_convergence": "WARNING",
+      "energy_balance_proxy": "PASS"
+    },
+    "rows": 16,
+    "scope": {
+      "summary": "仅分析用途",
+      "fields": {
+        "请求的声明等级": "仅分析用途",
+        "能力可信等级": "工程预览",
+        "能力允许声明高保真": "否",
+        "本次禁止声明": "高保真认证、飞行数据相关验证、飞行验证、地面标定、硬件标定",
+        "本次未评估的物理检查": "清单为空"
+      }
+    },
+    "overview": "验证：通过\n运行记录未提供进一步说明。\n模型适用范围 · 仅分析用途\n物理检查覆盖：完整（已执行 8 项）。警告 2 条，失败 0 条。",
+    "browser": "157.0.8103.79",
+    "sealed_report_sha256": "3ffe8a19df4f46d99468ef1a98b648aa82e97b6ecef4d27e0ac4be2bbac4c163"
+  }
+]
