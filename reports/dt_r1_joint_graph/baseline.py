@@ -3,6 +3,8 @@ import csv
 import gzip
 import json
 import sys
+import subprocess
+from importlib.metadata import version
 from pathlib import Path
 from sat_sim.scenario_templates import instantiate_scenario_template
 from sat_sim.capability_registry import get_adapter_for_capability
@@ -19,3 +21,12 @@ with gzip.open(Path("reports/external_reference_alignment/model_telemetry.csv.gz
     deltas = [{k:r[k]-float(old[k]) for k in fields} for r,old in zip(rows,reader)]
 assert len(deltas) == 21
 print(json.dumps({k:max(abs(d[k]) for d in deltas) for k in fields}))
+
+if len(sys.argv) == 2:
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    assert commit == "12a9e653af38330dd7ceb6e6d4115a9deb40f989"
+    assert not subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=no"]).strip()
+    assert version("bsk") == "2.11.0" and rows[0]["eps.battery_capacity_j"] == 576000.
+    snapshot = dict(source_commit=commit, bsk=version("bsk"), first_capacity_j=rows[0]["eps.battery_capacity_j"],
+                    samples=[dict(time_s=r["time_s"], battery_temperature_c=r["thermal.battery_temp_c"]) for r in rows])
+    Path(sys.argv[1]).write_text(json.dumps(snapshot, indent=2)+"\n", encoding="utf-8")
