@@ -658,42 +658,38 @@ def _required_coupling_evidence(required: tuple[str, ...], bridge_health: Mappin
         "adcs_control_effort_to_eps_thermal": "adcs",
         "propulsion_activity_to_eps_thermal": "propulsion",
     }
+    def samples(*fields: str):
+        for row in rows:
+            values = tuple(row.get(field) for field in fields)
+            if all(isinstance(value, (float, int, np.floating, np.integer)) and math.isfinite(value) for value in values):
+                yield values
+
     items: list[dict[str, Any]] = []
     for coupling_id in required:
         bridge_name = mapping.get(coupling_id)
         if bridge_name is None:
-            # Non-resource causal edges are evidenced directly in telemetry.
+            # A measured zero can evidence an inactive gate; a missing field cannot.
             if coupling_id == "adcs_pointing_to_payload_gate":
-                observed = any(int(row.get("payload.active", 0)) == 0 and float(row.get("adcs.pointing_error_deg", 0.0)) > 0.0 for row in rows)
+                observed = any(active == 0 and error > 0 for active, error in
+                               samples("payload.active", "adcs.pointing_error_deg"))
             elif coupling_id == "adcs_pointing_to_comm_gate":
-                observed = any(int(row.get("comm.active", 0)) == 0 and int(row.get("comm.command_permitted", 0)) == 0 for row in rows)
+                observed = any(active == 0 and permitted == 0 for active, permitted in
+                               samples("comm.active", "comm.command_permitted"))
             elif coupling_id == "orbit_sun_attitude_eclipse_to_eps_solar_power":
-                observed = (max((float(row.get("eps.solar_array_power_w", 0.0)) for row in rows), default=0.0) - min((float(row.get("eps.solar_array_power_w", 0.0)) for row in rows), default=0.0)) > 1.0e-6
+                powers = [power for power, in samples("eps.solar_array_power_w")]
+                observed = bool(powers) and max(powers) - min(powers) > 1.0e-6
             elif coupling_id == "propulsion_effector_to_spacecraft":
-                observed = any(float(row.get("propulsion.total_thrust_n", 0.0)) > 0.0 for row in rows)
+                observed = any(thrust > 0 for thrust, in samples("propulsion.total_thrust_n"))
             elif coupling_id == "ground_access_to_comm_downlink":
-                observed = any(
-                    int(row.get("comm.geometric_access", 0)) == 0 and int(row.get("comm.active", 0)) == 0
-                    for row in rows
-                ) or any(
-                    int(row.get("comm.geometric_access", 0)) == 1 and float(row.get("comm.downlink_bps", 0.0)) > 0.0
-                    for row in rows
-                )
+                observed = any(access == 0 and active == 0 for access, active in
+                               samples("comm.geometric_access", "comm.active")) or any(
+                    access == 1 and rate > 0 for access, rate in samples("comm.geometric_access", "comm.downlink_bps"))
             elif coupling_id == "native_rf_quality_to_comm_downlink":
-                observed = any(
-                    float(row.get("comm.gated_cnr", 0.0)) > 0.0 and float(row.get("comm.downlink_bps", 0.0)) > 0.0
-                    for row in rows
-                ) or any(
-                    float(row.get("comm.gated_cnr", 0.0)) <= 0.0 and float(row.get("comm.downlink_bps", 0.0)) == 0.0
-                    for row in rows
-                )
+                observed = any((cnr > 0 and rate > 0) or (cnr <= 0 and rate == 0)
+                               for cnr, rate in samples("comm.gated_cnr", "comm.downlink_bps"))
             elif coupling_id == "thermal_safety_to_payload_comm_gate":
-                observed = any(
-                    int(row.get("thermal.safe", 1)) == 0
-                    and int(row.get("payload.active", 1)) == 0
-                    and int(row.get("comm.active", 1)) == 0
-                    for row in rows
-                )
+                observed = any(safe == 0 and payload == 0 and comm == 0 for safe, payload, comm in
+                               samples("thermal.safe", "payload.active", "comm.active"))
             else:
                 observed = False
             items.append({"coupling_id": coupling_id, "status": "OBSERVED_SINGLE_RUN" if observed else "NOT_EXERCISED", "evidence_source": "telemetry"})
@@ -3704,6 +3700,17 @@ class _BaseUnifiedAdapter:
             issues.append(ValidationIssue('error', '$.simulation.sample_s', str(exc), 'native_sampling'))
         if not self.adcs_only:
             values = _parameter_values(spec)
+            if "initial_payload_temp_k" in values:
+                from subsystems.thermal.network_config import build_nominal_thermal_network_config
+
+                node = build_nominal_thermal_network_config().nodes["payload"]
+                try:
+                    temperature = float(values["initial_payload_temp_k"])
+                except (TypeError, ValueError, OverflowError):
+                    temperature = math.nan
+                if not node.min_temp_k <= temperature <= node.max_temp_k:
+                    issues.append(ValidationIssue("error", "$.parameters.values.initial_payload_temp_k",
+                        f"must be within [{node.min_temp_k}, {node.max_temp_k}] K", "range"))
             propulsion_enabled = bool(
                 values.get("propulsion_enabled", values.get("enable_propulsion", False))
             ) or any(

@@ -5,14 +5,15 @@ from __future__ import annotations
 import pytest
 
 
-def _run(force_heaters: bool):
+def _run(force_heaters: bool, *, connect_to_battery: bool = True):
     pytest.importorskip("Basilisk", reason="requires official Basilisk 2.11.0")
     from whole_spacecraft.builder import build_whole_spacecraft_graph
     from whole_spacecraft.runner import _execute_whole_spacecraft_graph
-    from whole_spacecraft.schemas import WholeSpacecraftConfig, WholeSpacecraftRunConfig
+    from whole_spacecraft.schemas import WholeSpacecraftConfig, WholeSpacecraftCouplingConfig, WholeSpacecraftRunConfig
 
     cfg = WholeSpacecraftConfig(
         initial_soc=0.80,
+        coupling=WholeSpacecraftCouplingConfig(enable_thermal_heaters_to_eps_load=connect_to_battery),
         thermal_use_network=True,
         thermal_step_s=0.2,
         recorder_step_s=0.2,
@@ -77,3 +78,9 @@ def test_native_heater_status_drives_official_power_nodes_and_battery() -> None:
     assert max(row.heater_eps_load_w for row in idle_rows) == pytest.approx(0.0, abs=1e-9)
     assert active_summary.heater_electrical_energy_j > 0.0
     assert idle_summary.heater_electrical_energy_j == pytest.approx(0.0, abs=1e-9)
+
+
+def test_disconnected_active_heater_adds_no_load_to_eps_trace() -> None:
+    _, _, rows = _run(True, connect_to_battery=False)
+    assert max(row.heater_active_count for row in rows) > 0
+    assert all(row.heater_eps_load_w == 0.0 for row in rows)

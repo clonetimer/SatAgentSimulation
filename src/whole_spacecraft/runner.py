@@ -812,7 +812,7 @@ def _execute_whole_spacecraft_graph(
         # The reduced/fixed-rate transmitter reports a negative baudRate sink
         # rather than native cumulative removal telemetry.
         data_balance_removed_bits = _integrate_recorder_field(
-            recorders.get("transmitter"), "baudRate", absolute=True
+            recorders.get("conservation_transmitter"), "baudRate", absolute=True
         )
     data_balance_residual_bits = (
         data_initial_bits
