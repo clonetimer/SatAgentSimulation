@@ -177,6 +177,8 @@
 
 三例适配器摘要的 `mission_status` 都为 PASS；显式要求的开环案例在 `results/assertions.json` 和整体验证中为 FAIL。消费方若单独读取摘要状态，会漏掉末端指标违约。8° 仅为本试验的验收条件。[逐帧数据、断言及封存哈希](../../reports/dt_r1_combined/pointing.json) · [可复现脚本](../../reports/dt_r1_combined/probe_pointing.py)
 
+**最新候选组合与历史运行重放。** 在隔离树 `7a282dbd97024ab65841d0b186156053ee48e4ee`（#229 `e533be7`、#230 `d2b035b`、#231 `7d0656d`、#232 `12a9e65`）上，官方 Basilisk 2.11.0 新跑五例：关闭推进、点火、自由开环、带 8° 末端要求的开环与闭环。逐例与上一组合树的同名案例比对，TaskSpec、完整 JSONL 遥测、任务断言和整体验证四份文件逐字节一致。再从五份新封存包分别读取 TaskSpec，由新进程重放。五例完整性校验均通过，上述四份文件逐例再次逐字节一致；其中要求开环收敛的失败也稳定复现。复验脚本另核对五份新报告的执行终态和验证结果。Chrome 中失败例显示实测 25.561629583857492°、要求 ≤ 8° 和验证未通过；点火例八项物理检查执行七项通过一项指向警告，关闭推进时推进剂单调性显示未评估。这里的重放范围为同平台、相同原生版本和固定环境资产。运行清单含时间戳，附件分别列出原包与重放包清单哈希。[重放核查脚本](../../reports/dt_r1_combined/replay_cases.py)和[五例逐文件哈希](../../reports/dt_r1_combined/head_replay.json)。
+
 截至 2026-11-23，[#230](https://github.com/clonetimer/SatAgentSimulation/pull/230) 的四元数模长检查在官方 Basilisk 四效应任务上逐帧通过。[#231](https://github.com/clonetimer/SatAgentSimulation/pull/231) 在当前整星单分区存储图上按每个动力学步长核算收支，三种工况的稀疏遥测分别与原逐步账表对照，三个封存包的数据守恒检查均为 PASS。中间步 1 bit 偏差在后续输出仍触发 FAIL。运行级声明展示、四元数和存储收支各属于对应 PR 的候选证据。见[逐时刻收支结果](https://github.com/clonetimer/SatAgentSimulation/blob/c488778/reports/dt_storage_balance/coarse_comparison.json)。
 
 在本地隔离工作树从 #230 `9bb7f79` 依次合入 #229 `7d24a6b`、#231 `c488778`，Git tree 为 `df26348af793fa7475b3c4d874e01489d17b1b73`。同一四效应 GGM03S 任务用官方 Basilisk 2.11.0 运行 30 s，步长 0.25 s、每 2 s 输出。推进开启时 8 项检查均有输入，其中 6 项通过、2 项警告。推进关闭时 7 项有输入，推进剂单调性显示未评估。两例均得到 16 帧，执行、封存、结果 API 与 Chrome 概览及 HTML 报告实测通过。两个页面都显示“仅分析用途”。点火例的两项警告分别来自首帧 SOC=0、指向误差从 8° 增至 25.56°。此处 8 项指单次运行的软件物理检查，DT-0 的八项阶段出口另按本表验收。以上结论属于本地试验树。[复验脚本与逐例结果](../../reports/dt_r1_combined/)

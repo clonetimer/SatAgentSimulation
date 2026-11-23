@@ -1,0 +1,62 @@
+[
+  {
+    "case": "combined-control",
+    "validation": "PASS",
+    "identical_files": {
+      "input/task_spec.json": "e6eacf278c9da171c46abf83daea7d27c3ba8cc40813b65cdc68b8a2af2de145",
+      "results/telemetry.jsonl": "68854f7d98bd97bd9384c934da04b0f703851d7ed53e3089dba2ec754e23c4cd",
+      "results/assertions.json": "eeddcbc53e90f16dccb5e6252615cdb45a12af99a70ef7e6381c7daece653e25",
+      "validation/validation_outcome.json": "49c98be3745c1f6829c7ef5b5a69324da1495759095b4af67c052a01b0bcd9f1"
+    },
+    "source_manifest": "8e2949daa9489bf6aacc9a42dfc866fdea613b18caaf682ba39eba91f8ea6934",
+    "replay_manifest": "98d00a0712b279eb5265228de62d08a7e565dd530d7c17fde570e3c5eb2e31b2"
+  },
+  {
+    "case": "combined-burn",
+    "validation": "PASS",
+    "identical_files": {
+      "input/task_spec.json": "842ff7c5ed114043a2d0cca2227d88b06a274e31bf75dcc9057390bef13e6056",
+      "results/telemetry.jsonl": "02cc5378754bbfc00f2248a617736458623363aa64f821f3420bfaa51cb2eacc",
+      "results/assertions.json": "eeddcbc53e90f16dccb5e6252615cdb45a12af99a70ef7e6381c7daece653e25",
+      "validation/validation_outcome.json": "48b5379e8de60b730862a6f0db809ea9ec07d39c04f3f567ae04dbe29266c410"
+    },
+    "source_manifest": "68e9e4ab9e9d4e85e2c1b74d24983d758d0457d2ed10fd4d491a931a4cc0f91f",
+    "replay_manifest": "a36558a0e6a292c8a3be089e0cccf5a563fcc8e0f28dfb5da03a52889b9607d9"
+  },
+  {
+    "case": "free",
+    "validation": "PASS",
+    "identical_files": {
+      "input/task_spec.json": "25447ec0baa62140c4016ff4aea1b1e7fd0b7c91aec03507aee4b4d823f77504",
+      "results/telemetry.jsonl": "68854f7d98bd97bd9384c934da04b0f703851d7ed53e3089dba2ec754e23c4cd",
+      "results/assertions.json": "eeddcbc53e90f16dccb5e6252615cdb45a12af99a70ef7e6381c7daece653e25",
+      "validation/validation_outcome.json": "49c98be3745c1f6829c7ef5b5a69324da1495759095b4af67c052a01b0bcd9f1"
+    },
+    "source_manifest": "1143a6da6bea2edd4868da2562ec00ec9b433512dbbb0779f6dfadd7fed06661",
+    "replay_manifest": "868fd6e7374c1d903242af34fb80e2d5d7bc10df5b2f4939bac219eb6bae78f5"
+  },
+  {
+    "case": "required-open",
+    "validation": "FAIL",
+    "identical_files": {
+      "input/task_spec.json": "05dbb24a9d250ca08d98fdd81dcc94b9d3df7c281b33bf70bff476f34c970e93",
+      "results/telemetry.jsonl": "68854f7d98bd97bd9384c934da04b0f703851d7ed53e3089dba2ec754e23c4cd",
+      "results/assertions.json": "dd3b660b43e653f928e696974649ae17dfb25d5af8173c470feb39f6c0088401",
+      "validation/validation_outcome.json": "421510f1df5ed0a416223a363df37ae3d6bcb2252bbacc127cd403d1ab1d9514"
+    },
+    "source_manifest": "1ce6a1923faf8da081371ea745027a123445d483da0cac4449cb91e26bf7b319",
+    "replay_manifest": "5731e81cf9409280381facabff15b709d1967782a7d09bc6decbacb7444e04b9"
+  },
+  {
+    "case": "required-closed",
+    "validation": "PASS",
+    "identical_files": {
+      "input/task_spec.json": "5ff1b49a0d696b43da39d50a3897f5d1bbe2f50420c0de879e0f6e667c6b87c3",
+      "results/telemetry.jsonl": "d23f86b8ff386822071489d5ef48e81fa27137ef8d5937acd36611a1329a62b6",
+      "results/assertions.json": "23425a3d0492c41e80eea41c8818eebc90b14d325164a8024ffb2bff4f6a3e4b",
+      "validation/validation_outcome.json": "1486e7782ae665a0aa567dc6618bb71dd1a6f87ca849c22108127cdf36af44e8"
+    },
+    "source_manifest": "0a82648c6f8730ff0648d4faa4909eb2c7d099972c59593f3ceb7fe3a2a49b1f",
+    "replay_manifest": "e6a25186796590efed472cd4a1db044b954760612fd8df922d3734cfc58da951"
+  }
+]
