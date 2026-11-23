@@ -297,3 +297,11 @@
 另在 2026-03-04 案例执行[带资产核对的独立重放脚本](../../reports/dt_r1_weather_replay/check_weather_replay.py)。脚本读取通过封存校验的历史摘要，比对天气文件指纹后才准备新运行；运行结束再检查原生记录、遥测和验证结果。传入日期覆盖相同的仓库测试夹具时，因 SHA-256 不同而在创建输出目录前中止。使用原公开快照时，真实重放及两项结果比对通过。此脚本用于上述整星原生案例。平台通用重放、其他资产类别与跨机资格仍待验证。
 
 复验时在目标提交的 Python 环境中配置已有的 SPICE 与 Basilisk 支持数据，执行 python check_weather_replay.py HISTORICAL_RUN WEATHER_CSV NEW_OUTPUT_ROOT。指定新的输出根目录，避免已有运行 ID 冲突。[#234 的整星原生 CI](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45188728423/job/137741086638) 已通过。
+
+### R1 旧版 J2 地固引力场独立公式复核
+
+使用官方 Basilisk 2.11.0，通过 GravBodyData.useSphericalHarmonicsGravityModel 加载整星旧版 J2 分支使用的系数文件，在单独初始化的原生引力模型上调用 computeField。独立计算读取文件中的地球半径、引力参数和归一化 C20，按 J2 = −√5 C20 将二阶带谐势的解析梯度叠加到中心引力。高度按文件参考半径计，纬度为地心纬度。三个高度 300、600、1200 km 各取六个地固点，覆盖赤道、南北半球和两极。
+
+18 点的 J2 摄动模长范围为 0.007504–0.026479 m/s²；原生与解析总加速度的三轴差向量模长最大为 1.8842×10⁻¹⁵ m/s²。数值一致性检查阈值为 10⁻¹² m/s²。本次验证覆盖同一组系数的两种计算路径。整星引力体实际参数绑定、惯性系变换、第三体和长弧任务精度各有独立验收要求。
+
+[独立公式脚本](../../reports/dt_j2_field_audit/audit.py) · [18 点双路径加速度及残差](../../reports/dt_j2_field_audit/result.json)。运行方式为 python audit.py GGM03S-J2-only.txt result.json。
