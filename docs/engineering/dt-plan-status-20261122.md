@@ -490,3 +490,5 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 **图形画布直接运行。** 在 84f2ed3 的真实 Chrome 中进入专业画布，点击配置节点，在节点检查器把时长从 60 改为 40 秒。点击图校验和运行按钮，经实际队列启动 Basilisk。浏览器发送的 11 个顶层字段与封存 TaskSpec 逐项相等，遥测从 0 到 40 秒共五帧，validation 和完整性均通过。运行全程无页面异常和控制台错误。此例验证编辑节点参数进入真实运行；画布导出程序包另有上表记录。[运行 ID 与五帧时间](../../reports/dt_remaining_integration/graph_direct_native.json)
 
 **场景回归修订。** #242 首轮 Linux 原生作业在成功等到精确配对帧后，再次异步读取页面时已经显示下一帧“等待精确配对”。fc0d659 将 ADCS 来源与传感器行改为在同一 DOM 采样时刻取证，同会话同时间配对、遥测实体与渲染断言继续执行。Windows 失败对应的场景限时用例复验通过，耗时 19.49 秒。[原失败日志](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45224424461/job/137866982513)
+
+**自然语言真实模型回归未通过。** 在 84f2ed3 的公开向导选择 local-modelscope，调用本机 Qwen2.5-Coder-1.5B-Instruct 与 v5 LoRA。请求 20 秒整星任务、0.2 秒积分、每 1 秒记录。第一次原始回答把两种时间间隔都写成 0.2 秒，正式验证以 USER_TIME_REQUIREMENT_MISMATCH 拒绝。第二次保留相同要求并增加具体字段名和“五次积分记录一帧”；解析上下文中三项时间均正确，原始首答仍给出 0.2 秒采样。第二次页面等待 360 秒超时，最终响应未核实。两次均未产生封存运行。原始回复、提供方调用 ID、token 分项、时延及权重指纹已留存。单一模型的同题复述只能用于此项回归。下一期按原请求和冻结断言复验，独立检查候选、页面提交与封存输入；保留所有失败记录。[机器可读记录与原始回答索引](../../reports/dt_remaining_integration/nl_wizard_sampling_regression.json)
