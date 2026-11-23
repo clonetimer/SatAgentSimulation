@@ -447,3 +447,9 @@ Windows 联合候选的两次原门槛试跑在推进期限中止，分别在 3,
 **Windows 核验。** 最终提交的综合组 87 项、器件组 22 项、原登记整星 CAD 浏览器 1 项，合计 110 项通过。CAD 用例在综合批次单列后已用真实资产完成。首次 CAD 归档下载中断，重新下载后按登记摘要核对。综合组及 CAD 组各有一条 FastAPI TestClient 依赖弃用提示。[逐用例结果与制品指纹](../../reports/dt_remaining_integration/windows_and_replay.json)
 
 **同一提交的云端复验。** 四个手动触发的工作流均成功。[整星原生验收](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45212121445) 的 Linux 持续用例跑至 3,600.5 仿真秒，用户流 3,601 帧，7,201 段原生推进。[固定 CAD 映射](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45212130215) 的 Windows 和 Linux 映射合同、来源清单及真实 Chromium 三组参考装配核验均通过。[离线场景及万点曲线](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45212137406) 的浏览器批次 33 项通过、1 项跳过，真实参考装配在独立 CAD 工作流和本地单项中另行执行。[原生器件、子系统与 Run Bundle](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45212502966) 完成引导式浏览器任务与真实运行核验。主干交付仍取决于维护者选定版本；合并后需在实际提交上复核。
+
+### ADCS-03 星敏掉测、恢复及视场资格
+
+在联合提交 b11510a 上用官方 Basilisk 2.11.0 运行三个 12 秒整星工况，动力学步长 0.5 秒、输出间隔 1 秒。三组输入分别为健康、4 至 8 秒掉测、同一时间窗视场遮挡事件。直接从原生运行接口读取官方星敏四元数、故障注入后的四元数、有效位和姿态融合来源。三组各有 13 帧，原始测量四元数均为单位四元数。两种事件在 4、5、6、7、8 秒的注入后测量均为零向量且有效位为 0；融合由星敏与粗姿态联合（3）切换到粗姿态（1）。9 秒输出恢复单位四元数、有效位 1 和融合模式 3。健康组始终有效。
+
+当前两种事件使用同一故障注入器的定时有效位逻辑，所选指标逐帧相同。该证据覆盖既定失效窗口和恢复响应。几何引起的真实失锁仍待独立验收，需要视轴、视场、遮挡几何、判定阈值与可复现的入场/出场工况。星图识别与重新捕获时延也需单独的测量模型。本次直接调用原生执行接口；产品表单可选事件另按注册表验收。[三组原生复验脚本](../../reports/dt_remaining_integration/star_tracker_window.py)与[39 帧指标](../../reports/dt_remaining_integration/star_tracker_window.json)。
