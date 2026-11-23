@@ -236,3 +236,11 @@
 独立读取 seal、清单与磁盘文件，复算清单本身及其 41 个成员的 SHA-256，并逐一比对外部目录中 4 个 SPICE 核、1 个重力系数文件、IGRF 原表及派生 COF、1 个空间天气 CSV。8 个文件全部匹配。天气来源清单的哈希另行核验，导出脚本与封存包记录的环境信息一致。本次天气为 5 行测试夹具，获取时间未知。该结果证明本例的数据身份可核查，真实任务的空间天气来源与准确性须单独验收。[审计脚本与摘要](../../reports/dt_r1_asset_identity/)
 
 复现时从上述提交的根目录设置 `PYTHONPATH` 至该工作树的 src 和根目录，设置 `SAT_SIM_ASSET_ROOT` 至已准备好的外部资产根目录。运行 `python -m pytest -q -s tests/test_native_integrated_environment.py::test_four_effects_pass_canonical_taskspec_exported_script_and_sealed_run_bundle --basetemp <全新临时目录>`。将其中的具体测试目录、同一资产根目录和该提交的 `tests/fixtures/celestrak_space_weather_2026-03-04.csv` 依次传给 `audit.py`。清单包含本次运行的时间戳，每次复跑应核对各自的封存值。
+
+### R1 出口 5 的观测空间天气输入
+
+在组合树 `7a282dbd97024ab65841d0b186156053ee48e4ee` 的原有点火与关闭推进案例中，将合成夹具替换为通过仓库下载入口取得的 [CelesTrak 快照](https://celestrak.org/SpaceData/SW-Last5Years.csv)，由官方 Basilisk 2.11.0 重新执行。每一对运行的封存 TaskSpec 字节相同。任务日期 2026-03-04 及前三日均有记录，四行的 F10.7 数据类型均为 OBS。源文件 SHA-256 为 `bc963becc48620d1adfe5460b77dc4e70d070a17f2308ceeac14a7d79c729c7a`。快照中 2027-02-01 的预测行缺少 AP1，原生读取器在此停止，晚于本例所用日期。原下载地址随时间滚动，复现这次观测输入须匹配上述哈希。
+
+两对运行均为 30 s、16 帧。独立读取四份封存清单，各 41 个成员的内容哈希均匹配，逐一比对源 CSV 与来源清单的哈希。关闭推进时，30 s 末帧密度由 5.2178434×10⁻¹¹ 变为 5.0506109×10⁻¹¹ kg/m³，阻力由 3.022670 变为 2.925790 mN。点火时末帧阻力由 3.022573 变为 2.925696 mN。两例中每个正时间采样的密度和阻力均随输入改变。首帧密度已有值，阻力记录为零。这些读数验证本例观测输入的来源及传递；真实轨道上的密度、阻力误差仍需独立对照。[审计脚本与逐帧结果](../../reports/dt_r1_observed_weather/)。
+
+四个组合候选的最新 CI 均已结束。#229 `e533be7` 34 项通过，#230 `d2b035b` 和 #231 `7d0656d` 各 11 项通过，#232 `12a9e65` 10 项通过，各另有 2 项跳过。[#229](https://github.com/clonetimer/SatAgentSimulation/pull/229/checks) · [#230](https://github.com/clonetimer/SatAgentSimulation/pull/230/checks) · [#231](https://github.com/clonetimer/SatAgentSimulation/pull/231/checks) · [#232](https://github.com/clonetimer/SatAgentSimulation/pull/232/checks)

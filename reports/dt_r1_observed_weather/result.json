@@ -1,0 +1,414 @@
+[
+  {
+    "case": "combined-control",
+    "fixture": {
+      "manifest_sha256": "8e2949daa9489bf6aacc9a42dfc866fdea613b18caaf682ba39eba91f8ea6934",
+      "members": 41,
+      "spec_sha256": "e6eacf278c9da171c46abf83daea7d27c3ba8cc40813b65cdc68b8a2af2de145"
+    },
+    "observed": {
+      "manifest_sha256": "2a3bec37529848844e9289875b78b12a2cc782d998d8c08a5b10da57b034c5a3",
+      "members": 41,
+      "spec_sha256": "e6eacf278c9da171c46abf83daea7d27c3ba8cc40813b65cdc68b8a2af2de145"
+    },
+    "fixture_sha256": "5290906fb326869757e7bb96ac84d35a4b583bb6a1ce171b2977067f32739b87",
+    "observed_sha256": "bc963becc48620d1adfe5460b77dc4e70d070a17f2308ceeac14a7d79c729c7a",
+    "provenance_sha256": "671e7dbec29f8d261343ef23d413e856dc79f607babdac95eed2960954d0991a",
+    "retrieved_at": "2026-11-23T13:21:01.226813+00:00",
+    "observed_dates": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04"
+    ],
+    "first_invalid_source_row": {
+      "row": 2199,
+      "date": "2027-02-01",
+      "reason": "invalid_numeric:AP1"
+    },
+    "samples": [
+      {
+        "time_s": 0.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.178713618623983e-11,
+          "observed": 5.0121368402443826e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0,
+          "observed": 0.0
+        }
+      },
+      {
+        "time_s": 2.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.181292309202218e-11,
+          "observed": 5.01467160183802e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003001494172056564,
+          "observed": 0.0029049688836650313
+        }
+      },
+      {
+        "time_s": 4.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.1838756500717594e-11,
+          "observed": 5.017211036038213e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030029903958167965,
+          "observed": 0.002906439672445181
+        }
+      },
+      {
+        "time_s": 6.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.186463556398746e-11,
+          "observed": 5.01975505989768e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030044893262605047,
+          "observed": 0.0029079131800061764
+        }
+      },
+      {
+        "time_s": 8.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.189055943203268e-11,
+          "observed": 5.02230359032511e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030059909142394477,
+          "observed": 0.0029093893582925637
+        }
+      },
+      {
+        "time_s": 10.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.1916527252839715e-11,
+          "observed": 5.024856544012761e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003007495110490124,
+          "observed": 0.002910868159136068
+        }
+      },
+      {
+        "time_s": 12.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.194253817261668e-11,
+          "observed": 5.02741383747645e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030090018656600665,
+          "observed": 0.0029123495342804526
+        }
+      },
+      {
+        "time_s": 14.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.196859133565801e-11,
+          "observed": 5.0299753870457497e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030105111302577065,
+          "observed": 0.002913833435333447
+        }
+      },
+      {
+        "time_s": 16.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.199468588480864e-11,
+          "observed": 5.0325411089068414e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003012022854725717,
+          "observed": 0.0029153198138376353
+        }
+      },
+      {
+        "time_s": 18.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.202082096059676e-11,
+          "observed": 5.035110919017816e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030135369893722935,
+          "observed": 0.0029168086212035954
+        }
+      },
+      {
+        "time_s": 20.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.2046995702506724e-11,
+          "observed": 5.037684733233862e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030150534844212156,
+          "observed": 0.00291829980875848
+        }
+      },
+      {
+        "time_s": 22.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.2073209247776717e-11,
+          "observed": 5.040262467189968e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030165722900127377,
+          "observed": 0.0029197933277478124
+        }
+      },
+      {
+        "time_s": 24.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.209946073226855e-11,
+          "observed": 5.042844036385127e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030180933561602453,
+          "observed": 0.0029212891292916634
+        }
+      },
+      {
+        "time_s": 26.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.212574929050554e-11,
+          "observed": 5.045429356185334e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030196166328178573,
+          "observed": 0.0029227871644516693
+        }
+      },
+      {
+        "time_s": 28.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.215207405481153e-11,
+          "observed": 5.048018341741173e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030211420698305577,
+          "observed": 0.002924287384182191
+        }
+      },
+      {
+        "time_s": 30.000000000000004,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.2178434156819345e-11,
+          "observed": 5.0506109081338555e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003022669616960991,
+          "observed": 0.0029257897393559387
+        }
+      }
+    ]
+  },
+  {
+    "case": "combined-burn",
+    "fixture": {
+      "manifest_sha256": "68e9e4ab9e9d4e85e2c1b74d24983d758d0457d2ed10fd4d491a931a4cc0f91f",
+      "members": 41,
+      "spec_sha256": "842ff7c5ed114043a2d0cca2227d88b06a274e31bf75dcc9057390bef13e6056"
+    },
+    "observed": {
+      "manifest_sha256": "e88137e620363bc65237d2797dfc64d91291933c5f6141ae30505ceadb0d9037",
+      "members": 41,
+      "spec_sha256": "842ff7c5ed114043a2d0cca2227d88b06a274e31bf75dcc9057390bef13e6056"
+    },
+    "fixture_sha256": "5290906fb326869757e7bb96ac84d35a4b583bb6a1ce171b2977067f32739b87",
+    "observed_sha256": "bc963becc48620d1adfe5460b77dc4e70d070a17f2308ceeac14a7d79c729c7a",
+    "provenance_sha256": "671e7dbec29f8d261343ef23d413e856dc79f607babdac95eed2960954d0991a",
+    "retrieved_at": "2026-11-23T13:21:01.226813+00:00",
+    "observed_dates": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04"
+    ],
+    "first_invalid_source_row": {
+      "row": 2199,
+      "date": "2027-02-01",
+      "reason": "invalid_numeric:AP1"
+    },
+    "samples": [
+      {
+        "time_s": 0.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.178713618623983e-11,
+          "observed": 5.0121368402443826e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0,
+          "observed": 0.0
+        }
+      },
+      {
+        "time_s": 2.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.181292309199213e-11,
+          "observed": 5.014671601834987e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003001494172546751,
+          "observed": 0.0029049688841241957
+        }
+      },
+      {
+        "time_s": 4.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.183875650059524e-11,
+          "observed": 5.017211036026353e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030029903967941246,
+          "observed": 0.0029064396733605247
+        }
+      },
+      {
+        "time_s": 6.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.186462524474835e-11,
+          "observed": 5.0197540526929825e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003004493105475364,
+          "observed": 0.002907916834942971
+        }
+      },
+      {
+        "time_s": 8.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.1890466466641094e-11,
+          "observed": 5.022294516382032e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030059985976699285,
+          "observed": 0.002909396757679842
+        }
+      },
+      {
+        "time_s": 10.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.191627822716216e-11,
+          "observed": 5.024832237455968e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003007498166409736,
+          "observed": 0.002910871008518863
+        }
+      },
+      {
+        "time_s": 12.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.1942121574941255e-11,
+          "observed": 5.0273731743554384e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003008995064867671,
+          "observed": 0.0029123427639821107
+        }
+      },
+      {
+        "time_s": 14.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.1968006850222525e-11,
+          "observed": 5.029918336195034e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030104944541241344,
+          "observed": 0.00291381702697165
+        }
+      },
+      {
+        "time_s": 16.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.19939331959828e-11,
+          "observed": 5.032467639171554e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003011996284628339,
+          "observed": 0.002915293749035474
+        }
+      },
+      {
+        "time_s": 18.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.201989975288925e-11,
+          "observed": 5.035020999255358e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003013500506696044,
+          "observed": 0.0029167728815903617
+        }
+      },
+      {
+        "time_s": 20.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.2045905660570506e-11,
+          "observed": 5.0375783323144614e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003015007070558923,
+          "observed": 0.002918254375970359
+        }
+      },
+      {
+        "time_s": 22.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.20719500564401e-11,
+          "observed": 5.040139553998113e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.0030165159263662346,
+          "observed": 0.002919738183428348
+        }
+      },
+      {
+        "time_s": 24.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.209803207653731e-11,
+          "observed": 5.0427045798211256e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003018027024141157,
+          "observed": 0.0029212242550930496
+        }
+      },
+      {
+        "time_s": 26.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.2124150855570325e-11,
+          "observed": 5.0452733251661906e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003019540313848086,
+          "observed": 0.0029227125420352267
+        }
+      },
+      {
+        "time_s": 28.0,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.215030552607902e-11,
+          "observed": 5.047845705202378e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003021055745343468,
+          "observed": 0.002924202995219061
+        }
+      },
+      {
+        "time_s": 30.000000000000004,
+        "environment.atmosphere_density_kg_m3": {
+          "fixture": 5.217649521990181e-11,
+          "observed": 5.050421635029871e-11
+        },
+        "orbit.drag_force_norm_n": {
+          "fixture": 0.003022573268401573,
+          "observed": 0.002925695565527659
+        }
+      }
+    ]
+  }
+]
