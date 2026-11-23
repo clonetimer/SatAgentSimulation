@@ -99,6 +99,8 @@
     plotManifest: null,
     telemetry: [],
     telemetryOverview: null,
+    chartWindowOverview: null,
+    chartWindowRequestId: 0,
     artifacts: [],
     dataset: null,
     selectedSeries: [],
@@ -6464,6 +6466,8 @@
       state.plotManifest = null;
       state.telemetry = [];
       state.telemetryOverview = null;
+      state.chartWindowOverview = null;
+      state.chartWindowRequestId += 1;
       state.artifacts = [];
       state.dataset = null;
       state.selectedSeries = [];
@@ -6546,7 +6550,7 @@
           ] : [];
         const overviewFields = Array.from(new Set([...plotFields, ...sceneFields]));
         const query = new URLSearchParams({
-          max_points: '3000', fields: overviewFields.join(','),
+          max_points: '10000', fields: overviewFields.join(','),
         });
         telemetryOverview = await api(`/runs/${encodeURIComponent(runId)}/telemetry/overview?${query}`);
       } catch (_) { telemetryOverview = null; }
@@ -6564,6 +6568,8 @@
       state.telemetry = telemetryOverview?.source
         ? (telemetryOverview.rows || []) : (telemetryPayload.rows || []);
       state.telemetryOverview = telemetryOverview?.source ? telemetryOverview : null;
+      state.chartWindowOverview = null;
+      state.chartWindowRequestId += 1;
       const runSpec = state.activeRun?.task_spec || {};
       const runParameters = runSpec.parameters?.values || {};
       const runEpoch = runParameters.epoch_utc || runSpec.simulation?.epoch_utc
@@ -6949,16 +6955,20 @@
     drawChart();
   }
 
-  function chartTimeSamples() {
-    const rows = state.telemetry || [];
+  function chartSamplesFromRows(rows) {
     const timeField = state.plotManifest?.time_axis?.field || state.plotManifest?.time_field
       || (rows[0] && Object.hasOwn(rows[0], 'time_s') ? 'time_s' : 't_s');
     return rows.map((row, index) => ({ row, time: Number(row[timeField] ?? index) }))
       .filter((point) => Number.isFinite(point.time));
   }
 
+  function chartTimeSamples() {
+    return chartSamplesFromRows(state.chartTimeWindow && state.chartWindowOverview?.source
+      ? state.chartWindowOverview.rows || [] : state.telemetry || []);
+  }
+
   function syncChartWindowControls() {
-    const points = chartTimeSamples();
+    const points = chartSamplesFromRows(state.telemetry || []);
     const start = el('chartTimeStart');
     const end = el('chartTimeEnd');
     const reset = el('chartResetWindowBtn');
@@ -6975,8 +6985,8 @@
     end.value = String(state.chartTimeWindow?.end ?? Math.max(...allTimes));
   }
 
-  function applyChartTimeWindow() {
-    const points = chartTimeSamples();
+  async function applyChartTimeWindow() {
+    const points = chartSamplesFromRows(state.telemetry || []);
     if (!points.length) return;
     const startInput = el('chartTimeStart');
     const endInput = el('chartTimeEnd');
@@ -6990,18 +7000,56 @@
       el('chartWindowStatus').textContent = `范围无效：请输入 ${formatNumber(low)}–${formatNumber(high)} s 内、起点小于终点的数值。`;
       return false;
     }
+    if (state.telemetryOverview?.source && state.activeRunId) {
+      const requestId = ++state.chartWindowRequestId;
+      const runLoadId = state.runLoadRequestId;
+      const runId = state.activeRunId;
+      const fields = Array.from(new Set([
+        ...(state.plotManifest?.series || []).map(item => item.field).filter(Boolean).slice(0, 16),
+        ...state.selectedSeries,
+      ]));
+      const query = new URLSearchParams({
+        max_points: '10000', fields: fields.join(','), start_s: String(start), end_s: String(end),
+      });
+      el('chartWindowStatus').textContent = '正在从原始遥测读取所选时间窗…';
+      el('chartApplyWindowBtn').disabled = true;
+      try {
+        const overview = await api(`/runs/${encodeURIComponent(runId)}/telemetry/overview?${query}`);
+        if (requestId !== state.chartWindowRequestId || runLoadId !== state.runLoadRequestId
+            || runId !== state.activeRunId) return false;
+        if (!overview?.source || !Array.isArray(overview.rows) || !overview.rows.length) {
+          el('chartWindowStatus').textContent = '原始遥测在此时间范围内没有有效采样点。';
+          return false;
+        }
+        state.chartTimeWindow = { start, end };
+        state.chartWindowOverview = overview;
+        syncChartWindowControls();
+        drawChart();
+        return true;
+      } catch (error) {
+        if (requestId === state.chartWindowRequestId && runLoadId === state.runLoadRequestId) {
+          el('chartWindowStatus').textContent = `原始遥测细化失败：${error.message || String(error)}`;
+        }
+        return false;
+      } finally {
+        if (requestId === state.chartWindowRequestId) el('chartApplyWindowBtn').disabled = false;
+      }
+    }
     if (!points.some(p => p.time >= start && p.time <= end)) {
       el('chartWindowStatus').textContent = '此时间范围内没有加载到遥测采样点，请扩大范围。';
       return false;
     }
     state.chartTimeWindow = { start, end };
+    state.chartWindowOverview = null;
     syncChartWindowControls();
     drawChart();
     return true;
   }
 
   function resetChartTimeWindow() {
+    state.chartWindowRequestId += 1;
     state.chartTimeWindow = null;
+    state.chartWindowOverview = null;
     syncChartWindowControls();
     drawChart();
   }
@@ -7094,7 +7142,14 @@
     const status = el('chartWindowStatus');
     if (status) {
       const bounds = loadedPoints.length ? `${formatNumber(Math.min(...loadedPoints.map(p => p.time)))}–${formatNumber(Math.max(...loadedPoints.map(p => p.time)))} s` : '无可用时间轴';
-      status.textContent = `当前显示 ${rows.length} / ${loadedPoints.length} 条已加载采样点 · ${windowRange ? '局部范围' : '完整已加载范围'} · 可用时间 ${bounds} · 页面最多读取 2000 行，不能代表完整 Run Bundle。`;
+      const overview = windowRange && state.chartWindowOverview?.source
+        ? state.chartWindowOverview : state.telemetryOverview;
+      const sourceNote = overview?.source
+        ? (overview.sampled
+          ? `从原始 ${overview.total} 条中选取 ${overview.count} 条，局部细节仍可能遗漏`
+          : `原始 ${overview.total} 条已完整加载`)
+        : '仅代表当前已加载数据';
+      status.textContent = `当前显示 ${rows.length} / ${loadedPoints.length} 条 · ${windowRange ? '局部范围' : '完整已加载范围'} · 可用时间 ${bounds} · ${sourceNote}。完整数据请导出 Run 数据集。`;
     }
     if (!rows.length || !series.length) {
       ctx.fillStyle = themeColor('--muted', '#7890a1');
