@@ -480,3 +480,7 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 | 自然语言 | 已有来源测试使用固定提供方夹具。本轮上述导航超时发生在其调用之前。 | 在固定模型与候选提交上，保存实际回答并关联真实执行与封存结果。 |
 
 [本轮画布导出任务指纹与原生结果](../../reports/dt_remaining_integration/visual_export_native.json)。浏览器使用 tests/test_v15_visual_flow_run_browser.py；原生输入取自该用例下载的 v15-visual-flow-program.zip 内的 task_spec.json。来源回归为 tests/test_task_projection_source_browser.py，首个失败选择器为 .nav-button[data-view="tasks"]。
+
+**JSON 入口实测更新。** 在桌面 Chrome 通过当前向导粘贴星敏掉测 TaskSpec，修改任务 ID、名称与随机种子 713，点击结构化校验、应用配置、运行前校验和真实离线运行。原生 Basilisk 2.11.0+satfix2 的三个封存包均通过完整性检查，每个输入顶层字段值（含嵌套内容）与所贴任务逐项相等。38f4f4e 上，1 秒采样的窗口零帧、效果 INCONCLUSIVE、整体验证 FAIL；0.2 秒采样的窗口两帧，整体验证 PASS。稀疏组通过读取封存包核验，浏览器测试原先只等待 PASS，未把该测试计为通过。
+
+冷启动立即粘贴另复现编辑器被清空，报 Unexpected end of JSON input。a7b3882 在初始化完成前将编辑器置为只读，并复用 JSON 标签正在加载的预览。真实 Chrome 的延迟初始化回归通过。修复后不等待网络空闲，按原密采样任务从 JSON 页面生成第三个原生包，运行成功，效果 PASS。此项覆盖离线 JSON 入口。该次页面无未捕获 JS 错误，控制台仍记录一条资源 404；未据此评价全页面资源完整性。[修复 PR #241](https://github.com/clonetimer/SatAgentSimulation/pull/241) · [三组封存证据](../../reports/dt_remaining_integration/json_wizard_native.json)
