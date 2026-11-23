@@ -1,0 +1,331 @@
+[
+  {
+    "job": "windows-job-lifecycle",
+    "step": "Prove real Windows Job Object kill-on-close",
+    "passed": 2,
+    "skipped": 1,
+    "seconds": 0.14
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Verify official native GGM03S degree2-4 and rotating Earth",
+    "passed": 5,
+    "skipped": 0,
+    "seconds": 12.73
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Verify native IGRF14 and genuine magnetometer A/B",
+    "passed": 5,
+    "skipped": 0,
+    "seconds": 2.7
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Independently correlate IGRF14 with official IAGA PPIGRF",
+    "passed": 3,
+    "skipped": 0,
+    "seconds": 2.97
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Verify native SPICE WMM, NRLMSISE-00 drag and orbit-step convergence",
+    "passed": 12,
+    "skipped": 0,
+    "seconds": 13.18
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Verify offline CelesTrak coverage and stale-data fail-closed contracts",
+    "passed": 11,
+    "skipped": 0,
+    "seconds": 0.88
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Verify real SPICE/Eclipse/Cannonball SRP force and orbit A/B",
+    "passed": 10,
+    "skipped": 0,
+    "seconds": 3.65
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Verify simultaneous native drag and SRP force/trajectory A/B",
+    "passed": 1,
+    "skipped": 0,
+    "seconds": 6.3
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Verify simultaneous drag SRP GGM03S IGRF14 in one actual Basilisk whole spacecraft",
+    "passed": 5,
+    "skipped": 0,
+    "seconds": 27.58
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Verify thermospheric gas is excluded from equipment thermal safety gates",
+    "passed": 1,
+    "skipped": 0,
+    "seconds": 1.25
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Run native continuous and segmented execution regression tests",
+    "passed": 197,
+    "skipped": 0,
+    "seconds": 149.7
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Official Vizard vizInterface genuine Basilisk .bin and no-physics-change A/B",
+    "passed": 5,
+    "skipped": 0,
+    "seconds": 3.16
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Real upstream CSS normalized gain bias Kelly and saturation output A/B",
+    "passed": 21,
+    "skipped": 0,
+    "seconds": 3.28
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Official Basilisk CSS unit boresight geometry and native cosine response A/B",
+    "passed": 17,
+    "skipped": 0,
+    "seconds": 3.18
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Official Basilisk magnetometer B-to-S mounting and raw Tesla calibration A/B",
+    "passed": 16,
+    "skipped": 0,
+    "seconds": 3.01
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Official Basilisk IMU seeded gyro/accel white noise raw measurement A/B",
+    "passed": 22,
+    "skipped": 0,
+    "seconds": 3.41
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Official Basilisk IMU native LSB quantization, raw A/B and seeded replay",
+    "passed": 24,
+    "skipped": 0,
+    "seconds": 4.72
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Project Basilisk-scheduled IMU gyro/accel bias random walk and native pre-quantization A/B",
+    "passed": 20,
+    "skipped": 0,
+    "seconds": 7.73
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Genuine Basilisk RW 3D position/axis SWIG and closed-loop physical response A/B",
+    "passed": 23,
+    "skipped": 0,
+    "seconds": 3.48
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Actual RW electrically limited torque drives EPS native battery ADCS-power A/B",
+    "passed": 3,
+    "skipped": 0,
+    "seconds": 3.8
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Active composite whole-spacecraft official per-wheel ADCS power A/B",
+    "passed": 4,
+    "skipped": 0,
+    "seconds": 1.97
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Native thermal heater electrical output to EPS battery A/B",
+    "passed": 3,
+    "skipped": 0,
+    "seconds": 1.57
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Unified-native Payload SimplePowerSink battery and thermal A/B",
+    "passed": 1,
+    "skipped": 0,
+    "seconds": 2.86
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Native Payload SimplePowerSink to EPS battery and thermal A/B",
+    "passed": 18,
+    "skipped": 0,
+    "seconds": 6.27
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Native propulsion auxiliary power to EPS and thermal A/B",
+    "passed": 29,
+    "skipped": 0,
+    "seconds": 5.67
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Native Comm/Data antenna power to EPS and thermal A/B",
+    "passed": 16,
+    "skipped": 0,
+    "seconds": 7.78
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "True Basilisk per-wheel current Kt torque and battery-load A/B",
+    "passed": 24,
+    "skipped": 0,
+    "seconds": 3.69
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Real Basilisk RW motor electrical current authority, commanded torque and wheel-spin A/B",
+    "passed": 21,
+    "skipped": 0,
+    "seconds": 3.51
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Genuine Basilisk RW driver command deadband changes native applied torque and spin A/B",
+    "passed": 28,
+    "skipped": 0,
+    "seconds": 5.06
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Genuine Basilisk independent RW hardware u_max, fault clamp and physical spin A/B",
+    "passed": 15,
+    "skipped": 0,
+    "seconds": 3.28
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Genuine Basilisk per-wheel friction coefficients and physical wheel speed A/B",
+    "passed": 20,
+    "skipped": 0,
+    "seconds": 3.51
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Real Basilisk HR16 per-wheel rated momentum and native spin-inertia A/B",
+    "passed": 18,
+    "skipped": 0,
+    "seconds": 3.58
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Real Basilisk MRP FSW VehicleConfig inertia and COM matches official hub in physical A/B",
+    "passed": 2,
+    "skipped": 0,
+    "seconds": 3.29
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Real Basilisk spacecraft principal inertia closed-loop A/B and invalid geometry",
+    "passed": 13,
+    "skipped": 0,
+    "seconds": 3.22
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Real Basilisk solar panel body-normal power A/B and fail-closed geometry",
+    "passed": 9,
+    "skipped": 0,
+    "seconds": 2.98
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Real Basilisk opt-in panel tracking and slew-bound A/B validation",
+    "passed": 15,
+    "skipped": 0,
+    "seconds": 3.04
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Native propulsion geometry A/B with actual orbit and fuel response",
+    "passed": 1,
+    "skipped": 0,
+    "seconds": 4.39
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Basilisk-scheduled project thermal heat-capacity A/B response",
+    "passed": 1,
+    "skipped": 0,
+    "seconds": 4.43
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Basilisk-scheduled project radiator and heater A/B temperature response",
+    "passed": 2,
+    "skipped": 0,
+    "seconds": 0.98
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Publish real Basilisk first-tick divergence diagnostics",
+    "passed": 2,
+    "skipped": 0,
+    "seconds": 6.16
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Publish real Basilisk RW C++ owner-memory ablation",
+    "passed": 2,
+    "skipped": 0,
+    "seconds": 10.89
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Publish real Basilisk applied motor message multi-tick ablation",
+    "passed": 2,
+    "skipped": 0,
+    "seconds": 10.6
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Publish native Basilisk battery public-Reset negative-control evidence",
+    "passed": 2,
+    "skipped": 0,
+    "seconds": 10.9
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Run real Basilisk 8+ second wall-clock observation pilot",
+    "passed": 1,
+    "skipped": 0,
+    "seconds": 11.93
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Run genuine 30+ second real-wall-clock Basilisk endurance and external audit",
+    "passed": 1,
+    "skipped": 0,
+    "seconds": 34.69
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Run accelerated continuous full-spacecraft TC/TM soak (180 simulated seconds)",
+    "passed": 1,
+    "skipped": 0,
+    "seconds": 7.3
+  },
+  {
+    "job": "native-whole-spacecraft",
+    "step": "Run long-horizon continuous TC/TM soak (3600 simulated seconds)",
+    "passed": 1,
+    "skipped": 0,
+    "seconds": 107.74
+  }
+]

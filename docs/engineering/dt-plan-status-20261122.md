@@ -370,3 +370,7 @@ git -C dt-r1-source rev-parse HEAD 'HEAD^{tree}'
 #236 的 beb3164 云端工作流实际收集到十项浏览器整星旅程，仍要求九项，停在收集检查。[失败步骤](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45196864723)。[修复提交](https://github.com/clonetimer/SatAgentSimulation/commit/130403dd10c69b8f971431a16d4005115288aa85) 将新增部分力矩损失纳入收集与 JUnit 身份核查，要求十份浏览器封存包及对应元数据。九个物理故障对照共享两个健康对照，CI 核查十一份不同原生包。原逐文件指纹和封存校验继续执行；最终判定应查对应提交的工作流结果。
 
 **浏览器下载包离线复核。** 在本地 Windows Chromium 新增失权旅程下载的 ZIP 上，独立读取 sidecar、清单、封印、原始 TaskSpec 和 JSONL 遥测。归档中 47 个清单成员全部哈希匹配；15 帧中 4 至 10 s（含两端）共 7 帧记录轮 0 权限为 0.25，其余帧恢复 1，轮 1、2 全部为 1。任务事件 ID、目标轮、验证事件及样本数一致。[离线核验脚本](../../reports/dt_r1_wheel_event_timing/browser_archive.py) · [本机下载包结果](../../reports/dt_r1_wheel_event_timing/browser_archive_windows.json)。脚本接收同目录配有 JSON sidecar 的 ZIP 及输出路径，亦可复核独立 runner 下载件。
+
+**独立云端运行终态。** 提交 cfc47059 的联合工作流 45198221149 最终三个作业均成功。原生整星作业日志中 46 条 pytest 结果行累计 653 次通过，包含各步骤重复执行的用例。Windows 生命周期作业 2 项通过、1 项跳过，电池 C++ 契约作业单独通过。[逐步骤计数](../../reports/dt_r1_joint_graph/ci_pytest_summaries.json) · [工作流日志](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45198221149)。
+
+长时域遥控遥测用例记录 3600.0 仿真秒、3601 帧和 7200 个原生分段；该 pytest 步骤报告 107.74 s。进程 RSS 增长 315072 KiB，其中运行阶段增长 303840 KiB。180.5 仿真秒的独立用例记录 181 帧、361 段和 RSS 增长 268060 KiB。两次为不同进程的试验；内存增长包含初始化、会话历史及归档，需按相同采样点进行长时分解，不能由两次终值推算泄漏率。本次云端工作流运行的是版本化仓库测试；历史天气任务仍见专门的同机重放证据。

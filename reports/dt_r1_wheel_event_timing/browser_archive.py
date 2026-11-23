@@ -39,11 +39,16 @@ def audit(path):
         assert result["result"] == item["delivery_result"] == item["effect_result"] == "PASS"
         assert item["event_id"] == event["id"]
         rows = [json.loads(line) for line in read("results/telemetry.jsonl").splitlines()]
-        active = [r for r in rows if event["effect"] in r["event.active_effects"]]
+        sample_s = spec["simulation"]["sample_s"]
+        duration = spec["simulation"]["duration_s"]
+        assert [r["time_s"] for r in rows] == [i * sample_s for i in range(int(duration / sample_s) + 1)]
+        active = [r for r in rows if event["start_s"] <= r["time_s"] <= event["end_s"]]
         assert len(active) == item["active_sample_count"] and active
         for row in rows:
             ratio = row[f"adcs.rw.effective_torque_ratio_{idx}"]
-            assert abs(ratio - (scale if event["effect"] in row["event.active_effects"] else 1.)) < 1e-12
+            in_window = event["start_s"] <= row["time_s"] <= event["end_s"]
+            assert (event["effect"] in row["event.active_effects"]) == in_window
+            assert abs(ratio - (scale if in_window else 1.)) < 1e-12
             assert all(abs(row[f"adcs.rw.effective_torque_ratio_{i}"]-1.)<1e-12 for i in (1,2))
         return dict(run_id=metadata["run_id"], archive_sha256=archive_hash, manifest_sha256=digest(manifest),
                     verified_files=len(members), rows=len(rows), event_id=item["event_id"],
