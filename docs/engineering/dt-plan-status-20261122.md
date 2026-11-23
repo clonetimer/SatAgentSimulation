@@ -327,3 +327,13 @@
 对 #207 的 e0f00d9 使用本地固定 GLB、真实 Chrome 及其现有测试环境。之前的位置与轴向断言读取了诊断接口返回的 TaskSpec 副本。本次在浏览器内更新场景世界矩阵，从每个已挂载的对齐节点将原点与局部 +Y 端点变换到显示场景，计算实际原点与单位方向，并遍历已加载的 CAD 子树计数。
 
 三个原点分别与 (0.12,0,0)、(0,−0.08,0)、(0,0,0.07) m 一致。三个 +Y 显示轴分别对齐 X、Y、Z，分量绝对容差 10⁻¹²。每个外形包含 500 个可渲染 mesh primitive；GLB 的 mesh 定义数为 24。启用爆炸视图时三个原点均发生移动，复位后逐个读回的位置、轴和网格数完全恢复。增强后四项测试通过、零跳过。此处坐标来自测试任务；设备实装和 CAD 轴基准仍需参考方确认。复现时在上述 #207 提交应用[测试补丁](../../reports/dt4_rw_reference_audit/rendered_transforms.patch)，按原测试环境运行 test_dt41_rw_reference_cad.py。[JUnit 执行结果](../../reports/dt4_rw_reference_audit/rendered_transforms.xml)。
+
+### DT-5 三分钟持续并发与独立服务进程内存
+
+在 #227 的 ef8d529 上启动单独的 Uvicorn 子进程，对上述 164417899 字节合成数据执行本机回环 HTTP 窗口查询。新进程启动后先读一个窗口建索引，再由四客户端连续请求 180 s。每个响应完整读回后验证返回数量和全部 101 个样本序号，延迟计至完整响应体读完。服务端 RSS、私有字节与累计 CPU 时间约每五秒采一次。
+
+首轮 25252 个热请求的样本序号全部通过。Windows 上该次使用的 monotonic 产生可见的计时量化，因此重开独立进程，用 perf_counter 重新测量请求延迟。[首轮记录](../../reports/dt5_server_preflight/sustained_http.json)。
+
+复验完成 20863 个热请求，约 116 请求/秒，四客户端分别完成 5207、5242、5197、5217 个，样本序号逐项通过。进程首次查询 2.44 s，热查询 P50/P95/P99 为 30.06/65.45/100.50 ms，最大 248.22 ms。观测到的服务端私有内存从首次并发采样的 70.62 MB 至末次的 71.70 MB，全部采样的最大值为 74.82 MB；RSS 采样最大值为 93.38 MB（十进制 MB）。数据源已读过，操作系统磁盘缓存未清空。该实验覆盖一个合成 Run、多客户端窗口查询和三分钟服务进程观测；目标机浏览器及 GPU、多独立仿真会话、耐久内存趋势和约定 SLA 另行验收。
+
+[测量脚本](../../reports/dt5_server_preflight/sustained_http.py) · [高分辨率计时和 38 次服务进程采样](../../reports/dt5_server_preflight/sustained_http_highres.json)。从 #227 工作树设置 PYTHONPATH=src，使用准备好 million_fixture 的 runs 根目录执行 python sustained_http.py RUNS_ROOT OUTPUT_JSON。
