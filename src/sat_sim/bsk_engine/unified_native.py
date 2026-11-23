@@ -836,6 +836,11 @@ def _build_unified_rows(
     recorder_map = {name: _RecorderSnapshot(recorder) for name, recorder in recorder_map.items()}
     rows: list[dict[str, Any]] = []
     times = recorder_map["state"].times()
+    eclipse_input = recorder_map.get("eclipse_spacecraft_input")
+    if eclipse_input is not None:
+        if not np.array_equal(eclipse_input.times(), times):
+            raise RuntimeError("NATIVE_ECLIPSE_INPUT_SAMPLE_GRID_MISMATCH")
+        eclipse_source_times = eclipse_input.timesWritten()
     if start_index < 0 or start_index > len(times):
         raise ValueError("start_index must be within the recorder range")
     mag_mount_321 = [
@@ -982,6 +987,14 @@ def _build_unified_rows(
             row[f'orbit.velocity_m_s_{component}'] = float(state.v_BN_N[index][axis])
             if 'sun_ephemeris' in recorder_map:
                 row[f'orbit.sun_position_m_{component}'] = float(recorder_map['sun_ephemeris'].PositionVector[index][axis])
+        if eclipse_input is not None:
+            input_position = eclipse_input.r_BN_N[index]
+            row["orbit.eclipse_spacecraft_source_time_s"] = float(eclipse_source_times[index]) * 1e-9
+            row["orbit.eclipse_spacecraft_geometry_valid"] = bool(
+                np.isfinite(input_position).all() and np.linalg.norm(input_position) > 0.
+            )
+            for axis, component in enumerate("xyz"):
+                row[f"orbit.eclipse_spacecraft_position_m_{component}"] = float(input_position[axis])
         if "srp_force" in recorder_map:
             srp_n = np.asarray(recorder_map["srp_force"].forceExternal_N[index], dtype=float).reshape(3)
             sun_n = np.asarray(recorder_map["sun_ephemeris"].PositionVector[index], dtype=float).reshape(3)
@@ -2744,6 +2757,12 @@ class UnifiedNativeRuntime:
             recorder_map["drag_force"] = drag_log
             record_sources.append("drag_force")
         if srp_effector is not None:
+            # Capture the actual state message before Eclipse (105) reads it.
+            # The ordinary spacecraft recorder samples after dynamics (100).
+            source_recorder = sc.scStateOutMsg.recorder(macros.sec2nano(cfg.sample_s))
+            sim.AddModelToTask(task_name, source_recorder, None, 106)
+            recorder_map["eclipse_spacecraft_input"] = source_recorder
+            record_sources.append("eclipse_spacecraft_input")
             # RadiationPressure writes inherited forceExternal_N (inertial
             # Newtons), NOT the DragDynamicEffector body-frame force field.
             srp_log = srp_effector.logger(["forceExternal_N"], macros.sec2nano(cfg.sample_s))
@@ -3500,6 +3519,8 @@ class UnifiedNativeRuntime:
                 "reference_area_m2": self._srp_selection.reference_area_m2,
                 "coefficient_reflection": self._srp_selection.coefficient_reflection,
                 "force_frame": "N_INERTIAL",
+                "eclipse_spacecraft_input": "pre-Eclipse scStateOutMsg; source time is the message write time",
+                "force_sampling": "forceExternal_N recorded after the spacecraft dynamics update",
                 "force_max_n": max(srp_forces),
                 "force_min_n": min(srp_forces),
                 "illumination_min": min(srp_illuminations),
