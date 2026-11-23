@@ -1,5 +1,6 @@
 """Actual native environment, orbital geometry and integrator verification."""
 from dataclasses import replace
+from hashlib import sha256
 from pathlib import Path
 import shutil
 import subprocess
@@ -67,6 +68,11 @@ def test_real_spice_and_wmm_change_with_utc_epoch():
         assert evidence['magnetic_field'] == 'WMM2025'
         assert evidence['gravity'] == 'earth_J2_plus_sun_moon'
         assert all(row['sha256'] for row in evidence['assets']['spice'])
+        gravity = evidence['assets']['gravity_j2']
+        coefficients = Path(gravity['path']).read_bytes()
+        assert gravity['name'] == 'GGM03S-J2-only.txt'
+        assert gravity['size_bytes'] == len(coefficients)
+        assert gravity['sha256'] == sha256(coefficients).hexdigest()
         first, last = result.trace_rows[0], result.trace_rows[-1]
         sun = np.array([first[f'orbit.sun_position_m_{axis}'] for axis in 'xyz'])
         assert 1.4e11 < np.linalg.norm(sun) < 1.6e11
