@@ -307,3 +307,17 @@
 [独立公式脚本](../../reports/dt_j2_field_audit/audit.py) · [18 点双路径加速度及残差](../../reports/dt_j2_field_audit/result.json)。运行方式为 python audit.py GGM03S-J2-only.txt result.json。
 
 在 #235 的 f6f64e1 上，另从真实整星执行图的地球和引力模型对象读回参数。旧 J2 和 GGM03S 四阶各运行 10 s，均输出 11 帧，消息读取错误为 0。加载系数后模型 μ 和半径分别为 398600.4415 km³/s² 和 6378136.3 m；调用原生 InitializeSimulation 后，两种模型的 μ 和半径均变成地球对象上的 398600.436 km³/s² 和 6378136.6 m。二阶和四阶选择均被保留。前述 18 点表采用单独初始化的系数文件常数；重建整星力场时必须使用原生初始化后的有效常数。[双阶段原生读回](../../reports/dt_j2_field_audit/binding.json) · [复验脚本](../../reports/dt_j2_field_audit/binding.py)。
+
+### DT-3 整星旧版 J2 长弧独立积分
+
+在 #235 的 0dccc7b 上，以 2026-01-01 00:00:00 UTC 为起点执行 5400 s，分别取 5 s 和 2 s 原生步长，每 60 s 导出六维状态，共 91 点。对同一首帧，使用 SciPy DOP853、地固 J2 解析加速度、IAU_EARTH→J2000 极轴以及日月差分第三体引力独立积分。星历和坐标转换共享 SPICE 内核，积分器和力计算路径独立。三组对照均固定初态。
+
+| 参考传播条件 | 5 s 原生步长最大位置差 | 2 s 原生步长最大位置差 |
+| --- | ---: | ---: |
+| 整星有效常数、SPICE 极轴 | 2.15250 m | 0.34451 m |
+| 文件头常数、SPICE 极轴 | 3.34133 m | 1.54309 m |
+| 整星有效常数、固定 J2000 Z 极轴 | 96.74997 m | 96.48209 m |
+
+差值为 91 个采样时刻的三维位置差范数最大值。使用有效常数及正确极轴时，2 s 工况最大速度差为 0.000355 m/s。第三组只改变轴向，说明该弧段对所选地轴方向敏感。该实验覆盖旧版 J2、日月引力与指定初态；四环境联合作用、外部实测轨道与任务容差仍各自验收。
+
+在 #235 环境中以已配置的本地 SPICE、WMM 及重力资产运行 export_orbit.py OUT，随后在含 NumPy、SciPy 和 SpiceyPy 的环境执行 orbit_reference.py OUT。第二步读取第一步记录的原生资产路径。[原生导出脚本](../../reports/dt_j2_field_audit/export_orbit.py) · [独立传播脚本](../../reports/dt_j2_field_audit/orbit_reference.py) · [逐组差值](../../reports/dt_j2_field_audit/orbit_comparison.json) · [2 秒步长原始轨迹](../../reports/dt_j2_field_audit/orbit_2s.csv) · [5 秒步长原始轨迹](../../reports/dt_j2_field_audit/orbit_5s.csv)。

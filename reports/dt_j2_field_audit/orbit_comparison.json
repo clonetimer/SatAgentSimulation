@@ -1,0 +1,38 @@
+{
+  "effective": {
+    "5": {
+      "max_position_m": 2.152498092432235,
+      "max_velocity_m_s": 0.0022148869752884742,
+      "final_position_m": 2.152498092432235
+    },
+    "2": {
+      "max_position_m": 0.3445140195242254,
+      "max_velocity_m_s": 0.00035450310016473576,
+      "final_position_m": 0.3445140195242254
+    }
+  },
+  "file_constants": {
+    "5": {
+      "max_position_m": 3.3413316453492525,
+      "max_velocity_m_s": 0.0034668486570294567,
+      "final_position_m": 3.3413316453492525
+    },
+    "2": {
+      "max_position_m": 1.5430928196638283,
+      "max_velocity_m_s": 0.0016085785280774733,
+      "final_position_m": 1.5430928196638283
+    }
+  },
+  "identity_frame": {
+    "5": {
+      "max_position_m": 96.74996999412731,
+      "max_velocity_m_s": 0.10337750011650965,
+      "final_position_m": 48.942641159090606
+    },
+    "2": {
+      "max_position_m": 96.48209022569617,
+      "max_velocity_m_s": 0.10307939525326724,
+      "final_position_m": 49.12612352217823
+    }
+  }
+}
