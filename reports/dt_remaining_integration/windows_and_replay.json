@@ -1,0 +1,611 @@
+{
+  "commit": "b11510a0beaccfa990205257657d70f2cf09d9c0",
+  "windows_suites": {
+    "combined": {
+      "suite": {
+        "tests": "87",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "time": "329.122"
+      },
+      "cases": [
+        {
+          "name": "test_drag_density_outputs_survive_form_round_trip",
+          "seconds": "1.613",
+          "status": "passed"
+        },
+        {
+          "name": "test_whole_capability_exposes_propulsion_contract",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_actual_four_effects_coexist_with_independent_ablation",
+          "seconds": "9.075",
+          "status": "passed"
+        },
+        {
+          "name": "test_all_four_effects_one_real_orbit_crosses_eclipse_with_drag_still_active",
+          "seconds": "10.691",
+          "status": "passed"
+        },
+        {
+          "name": "test_four_effects_full_orbit_timestep_refinement",
+          "seconds": "19.346",
+          "status": "passed"
+        },
+        {
+          "name": "test_four_effects_pass_canonical_taskspec_exported_script_and_sealed_run_bundle",
+          "seconds": "15.960",
+          "status": "passed"
+        },
+        {
+          "name": "test_dt12_four_native_environment_effects_and_rw_deadband_in_same_run",
+          "seconds": "1.936",
+          "status": "passed"
+        },
+        {
+          "name": "test_initial_rates_reach_native_spacecraft[default]",
+          "seconds": "0.526",
+          "status": "passed"
+        },
+        {
+          "name": "test_initial_rates_reach_native_spacecraft[legacy]",
+          "seconds": "0.545",
+          "status": "passed"
+        },
+        {
+          "name": "test_initial_rates_reach_native_spacecraft[custom]",
+          "seconds": "0.463",
+          "status": "passed"
+        },
+        {
+          "name": "test_guided_adcs_payload_reaches_native_first_sample",
+          "seconds": "0.318",
+          "status": "passed"
+        },
+        {
+          "name": "test_scene_workspace_contract_and_local_globe_runtime",
+          "seconds": "0.682",
+          "status": "passed"
+        },
+        {
+          "name": "test_scene_module_uses_globe_gl_and_explicit_demo_provenance",
+          "seconds": "0.003",
+          "status": "passed"
+        },
+        {
+          "name": "test_scene_source_context_exposes_capability_lifecycle_and_independent_adcs_quality",
+          "seconds": "0.005",
+          "status": "passed"
+        },
+        {
+          "name": "test_simulation_geometry_view_requires_validated_whole_spacecraft_configuration",
+          "seconds": "0.009",
+          "status": "passed"
+        },
+        {
+          "name": "test_scene_browser_loads_offline_globe_and_camera_controls",
+          "seconds": "26.472",
+          "status": "passed"
+        },
+        {
+          "name": "test_birds_cad_viewer_loads_glb_and_supports_real_browser_interactions",
+          "seconds": "8.111",
+          "status": "passed"
+        },
+        {
+          "name": "test_scene_object_selection_preserves_physical_and_assembly_semantics_without_fabricating_anchors",
+          "seconds": "0.007",
+          "status": "passed"
+        },
+        {
+          "name": "test_default_scene_mode_initialization_and_renderer_ownership",
+          "seconds": "0.404",
+          "status": "passed"
+        },
+        {
+          "name": "test_p9m4_visual_review_requires_exact_glb_digest_before_candidate_focus",
+          "seconds": "5.017",
+          "status": "passed"
+        },
+        {
+          "name": "test_engineering_mapping_endpoint_is_explicitly_unconfigured_by_default",
+          "seconds": "0.374",
+          "status": "passed"
+        },
+        {
+          "name": "test_engineering_mapping_endpoint_rejects_invalid_bundle_without_leaking_path",
+          "seconds": "0.342",
+          "status": "passed"
+        },
+        {
+          "name": "test_engineering_mapping_endpoint_returns_only_validated_public_projection",
+          "seconds": "0.386",
+          "status": "passed"
+        },
+        {
+          "name": "test_engineering_mapping_endpoint_projects_candidate_only_review_data",
+          "seconds": "0.714",
+          "status": "passed"
+        },
+        {
+          "name": "test_engineering_mapping_endpoint_rejects_promoted_review_candidate",
+          "seconds": "0.377",
+          "status": "passed"
+        },
+        {
+          "name": "test_engineering_mapping_endpoint_rejects_descendant_mesh_outside_glb_inventory",
+          "seconds": "0.460",
+          "status": "passed"
+        },
+        {
+          "name": "test_engineering_mapping_endpoint_rejects_reference_row_render_promotion",
+          "seconds": "0.399",
+          "status": "passed"
+        },
+        {
+          "name": "test_engineering_mapping_endpoint_rejects_registry_digest_mismatch",
+          "seconds": "0.410",
+          "status": "passed"
+        },
+        {
+          "name": "test_satellite_scene_exposes_evidence_classes_without_fake_geometry",
+          "seconds": "0.009",
+          "status": "passed"
+        },
+        {
+          "name": "test_storage_capacity_bounds_do_not_substitute_for_a_conservation_residual",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_observed_native_aliases_and_residuals_catch_real_violations[row0-soc_bounds]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_observed_native_aliases_and_residuals_catch_real_violations[row1-thermal_bounds]",
+          "seconds": "0.002",
+          "status": "passed"
+        },
+        {
+          "name": "test_observed_native_aliases_and_residuals_catch_real_violations[row2-thermal_bounds]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_observed_native_aliases_and_residuals_catch_real_violations[row3-energy_balance_proxy]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_observed_native_aliases_and_residuals_catch_real_violations[row4-data_conservation]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_kelvin_only_valid_trace_has_measured_thermal_coverage",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_native_quaternion_checks_raw_components[components0-1-pass]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_native_quaternion_checks_raw_components[components1-1-fail]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_native_quaternion_checks_raw_components[components2-1-fail]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_native_quaternion_checks_raw_components[components3-0-fail]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_native_quaternion_checks_raw_components[components4-1-fail]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_native_nrlmsise_neutral_temperature_is_not_a_spacecraft_thermal_limit",
+          "seconds": "0.000",
+          "status": "passed"
+        },
+        {
+          "name": "test_absent_default_inputs_are_not_a_physical_pass_but_do_not_fail_unrelated_components",
+          "seconds": "0.000",
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_conservation_requirement_without_residual_cannot_pass[False-inconclusive]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_explicit_conservation_requirement_without_residual_cannot_pass[True-fail]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_physical_input_is_reported_instead_of_silently_skipped[nan]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_physical_input_is_reported_instead_of_silently_skipped[inf]",
+          "seconds": "0.002",
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_physical_input_is_reported_instead_of_silently_skipped[True]",
+          "seconds": "0.002",
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_physical_input_is_reported_instead_of_silently_skipped[0.7]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_physical_input_is_reported_instead_of_silently_skipped[None]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_invalid_physical_input_is_reported_instead_of_silently_skipped[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000]",
+          "seconds": "0.002",
+          "status": "passed"
+        },
+        {
+          "name": "test_empty_check_selection_cannot_bypass_strict_physical_validation",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_temporal_checks_need_multiple_samples_of_one_field_not_aliases_in_one_row",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_batch_and_stream_have_exact_bounded_findings_above_old_crash_limit",
+          "seconds": "0.040",
+          "status": "passed"
+        },
+        {
+          "name": "test_streaming_validator_memory_does_not_grow_with_duplicate_findings",
+          "seconds": "0.758",
+          "status": "passed"
+        },
+        {
+          "name": "test_canonical_explicit_requirements_propagate_to_offline_and_interactive_validation",
+          "seconds": "0.045",
+          "status": "passed"
+        },
+        {
+          "name": "test_continuous_workspace_with_more_than_2048_warnings_seals_with_exact_counts",
+          "seconds": "5.164",
+          "status": "passed"
+        },
+        {
+          "name": "test_continuous_seal_honors_explicit_missing_physical_evidence",
+          "seconds": "0.033",
+          "status": "passed"
+        },
+        {
+          "name": "test_declared_thermal_limit_failure_survives_recovery_and_bounded_samples[0]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_declared_thermal_limit_failure_survives_recovery_and_bounded_samples[False]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_malformed_thermal_safety_flag_is_invalid_evidence[2]",
+          "seconds": "0.000",
+          "status": "passed"
+        },
+        {
+          "name": "test_malformed_thermal_safety_flag_is_invalid_evidence[-1]",
+          "seconds": "0.000",
+          "status": "passed"
+        },
+        {
+          "name": "test_malformed_thermal_safety_flag_is_invalid_evidence[false]",
+          "seconds": "0.000",
+          "status": "passed"
+        },
+        {
+          "name": "test_malformed_thermal_safety_flag_is_invalid_evidence[None]",
+          "seconds": "0.000",
+          "status": "passed"
+        },
+        {
+          "name": "test_malformed_thermal_safety_flag_is_invalid_evidence[nan]",
+          "seconds": "0.000",
+          "status": "passed"
+        },
+        {
+          "name": "test_interactive_runner_mission_result_cannot_be_overridden_by_safe_final_row[FAIL-FAIL]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_interactive_runner_mission_result_cannot_be_overridden_by_safe_final_row[INCONCLUSIVE-INCONCLUSIVE]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_streaming_checks_follow_measurements_and_schema_changes",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_continuous_seal_matches_legacy_evidence_semantics",
+          "seconds": "0.447",
+          "status": "passed"
+        },
+        {
+          "name": "test_incremental_hf8_checks_match_original_full_trace",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_continuous_sealing_rejects_tampered_workspace",
+          "seconds": "0.117",
+          "status": "passed"
+        },
+        {
+          "name": "test_continuous_streaming_seal_uses_no_legacy_bulk_loader",
+          "seconds": "0.168",
+          "status": "passed"
+        },
+        {
+          "name": "test_failed_continuous_seal_keeps_unpublished_staging_for_recovery",
+          "seconds": "0.119",
+          "status": "passed"
+        },
+        {
+          "name": "test_rotated_trace_has_continuous_hash_and_bundle_copy",
+          "seconds": "0.210",
+          "status": "passed"
+        },
+        {
+          "name": "test_gzip_closed_segment_seals_to_legacy_v1_bundle",
+          "seconds": "0.392",
+          "status": "passed"
+        },
+        {
+          "name": "test_offline_compression_cli_requires_verified_seal",
+          "seconds": "0.254",
+          "status": "passed"
+        },
+        {
+          "name": "test_finite_run_chart_renders_ten_thousand_actual_samples[component-chart]",
+          "seconds": "6.107",
+          "status": "passed"
+        },
+        {
+          "name": "test_finite_run_chart_renders_ten_thousand_actual_samples[whole-scene-chart]",
+          "seconds": "6.725",
+          "status": "passed"
+        },
+        {
+          "name": "test_chart_window_refetches_local_extreme_from_original_run",
+          "seconds": "6.700",
+          "status": "passed"
+        },
+        {
+          "name": "test_bounded_overview_covers_full_span_and_retains_real_extrema",
+          "seconds": "0.073",
+          "status": "passed"
+        },
+        {
+          "name": "test_time_window_is_recomputed_on_original_data_and_not_proxy_interpolation",
+          "seconds": "0.037",
+          "status": "passed"
+        },
+        {
+          "name": "test_overview_preserves_atomic_orbit_and_attitude_truth_fields",
+          "seconds": "0.353",
+          "status": "passed"
+        },
+        {
+          "name": "test_malformed_original_fails_closed",
+          "seconds": "0.007",
+          "status": "passed"
+        },
+        {
+          "name": "test_api_chart_endpoint_bounds_and_non_destructive",
+          "seconds": "0.329",
+          "status": "passed"
+        },
+        {
+          "name": "test_ten_thousand_actual_samples_are_available_without_resampling",
+          "seconds": "0.826",
+          "status": "passed"
+        },
+        {
+          "name": "test_cached_window_preserves_duplicates_and_detects_replaced_unordered_file",
+          "seconds": "0.056",
+          "status": "passed"
+        },
+        {
+          "name": "test_accelerated_continuous_180_seconds_tc_tm_beyond_initial_horizon",
+          "seconds": "191.812",
+          "status": "passed"
+        }
+      ],
+      "separately_executed_case": "test_p9m4_real_birds4_review_maps_all_reference_groups"
+    },
+    "device": {
+      "suite": {
+        "tests": "22",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "time": "17.088"
+      },
+      "cases": [
+        {
+          "name": "test_imu_bias_random_walk_parameters_are_registered_and_strict",
+          "seconds": "0.005",
+          "status": "passed"
+        },
+        {
+          "name": "test_prestart_rejects_invalid_bias_random_walk_coefficients[bad0]",
+          "seconds": "0.002",
+          "status": "passed"
+        },
+        {
+          "name": "test_prestart_rejects_invalid_bias_random_walk_coefficients[bad1]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_prestart_rejects_invalid_bias_random_walk_coefficients[bad2]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_prestart_rejects_invalid_bias_random_walk_coefficients[bad3]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_prestart_rejects_invalid_bias_random_walk_coefficients[bad4]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_prestart_rejects_invalid_bias_random_walk_coefficients[bad5]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_prestart_rejects_invalid_bias_random_walk_coefficients[bad6]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_prestart_rejects_invalid_bias_random_walk_coefficients[bad7]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_prestart_rejects_invalid_bias_random_walk_coefficients[bad8]",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_real_basilisk_imu_bias_walk_has_sqrt_dt_statistics_independent_streams_and_seed_replay",
+          "seconds": "1.703",
+          "status": "passed"
+        },
+        {
+          "name": "test_whole_spacecraft_bias_walk_is_seeded_recorded_and_precedes_native_quantization",
+          "seconds": "5.526",
+          "status": "passed"
+        },
+        {
+          "name": "test_direct_whole_spacecraft_runtime_rejects_invalid_bias_walk_values[bad0]",
+          "seconds": "0.011",
+          "status": "passed"
+        },
+        {
+          "name": "test_direct_whole_spacecraft_runtime_rejects_invalid_bias_walk_values[bad1]",
+          "seconds": "0.006",
+          "status": "passed"
+        },
+        {
+          "name": "test_direct_whole_spacecraft_runtime_rejects_invalid_bias_walk_values[bad2]",
+          "seconds": "0.005",
+          "status": "passed"
+        },
+        {
+          "name": "test_direct_whole_spacecraft_runtime_rejects_invalid_bias_walk_values[bad3]",
+          "seconds": "0.007",
+          "status": "passed"
+        },
+        {
+          "name": "test_direct_whole_spacecraft_runtime_rejects_invalid_bias_walk_values[bad4]",
+          "seconds": "0.007",
+          "status": "passed"
+        },
+        {
+          "name": "test_direct_whole_spacecraft_runtime_rejects_invalid_bias_walk_values[bad5]",
+          "seconds": "0.006",
+          "status": "passed"
+        },
+        {
+          "name": "test_direct_whole_spacecraft_runtime_rejects_invalid_bias_walk_values[bad6]",
+          "seconds": "0.007",
+          "status": "passed"
+        },
+        {
+          "name": "test_dt2_rw_driver_and_imu_lsb_bias_walk_share_one_sealed_whole_spacecraft_run",
+          "seconds": "9.007",
+          "status": "passed"
+        },
+        {
+          "name": "test_native_rw_input_gate_before_import",
+          "seconds": "0.001",
+          "status": "passed"
+        },
+        {
+          "name": "test_genuine_native_wheel_motor_and_inertia_a_b",
+          "seconds": "0.105",
+          "status": "passed"
+        }
+      ]
+    },
+    "real_reference_cad": {
+      "suite": {
+        "tests": "1",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "time": "27.479"
+      },
+      "cases": [
+        {
+          "name": "test_p9m4_real_birds4_review_maps_all_reference_groups",
+          "seconds": "18.623",
+          "status": "passed"
+        }
+      ]
+    }
+  },
+  "replay": {
+    "identical_member_sha256": {
+      "input/task_spec.json": "0a5d3247cd074b86c6a25ea675c8c7bf4d4cecb60155ca10a32e7753ecaba064",
+      "results/telemetry.jsonl": "4a67b9fc8b6a128d2a62bbfebebfae6fb8305858b542b810d30f08148f0a969f",
+      "validation/validation_outcome.json": "9e9618befb28ee564db0c26593d3b41cd79acd7c61240b2b329b8f4a8b97da7c"
+    },
+    "same_values_as_historical_telemetry": 5679,
+    "frames": 16,
+    "historical_sha256": "2184678881d13b2197ecbddccbd4fe8e42d81a9cc1e66642142104b8ee49afab",
+    "bundle_manifests": [
+      "b50703e47bd2f8f1e5e25fc9c4a35a0dfafbf24fbd18923f9fb68d367e02d4c4",
+      "85dd2115957d626e1177ef40581a7dd23fcb433e7179e6a29046fb326f6f4bf1",
+      "ca05a89c50f298d9955becb218097f11b0e4eb34d0d5a7185c9c51a72d0f2dc1"
+    ],
+    "source_weather_sha256": "bc963becc48620d1adfe5460b77dc4e70d070a17f2308ceeac14a7d79c729c7a"
+  },
+  "geometry": {
+    "glb_sha256": "f00cabfc02218a50ef807c06281a7d9e5a1cd93178635476aa153fea1c6b4b12",
+    "registry_sha256": "9655f55a23da7fe3ffeb790d264dff9ec731f58b6ffb590c64f9349f01350a18",
+    "scope": "reference_registration_only_not_as_built_approval"
+  },
+  "windows_total_passed": 110
+}
