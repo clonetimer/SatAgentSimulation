@@ -6808,7 +6808,11 @@
     strong.textContent = `验证：${localizedValidationResult(result)}`;
     strong.title=`技术状态：${result}`;
     const text = document.createElement('div');
-    const reason=validation.message_zh || validation.message || '运行记录未提供进一步说明。';
+    const failedAssertion = (validation.checks || []).find(check =>
+      check.category === 'acceptance_assertion' && check.result === 'FAIL' && check.evidence?.metric);
+    const reason = failedAssertion
+      ? `验收指标 ${failedAssertion.evidence.metric} 未通过。实际值 ${failedAssertion.observed}，要求 ${failedAssertion.evidence.operator} ${JSON.stringify(failedAssertion.expected)}。`
+      : validation.message_zh || validation.message || validation.reason_code || '运行记录未提供进一步说明。';
     text.textContent = reason;
     text.style.marginTop = '4px';
     if (validation.reason_code) text.title=`原因码：${validation.reason_code}`;
