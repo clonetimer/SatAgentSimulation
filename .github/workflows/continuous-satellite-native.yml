@@ -316,6 +316,13 @@ jobs:
           python -m pytest -q -s
           tests/test_native_imu_quantization.py
           --disable-warnings
+      - name: Project Basilisk-scheduled IMU gyro/accel bias random walk and native pre-quantization A/B
+        env:
+          PYTHONPATH: "src:."
+        run: >-
+          python -m pytest -q -s
+          tests/test_native_imu_bias_random_walk.py
+          --disable-warnings
       - name: Genuine Basilisk RW 3D position/axis SWIG and closed-loop physical response A/B
         env:
           PYTHONPATH: "src:."
