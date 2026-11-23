@@ -8693,8 +8693,8 @@
       wizardMessage('assistant', '这里可以编辑结构化任务定义。校验通过后可同步到仿真配置；仍需检查并执行运行前校验。');
       switchTab('taskspec');
       switchView('wizard');
-      if (!state.taskSpec && state.formData) previewForm().then(() => syncTaskSpecEditor()).catch((error) => { el('wizardNotice').textContent = error.message; });
-      else syncTaskSpecEditor();
+      // switchTab already loads an empty editor and locks it until that preview settles.
+      if (state.taskSpec) syncTaskSpecEditor();
       return;
     }
     if (goal === 'history') {
@@ -12358,6 +12358,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
   }
 
   async function init() {
+    // The initial capability selection can reset the editor while a user is pasting.
+    el('taskSpecEditor').readOnly = true;
     initTheme();
     initDisplayPreferences();
     bindEvents();
@@ -12375,6 +12377,8 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       restoreViewFromLocation();
     } catch (error) {
       showNotice(`工作台初始化失败：${error.message}`, 'error');
+    } finally {
+      el('taskSpecEditor').readOnly = false;
     }
   }
 
