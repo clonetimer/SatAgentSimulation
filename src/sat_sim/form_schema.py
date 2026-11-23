@@ -1276,6 +1276,9 @@ def _output_options(contract: Any, key: str, fallback: tuple[str, ...] | list[st
         for item in rows
         if isinstance(item, Mapping) and item.get("name")
     }
+    if key == "trace":
+        metadata = _mapping(_mapping(contract.data.get("outputs")).get("trace_metadata"))
+        by_name = {**metadata, **by_name}
     source_names = [
         str(item.get("name")) if isinstance(item, Mapping) else str(item)
         for item in rows
