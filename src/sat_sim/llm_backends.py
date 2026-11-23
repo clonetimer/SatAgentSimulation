@@ -406,6 +406,7 @@ def taskspec_draft_response_schema(capability_id: str | None = None, *, forbid_e
                                  single_fault_carrier: str = 'auto',
                                  allow_geometry_overrides: bool = True,
                                  allow_per_wheel_overrides: bool = True,
+                                 time_bindings: Mapping[str, float] | None = None,
                                  parameter_assignments: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Transport shape for the legacy/canonical/wrapped drafts we parse.
 
@@ -469,6 +470,32 @@ def taskspec_draft_response_schema(capability_id: str | None = None, *, forbid_e
         "required": ["schema_version", "task", "simulation", "outputs"],
         "additionalProperties": False,
     }
+    if time_bindings:
+        # LMFE enumerates declared keys when an object has properties. Include
+        # all supported simulation/solver fields even when only one time is bound.
+        from .task_models import SimulationSpec, SolverSpec
+        fields = copy.deepcopy(SimulationSpec.model_json_schema()["properties"])
+        solver_fields = SolverSpec.model_json_schema()["properties"]
+        solver = {"type": "object", "properties": solver_fields}
+        fields["solver"] = {"anyOf": [solver, {"type": "null"}]}
+        required = [name for name in ("duration_s", "sample_s") if name in time_bindings]
+        for name in required:
+            fields[name] = {"type": "number", "const": time_bindings[name]}
+        timing = {"type": "object", "properties": fields, "required": required}
+        if "step_s" in time_bindings:
+            step = {"type": "number", "const": time_bindings["step_s"]}
+            fields["step_s"] = step
+            solver_fields["step_s"] = step
+            nested = copy.deepcopy(timing)
+            nested["properties"]["solver"] = {**solver, "required": ["step_s"]}
+            nested["required"].append("solver")
+            required.append("step_s")
+            timing = {"anyOf": [timing, nested]}
+        canonical["properties"]["simulation"] = timing
+        legacy_timing = copy.deepcopy(timing)
+        for branch in legacy_timing.get("anyOf", [legacy_timing]):
+            branch["properties"]["seed"] = branch["properties"]["random_seed"]
+        legacy["properties"]["simulation"] = legacy_timing
     if capability_id is not None:
         from .capability_registry import get_capability
         contract = get_capability(capability_id).data

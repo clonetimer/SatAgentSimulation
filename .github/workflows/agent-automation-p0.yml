@@ -12,6 +12,8 @@ on:
       - "src/sat_sim/task_spec.py"
       - "src/sat_sim/capability_planner.py"
       - "src/sat_sim/capability_agent.py"
+      - "src/sat_sim/llm_backends.py"
+      - "tests/test_explicit_time_decode.py"
       - "tests/test_native_engineering_request_routing.py"
       - "tests/test_explicit_parameter_output_guards.py"
   pull_request:
@@ -31,6 +33,7 @@ on:
       - "src/sat_sim/task_models.py"
       - "src/sat_sim/task_spec.py"
       - "src/sat_sim/explicit_parameters.py"
+      - "src/sat_sim/llm_backends.py"
       - "src/sat_sim/capability_agent.py"
       - "src/sat_sim/capability_planner.py"
       - "src/sat_sim/agent_facade.py"
@@ -111,6 +114,7 @@ jobs:
             tests/test_natural_language_refinement.py \
             tests/test_refinement_transaction.py \
             tests/test_explicit_user_parameter_contract.py \
+            tests/test_explicit_time_decode.py \
             tests/test_explicit_parameter_output_guards.py \
             tests/test_native_engineering_request_routing.py \
             tests/test_refinement_units_and_intent.py \

@@ -2917,6 +2917,7 @@ class TextModelTaskSpecBackend:
             constrain_events=requested_health_mode(request.request) != 'nominal',
             single_fault=_request_requires_single_fault(request.request),
             single_fault_carrier='faults',
+            time_bindings=_explicit_time_requirements(request.request),
             allow_geometry_overrides=_request_allows_custom_rw_geometry(request.request),
             allow_per_wheel_overrides=_request_allows_per_wheel_overrides(request.request),
             parameter_assignments=_registered_literal_assignments(request.request,
