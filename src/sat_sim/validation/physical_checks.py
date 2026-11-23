@@ -151,9 +151,12 @@ def check_fuel_monotonicity(trace_rows: Sequence[Mapping[str, Any]], *, toleranc
     return issues
 
 
+DATA_BALANCE_FIELDS = ("coupled.data.conservation_error_bits", "data.max_abs_storage_balance_error_bits")
+
+
 def check_data_conservation(trace_rows: Sequence[Mapping[str, Any]], *, tolerance_bits: float = 1.0e-3) -> list[PhysicalValidationIssue]:
     issues: list[PhysicalValidationIssue] = []
-    for idx, key, err in _values(trace_rows, ("coupled.data.conservation_error_bits",)):
+    for idx, key, err in _values(trace_rows, DATA_BALANCE_FIELDS):
         if abs(err) > tolerance_bits:
             issues.append(PhysicalValidationIssue("fail", "data_conservation", f"trace[{idx}].{key}", "data conservation residual exceeds tolerance", err, f"abs <= {tolerance_bits} bit"))
     return issues
@@ -207,7 +210,7 @@ _CHECK_FIELDS = {
     "soc_bounds": SOC_FIELDS,
     "orbit_altitude_sanity": ("orbit.altitude_m",),
     "fuel_monotonicity": FUEL_FIELDS,
-    "data_conservation": ("coupled.data.conservation_error_bits",),
+    "data_conservation": DATA_BALANCE_FIELDS,
     "pointing_convergence": POINTING_FIELDS,
     "energy_balance_proxy": POWER_PROXY_FIELDS,
 }

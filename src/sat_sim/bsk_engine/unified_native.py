@@ -1144,6 +1144,18 @@ def _build_unified_rows(
                 "thermal.payload_temp_k": float(recorder_map["thermal_temp_payload"].deviceStatus[index]),
                 "thermal.payload_temp_c": float(recorder_map["thermal_temp_payload"].deviceStatus[index]) - 273.15,
             })
+            ledger = recorder_map["storage_balance"]
+            if ledger.valid[index]:
+                row.update({
+                    "data.cumulative_offered_bits": int(ledger.offered_bits[index]),
+                    "data.cumulative_admitted_bits": int(ledger.admitted_bits[index]),
+                    "data.cumulative_withdrawn_bits": int(ledger.withdrawn_bits[index]),
+                })
+                if ledger.steps[index] > 0:
+                    row["data.max_abs_storage_balance_error_bits"] = float(ledger.max_error_bits[index])
+            else:
+                # A missed dynamics tick invalidates the cumulative evidence until reset.
+                row["data.max_abs_storage_balance_error_bits"] = None
             heater_electrical_power_w = 0.0
             for thermal_node_name in ("battery", "electronics", "payload", "adcs", "structure", "solar_panel", "comm", "propulsion"):
                 heater_key = f"thermal_heater_electrical_{thermal_node_name}"
@@ -1297,6 +1309,7 @@ class UnifiedNativeRuntime:
             ImuFaultInjector,
             NativeEventStatus,
             NativeRfDownlinkGate,
+            StorageBalanceObserver,
             PowerDataModeGate,
             PropulsionBurnController,
             ReactionWheelCommandFaultManager,
@@ -2176,6 +2189,12 @@ class UnifiedNativeRuntime:
             add(rf_gate, "project_native_rf_downlink_gate", "basilisk_project_native", 44)
             add(native_downlink, "native_downlink_handling", "basilisk_official_native", 38)
             add(storage, "storage", "basilisk_official_native", 35)
+            balance = StorageBalanceObserver(instrument.nodeDataOutMsg, native_downlink.nodeDataOutMsg,
+                                             storage.storageUnitDataOutMsg)
+            add(balance, "project_storage_balance_observer", "basilisk_project_native", 34)
+            connected("payload_instrument.nodeDataOutMsg", balance.ModelTag)
+            connected("native_downlink_handling.nodeDataOutMsg", balance.ModelTag)
+            connected("storage.storageUnitDataOutMsg", balance.ModelTag)
             connected("payload_instrument.nodeDataOutMsg", "storage")
             connected("ground_location.accessOutMsgs[0]", "project_native_rf_downlink_gate")
             connected("native_link_budget.linkBudgetOutPayload", "project_native_rf_downlink_gate")
@@ -2281,6 +2300,7 @@ class UnifiedNativeRuntime:
                 "rf_access": rf_access,
                 "rf_gate": rf_gate,
                 "native_downlink": native_downlink,
+                "storage_balance": balance,
             })
 
             propulsion_enabled = bool(
@@ -2626,6 +2646,7 @@ class UnifiedNativeRuntime:
                 "gated_link_budget": whole_modules["rf_gate"].linkBudgetOutMsg,
                 "downlink_handling": whole_modules["native_downlink"].downlinkOutMsg,
                 "downlink_node": whole_modules["native_downlink"].nodeDataOutMsg,
+                "storage_balance": whole_modules["storage_balance"],
                 "payload_status": whole_modules["gate"].payloadStatusOutMsg,
                 "downlink_status": whole_modules["gate"].downlinkStatusOutMsg,
                 "safe_mode_status": whole_modules["gate"].safeModeStatusOutMsg,

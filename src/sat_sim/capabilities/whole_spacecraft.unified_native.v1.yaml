@@ -1320,6 +1320,10 @@ outputs:
   - data.storage_bits
   - data.net_baud_bps
   - data.downlink_node_baud_bps
+  - data.cumulative_offered_bits
+  - data.cumulative_admitted_bits
+  - data.cumulative_withdrawn_bits
+  - data.max_abs_storage_balance_error_bits
   - thermal.payload_temp_k
   - thermal.radiator_rejection_ratio
   - adcs.sensor.gyro_measured_rad_s_*

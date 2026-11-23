@@ -9,6 +9,34 @@ from sat_sim.capability_registry import get_adapter_for_capability, get_capabili
 CAPABILITY_ID = "whole_spacecraft.unified_native.v1"
 
 
+def test_storage_observer_keeps_transient_error_and_rejects_stale_input():
+    from Basilisk.architecture import messaging
+    from sat_sim.bsk_engine.project_native_modules import StorageBalanceObserver
+    from sat_sim.validation.physical_checks import evaluate_physical_validation
+
+    source, drain = messaging.DataNodeUsageMsg(), messaging.DataNodeUsageMsg()
+    storage = messaging.DataStorageStatusMsg()
+    observer = StorageBalanceObserver(source, drain, storage)
+    source_value, drain_value = messaging.DataNodeUsageMsgPayload(), messaging.DataNodeUsageMsgPayload()
+    source_value.baudRate = 10
+    status = messaging.DataStorageStatusMsgPayload()
+    status.storageCapacity = 100
+    # Measured storage is one bit low at t=1, then appears correct at t=2.
+    for second, level in enumerate((0, 9, 20)):
+        now = second * 1_000_000_000
+        status.storageLevel = level
+        source.write(source_value, now)
+        drain.write(drain_value, now)
+        storage.write(status, now)
+        observer.UpdateState(now)
+    assert observer.valid and observer.steps == 2 and observer.max_error_bits == 1
+    report = evaluate_physical_validation([{"data.max_abs_storage_balance_error_bits": observer.max_error_bits}],
+                                          checks=["data_conservation"])
+    assert report["check_results"]["data_conservation"]["status"] == "FAIL"
+    observer.UpdateState(now + 1_000_000_000)
+    assert not observer.valid
+
+
 def _spec(task_id: str, *, duration_s: float = 3.0, sample_s: float = 0.5, values: dict | None = None) -> dict:
     return {
         "task_id": task_id,

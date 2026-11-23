@@ -1,0 +1,134 @@
+{
+  "full-rate": {
+    "times_s": [
+      0.0,
+      10.0,
+      20.0,
+      30.000000000000004
+    ],
+    "check": {
+      "status": "PASS",
+      "evaluated": true,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "minimum_samples_per_field": 1,
+      "valid_row_count": 3,
+      "valid_sample_count": 3,
+      "invalid_sample_count": 0,
+      "fields_observed": [
+        "data.max_abs_storage_balance_error_bits"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "counters": [
+      {
+        "data.cumulative_offered_bits": 0,
+        "data.cumulative_admitted_bits": 0,
+        "data.cumulative_withdrawn_bits": 0
+      },
+      {
+        "data.cumulative_offered_bits": 25000000,
+        "data.cumulative_admitted_bits": 25000000,
+        "data.cumulative_withdrawn_bits": 0
+      },
+      {
+        "data.cumulative_offered_bits": 47500000,
+        "data.cumulative_admitted_bits": 47500000,
+        "data.cumulative_withdrawn_bits": 0
+      },
+      {
+        "data.cumulative_offered_bits": 47500000,
+        "data.cumulative_admitted_bits": 47500000,
+        "data.cumulative_withdrawn_bits": 0
+      }
+    ]
+  },
+  "limited-storage": {
+    "times_s": [
+      0.0,
+      10.0,
+      20.0,
+      30.000000000000004
+    ],
+    "check": {
+      "status": "PASS",
+      "evaluated": true,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "minimum_samples_per_field": 1,
+      "valid_row_count": 3,
+      "valid_sample_count": 3,
+      "invalid_sample_count": 0,
+      "fields_observed": [
+        "data.max_abs_storage_balance_error_bits"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "counters": [
+      {
+        "data.cumulative_offered_bits": 0,
+        "data.cumulative_admitted_bits": 0,
+        "data.cumulative_withdrawn_bits": 0
+      },
+      {
+        "data.cumulative_offered_bits": 25000000,
+        "data.cumulative_admitted_bits": 10000000,
+        "data.cumulative_withdrawn_bits": 0
+      },
+      {
+        "data.cumulative_offered_bits": 47500000,
+        "data.cumulative_admitted_bits": 10000000,
+        "data.cumulative_withdrawn_bits": 0
+      },
+      {
+        "data.cumulative_offered_bits": 47500000,
+        "data.cumulative_admitted_bits": 10000000,
+        "data.cumulative_withdrawn_bits": 0
+      }
+    ]
+  },
+  "active-link": {
+    "times_s": [
+      0.0,
+      1.0,
+      2.0,
+      3.0
+    ],
+    "check": {
+      "status": "PASS",
+      "evaluated": true,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "minimum_samples_per_field": 1,
+      "valid_row_count": 3,
+      "valid_sample_count": 3,
+      "invalid_sample_count": 0,
+      "fields_observed": [
+        "data.max_abs_storage_balance_error_bits"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "counters": [
+      {
+        "data.cumulative_offered_bits": 0,
+        "data.cumulative_admitted_bits": 0,
+        "data.cumulative_withdrawn_bits": 0
+      },
+      {
+        "data.cumulative_offered_bits": 2500000,
+        "data.cumulative_admitted_bits": 2500000,
+        "data.cumulative_withdrawn_bits": 1350000
+      },
+      {
+        "data.cumulative_offered_bits": 5000000,
+        "data.cumulative_admitted_bits": 5000000,
+        "data.cumulative_withdrawn_bits": 2850000
+      },
+      {
+        "data.cumulative_offered_bits": 7500000,
+        "data.cumulative_admitted_bits": 7500000,
+        "data.cumulative_withdrawn_bits": 4350000
+      }
+    ]
+  }
+}
