@@ -84,6 +84,7 @@ def test_unified_effect_contracts_are_declared_and_registered() -> None:
             "adcs_reaction_wheel_speed_limit",
         },
         WHOLE_ID: {
+            "adcs_star_tracker_dropout",
             "payload_instrument_off", "comm_data_downlink_link_loss",
             "eps_battery_capacity_loss", "solar_panel_efficiency_loss",
             "thermal_radiator_rejection_loss", "power_safe_mode_threshold",

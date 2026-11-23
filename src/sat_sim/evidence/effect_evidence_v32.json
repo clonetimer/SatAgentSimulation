@@ -1091,6 +1091,32 @@
     },
     {
       "capability_id": "whole_spacecraft.unified_native.v1",
+      "effect_id": "adcs_star_tracker_dropout",
+      "kind": "fault",
+      "classification": "VERIFIED_NATIVE_EFFECT",
+      "implementation": "basilisk_native",
+      "executable": true,
+      "evidence_fields": [
+        "adcs.star_tracker.valid",
+        "adcs.fusion.source_mode"
+      ],
+      "runtime_assertions": [
+        {
+          "id": "whole_star_tracker_measurement_invalid",
+          "field": "adcs.star_tracker.valid",
+          "operator": "eq",
+          "value": 0,
+          "scope": "active_all",
+          "tolerance": 0
+        }
+      ],
+      "claim_limitations": [
+        "Scheduled loss of the project-injected measurement. Optical field of view, star detection and reacquisition latency require separate qualification."
+      ],
+      "rationale": "The project injector suppresses the official star tracker message during the scheduled interval. The paired whole-spacecraft run checks raw and injected measurements and recovery."
+    },
+    {
+      "capability_id": "whole_spacecraft.unified_native.v1",
       "effect_id": "gyro_bias_step",
       "kind": "fault",
       "classification": "VERIFIED_NATIVE_EFFECT",

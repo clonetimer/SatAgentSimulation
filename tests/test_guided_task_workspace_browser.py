@@ -1821,6 +1821,7 @@ def test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events(
                 "eps_battery_capacity_loss",
                 "adcs_rw_jamming",
                 "adcs_rw_motor_failure",
+                "adcs_star_tracker_dropout",
                 "gyro_bias_step",
                 "propulsion_thruster_ignition_failure",
             }
@@ -1839,6 +1840,7 @@ def test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events(
                     "eps_battery_capacity_loss",
                     "adcs_rw_jamming",
                     "adcs_rw_motor_failure",
+                    "adcs_star_tracker_dropout",
                     "gyro_bias_step",
                     "propulsion_thruster_ignition_failure",
                 },
@@ -1875,6 +1877,7 @@ def test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events(
         ("nominal", None, None, {}),
         ("adcs_rw_jamming", "fault", "adcs_rw_jamming", {"wheel_index": 0, "brake_torque_nm": 0.2}),
         ("adcs_rw_motor_failure", "fault", "adcs_rw_motor_failure", {"wheel_index": 0}),
+        ("adcs_star_tracker_dropout", "fault", "adcs_star_tracker_dropout", {}),
         ("gyro_bias_step", "fault", "gyro_bias_step", {"bias_step_deg_s": [0.5, 0.0, 0.0]}),
         ("gyro_noise_increase", "degradation", "gyro_noise_increase", {"noise_scale": 100.0}),
         ("adcs_rw_torque_authority_loss", "degradation", "adcs_rw_torque_authority_loss", {"wheel_index": 0, "torque_scale": 0.25}),
@@ -1887,6 +1890,7 @@ def test_guided_whole_spacecraft_verified_event_catalog_hides_unverified_events(
         "nominal",
         "adcs_rw_jamming",
         "adcs_rw_motor_failure",
+        "adcs_star_tracker_dropout",
         "gyro_bias_step",
         "gyro_noise_increase",
         "adcs_rw_torque_authority_loss",
@@ -1959,6 +1963,7 @@ def test_guided_whole_spacecraft_event_run_bundle(
                 "eps_battery_capacity_loss",
                 "adcs_rw_jamming",
                 "adcs_rw_motor_failure",
+                "adcs_star_tracker_dropout",
                 "gyro_bias_step",
                 "propulsion_thruster_ignition_failure",
             }
@@ -1979,6 +1984,7 @@ def test_guided_whole_spacecraft_event_run_bundle(
                     "eps_battery_capacity_loss",
                     "adcs_rw_jamming",
                     "adcs_rw_motor_failure",
+                    "adcs_star_tracker_dropout",
                     "gyro_bias_step",
                     "propulsion_thruster_ignition_failure",
                 },
@@ -2094,6 +2100,7 @@ def test_guided_whole_spacecraft_event_run_bundle(
                 "nominal": ["orbit.radius_m", "eps.battery_soc"],
                 "adcs_rw_jamming": ["adcs.rw.effective_torque_ratio_0"],
                 "adcs_rw_motor_failure": ["adcs.rw.effective_max_torque_nm_0"],
+                "adcs_star_tracker_dropout": ["adcs.star_tracker.valid"],
                 "gyro_bias_step": ["adcs.sensor.gyro_bias_norm_rad_s"],
                 "gyro_noise_increase": ["adcs.sensor.gyro_noise_norm_rad_s"],
                 "adcs_rw_torque_authority_loss": ["adcs.rw.effective_torque_ratio_0"],
@@ -2231,6 +2238,9 @@ def test_guided_whole_spacecraft_event_run_bundle(
                     assert active["adcs.rw.effective_torque_ratio_0"] == pytest.approx(0.0, abs=1e-12)
                 elif case_id == "adcs_rw_motor_failure":
                     assert active["adcs.rw.effective_max_torque_nm_0"] == pytest.approx(0.0, abs=1e-12)
+                elif case_id == "adcs_star_tracker_dropout":
+                    assert all(row["adcs.star_tracker.valid"] == 0 for row in active_rows)
+                    assert rows[-1]["adcs.star_tracker.valid"] == 1
                 elif case_id == "gyro_bias_step":
                     assert active["adcs.sensor.gyro_bias_norm_rad_s"] > 0.0
                 elif case_id == "gyro_noise_increase":

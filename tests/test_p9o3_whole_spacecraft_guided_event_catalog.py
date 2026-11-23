@@ -14,6 +14,7 @@ VERIFIED_GUIDED_EFFECTS = {
         "eps_battery_capacity_loss",
         "adcs_rw_jamming",
         "adcs_rw_motor_failure",
+        "adcs_star_tracker_dropout",
         "gyro_bias_step",
         "propulsion_thruster_ignition_failure",
     },
