@@ -457,3 +457,12 @@ Windows 联合候选的两次原门槛试跑在推进期限中止，分别在 3,
 **ADCS-03 产品入口复验。** b11510a 的健康表单通过解析和编译；手动将定时掉测或视场遮挡传入整星表单时，两组都返回 HTTP 200、任务 ok=false。对已有定时掉测运行能力，在独立候选 ec536ef 补齐整星能力登记、事件模板、向导选择与运行效果断言。[草稿 PR #239](https://github.com/clonetimer/SatAgentSimulation/pull/239) 以联合候选为基线。Windows 的健康/掉测原生封存配对测试通过；正式证据合同、向导清单、真实 Chromium 的选择、执行、观测和下载封存包等 33 项通过。配对测试分别核对原始四元数与注入后有效性；事件结束后有效测量恢复。此项验收覆盖定时掉测。几何遮挡、失锁与重新捕获仍待光学参考及独立验证。[测试项目清单](../../reports/dt_remaining_integration/star_tracker_product.json)。
 
 **重复掉测的证据归属。** 在 4.3 至 4.7 秒安排掉测，0.2 秒采样在 4.4 和 4.6 秒观测到失效；改为 1 秒采样后窗口内零帧，效果证据不足。在 ec536ef 上另加 1 至 2 秒的同类事件会使第二次掉测误用第一次的两帧并判通过。[PR #240](https://github.com/clonetimer/SatAgentSimulation/pull/240) 按事件实例匹配证据。相同输入在修复前后产生逐字节相同的原生遥测；修复后第一次效果通过，第二次为 INCONCLUSIVE，整体验证为 FAIL。该结果说明稀疏输出限制了验证能力，无法据此推断窗口内物理状态。[复现脚本](../../reports/dt_remaining_integration/star_tracker_sampling.py)、[采样对照](../../reports/dt_remaining_integration/star_tracker_sampling.json)、[同输入修复前后对照](../../reports/dt_remaining_integration/repeated_dropout.json)。
+
+复现时，先在待测候选的 Basilisk 项目环境中安装对应版本的 sat_sim，然后在证据目录执行下列命令。两个输出目录均须为新目录。[固定的合成任务输入](../../reports/dt_remaining_integration/star_tracker_input.json)
+
+```powershell
+python star_tracker_sampling.py star_tracker_input.json sample_runs sampling_result.json
+python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_result.json --repeated
+```
+
+**云端复验。** #239 的 ec536ef 共 34 项检查全部成功，覆盖整星原生作业和向导真实运行。#240 的 38f4f4e 两项检查全部成功，原生作业耗时 12 分 44 秒，实际测试选择包含 repeated_dropout，浏览器真实运行与封存归档步骤通过。[向导 CI](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45216659344) · [重复事件 CI](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45218405991)
