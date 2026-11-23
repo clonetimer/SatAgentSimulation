@@ -894,6 +894,63 @@ class PowerDataModeGate(sysModel.SysModel):
         _write_status(self.safeModeStatusOutMsg, safe_mode, current_sim_nanos, self.moduleID)
 
 
+class StorageBalanceObserver(sysModel.SysModel):
+    """Observe the native single-partition store after its two input nodes update."""
+
+    counters = ("steps", "offered_bits", "admitted_bits", "withdrawn_bits", "max_error_bits")
+
+    def __init__(self, instrument, downlink, storage):
+        super().__init__()
+        self.instrument = messaging.DataNodeUsageMsgReader()
+        self.downlink = messaging.DataNodeUsageMsgReader()
+        self.storage = messaging.DataStorageStatusMsgReader()
+        self.instrument.subscribeTo(instrument)
+        self.downlink.subscribeTo(downlink)
+        self.storage.subscribeTo(storage)
+        self.Reset(0)
+
+    def Reset(self, current_sim_nanos):
+        self.previous_time = None
+        self.valid = True
+        self.predicted_bits = 0
+        for name in self.counters:
+            setattr(self, name, 0)
+
+    def recorder(self, period):
+        return self.logger((*self.counters, "valid"), period)
+
+    def UpdateState(self, current_sim_nanos):
+        now = _seconds(current_sim_nanos)
+        if not self.valid:
+            return
+        if not all(reader.isWritten() and reader.timeWritten() == current_sim_nanos
+                   for reader in (self.instrument, self.downlink, self.storage)):
+            self.valid = False
+            return
+        status = self.storage()
+        source_rate = self.instrument().baudRate
+        drain_rate = self.downlink().baudRate
+        if not (math.isfinite(source_rate) and math.isfinite(drain_rate) and source_rate >= 0 >= drain_rate):
+            self.valid = False
+            return
+        if self.previous_time is None:
+            self.predicted_bits = int(status.storageLevel)
+        else:
+            dt = now - self.previous_time
+            offered = math.floor(source_rate * dt + 0.5)
+            requested = math.floor(-drain_rate * dt + 0.5)
+            # SimpleStorageUnit rejects a positive write that reaches capacity.
+            admitted = offered if self.predicted_bits + offered < status.storageCapacity else 0
+            withdrawn = min(self.predicted_bits + admitted, requested)
+            self.predicted_bits += admitted - withdrawn
+            self.offered_bits += offered
+            self.admitted_bits += admitted
+            self.withdrawn_bits += withdrawn
+            self.steps += 1
+            self.max_error_bits = max(self.max_error_bits, abs(status.storageLevel - self.predicted_bits))
+        self.previous_time = now
+
+
 class NativeRfDownlinkGate(sysModel.SysModel):
     """Gate a native LinkBudget message by access, pointing, thermal and PDU permits.
 
