@@ -21,6 +21,7 @@ VERIFIED_GUIDED_EFFECTS = {
         "solar_panel_efficiency_loss",
         "thermal_radiator_rejection_loss",
         "gyro_noise_increase",
+        "adcs_rw_torque_authority_loss",
         "rw_friction_degradation",
         "propulsion_burn_impulse_loss",
     },
