@@ -68,6 +68,10 @@ def test_real_spice_and_wmm_change_with_utc_epoch():
         assert evidence['magnetic_field'] == 'WMM2025'
         assert evidence['gravity'] == 'earth_J2_plus_sun_moon'
         assert all(row['sha256'] for row in evidence['assets']['spice'])
+        binding = evidence["initialized_earth_gravity"]
+        assert binding["body_mu_m3_s2"] == binding["harmonics_mu_m3_s2"] == 398600436000000.0
+        assert binding["body_equatorial_radius_m"] == binding["harmonics_equatorial_radius_m"] == 6378136.6
+        assert binding["harmonics_degree"] == 2
         gravity = evidence['assets']['gravity_j2']
         coefficients = Path(gravity['path']).read_bytes()
         assert gravity['name'] == 'GGM03S-J2-only.txt'

@@ -2812,6 +2812,16 @@ class UnifiedNativeRuntime:
                 raise ValueError(f"operation has no unified runtime adapter: {operation}")
 
         sim.InitializeSimulation()
+        orbital_environment_evidence = self._orbital_environment.evidence()
+        if self._orbital_environment.spice is not None:
+            harmonics = earth.gravityModel
+            orbital_environment_evidence["initialized_earth_gravity"] = {
+                "body_mu_m3_s2": earth.mu,
+                "body_equatorial_radius_m": earth.radEquator,
+                "harmonics_mu_m3_s2": harmonics.muBody,
+                "harmonics_equatorial_radius_m": harmonics.radEquator,
+                "harmonics_degree": harmonics.maxDeg,
+            }
         if self._test_only_fresh_native_graph_probe is not None:
             # Strictly after Basilisk has registered all native StateData,
             # strictly before executing the FIRST simulation time step.
@@ -3150,7 +3160,7 @@ class UnifiedNativeRuntime:
             "mission_reason_codes": mission_reason_codes,
             "capability_id": cfg.capability_id,
             "engine": "basilisk_unified_native_runtime",
-            "orbital_environment": self._orbital_environment.evidence(),
+            "orbital_environment": orbital_environment_evidence,
             "backend_type": "basilisk_native_mixed",
             "runtime_truth_status": "instantiated_connected_recorded_unified",
             "process_count": 1,
