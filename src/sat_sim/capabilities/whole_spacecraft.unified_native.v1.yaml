@@ -1041,7 +1041,8 @@ parameters:
     unit: K
     required: false
     default: 295.0
-    min: 1.0
+    min: 220.0
+    max: 340.0
   payload_thermal_mass_kg:
     type: number
     unit: kg

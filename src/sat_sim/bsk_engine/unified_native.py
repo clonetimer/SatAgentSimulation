@@ -3700,6 +3700,17 @@ class _BaseUnifiedAdapter:
             issues.append(ValidationIssue('error', '$.simulation.sample_s', str(exc), 'native_sampling'))
         if not self.adcs_only:
             values = _parameter_values(spec)
+            if "initial_payload_temp_k" in values:
+                from subsystems.thermal.network_config import build_nominal_thermal_network_config
+
+                node = build_nominal_thermal_network_config().nodes["payload"]
+                try:
+                    temperature = float(values["initial_payload_temp_k"])
+                except (TypeError, ValueError, OverflowError):
+                    temperature = math.nan
+                if not node.min_temp_k <= temperature <= node.max_temp_k:
+                    issues.append(ValidationIssue("error", "$.parameters.values.initial_payload_temp_k",
+                        f"must be within [{node.min_temp_k}, {node.max_temp_k}] K", "range"))
             propulsion_enabled = bool(
                 values.get("propulsion_enabled", values.get("enable_propulsion", False))
             ) or any(

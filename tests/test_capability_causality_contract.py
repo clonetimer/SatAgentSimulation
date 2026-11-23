@@ -23,6 +23,22 @@ from sat_sim.task_validator import validate_task_spec
 from whole_spacecraft.schemas import WholeSpacecraftCouplingConfig
 
 
+def test_payload_initial_temperature_contract_matches_native_limits() -> None:
+    from sat_sim.bsk_engine.unified_native import WholeSpacecraftUnifiedNativeAdapter
+    from subsystems.thermal.network_config import build_nominal_thermal_network_config
+
+    adapter = WholeSpacecraftUnifiedNativeAdapter()
+    contract = get_capability(adapter.capability_id).data
+    parameter = contract["parameters"]["initial_payload_temp_k"]
+    node = build_nominal_thermal_network_config().nodes["payload"]
+    assert (parameter["min"], parameter["max"]) == (node.min_temp_k, node.max_temp_k)
+    for value, valid in ((219, False), (220, True), (340, True), (360, False)):
+        spec = {"capability_id": adapter.capability_id, "parameters": {"initial_payload_temp_k": value}}
+        issues = adapter.validate(spec, contract)
+        rejected = any(issue.path.endswith(".initial_payload_temp_k") for issue in issues)
+        assert rejected == (not valid)
+
+
 def _plan(capability_id: str) -> CapabilityPlanResult:
     return CapabilityPlanResult(
         request="test",
