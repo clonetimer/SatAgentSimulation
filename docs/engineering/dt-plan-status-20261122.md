@@ -376,3 +376,11 @@ git -C dt-r1-source rev-parse HEAD 'HEAD^{tree}'
 长时域遥控遥测用例记录 3600.0 仿真秒、3601 帧和 7200 个原生分段；该 pytest 步骤报告 107.74 s。进程 RSS 增长 315072 KiB，其中运行阶段增长 303840 KiB。180.5 仿真秒的独立用例记录 181 帧、361 段和 RSS 增长 268060 KiB。两次为不同进程的试验；内存增长包含初始化、会话历史及归档，需按相同采样点进行长时分解，不能由两次终值推算泄漏率。本次云端工作流运行的是版本化仓库测试；历史天气任务仍见专门的同机重放证据。
 
 **部分失权向导的跨平台下载件。** [Linux 云端原生作业](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45198555143) 已成功。从 [Artifact 14829899386](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45198555143/artifacts/14829899386) 下载对应 ZIP 与清单，和 Windows 开发机同场景下载件分别执行完整性及事件时间窗核验，再比较 model、simulation、parameters、events、mission 五段任务输入。五段一致。15 个相同采样时刻上，轮 0 实际施加力矩、轮速、指向误差、姿控耗电功率和电池能量的最大绝对差均为 0。两侧 4–10 s 各有 7 帧权限 0.25，窗口外及其他两轮权限均为 1。该工况来自 #236 浏览器回归，独立于十一项组合的四环境任务。适用范围为两个实测环境、相同场景和上述五通道。[核验脚本](../../reports/dt_r1_wheel_event_timing/compare_archives.py) · [双侧封存指纹及逐通道差值](../../reports/dt_r1_wheel_event_timing/windows_linux_browser.json)。
+
+### DT-5 连续会话的分阶段内存与 Windows 封存等待
+
+针对云端联合工作流的 3600 仿真秒用例，在同一源码 cfc47059 的 Windows 开发机上向原测试插入 psutil 采样。动力学、归档实现、时间限制和测试断言保持原样。RSS 在 prepare 前为 153.68 MiB，prepare 后为 281.15 MiB（增加 127.47 MiB）。会话运行到 3600.5 仿真秒并暂停时为 333.49 MiB（从 prepare 后增加 52.34 MiB）；读取用户流历史后为 333.50 MiB，stop 返回时为 333.92 MiB。样本包含进程内全部组件，无法将持续增长单独归因为某个缓存或原生模块。Windows 和 Linux 两次测量不可直接相减。
+
+原测试未通过 Windows 的 session.wait(15.0) 断言。根据同一会话持久化 COMPLETED 状态事件和 SEALED.json 的 UTC 时间，两者间隔 15.542249 s。进程结束后重新执行 SessionWorkspace.inspect 得到 COMPLETED/valid=True，verify_run_bundle 返回 ok=True。封存清单共 10803 帧，其中用户流 3601 帧、runtime.trace 7202 帧。此结果保留等待超时；无 archive_verified 末段内存采样。后续应计时遥测归并、索引写入、文件校验和复制各步骤，在目标存储上复测等待预算。
+
+[插桩与复现脚本](../../reports/dt5_server_preflight/soak_memory.py) · [逐阶段采样](../../reports/dt5_server_preflight/soak_memory_3600.json)。从指定源码树设置 PYTHONPATH=src、SAT_SIM_CONTINUOUS_SOAK_TARGET_S=3600，以独立工作目录运行 python soak_memory.py . WORKSPACE SAMPLE_JSON。该次使用测试默认分段大小。
