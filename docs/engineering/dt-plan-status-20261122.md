@@ -519,3 +519,9 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 **自然语言入口原失败工况复验通过。** 原两条失败回答继续保留。[草稿 PR #243](https://github.com/clonetimer/SatAgentSimulation/pull/243) 的 d6fec67 将已由用户明确指定的时长、积分步长和记录周期加入供应方结构化解码约束。此次使用与第一次失败相同的请求、提示词 SHA-256、基座模型与 v5 LoRA；变化的是解码契约。原始首答给出 20 秒时长、0.2 秒积分、1 秒记录，无模板回退或校验前修正。真实 Chrome 确认候选并从页面运行；候选、页面提交和封存 TaskSpec 的全部字段一致。Basilisk 从 0 至 20 秒按 1 秒间隔输出 21 帧，所请求的五个遥测量在每帧均有有限数值，运行验证与完整性均通过。模型调用耗时 137.935 秒，输入 9852 token、输出 1403 token；浏览器测试全程 156.38 秒。这一结果覆盖该模型和该回归工况。五种入口现均有相应工况的真实运行证据；模型泛化、经验复用收益和全平台 Stable 仍须独立评估。[原答及封存指纹索引](../../reports/dt_remaining_integration/nl_wizard_real_native.json)
 
 中间验证亦保留判定：初版约束在真实 LMFE 中排除了未枚举的仿真字段，原型运行返回 HTTP 504；修订后用生产 SimulationSpec 和 SolverSpec 的字段集合构建约束。另一次首答通过后原生执行因隔离工作树未配置必需的 SPICE 内核路径而失败。最终实测复用已固定资产目录，从自然语言输入重新开始。云端 #243 三项检查成功，本地相关契约 136 项、真实解码器 58 项通过。
+
+**LEO-03 指数大气模型对照。** 在 d6fec67 使用 Basilisk 2.11.0+satfix2 的两个原生大气模型，输入同一组位置消息和地固姿态。固定历元 2026-03-04 12:00 UTC，在 300、450、600 km 的地心参考高度各选四个经纬度位置。指数模型使用项目既定 BSK-RUN-4 参数，参考密度为 300 km 处 2.0×10⁻¹⁰ kg/m³，尺度高度 50 km。每个输出均逐项核对指数解析式，相对门槛 10⁻¹⁰。NRLMSISE-00 接入 23 路原生空间天气消息，分别复算仓库夹具和既有实测天气快照。两套输入各有 12 对有效密度。实测快照下，NRLMSISE-00 与指数密度之比在三档高度分别约为 0.09–0.14、0.10–0.22、0.16–0.49。此处展示相同输入下模型选择对密度的影响；轨道衰减和空间天气观测误差需要各自验证。历史天气快照读至 2027-02-01 的首个缺值行时报警，测试历元所需的四天记录均在有效区间内。
+
+复现时将候选 src 和根目录加入 PYTHONPATH，运行 python atmosphere_comparison.py WEATHER_CSV OUTPUT_JSON。仓库夹具为 tests/fixtures/celestrak_space_weather_2026-03-04.csv；实测快照须匹配结果中登记的 SHA-256，滚动更新的文件需另行登记。[复现脚本](../../reports/dt_remaining_integration/atmosphere_comparison.py) · [仓库夹具结果](../../reports/dt_remaining_integration/atmosphere_fixture.json) · [实测天气结果](../../reports/dt_remaining_integration/atmosphere_observed.json) · [天气来源与有效日期核验](../../reports/dt_r1_observed_weather/result.json)
+
+**五入口证据发布核查。** 对计划提交 c9538f0 在 GitHub 上的完整 Git 树与本地提交逐项核对。表单、画布、JSON、数字场景和自然语言的五份验收摘要、自然语言失败摘要以及三份模型原答，共九个文件的 blob 标识均一致；三份原答分别按报告中的 SHA-256 复核通过。大型 Run Bundle 的指纹留在已发布摘要内，该项核查覆盖已发布的九份文件。

@@ -1,0 +1,113 @@
+{
+  "epoch_utc": "2026-03-04T12:00:00Z",
+  "basilisk": "2.11.0+satfix2",
+  "weather_sha256": "bc963becc48620d1adfe5460b77dc4e70d070a17f2308ceeac14a7d79c729c7a",
+  "reference_radius_m": 6378137.0,
+  "exponential": {
+    "reference_altitude_m": 300000.0,
+    "reference_density_kg_m3": 2e-10,
+    "scale_height_m": 50000.0,
+    "base_density_kg_m3": 8.068575869854702e-08,
+    "min_reach_m": 100000.0,
+    "max_reach_m": 1000000.0,
+    "local_temp_k": 1000.0
+  },
+  "cases": [
+    {
+      "height_km": 300,
+      "geocentric_lat_deg": 0,
+      "lon_deg": 0,
+      "exponential_kg_m3": 2e-10,
+      "msis_kg_m3": 2.824659619079405e-11,
+      "msis_to_exponential": 0.14123298095397024
+    },
+    {
+      "height_km": 300,
+      "geocentric_lat_deg": 0,
+      "lon_deg": 180,
+      "exponential_kg_m3": 2e-10,
+      "msis_kg_m3": 1.891054172060862e-11,
+      "msis_to_exponential": 0.09455270860304309
+    },
+    {
+      "height_km": 300,
+      "geocentric_lat_deg": 60,
+      "lon_deg": 90,
+      "exponential_kg_m3": 2e-10,
+      "msis_kg_m3": 2.2286733039226025e-11,
+      "msis_to_exponential": 0.11143366519613013
+    },
+    {
+      "height_km": 300,
+      "geocentric_lat_deg": -60,
+      "lon_deg": -90,
+      "exponential_kg_m3": 2e-10,
+      "msis_kg_m3": 2.0853488632641166e-11,
+      "msis_to_exponential": 0.10426744316320583
+    },
+    {
+      "height_km": 450,
+      "geocentric_lat_deg": 0,
+      "lon_deg": 0,
+      "exponential_kg_m3": 9.95741367357279e-12,
+      "msis_kg_m3": 2.187490633817117e-12,
+      "msis_to_exponential": 0.21968461947330445
+    },
+    {
+      "height_km": 450,
+      "geocentric_lat_deg": 0,
+      "lon_deg": 180,
+      "exponential_kg_m3": 9.95741367357279e-12,
+      "msis_kg_m3": 9.878054549477542e-13,
+      "msis_to_exponential": 0.09920301469139653
+    },
+    {
+      "height_km": 450,
+      "geocentric_lat_deg": 60,
+      "lon_deg": 90,
+      "exponential_kg_m3": 9.95741367357279e-12,
+      "msis_kg_m3": 1.5130365192932099e-12,
+      "msis_to_exponential": 0.15195075437197555
+    },
+    {
+      "height_km": 450,
+      "geocentric_lat_deg": -60,
+      "lon_deg": -90,
+      "exponential_kg_m3": 9.95741367357279e-12,
+      "msis_kg_m3": 1.1940251784074206e-12,
+      "msis_to_exponential": 0.11991318404058994
+    },
+    {
+      "height_km": 600,
+      "geocentric_lat_deg": 0,
+      "lon_deg": 0,
+      "exponential_kg_m3": 4.957504353332717e-13,
+      "msis_kg_m3": 2.42308869586102e-13,
+      "msis_to_exponential": 0.4887718745485481
+    },
+    {
+      "height_km": 600,
+      "geocentric_lat_deg": 0,
+      "lon_deg": 180,
+      "exponential_kg_m3": 4.957504353332717e-13,
+      "msis_kg_m3": 7.696209666712055e-14,
+      "msis_to_exponential": 0.15524362901543848
+    },
+    {
+      "height_km": 600,
+      "geocentric_lat_deg": 60,
+      "lon_deg": 90,
+      "exponential_kg_m3": 4.957504353332717e-13,
+      "msis_kg_m3": 1.5225323920976726e-13,
+      "msis_to_exponential": 0.30711670299878596
+    },
+    {
+      "height_km": 600,
+      "geocentric_lat_deg": -60,
+      "lon_deg": -90,
+      "exponential_kg_m3": 4.957504353332717e-13,
+      "msis_kg_m3": 1.0576951519634761e-13,
+      "msis_to_exponential": 0.21335233951987015
+    }
+  ]
+}
