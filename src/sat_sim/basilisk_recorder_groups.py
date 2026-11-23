@@ -42,6 +42,7 @@ def attach_grouped_message_recorders(
     task_name: str,
     message_handles: Mapping[str, Any],
     streams: Sequence[Mapping[str, Any]],
+    recorder_priorities: Mapping[str, int] | None = None,
 ) -> dict[str, BasiliskRecorderGroup]:
     """Create one Basilisk recorder set per configured telemetry stream.
 
@@ -65,7 +66,10 @@ def attach_grouped_message_recorders(
         for source_name, message in message_handles.items():
             recorder = message.recorder(sampling_ns)
             recorder.ModelTag = f"telemetry_{spec.stream_id}_{source_name}"
-            sim.AddModelToTask(task_name, recorder)
+            if recorder_priorities and source_name in recorder_priorities:
+                sim.AddModelToTask(task_name, recorder, None, recorder_priorities[source_name])
+            else:
+                sim.AddModelToTask(task_name, recorder)
             recorders[str(source_name)] = recorder
         groups[spec.stream_id] = BasiliskRecorderGroup(spec=spec, recorders=recorders, task_name=task_name)
     return groups

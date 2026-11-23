@@ -1083,7 +1083,9 @@ def _build_unified_rows(
         if not cfg.adcs_only:
             battery = recorder_map["battery"]
             storage = recorder_map["storage"]
-            capacity = max(float(battery.storageCapacity[index]), 1.0e-12)
+            capacity = float(battery.storageCapacity[index])
+            if not math.isfinite(capacity) or capacity < 0:
+                raise ValueError("NATIVE_BATTERY_STATUS_CAPACITY_INVALID")
             payload_active = int(recorder_map["payload_status"].deviceStatus[index])
             downlink_active = int(recorder_map["downlink_status"].deviceStatus[index])
             row.update({
@@ -1103,7 +1105,8 @@ def _build_unified_rows(
                     active_default=0.5,
                 ),
                 "eps.battery_energy_wh": float(battery.storageLevel[index]) / 3600.0,
-                "eps.battery_soc": float(battery.storageLevel[index]) / capacity,
+                # A complete capacity-loss event leaves no usable charge.
+                "eps.battery_soc": float(battery.storageLevel[index]) / capacity if capacity else 0.0,
                 "eps.net_power_w": float(battery.currentNetPower[index]),
                 "eps.loads.adcs_power_w": sum(
                     max(0.0, -float(recorder_map[f"adcs_power_{wheel_index}"].netPower[index]))
@@ -2054,7 +2057,9 @@ class UnifiedNativeRuntime:
             battery.addPowerNodeToModel(panel.nodePowerOutMsg)
             for node in power_nodes:
                 battery.addPowerNodeToModel(node.nodePowerOutMsg)
-            add(battery, "battery", "basilisk_official_native", 50)
+            # Integrate after the heater (priority 0) and all other electrical
+            # nodes. Decisions earlier in the tick read the last battery state.
+            add(battery, "battery", "basilisk_official_native", -1)
             connected("solar_panel.nodePowerOutMsg", "battery")
             for node in power_nodes:
                 connected(f"{node.ModelTag}.nodePowerOutMsg", "battery")
@@ -2659,9 +2664,11 @@ class UnifiedNativeRuntime:
                 messages["earth_orientation"] = earth_msg
             if self._orbital_environment.igrf14_asset is not None:
                 messages["igrf14_earth_frame"] = earth_msg
+        power_recorder_priorities = {name: -2 for name in messages
+                                     if name == "battery" or name.startswith("thermal_heater_electrical_")}
         for name, message in messages.items():
             recorder = message.recorder(macros.sec2nano(cfg.sample_s))
-            sim.AddModelToTask(task_name, recorder, None, 1)
+            sim.AddModelToTask(task_name, recorder, None, power_recorder_priorities.get(name, 1))
             recorder_map[name] = recorder
             record_sources.append(name)
         if drag_effector is not None:
@@ -2701,7 +2708,8 @@ class UnifiedNativeRuntime:
 
         from sat_sim.basilisk_recorder_groups import attach_grouped_message_recorders, group_manifest
         recorder_groups = attach_grouped_message_recorders(
-            sim=sim, task_name=task_name, message_handles=messages, streams=cfg.telemetry_streams
+            sim=sim, task_name=task_name, message_handles=messages, streams=cfg.telemetry_streams,
+            recorder_priorities=power_recorder_priorities,
         )
 
         vizard_recording_file = None
@@ -2812,6 +2820,15 @@ class UnifiedNativeRuntime:
                 raise ValueError(f"operation has no unified runtime adapter: {operation}")
 
         sim.InitializeSimulation()
+        if "battery" in whole_modules:
+            # First-tick load decisions need a previous battery state. Leave
+            # independent permission and safe-mode reset interlocks intact.
+            # The official battery replaces it before the t=0 recorders run.
+            battery = whole_modules["battery"]
+            initial_status = messaging.PowerStorageStatusMsgPayload()
+            initial_status.storageCapacity = battery.storageCapacity
+            initial_status.storageLevel = battery.storedCharge_Init
+            battery.batPowerOutMsg.write(initial_status, 0, battery.moduleID)
         if self._test_only_fresh_native_graph_probe is not None:
             # Strictly after Basilisk has registered all native StateData,
             # strictly before executing the FIRST simulation time step.
