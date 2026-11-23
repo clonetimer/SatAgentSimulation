@@ -362,3 +362,9 @@ git -C dt-r1-source rev-parse HEAD 'HEAD^{tree}'
 ```
 
 全新克隆读回提交 bc0a659471dc5e17427945535d46aad0a002c195，树为 1587b9bb0066a5c266a3a74f005538796ece0e44。在本机确认导入模块来自新克隆的 src，复用同一 Python、SPICE、空间天气和支持数据，另起进程、另建 Run 目录执行同一 TaskSpec。两份包均封存通过；输入文件 SHA-256 均为 0a5d3247cd074b86c6a25ea675c8c7bf4d4cecb60155ca10a32e7753ecaba064，原生遥测 JSONL 均为 2184678881d13b2197ecbddccbd4fe8e42d81a9cc1e66642142104b8ee49afab。此处验证源码分发与同机复跑；新机器的依赖和外部资产部署仍需独立验证。[新克隆运行记录](../../reports/dt_r1_joint_graph/eleven_cloud_checkout.json) · [固定验收源码](https://github.com/clonetimer/SatAgentSimulation/tree/bc0a659471dc5e17427945535d46aad0a002c195)。
+
+### 云端复验与 CI 用例清单修订
+
+独立验收分支 cfc47059cb23a100b21b90f6192acf9652518036 已纳入前述电池启动测试基准和初始角速度测试补丁，产品源码与 bc0a659 相同。补丁落入分支后，本地初始角速度四项回归通过。[联合验收工作流](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45198221149) 从独立执行器安装环境、准备资产并运行仓库测试。该工作流的空间天气使用版本化夹具，历史天气快照的联合用例另见上一节。
+
+#236 的 beb3164 云端工作流实际收集到十项浏览器整星旅程，仍要求九项，停在收集检查。[失败步骤](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45196864723)。[修复提交](https://github.com/clonetimer/SatAgentSimulation/commit/130403dd10c69b8f971431a16d4005115288aa85) 将新增部分力矩损失纳入收集与 JUnit 身份核查，要求十份浏览器封存包及对应元数据。九个物理故障对照共享两个健康对照，CI 核查十一份不同原生包。原逐文件指纹和封存校验继续执行；最终判定应查对应提交的工作流结果。
