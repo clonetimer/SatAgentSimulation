@@ -1,0 +1,95 @@
+{
+  "candidate": "84f2ed3",
+  "platform": "Windows Chrome",
+  "elapsed_s": 81.63,
+  "cases": [
+    {
+      "entry": "sidebar",
+      "mode": "bounded",
+      "status": "PASS",
+      "basilisk": "2.11.0+satfix2",
+      "session": "live-mwtiqd6d-e67b6739",
+      "rendered": {
+        "session_id": "live-mwtiqd6d-e67b6739",
+        "sequence": 4,
+        "sim_time_s": 2,
+        "quality": "GOOD"
+      },
+      "native": {
+        "session_id": "live-mwtiqd6d-e67b6739",
+        "sequence": 4,
+        "sim_time_s": 2.0,
+        "quality": "GOOD"
+      },
+      "page_errors": [],
+      "console_errors": [],
+      "report_sha256": "61907bda9fa7393270564b2232697ab3206f1a1191caf17eba13386a288722e5"
+    },
+    {
+      "entry": "sidebar",
+      "mode": "continuous",
+      "status": "PASS",
+      "basilisk": "2.11.0+satfix2",
+      "session": "p9f-native-browser-continuous",
+      "rendered": {
+        "session_id": "p9f-native-browser-continuous",
+        "sequence": 9,
+        "sim_time_s": 1.8,
+        "quality": "GOOD"
+      },
+      "native": {
+        "session_id": "p9f-native-browser-continuous",
+        "sequence": 9,
+        "sim_time_s": 1.8,
+        "quality": "GOOD"
+      },
+      "page_errors": [],
+      "console_errors": [],
+      "report_sha256": "b4939d11a0bc838b5aa5685e1e94412e977b74166d67fb692dbbcecf2072b3ac"
+    },
+    {
+      "entry": "scene",
+      "mode": "bounded",
+      "status": "PASS",
+      "basilisk": "2.11.0+satfix2",
+      "session": "live-mwtira0g-e3ef0cd9",
+      "rendered": {
+        "session_id": "live-mwtira0g-e3ef0cd9",
+        "sequence": 5,
+        "sim_time_s": 2.5,
+        "quality": "GOOD"
+      },
+      "native": {
+        "session_id": "live-mwtira0g-e3ef0cd9",
+        "sequence": 5,
+        "sim_time_s": 2.5,
+        "quality": "GOOD"
+      },
+      "page_errors": [],
+      "console_errors": [],
+      "report_sha256": "06f4675b3bc631f6e3b84486b0aff3e6583800f24a052ebb9a115e329a7b6cca"
+    },
+    {
+      "entry": "scene",
+      "mode": "continuous",
+      "status": "PASS",
+      "basilisk": "2.11.0+satfix2",
+      "session": "p9f-native-browser-continuous",
+      "rendered": {
+        "session_id": "p9f-native-browser-continuous",
+        "sequence": 3,
+        "sim_time_s": 0.6000000000000001,
+        "quality": "GOOD"
+      },
+      "native": {
+        "session_id": "p9f-native-browser-continuous",
+        "sequence": 3,
+        "sim_time_s": 0.6000000000000001,
+        "quality": "GOOD"
+      },
+      "page_errors": [],
+      "console_errors": [],
+      "report_sha256": "e4929e6206db61e5b2aeafe5a88c79f3adee72c2df5bd255196f69532b625dea"
+    }
+  ]
+}
