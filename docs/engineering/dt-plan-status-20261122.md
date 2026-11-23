@@ -321,3 +321,9 @@
 差值为 91 个采样时刻的三维位置差范数最大值。使用有效常数及正确极轴时，2 s 工况最大速度差为 0.000355 m/s。第三组只改变轴向，说明该弧段对所选地轴方向敏感。该实验覆盖旧版 J2、日月引力与指定初态；四环境联合作用、外部实测轨道与任务容差仍各自验收。
 
 在 #235 环境中以已配置的本地 SPICE、WMM 及重力资产运行 export_orbit.py OUT，随后在含 NumPy、SciPy 和 SpiceyPy 的环境执行 orbit_reference.py OUT。第二步读取第一步记录的原生资产路径。[原生导出脚本](../../reports/dt_j2_field_audit/export_orbit.py) · [独立传播脚本](../../reports/dt_j2_field_audit/orbit_reference.py) · [逐组差值](../../reports/dt_j2_field_audit/orbit_comparison.json) · [2 秒步长原始轨迹](../../reports/dt_j2_field_audit/orbit_2s.csv) · [5 秒步长原始轨迹](../../reports/dt_j2_field_audit/orbit_5s.csv)。
+
+### DT-4 逐轮参考模型的实际显示矩阵
+
+对 #207 的 e0f00d9 使用本地固定 GLB、真实 Chrome 及其现有测试环境。之前的位置与轴向断言读取了诊断接口返回的 TaskSpec 副本。本次在浏览器内更新场景世界矩阵，从每个已挂载的对齐节点将原点与局部 +Y 端点变换到显示场景，计算实际原点与单位方向，并遍历已加载的 CAD 子树计数。
+
+三个原点分别与 (0.12,0,0)、(0,−0.08,0)、(0,0,0.07) m 一致。三个 +Y 显示轴分别对齐 X、Y、Z，分量绝对容差 10⁻¹²。每个外形包含 500 个可渲染 mesh primitive；GLB 的 mesh 定义数为 24。启用爆炸视图时三个原点均发生移动，复位后逐个读回的位置、轴和网格数完全恢复。增强后四项测试通过、零跳过。此处坐标来自测试任务；设备实装和 CAD 轴基准仍需参考方确认。复现时在上述 #207 提交应用[测试补丁](../../reports/dt4_rw_reference_audit/rendered_transforms.patch)，按原测试环境运行 test_dt41_rw_reference_cad.py。[JUnit 执行结果](../../reports/dt4_rw_reference_audit/rendered_transforms.xml)。

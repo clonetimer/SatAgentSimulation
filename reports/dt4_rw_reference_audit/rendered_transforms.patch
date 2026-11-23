@@ -1,0 +1,37 @@
+diff --git a/tests/test_dt41_rw_reference_cad.py b/tests/test_dt41_rw_reference_cad.py
+index ca2aba5..06edb6d 100644
+--- a/tests/test_dt41_rw_reference_cad.py
++++ b/tests/test_dt41_rw_reference_cad.py
+@@ -176,6 +176,32 @@ def test_dt41_real_browser_rw_overlay_and_rejection(tmp_path, monkeypatch):
+                 f"diagnostics={page.evaluate('window.RwReferenceOverlay.getDiagnostics()')!r}"
+             )
+             actual = page.evaluate("window.RwReferenceOverlay.getDiagnostics()")
++            # Inspect the actual scene graph. Overlay diagnostics also expose
++            # configuration inputs, which cannot verify rendered transforms.
++            inspect_mounts = """() => {
++              const scene = window.SatScene.getRwReferenceDisplayScene();
++              scene.updateMatrixWorld(true);
++              const layer = scene.getObjectByName('DT41_BIRDS4_RW_REFERENCE_ONLY');
++              return layer.children.map(mount => {
++                const aligned = mount.children[0];
++                const origin = aligned.localToWorld(aligned.position.clone().set(0,0,0));
++                const tip = aligned.localToWorld(aligned.position.clone().set(0,1,0));
++                let meshCount = 0;
++                aligned.children[0].traverse(node => { if (node.isMesh) meshCount++; });
++                return {position:origin.toArray(), axis:tip.sub(origin).normalize().toArray(), meshCount};
++              });
++            }"""
++            placed = page.evaluate(inspect_mounts)
++            for record, position, axis in zip(placed, [[.12,0,0],[0,-.08,0],[0,0,.07]],
++                                               [[1,0,0],[0,1,0],[0,0,1]], strict=True):
++                assert record["position"] == pytest.approx(position, abs=1e-12)
++                assert record["axis"] == pytest.approx(axis, abs=1e-12)
++                assert record["meshCount"] == 500
++            page.evaluate("window.RwReferenceOverlay.setExploded(true)")
++            exploded = page.evaluate(inspect_mounts)
++            assert all(a["position"] != b["position"] for a,b in zip(exploded,placed,strict=True))
++            page.evaluate("window.RwReferenceOverlay.setExploded(false)")
++            assert page.evaluate(inspect_mounts) == placed
+             assert actual["verified"] is True
+             assert actual["sha256"] == RW_EXPECTED_SHA256
+             assert actual["layer_enabled"] is True
