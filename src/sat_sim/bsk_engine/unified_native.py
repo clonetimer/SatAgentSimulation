@@ -1414,7 +1414,14 @@ class UnifiedNativeRuntime:
         sc.hub.v_CN_NInit = velocity
         initial_error_deg = float(values.get("initial_pointing_error_deg", 8.0))
         sc.hub.sigma_BNInit = [math.tan(math.radians(initial_error_deg) / 4.0), 0.0, 0.0]
-        sc.hub.omega_BN_BInit = [0.01, -0.004, 0.002]
+        initial_body_rate = [
+            values.get("initial_body_rate_x_rad_s", 0.01),
+            values.get("initial_body_rate_y_rad_s", -0.004),
+            values.get("initial_body_rate_z_rad_s", 0.002),
+        ]
+        if any(type(v) not in (int, float) or not math.isfinite(v) for v in initial_body_rate):
+            raise ValueError("INITIAL_BODY_RATE_REQUIRES_FINITE_NUMBERS")
+        sc.hub.omega_BN_BInit = initial_body_rate
         add(sc, "spacecraft", "basilisk_official_native", 100)
 
         rw = reactionWheelStateEffector.ReactionWheelStateEffector()
