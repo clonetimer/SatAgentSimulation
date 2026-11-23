@@ -353,3 +353,12 @@
 使用官方 Basilisk 2.11.0、原天气快照与四效应整星任务，在四轮金字塔构型对索引 3 施加 75% 权限损失。30 s 运行输出 16 帧，validation PASS，封存校验通过。首帧电池容量 576000 J、SOC 0.62；谐波模型读回四阶、μ 为 398600436000000 m³/s²；天气窗口含 OBS 三天和 PRD 一天。五个受限样本的第四轮力矩权限为 0.25，其余三轮始终为 1；交付与效果断言均通过。地影读取的航天器消息时间逐帧早于或等于当帧时间。以上覆盖该输入和本地组合树。复验时按原四效应资产设置运行 python eleven_check.py eleven_task.json NEW_RUN_ROOT RESULT_JSON，使用快照 bc963becc48620d1adfe5460b77dc4e70d070a17f2308ceeac14a7d79c729c7a。
 
 [任务输入](../../reports/dt_r1_joint_graph/eleven_task.json) · [联合断言](../../reports/dt_r1_joint_graph/eleven_check.py) · [封存指纹和逐轮证据](../../reports/dt_r1_joint_graph/eleven_result.json)。
+
+**独立取回源码并复现。** 上述组合树已发布至独立验收分支，可执行以下命令取得实际测试源码。报告与脚本固定在计划分支提交 e2cbbf9；运行脚本时，PYTHONPATH 应指向验收源码的 src。
+
+```sh
+git clone --depth 1 --single-branch --branch codex/dt-r1-eleven-acceptance https://github.com/clonetimer/SatAgentSimulation.git dt-r1-source
+git -C dt-r1-source rev-parse HEAD 'HEAD^{tree}'
+```
+
+全新克隆读回提交 bc0a659471dc5e17427945535d46aad0a002c195，树为 1587b9bb0066a5c266a3a74f005538796ece0e44。在本机确认导入模块来自新克隆的 src，复用同一 Python、SPICE、空间天气和支持数据，另起进程、另建 Run 目录执行同一 TaskSpec。两份包均封存通过；输入文件 SHA-256 均为 0a5d3247cd074b86c6a25ea675c8c7bf4d4cecb60155ca10a32e7753ecaba064，原生遥测 JSONL 均为 2184678881d13b2197ecbddccbd4fe8e42d81a9cc1e66642142104b8ee49afab。此处验证源码分发与同机复跑；新机器的依赖和外部资产部署仍需独立验证。[新克隆运行记录](../../reports/dt_r1_joint_graph/eleven_cloud_checkout.json) · [固定验收源码](https://github.com/clonetimer/SatAgentSimulation/tree/bc0a659471dc5e17427945535d46aad0a002c195)。
