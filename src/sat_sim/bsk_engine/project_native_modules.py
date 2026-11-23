@@ -352,8 +352,26 @@ class StarTrackerFaultInjector(sysModel.SysModel):
         super().__init__(); self.ModelTag = "project_star_tracker_fault_injector"
         self.events = tuple(event for event in events if event.effect in self.EFFECTS)
         self.starInMsg = messaging.STSensorMsgReader(); self.starOutMsg = messaging.STSensorMsg()
+        self.spacecraftStateInMsg = messaging.SCStatesMsgReader()
+        self.earth_occultation_half_angle_rad = 0.0
+        self.boresight_b = np.array([0., 0., 1.])
         self.validOutMsg = messaging.DeviceStatusMsg(); self._last = [1.0, 0.0, 0.0, 0.0]
         self._rng = random.Random(int(seed) + 701)
+
+    def _earth_blocks_field(self) -> bool:
+        if self.earth_occultation_half_angle_rad == 0:
+            return False
+        if not self.spacecraftStateInMsg.isWritten():
+            return True
+        state = self.spacecraftStateInMsg()
+        position = np.asarray(state.r_BN_N, dtype=float)
+        distance = np.linalg.norm(position)
+        earth_radius_m = 6371000.0
+        if not math.isfinite(distance) or distance <= earth_radius_m:
+            return True
+        nadir_b = RigidBodyKinematics.MRP2C(state.sigma_BN) @ (-position / distance)
+        separation = math.acos(float(np.clip(nadir_b @ self.boresight_b, -1, 1)))
+        return separation + self.earth_occultation_half_angle_rad <= math.asin(earth_radius_m / distance)
 
     def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
         self.UpdateState(current_sim_nanos)
@@ -375,6 +393,8 @@ class StarTrackerFaultInjector(sysModel.SysModel):
             elif effect == "adcs_star_tracker_accuracy_loss":
                 noise_arcsec = _event_number(event, ("noise_arcsec",), 30.0)
                 sigma = [value + math.tan(math.radians(self._rng.gauss(0.0, noise_arcsec / 3600.0)) / 4.0) for value in sigma]
+        if self._earth_blocks_field():
+            valid = stuck = False
         if stuck:
             quaternion = list(self._last)
         elif valid:

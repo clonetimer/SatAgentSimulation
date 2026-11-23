@@ -478,6 +478,15 @@ parameters:
     default: 0
     min: -180
     max: 180
+  star_tracker_earth_occlusion_half_fov_deg:
+    type: number
+    label: 星敏地球遮挡视场半角
+    description: 以机壳 +Z 为光轴的圆锥视场。按 6371 km 球形地球判断全视场遮挡；0 关闭。部分遮挡仍允许输出。工程几何模型。
+    unit: deg
+    required: false
+    default: 0.0
+    min: 0.0
+    max: 89.0
   star_tracker_mount_pitch_deg:
     type: number
     label: 星敏安装俯仰角

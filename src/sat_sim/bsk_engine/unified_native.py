@@ -1991,6 +1991,14 @@ class UnifiedNativeRuntime:
 
         star_fault = StarTrackerFaultInjector(cfg.events, seed=int(values.get("simulation_seed", 0)))
         star_fault.starInMsg.subscribeTo(tracker.sensorOutMsg)
+        half_fov = float(values.get("star_tracker_earth_occlusion_half_fov_deg", 0.0))
+        if not 0 <= half_fov <= 89:
+            raise ValueError("star_tracker_earth_occlusion_half_fov_deg must be in [0, 89]")
+        if half_fov:
+            star_fault.earth_occultation_half_angle_rad = math.radians(half_fov)
+            star_fault.boresight_b = tracker_dcm_cb[2].copy()
+            star_fault.spacecraftStateInMsg.subscribeTo(sc.scStateOutMsg)
+            connected("spacecraft.scStateOutMsg", "project_star_tracker_fault_injector")
         add(star_fault, "project_star_tracker_fault_injector", "basilisk_project_native", 84)
         connected("star_tracker.sensorOutMsg", "project_star_tracker_fault_injector")
 
@@ -3700,6 +3708,11 @@ class _BaseUnifiedAdapter:
             issues.append(ValidationIssue('error', '$.simulation.sample_s', str(exc), 'native_sampling'))
         if not self.adcs_only:
             values = _parameter_values(spec)
+            if "star_tracker_earth_occlusion_half_fov_deg" in values:
+                angle = values["star_tracker_earth_occlusion_half_fov_deg"]
+                if type(angle) not in (int, float) or not 0 <= angle <= 89:
+                    issues.append(ValidationIssue("error", "$.parameters.values.star_tracker_earth_occlusion_half_fov_deg",
+                        "must be a number within [0, 89] degrees", "range"))
             if "initial_payload_temp_k" in values:
                 from subsystems.thermal.network_config import build_nominal_thermal_network_config
 
