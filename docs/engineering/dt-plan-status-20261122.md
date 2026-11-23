@@ -492,3 +492,24 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 **场景回归修订。** #242 首轮 Linux 原生作业在成功等到精确配对帧后，再次异步读取页面时已经显示下一帧“等待精确配对”。fc0d659 将 ADCS 来源与传感器行改为在同一 DOM 采样时刻取证，同会话同时间配对、遥测实体与渲染断言继续执行。Windows 失败对应的场景限时用例复验通过，耗时 19.49 秒。[原失败日志](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45224424461/job/137866982513)
 
 **自然语言真实模型回归未通过。** 在 84f2ed3 的公开向导选择 local-modelscope，调用本机 Qwen2.5-Coder-1.5B-Instruct 与 v5 LoRA。请求 20 秒整星任务、0.2 秒积分、每 1 秒记录。第一次原始回答把两种时间间隔都写成 0.2 秒，正式验证以 USER_TIME_REQUIREMENT_MISMATCH 拒绝。第二次保留相同要求并增加具体字段名和“五次积分记录一帧”；解析上下文中三项时间均正确，原始首答仍给出 0.2 秒采样。第二次页面等待 360 秒超时，最终响应未核实。两次均未产生封存运行。原始回复、提供方调用 ID、token 分项、时延及权重指纹已留存。单一模型的同题复述只能用于此项回归。下一期按原请求和冻结断言复验，独立检查候选、页面提交与封存输入；保留所有失败记录。[机器可读记录与原始回答索引](../../reports/dt_remaining_integration/nl_wizard_sampling_regression.json)
+
+### DT-1 地磁场的独立数值对照
+
+候选 fc0d659 使用项目的 NativeOrbitalEnvironment.magnetic_model() 构建实际 Basilisk WMM 模型，固定位置消息与地固姿态消息作为试验输入。采用 [NOAA WMM2025 公开测试值](https://www.ncei.noaa.gov/sites/g/files/anmtlf171/files/2025-02/WMM2025testvalues.pdf)的 12 个时空参考点。历元为 2025.0 和 2027.5，高度为 WGS84 椭球上 0 和 100 km，覆盖北纬 80°、赤道和南纬 80°。每点分别施加 0° 和 73° 的固定地固坐标旋转，再把原生惯性系三轴场强转换到当地北、东、地向，与公开数值逐分量比较。
+
+24 个工况、72 个分量全部在本次预设的 0.1 nT 实现对照门槛内，最大绝对残差 0.048683 nT。表中参考值保留到 0.1 nT。这是指定位置和历元的模型计算核验；在轨磁强计精度仍涉及磁洁净度、安装、噪声及真实地磁扰动。复现时将候选的 src 与仓库根目录加入 PYTHONPATH，SAT_SIM_ASSET_ROOT 指向包含项目固定资产的 third_party，执行 python wmm_reference.py result.json。[复现脚本](../../reports/dt_remaining_integration/wmm_reference.py) · [逐工况参考值、原生输出、残差与系数指纹](../../reports/dt_remaining_integration/wmm_reference.json)
+
+### 原八项阶段出口交付核对
+
+| 原出口 | 已取得证据 | 本期结论及欠项 |
+| --- | --- | --- |
+| 1 整星图运行 | [联合任务、物理输出与封存](../../reports/dt_r1_joint_graph/eleven_result.json) | 已测配置在候选运行；正式主干版本尚待集成后复核。 |
+| 2 独立物理验证 | [J2 独立长弧对照](../../reports/dt_j2_field_audit/orbit_comparison.json)、上述 WMM 公开基准 | 已覆盖所列模型；外部热参考与指定器件标定仍缺。 |
+| 3 数值收敛和任务容差 | [逐阶重力与步长实测](../../reports/dt3_leo02_gravity/) | 工程数值收敛有实测；任务精度预算与外部对照依决定转期。 |
+| 4 故障可观测物理响应 | [轮组事件时窗](../../reports/dt_r1_wheel_event_timing/result.json)、[电池事件](../../reports/dt_r1_eps_event/result.json)、[星敏重复掉测](../../reports/dt_remaining_integration/repeated_dropout.json) | 响应证据限于所列目标、时间窗及采样条件；几何导致的星敏失锁待验。 |
+| 5 版本、资产与环境封存 | [逐成员及资产核对](../../reports/dt_r1_asset_identity/result.json)、[天气资产重放](../../reports/dt_r1_weather_replay/comparison.json) | 所测任务有可复查证据；正式交付版本须复核指纹。 |
+| 6 实装映射及真实遥测 | [参考装配](../../reports/dt_remaining_integration/windows_and_replay.json)、[真实会话映射](../../reports/dt_remaining_integration/scene_creation_native.json) | 参考装配与同会话遥测通过。目标星实装图、公差和坐标确认仍缺。 |
+| 7 历史运行复现 | [两次重放输入、遥测、验证结果指纹](../../reports/dt_remaining_integration/windows_and_replay.json) | 同平台同版本同种子通过。16 帧、5,679 个可比历史值一致。 |
+| 8 显示未验证项 | [整星物理告警对照](../../reports/dt_r1_combined/warnings.json)、[稀疏采样验证](../../reports/dt_remaining_integration/repeated_dropout.json) | 已检验所列失败与证据不足分支；平台资格另行验收。 |
+
+五入口中的自然语言失败记录和 DT-5 目标环境性能资格继续保留在台账。八项出口仍有实际资料和精度资格缺口。
