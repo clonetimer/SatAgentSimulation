@@ -95,7 +95,7 @@ def main() -> int:
         "validated_at_utc": datetime.now(timezone.utc).isoformat(),
         "asset": evidence,
         "runtime_network_required": False,
-        "scope": "CelesTrak observed space-weather indices for Basilisk NRLMSISE-00; not spacecraft calibration or flight validation.",
+        "scope": "CelesTrak space-weather indices for Basilisk NRLMSISE-00; see the run coverage window for F10.7 qualifiers.",
     }
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
