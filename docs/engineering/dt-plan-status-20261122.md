@@ -513,3 +513,5 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 | 8 显示未验证项 | [整星物理告警对照](../../reports/dt_r1_combined/warnings.json)、[稀疏采样验证](../../reports/dt_remaining_integration/repeated_dropout.json) | 已检验所列失败与证据不足分支；平台资格另行验收。 |
 
 五入口中的自然语言失败记录和 DT-5 目标环境性能资格继续保留在台账。八项出口仍有实际资料和精度资格缺口。
+
+**云端候选终态。** #241 的 a7b38826 共 31 项检查成功，#242 的 fc0d659a 共 30 项检查成功，修订后的实时场景作业通过。两个候选均处于开放 PR 状态。[#241 提交检查](https://github.com/clonetimer/SatAgentSimulation/commit/a7b38826ccab79cbaa3d4da00ef7839d31549322/checks) · [#242 提交检查](https://github.com/clonetimer/SatAgentSimulation/commit/fc0d659af05ded1ae42e836224beaab1075cb84a/checks)
