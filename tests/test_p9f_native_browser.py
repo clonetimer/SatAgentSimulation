@@ -522,10 +522,15 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
             assert set(ATTITUDE_FIELDS) <= set(matching["values"])
             assert matching["values"]["attitude.truth.valid"] == 1
             try:
-                page.wait_for_function(
-                    "() => document.querySelector('#sceneAdcsFrameSource')?.textContent.includes('whole.adcs')",
+                # Snapshot one rendered pair before another telemetry tick can change the DOM.
+                observation = page.wait_for_function(
+                    """() => {
+                        const source = document.querySelector('#sceneAdcsFrameSource')?.innerText;
+                        const sensors = document.querySelector('#simulationSensorTelemetryRows')?.innerText;
+                        return source?.includes('whole.adcs') && sensors && {source, sensors};
+                    }""",
                     timeout=15000,
-                )
+                ).json_value()
             except Exception as error:
                 adcs_payload = _json_request(
                     base,
@@ -557,14 +562,14 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
                     "P9K_STRICT_ADCS_ASSOCIATION_FAILED: "
                     + json.dumps(report["p9k_join_diagnostic"], ensure_ascii=False)
                 ) from error
-            sensor_rows = page.locator("#simulationSensorTelemetryRows").inner_text()
+            sensor_rows = observation["sensors"]
             assert "RW1" in sensor_rows
             assert "IMU 陀螺" in sensor_rows
             assert "IMU 加速度计" in sensor_rows
             assert "磁强计" in sensor_rows
             assert "星敏感器" in sensor_rows
             assert "太阳敏感器" in sensor_rows
-            assert "whole.adcs" in page.locator("#sceneAdcsFrameSource").inner_text()
+            assert "whole.adcs" in observation["source"]
             assert matching["values"]["attitude.truth.valid"] == 1
             report["samples"].append({"rendered": rendered["object"], "native_frame": matching})
             report["page_errors"] = list(report["page_errors"])
