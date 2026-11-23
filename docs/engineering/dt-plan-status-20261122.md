@@ -525,3 +525,7 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 复现时将候选 src 和根目录加入 PYTHONPATH，运行 python atmosphere_comparison.py WEATHER_CSV OUTPUT_JSON。仓库夹具为 tests/fixtures/celestrak_space_weather_2026-03-04.csv；实测快照须匹配结果中登记的 SHA-256，滚动更新的文件需另行登记。[复现脚本](../../reports/dt_remaining_integration/atmosphere_comparison.py) · [仓库夹具结果](../../reports/dt_remaining_integration/atmosphere_fixture.json) · [实测天气结果](../../reports/dt_remaining_integration/atmosphere_observed.json) · [天气来源与有效日期核验](../../reports/dt_r1_observed_weather/result.json)
 
 **五入口证据发布核查。** 对计划提交 c9538f0 在 GitHub 上的完整 Git 树与本地提交逐项核对。表单、画布、JSON、数字场景和自然语言的五份验收摘要、自然语言失败摘要以及三份模型原答，共九个文件的 blob 标识均一致；三份原答分别按报告中的 SHA-256 复核通过。大型 Run Bundle 的指纹留在已发布摘要内，该项核查覆盖已发布的九份文件。
+
+**LEO-05 日月加速度分项。** 在 d6fec67 用产品的 configure_gravity 配置固定 DE430 资产、Earth 中心天体和原生球谐引力。完整组保留产品绑定，另外三组分别绑定 Earth、Earth+Sun、Earth+Moon。三个历元、三个固定 J2000 位置均读取原生 gravity effector 的 g_N，减去同位置的 Earth 组，再与地心第三体差分引力公式逐轴对照。日、月与日月合计共 27 个向量，差向量范数最大 1.58×10⁻¹⁵ m/s²，低于预设数值核查门槛 10⁻¹² m/s²。公式与原生组共享星历和引力常数，独立核对的是引力分项、原点和符号。任务级轨道精度仍按外部参考验收。按前述 WMM 方法配置候选 PYTHONPATH 和固定资产后执行 python third_body_gravity.py result.json。[脚本](../../reports/dt_remaining_integration/third_body_gravity.py) · [各历元的星历、常数、内核摘要和逐向量残差](../../reports/dt_remaining_integration/third_body_gravity.json)
+
+**ADCS-02、ADCS-04 与 LEO-06 器件复核。** 同一候选运行原生 CSS 几何与标定、单机传感器、整星轮驱动至 IMU 杆臂加速度的回归，共 65 项通过，零跳过。该总数包含参数校验和物理运行用例。物理用例中，固定输入磁场与偏置逐采样核对磁强计三轴输出；CSS 独立干预视轴、视场、增益和饱和；IMU 杆臂例核对轮驱动变化对加速度的响应。工程设置与真机标定分别记账。[逐用例清单](../../reports/dt_remaining_integration/sensor_case_matrix.json)
