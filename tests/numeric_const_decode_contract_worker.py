@@ -229,3 +229,17 @@ def test_current_whole_spacecraft_taskspec_runs_through_actual_lmfe_parser(forbi
         'target':{},'simulation':{},'outputs':{},'capability_id':capability,'parameters':{}}
     jsonschema.validate(draft,schema)
     assert accepts(schema,json.dumps(draft,separators=(',',':')))
+
+
+def test_time_bindings_allow_other_simulation_fields_in_real_decoder():
+    from sat_sim.llm_backends import taskspec_draft_response_schema
+
+    cid = "whole_spacecraft.unified_native.v1"
+    schema = taskspec_draft_response_schema(cid, time_bindings={"duration_s": 20, "sample_s": 1, "step_s": 0.2})
+    simulation = {"backend": "basilisk", "duration_s": 20, "sample_s": 1, "seed": 0,
+                  "solver": {"method": "euler", "step_s": 0.2, "include_endpoint": True}}
+    draft = {"schema_version": "0.1.0", "task_id": "t", "task_type": "whole_spacecraft",
+             "target": {}, "capability_id": cid, "simulation": simulation, "outputs": {}}
+    assert accepts(schema, json.dumps(draft, separators=(",", ":")))
+    simulation["sample_s"] = 0.2
+    assert not accepts(schema, json.dumps(draft, separators=(",", ":")))
