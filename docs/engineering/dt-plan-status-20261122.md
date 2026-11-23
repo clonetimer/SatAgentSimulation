@@ -368,3 +368,5 @@ git -C dt-r1-source rev-parse HEAD 'HEAD^{tree}'
 独立验收分支 cfc47059cb23a100b21b90f6192acf9652518036 已纳入前述电池启动测试基准和初始角速度测试补丁，产品源码与 bc0a659 相同。补丁落入分支后，本地初始角速度四项回归通过。[联合验收工作流](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45198221149) 从独立执行器安装环境、准备资产并运行仓库测试。该工作流的空间天气使用版本化夹具，历史天气快照的联合用例另见上一节。
 
 #236 的 beb3164 云端工作流实际收集到十项浏览器整星旅程，仍要求九项，停在收集检查。[失败步骤](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45196864723)。[修复提交](https://github.com/clonetimer/SatAgentSimulation/commit/130403dd10c69b8f971431a16d4005115288aa85) 将新增部分力矩损失纳入收集与 JUnit 身份核查，要求十份浏览器封存包及对应元数据。九个物理故障对照共享两个健康对照，CI 核查十一份不同原生包。原逐文件指纹和封存校验继续执行；最终判定应查对应提交的工作流结果。
+
+**浏览器下载包离线复核。** 在本地 Windows Chromium 新增失权旅程下载的 ZIP 上，独立读取 sidecar、清单、封印、原始 TaskSpec 和 JSONL 遥测。归档中 47 个清单成员全部哈希匹配；15 帧中 4 至 10 s（含两端）共 7 帧记录轮 0 权限为 0.25，其余帧恢复 1，轮 1、2 全部为 1。任务事件 ID、目标轮、验证事件及样本数一致。[离线核验脚本](../../reports/dt_r1_wheel_event_timing/browser_archive.py) · [本机下载包结果](../../reports/dt_r1_wheel_event_timing/browser_archive_windows.json)。脚本接收同目录配有 JSON sidecar 的 ZIP 及输出路径，亦可复核独立 runner 下载件。
