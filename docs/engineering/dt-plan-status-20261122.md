@@ -486,3 +486,7 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 冷启动立即粘贴另复现编辑器被清空，报 Unexpected end of JSON input。a7b3882 在初始化完成前将编辑器置为只读，并复用 JSON 标签正在加载的预览。真实 Chrome 的延迟初始化回归通过。修复后不等待网络空闲，按原密采样任务从 JSON 页面生成第三个原生包，运行成功，效果 PASS。此项覆盖离线 JSON 入口。该次页面无未捕获 JS 错误，控制台仍记录一条资源 404；未据此评价全页面资源完整性。[修复 PR #241](https://github.com/clonetimer/SatAgentSimulation/pull/241) · [三组封存证据](../../reports/dt_remaining_integration/json_wizard_native.json)
 
 **数字场景实时入口实测更新。** 84f2ed3 在真实 Windows Chrome 中从数字场景的“创建仿真任务”分别进入限时和持续实时工作区。两组均显式创建并启动 Basilisk 会话，返回场景后核对真实渲染器数据与服务端遥测的会话 ID、序号、仿真时间和质量。原侧栏入口作为同版本对照。四组共耗时 81.63 秒，全部通过，页面异常和控制台错误均为零。该试验验证会话创建和实时数据来源，持续模式按短程运行验收。首次限时运行在本地 uv 环境缺少已登记的 websockets 依赖，握手返回 404；补装固定版本 17.4 后遥测通过。另一个资源 404 经 Chrome 定位为 favicon.ico，候选使用页面声明的图标修复。[场景候选 PR #242](https://github.com/clonetimer/SatAgentSimulation/pull/242) · [逐例会话与帧记录](../../reports/dt_remaining_integration/scene_creation_native.json)
+
+**图形画布直接运行。** 在 84f2ed3 的真实 Chrome 中进入专业画布，点击配置节点，在节点检查器把时长从 60 改为 40 秒。点击图校验和运行按钮，经实际队列启动 Basilisk。浏览器发送的 11 个顶层字段与封存 TaskSpec 逐项相等，遥测从 0 到 40 秒共五帧，validation 和完整性均通过。运行全程无页面异常和控制台错误。此例验证编辑节点参数进入真实运行；画布导出程序包另有上表记录。[运行 ID 与五帧时间](../../reports/dt_remaining_integration/graph_direct_native.json)
+
+**场景回归修订。** #242 首轮 Linux 原生作业在成功等到精确配对帧后，再次异步读取页面时已经显示下一帧“等待精确配对”。fc0d659 将 ADCS 来源与传感器行改为在同一 DOM 采样时刻取证，同会话同时间配对、遥测实体与渲染断言继续执行。Windows 失败对应的场景限时用例复验通过，耗时 19.49 秒。[原失败日志](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45224424461/job/137866982513)

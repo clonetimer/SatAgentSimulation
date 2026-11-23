@@ -1,0 +1,31 @@
+{
+  "field_label": "仿真时长 · s",
+  "original_value": "60",
+  "sealed_duration_s": 40.0,
+  "submitted_duration_s": 40,
+  "time_s": [
+    0.0,
+    10.0,
+    20.0,
+    30.000000000000004,
+    40.0
+  ],
+  "run_id": "whole_spacecraft_unified_native_v1_mwtiuoh6",
+  "equal_fields": {
+    "schema_version": true,
+    "task": true,
+    "simulation": true,
+    "mission": true,
+    "parameters": true,
+    "events": true,
+    "outputs": true,
+    "assurance": true,
+    "model": true,
+    "provenance": true,
+    "metadata": true
+  },
+  "page_errors": [],
+  "console_errors": [],
+  "integrity": "PASS",
+  "status": "PASS"
+}
