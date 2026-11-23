@@ -1,0 +1,19 @@
+{
+  "rows": 2701,
+  "existing_fields_per_row": [
+    332
+  ],
+  "identical_field_values": 896732,
+  "extra_fields": [
+    "orbit.eclipse_spacecraft_geometry_valid",
+    "orbit.eclipse_spacecraft_position_m_x",
+    "orbit.eclipse_spacecraft_position_m_y",
+    "orbit.eclipse_spacecraft_position_m_z",
+    "orbit.eclipse_spacecraft_source_time_s"
+  ],
+  "spec_sha256": "a9a837c3a2c1b42ef13f4210e38346ca85348cbe883246426b3a32c9512a882a",
+  "weather_sha256": "bc963becc48620d1adfe5460b77dc4e70d070a17f2308ceeac14a7d79c729c7a",
+  "baseline_manifest": "2dd1c566a4777558aa5ceedfa8d9e76371c9a9ed91b29659a48fe763083cc3ef",
+  "candidate_manifest": "d47bb23e5800e70bf162ad554e4f3c4fa76932f8d415adb20a2bf4eea1d81664",
+  "validation_sha256": "562b051fde327f7de7ae4c8ab741594250cc997a3865dd4be4d9ae847f7f9fd1"
+}
