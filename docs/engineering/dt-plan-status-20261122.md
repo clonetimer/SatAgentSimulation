@@ -2,6 +2,21 @@
 
 **基线：** `main=4624c3a7df432dc01c8f6df1f479ffc8a196b9ba`，北京时间 2026-11-22。本文是 [DT-0 首期基线](dt0-leo-engineering-baseline.md)和[需求覆盖矩阵](dt0-requirements-coverage-matrix.md)之后的状态增量；原文中的 2026-11-20「当前」描述保留为历史审计快照，不能直接当作今天的状态。下表只判定已核实的阶段，不替代逐项模型资格。
 
+## 11 月 24 日本期执行结论
+
+按 11 月 23 日确定的范围，本期工程验证及问题移交已完成。主干基线为 `4624c3a7`，最新代码候选为 [#245 的 b3982a9f](https://github.com/clonetimer/SatAgentSimulation/pull/245)。下表按原计划用例汇总各自提交上的运行结果。R1 八项出口的正式资格仍有缺口。
+
+| 原计划用例 | 本期证据与判定 | 下一期复验条件 |
+| --- | --- | --- |
+| LEO-01、02 | 固定输入可重放；重力阶次与积分步长已有收敛实测。[重力对照](../../reports/dt3_leo02_gravity/) | 任务方冻结精度预算，参考方对齐时标、坐标和引力常量后，按原容差重算残差。 |
+| LEO-03、04 | 180 秒配对运行测得阻力面积变化引起的半长轴差，以及光压面积变化引起的轨道位置差。[阻力](../../reports/dt_remaining_integration/drag_orbit_pair.json)、[光压](../../reports/dt_remaining_integration/srp_orbit_pair.json) | 长弧任务精度沿用同工况外部对照要求。 |
+| LEO-05、06 | 日月第三体有同星历解析对照，地磁有 WMM 公开基准。[第三体](../../reports/dt_remaining_integration/third_body_gravity.json)、[地磁](../../reports/dt_remaining_integration/wmm_reference.json) | 外部历表精度及实际器件标定分别验收。 |
+| ADCS-01 至 04 | 轮组、IMU、星敏、太阳敏感器与磁强计有原生工况证据；传感器矩阵 65 项通过。星敏地球遮挡可触发测量失效，默认配置兼容。[矩阵](../../reports/dt_remaining_integration/sensor_case_matrix.json)、[地球遮挡](../../reports/dt_remaining_integration/star_tracker_earth_limb.json) | 取得实际安装轴、视场及识别和重捕获依据后，再评定器件性能。 |
+| SYS-01、02 | 已核验 19 条运行耦合；另用定向工况激励短程整星任务中未激励的链路。故障事件按注入时刻、采样窗口和响应判定。[运行耦合](../../reports/dt_remaining_integration/required_couplings.json)、[轮组事件](../../reports/dt_r1_wheel_event_timing/result.json) | 新增工况需重新检查激励及判据。DT-3 电池五测点的转期条件见下表。 |
+| UI-01、02 | JSON、表单、拖拽、数字场景、自然语言五种创建方式均有原生运行证据。参考装配可关联同次运行遥测；迁移资产路径后 91 帧可复现。[数字场景](../../reports/dt_remaining_integration/scene_creation_native.json)、[自然语言](../../reports/dt_remaining_integration/nl_wizard_first_answer_fixed.json)、[资产重放](../../reports/dt_remaining_integration/relocated_orbit_replay.json) | 取得目标星装配与坐标批准后复验实装映射；确定部署硬件、并发量与性能阈值后复验 DT-5。 |
+
+对下文八项出口表的更新：出口 4 已补通用星敏地球遮挡试验，出口 7 已补同机资产迁移重放。出口 2、3、6 中涉及外部参考、任务容差及目标星实装的部分维持待验。候选合入后，出口 1、5 需要按实际交付 SHA 复核运行与资产指纹。原始失败、告警和证据不足记录保留，供出口 8 回查。
+
 ## 11 月 23 日范围调整
 
 按项目方决定，DT-3 中依赖外部依据的验收移入下一期。本期继续执行 DT-1、DT-2、DT-4、DT-5 现有工程配置的联合验证，以及 DT-3 已有依据的原生初值与步长收敛回归。各项实测仍绑定对应提交和工况。
