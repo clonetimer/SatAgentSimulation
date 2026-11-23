@@ -533,3 +533,28 @@ python star_tracker_sampling.py star_tracker_input.json repeated_runs repeated_r
 **SYS-01 整星耦合。** 原十一目标任务的 required_couplings 为空。以同一任务显式请求能力注册表中的全部 12 条耦合，30 秒共记录 16 帧。单次运行观测到姿控负荷到电热、指向到载荷许可、射频质量到下行三条响应，其余九条在本工况未激发，整体验证为 INCONCLUSIVE。以 20° 和 175° 两个载荷指向误差阈值分别执行并核验封存。首帧之后，15 个同时间采样均满足供电、热许可与两阈值间的角误差条件。20° 组载荷持续关闭，175° 组持续工作并产生 2.5 Mbit/s。该配对验证覆盖指向到载荷一条链。天气读入器对超出本试验日期的 2027-02-01 缺值行报警，初始化时另有 AtmoPropsMsg 尚未就绪告警。[十二条逐项判定](../../reports/dt_remaining_integration/required_couplings.json) · [运行脚本](../../reports/dt_remaining_integration/required_couplings.py) · [配对遥测](../../reports/dt_remaining_integration/payload_gate_pair.json) · [配对脚本](../../reports/dt_remaining_integration/payload_gate_pair.py)
 
 检查中发现，稀疏遥测中的缺字段可能被当作实测零值并触发正面判定。[修复 PR #244](https://github.com/clonetimer/SatAgentSimulation/pull/244) 要求相关字段来自同一帧且数值有限。33 项针对性测试通过。修复前后的十二条显式请求使用相同输入，逐帧遥测 SHA-256 均为 4a67b9fc8b6a128d2a62bbfebebfae6fb8305858b542b810d30f08148f0a969f，十二条判定一致。九条未激发耦合留在 SYS-01 定向工况队列。DT-3 缺少外部参考的事项按既有登记转期。
+
+### SYS-01 原生配对复验（2026-11-24）
+
+**复合整星能力。** 对 whole_spacecraft.composite_digital_twin.v1 执行仓库 v3 配对矩阵。6f8edde 的原始结果为 17 项中 12 项通过、3 项失败、2 项证据不足，19 条活动耦合中有 14 条取得套件要求的因果证据。逐项复核发现四个问题。
+
+- 20 秒注入故障前，10 秒记录间隔只有一个可用样本。将载荷关闭、通信中断两项的双方记录间隔均调为 5 秒后，注入前各有三个有效样本，原时延、幅值和持续性容差全部通过。
+- 加热器脱离电池时，其自身电气消息仍有 12 W，旧导出把这个数写成电池负载。修改后只记录接到电池的加热器，配电断开的用例通过。
+- 旧发射机的公开下采样速率用于积分时，出现 −29,400,000 bit 数据守恒残差。使用 1 秒记录后仍有 −2,400,000 bit。最终在动力学任务的 0.2 秒节拍记录实际发射机速率，原容差不变，残差约 −1.8×10⁻⁷ bit。
+- 原姿控工况同时抑制载荷和发射机。整星 SOC 在轮组用电增加时仍净升，无法用它识别轮组单独造成的 SOC 变化。原指向门控工况保留，增加双方门控均开放的姿控配对，以相同姿态干预验证电热。轮组功耗平均差约 +37.29 W，SOC 差约 −0.00315。
+
+在 1cc945e 的 18 个工况上全量复跑，18/18 通过，套件定义的 19/19 条活动耦合取得配对证据。独立重算了终版证据清单全部 250 个成员的 SHA-256 与字节数。61 项模型资产、耦合和原生加热器回归通过。复现命令为 python scripts/run_coupling_causality_suite.py --matrix configs/verification/whole_spacecraft_coupling_causality_v3.json --output-dir EMPTY_DIRECTORY。原失败、5 秒专项、最终全量分别登记。[逐项结果和指纹](../../reports/dt_remaining_integration/composite_pair_audit.json) · [清单复核脚本](../../reports/dt_remaining_integration/composite_pair_audit.py)
+
+**十一目标统一整星能力。** 对 0cb0a78 的 whole_spacecraft.unified_native.v1 运行 11 个工况，每次显式请求全部 12 条耦合，核对 0–30 秒的 16 个同步采样和封存完整性。以下配对逐项检查两臂的全部参数，仅允许指定变量不同。
+
+| 变量 | 观测结果 |
+| --- | --- |
+| 日照与面板方向 | 原生入影过程先经历半影，20–30 秒太阳阵功率为零。同方向的全日照对照约 476.59–476.68 W。全日照条件内反转面板法向，输出降至零。 |
+| 初始 SOC 与配电 | 在几何可见的同一过站中，低 SOC 组关闭载荷、通信和加热许可。正常 SOC 组首帧后 15 个样本均记录载荷耗电 38 W、入热 36.1 W、加热器耗电 12 W，发射机启用。 |
+| 推进启用及点火时刻 | 6 秒、8 秒记录到总推力 2 N、用电 40 W、入热 34 W。将相同推进装配的点火推迟到 25 秒，点火前两臂速度逐轴一致，10 秒时速度向量差为 0.08004 m/s。 |
+| 过站和天线安装方向 | 过站工况有 10 个采样收到有效下行，峰值 1.5 Mbit/s。改变轨道相位后无几何可见且无下行。另以相同过站只改变天线姿态，仍几何可见且有通信许可，实际下行降为零。 |
+| 载荷热保护 | 在两臂均设定 300 W 载荷的工程压力工况中，仅将载荷初温从 295 K 提高到允许上限 340 K。2、28、30 秒触发热保护，三帧载荷及通信均关闭，对照组均开启。高温组整体验证保留 FAIL。300 W 为试验激励。 |
+
+原 30 秒单次运行的九条未激发链现在均有相应的定向证据；不同的配对支持不同命题。过站改变轨道相位也会改变 RF 几何，实际成功接收与发射机启用分开计数。整套联合任务的单次验证仍保存各自的 INCONCLUSIVE 或 FAIL。试验边界另发现 360 K 能进入准备阶段后才被原生热节点拒绝。候选修复已将公开参数和执行预检对齐到 220–340 K，实测 219、360 K 在规划阶段拒绝，220、340 K 可规划。固定本地 SPICE 资产与天气后，26 项契约和脚本导出测试通过。[修复 PR #244](https://github.com/clonetimer/SatAgentSimulation/pull/244)
+
+使用前文固定的候选 PYTHONPATH、热环境和天气快照，在 BSK_SUPPORT_DATA_CACHE/supportData/EphemerisData 中提供既有四个原生内核。运行 python replay_unified_pairs.py eleven_task.json EMPTY_DIRECTORY result.json，再执行 python verify_unified_pairs.py result.json。环境仍报告天气文件未来缺值行和启动时尚未写入的大气消息。[运行脚本](../../reports/dt_remaining_integration/replay_unified_pairs.py) · [封存提取](../../reports/dt_remaining_integration/unified_power_pairs.py) · [逐采样证据](../../reports/dt_remaining_integration/unified_power_pairs.json) · [配对断言](../../reports/dt_remaining_integration/verify_unified_pairs.py)
