@@ -256,3 +256,18 @@ def test_thruster_diagnostic_details_are_bounded_without_losing_error_count():
     assert all(adapter.input_errors)
     assert len(adapter.trace) == 256
     assert adapter.activeStatusOutMsg.read().deviceStatus == 0
+
+
+@pytest.mark.parametrize(("link", "rows", "expected"), [
+    ("ground_access_to_comm_downlink", [{}], "NOT_EXERCISED"),
+    ("native_rf_quality_to_comm_downlink", [{"comm.downlink_bps": 0}], "NOT_EXERCISED"),
+    ("adcs_pointing_to_comm_gate", [{"comm.active": 0}, {"comm.command_permitted": 0}], "NOT_EXERCISED"),
+    ("adcs_pointing_to_payload_gate", [{"adcs.pointing_error_deg": 45}], "NOT_EXERCISED"),
+    ("orbit_sun_attitude_eclipse_to_eps_solar_power", [{}, {"eps.solar_array_power_w": 20}], "NOT_EXERCISED"),
+    ("native_rf_quality_to_comm_downlink", [{"comm.gated_cnr": float("-inf"), "comm.downlink_bps": 0}], "NOT_EXERCISED"),
+    ("native_rf_quality_to_comm_downlink", [{"comm.gated_cnr": 0, "comm.downlink_bps": 0}], "OBSERVED_SINGLE_RUN"),
+])
+def test_single_run_coupling_observation_requires_measured_operands(link, rows, expected):
+    from sat_sim.bsk_engine.unified_native import _required_coupling_evidence
+    evidence = _required_coupling_evidence((link,), {}, rows)
+    assert evidence["requirements"][0]["status"] == expected
