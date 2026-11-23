@@ -41,6 +41,10 @@ def test_native_odh_is_the_only_production_downlink_and_nominal_statuses_pass() 
     assert result.summary["runtime_message_read_error_count"] == 0
     assert max(float(row["comm.native_cnr"]) for row in result.trace_rows) > 0.0
     assert max(float(row["comm.downlink_bps"]) for row in result.trace_rows) > 0.0
+    assert min(row["data.downlink_node_baud_bps"] for row in result.trace_rows) < 0.0
+    for row in result.trace_rows:
+        assert row["data.net_baud_bps"] == pytest.approx(
+            row["payload.generated_bps"] + row["data.downlink_node_baud_bps"])
     assert result.summary["comm_power_model"]["implementation"] == "Basilisk.simulation.antennaPower.AntennaPower"
     assert result.summary["comm_power_model"]["total_active_tx_power_w"] == pytest.approx(16.0)
     assert result.summary["comm_power_model"]["antenna_tx_power_w"] == pytest.approx(5.0)

@@ -1319,6 +1319,7 @@ outputs:
   - comm.downlink_bps
   - data.storage_bits
   - data.net_baud_bps
+  - data.downlink_node_baud_bps
   - thermal.payload_temp_k
   - thermal.radiator_rejection_ratio
   - adcs.sensor.gyro_measured_rad_s_*
