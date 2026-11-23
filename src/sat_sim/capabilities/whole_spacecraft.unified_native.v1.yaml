@@ -1330,6 +1330,14 @@ outputs:
   - environment.space_weather.*
   - orbit.drag_force_b_*
   - orbit.drag_force_norm_n
+  - name: orbit.drag_input_density_kg_m3
+    unit: kg/m^3
+    dtype: number
+    description: 动力学步开始前已发布的大气密度，用于核对本步三轴阻力。启用大气阻力时输出。
+  - name: orbit.drag_density_source_time_s
+    unit: s
+    dtype: number
+    description: 阻力输入密度消息的写入时刻，单位为自仿真开始的秒数。零时刻包含初始化帧。
   - orbit.drag_force_relative_velocity_power_w
   - orbit.drag_relative_velocity_b_m_s_*
   - orbit.drag_relative_speed_m_s

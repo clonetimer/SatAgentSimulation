@@ -22,10 +22,10 @@ from sat_sim.bsk_engine.unified_native import (
 )
 
 
-def run_whole(values, *, duration=120.):
+def run_whole(values, *, duration=120., sample_s=10.):
     return UnifiedNativeRuntime(UnifiedRuntimeConfig(
         capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
-        duration_s=duration, step_s=1., sample_s=10.,
+        duration_s=duration, step_s=1., sample_s=sample_s,
         adcs_only=False, events=(), values=values,
     )).run()
 
@@ -107,6 +107,20 @@ def test_actual_four_effects_coexist_with_independent_ablation(tmp_path, monkeyp
             "magnetic_field","magnetometer"}.issubset(tags)
     rows = all_on.trace_rows
     assert len(rows) == 13
+    # With 1 s dynamics and 10 s export, the previous *exported* row
+    # does not contain the density used by the current force evaluation.
+    dense = run_whole({**base, **high, **drag, **srp}, sample_s=1.).trace_rows
+    assert all("orbit.drag_input_density_kg_m3" not in row for row in no_drag.trace_rows)
+    assert rows[0]["orbit.drag_input_density_kg_m3"] == 0.
+    drag_scale = -0.5 * evidence["drag_area_m2"] * evidence["drag_coefficient"]
+    for row in rows[1:]:
+        assert abs(row["orbit.drag_density_source_time_s"] - (row["time_s"] - 1.)) < 1e-8
+        relative_velocity = vector(row, "orbit.drag_relative_velocity_b_m_s")
+        source = dense[round(row["orbit.drag_density_source_time_s"])]
+        assert abs(source["time_s"] - row["orbit.drag_density_source_time_s"]) < 1e-8
+        assert source["environment.atmosphere_density_kg_m3"] == row["orbit.drag_input_density_kg_m3"]
+        expected = drag_scale * row["orbit.drag_input_density_kg_m3"] * np.linalg.norm(relative_velocity) * relative_velocity
+        np.testing.assert_allclose(vector(row, "orbit.drag_force_b"), expected, rtol=1e-12, atol=1e-17)
     samples = rows[1:]
     assert len(samples) == 12
     density = [r["environment.atmosphere_density_kg_m3"] for r in samples]

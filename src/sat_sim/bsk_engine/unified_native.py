@@ -856,6 +856,11 @@ def _build_unified_rows(
         if not np.array_equal(eclipse_input.times(), times):
             raise RuntimeError("NATIVE_ECLIPSE_INPUT_SAMPLE_GRID_MISMATCH")
         eclipse_source_times = eclipse_input.timesWritten()
+    drag_input = recorder_map.get("drag_density_input")
+    if drag_input is not None:
+        if not np.array_equal(drag_input.times(), times):
+            raise RuntimeError("NATIVE_DRAG_INPUT_SAMPLE_GRID_MISMATCH")
+        drag_source_times = drag_input.timesWritten()
     if start_index < 0 or start_index > len(times):
         raise ValueError("start_index must be within the recorder range")
     mag_mount_321 = [
@@ -1025,6 +1030,9 @@ def _build_unified_rows(
             atmosphere_sample = recorder_map["atmosphere"]
             row["environment.atmosphere_density_kg_m3"] = float(atmosphere_sample.neutralDensity[index])
             row["environment.atmosphere_temperature_k"] = float(atmosphere_sample.localTemp[index])
+        if drag_input is not None:
+            row["orbit.drag_input_density_kg_m3"] = float(drag_input.neutralDensity[index])
+            row["orbit.drag_density_source_time_s"] = float(drag_source_times[index]) * 1e-9
         if "drag_force" in recorder_map:
             drag_force_b = np.asarray(recorder_map["drag_force"].forceExternal_B[index], dtype=float).reshape(3)
             drag_velocity_b = np.asarray(recorder_map["drag_force"].v_B[index], dtype=float).reshape(3)
@@ -2768,6 +2776,12 @@ class UnifiedNativeRuntime:
             recorder_map[name] = recorder
             record_sources.append(name)
         if drag_effector is not None:
+            # Dynamics runs at priority 100; MSIS publishes the next density
+            # at 97. Record the published input before either executes.
+            density_input = atmosphere_model.envOutMsgs[0].recorder(macros.sec2nano(cfg.sample_s))
+            sim.AddModelToTask(task_name, density_input, None, 101)
+            recorder_map["drag_density_input"] = density_input
+            record_sources.append("drag_density_input")
             drag_log = drag_effector.logger(
                 ["forceExternal_B", "v_B", "v_hat_B"],
                 macros.sec2nano(cfg.sample_s),
