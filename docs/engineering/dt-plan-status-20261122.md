@@ -345,3 +345,11 @@
 四种工况中，权限第一次变化都在 5.2 s，恢复到 1 在 15.0 s；轮 1、2 的权限全程等于 1。按轮 0 原生实际施加力矩和轮速与同图健康轨迹比较（差值阈值 10⁻¹⁰，各取本字段单位），首次可见差异分别在 5.4 和 5.6 s。这是记录器采样时刻，尚不能据此给出两个采样点之间的连续物理起效时刻。解除后轮速仍有历史响应：20 s 时，卡滞、电机失效、loss50、loss75 与健康轨迹的轮速差分别为 −24.8461、−0.8595、+0.4431、+0.6598 rad/s。
 
 整星注册表在该版本提供卡滞和电机失效。直接用整星入口提交部分权限退化会在执行前返回 EFFECT_OWNER_OUTSIDE_DEPENDENCY_GRAPH，因此两项部分损失在受支持的 ADCS 图中复验。下一期如需整星部分退化，须先核对所有者合同，在整星图复验电源与姿态响应，再申请登记。[复验脚本](../../reports/dt_r1_wheel_event_timing/audit.py) · [分工况边界样本和首次差异](../../reports/dt_r1_wheel_event_timing/result.json)。
+
+### 十一项候选的整星组合实测
+
+从前述七候选树 0474e880（本地提交 57e87e5）依次合入 #233 46802ac、#234 46db217、#235 0dccc7b 和 #236 beb3164。#235 与电池首帧修复在 unified_native.py 的 InitializeSimulation 后发生一处文本冲突。按顺序保留原电池初始状态写入和新增有效引力参数读回，两段均在首个动力学步之前。其余变更自动合并，得到 Git tree 1587b9bb0066a5c266a3a74f005538796ece0e44。组合工作树独立于 main。
+
+使用官方 Basilisk 2.11.0、原天气快照与四效应整星任务，在四轮金字塔构型对索引 3 施加 75% 权限损失。30 s 运行输出 16 帧，validation PASS，封存校验通过。首帧电池容量 576000 J、SOC 0.62；谐波模型读回四阶、μ 为 398600436000000 m³/s²；天气窗口含 OBS 三天和 PRD 一天。五个受限样本的第四轮力矩权限为 0.25，其余三轮始终为 1；交付与效果断言均通过。地影读取的航天器消息时间逐帧早于或等于当帧时间。以上覆盖该输入和本地组合树。复验时按原四效应资产设置运行 python eleven_check.py eleven_task.json NEW_RUN_ROOT RESULT_JSON，使用快照 bc963becc48620d1adfe5460b77dc4e70d070a17f2308ceeac14a7d79c729c7a。
+
+[任务输入](../../reports/dt_r1_joint_graph/eleven_task.json) · [联合断言](../../reports/dt_r1_joint_graph/eleven_check.py) · [封存指纹和逐轮证据](../../reports/dt_r1_joint_graph/eleven_result.json)。

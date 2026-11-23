@@ -1,0 +1,1987 @@
+{
+  "schema_version": "1.0.0",
+  "task": {
+    "id": "dt1_product_entry_four_effects",
+    "name": "\u6574\u661f\u7edf\u4e00Basilisk\u8fd0\u884c\u56fe",
+    "description": "\u5b98\u65b9Basilisk\u6a21\u5757\u4e0e\u9879\u76ee\u81ea\u7814SysModel\u5728\u540c\u4e00Process/Task\u4e2d\u5b8c\u6210\u8f68\u9053\u3001ADCS\u3001\u7535\u6e90\u3001\u6570\u636e\u548c\u70ed\u63a7\u6d88\u606f\u8026\u5408\u3002",
+    "tags": [
+      "schema_form"
+    ]
+  },
+  "simulation": {
+    "level": "whole_spacecraft",
+    "duration_s": 30.0,
+    "step_s": 0.25,
+    "sample_s": 2.0,
+    "random_seed": 0,
+    "backend": "basilisk",
+    "time_base": "simulation_seconds",
+    "time_system": "UTC"
+  },
+  "mission": {
+    "required_couplings": []
+  },
+  "parameters": {
+    "profile": "demo",
+    "values": {
+      "environment_profile": "spice_wmm",
+      "srp_model": "cannonball",
+      "earth_gravity_model": "ggm03s_degree4",
+      "magnetic_field_model": "igrf14",
+      "epoch_utc": "2026-11-23T12:00:00Z",
+      "atmosphere_model": "nrlmsise00",
+      "drag_area_m2": 1.0,
+      "drag_coefficient": 2.2,
+      "spacecraft_mass_kg": 100.0,
+      "eccentricity": 0.0,
+      "raan_deg": 0.0,
+      "arg_perigee_deg": 0.0,
+      "initial_true_anomaly_rad": 6.025325374742842,
+      "initial_pointing_error_deg": 45.0,
+      "inclination_deg": 0.0,
+      "spacecraft_inertia_xx_kg_m2": 100.0,
+      "spacecraft_inertia_yy_kg_m2": 80.0,
+      "spacecraft_inertia_zz_kg_m2": 60.0,
+      "orbit_radius_m": 6650000.0,
+      "controller_k": 0.0,
+      "controller_p": 60.0,
+      "sun_sensor_fov_deg": 80.0,
+      "sun_sensor_scale_factor": 1.0,
+      "sun_sensor_bias_normalized": 0.0,
+      "sun_sensor_kelly_factor": 0.0,
+      "sun_sensor_min_output": 0.0,
+      "sun_sensor_max_output": 1000000.0,
+      "sun_sensor_normal_b_x": 0.0,
+      "sun_sensor_normal_b_y": 0.0,
+      "sun_sensor_normal_b_z": -1.0,
+      "magnetometer_mount_yaw_deg": 0,
+      "magnetometer_mount_pitch_deg": 0,
+      "magnetometer_mount_roll_deg": 0,
+      "magnetometer_bias_tesla_x": 0,
+      "magnetometer_bias_tesla_y": 0,
+      "magnetometer_bias_tesla_z": 0,
+      "magnetometer_scale_factor": 1,
+      "simulation_seed": 0,
+      "imu_gyro_bias_rad_s_x": 0,
+      "imu_gyro_bias_rad_s_y": 0,
+      "imu_gyro_bias_rad_s_z": 0,
+      "imu_accel_bias_m_s2_x": 0,
+      "imu_accel_bias_m_s2_y": 0,
+      "imu_accel_bias_m_s2_z": 0,
+      "imu_gyro_white_noise_std_rad_s": 0,
+      "imu_accel_white_noise_std_m_s2": 0,
+      "imu_gyro_quantization_lsb_rad_s": 0,
+      "imu_accel_quantization_lsb_m_s2": 0,
+      "imu_gyro_max_rad_s": 0,
+      "imu_accel_max_m_s2": 0,
+      "star_tracker_noise_std_arcsec": 0,
+      "star_tracker_mount_yaw_deg": 0,
+      "star_tracker_mount_pitch_deg": 0,
+      "star_tracker_mount_roll_deg": 0,
+      "imu_mount_yaw_deg": 0,
+      "imu_mount_pitch_deg": 0,
+      "imu_mount_roll_deg": 0,
+      "imu_position_b_x_m": 0,
+      "imu_position_b_y_m": 0,
+      "imu_position_b_z_m": 0,
+      "rw_configuration": "pyramid_4",
+      "rw_geometry_mode": "legacy_axis_offset",
+      "rw_friction_mode": "disabled",
+      "rw_coulomb_friction_nm_0": 0.0,
+      "rw_coulomb_friction_nm_1": 0.0,
+      "rw_coulomb_friction_nm_2": 0.0,
+      "rw_viscous_friction_nms_0": 0.0,
+      "rw_viscous_friction_nms_1": 0.0,
+      "rw_viscous_friction_nms_2": 0.0,
+      "rw_command_deadband_nm": 0.0,
+      "rw_motor_response_time_constant_s": 0.0,
+      "rw_motor_current_limit_a": 10.0,
+      "rw_motor_torque_constant_nm_per_a": 0.02,
+      "rw_max_momentum_nms_0": 50,
+      "rw_max_momentum_nms_1": 50,
+      "rw_max_momentum_nms_2": 50,
+      "rw_initial_speed_rad_s_0": 10.471975511965978,
+      "rw_initial_speed_rad_s_1": 20.943951023931955,
+      "rw_initial_speed_rad_s_2": 31.41592653589793,
+      "initial_soc": 0.62,
+      "battery_capacity_wh": 160.0,
+      "solar_panel_area_m2": 2.5,
+      "solar_efficiency": 0.28,
+      "solar_normal_b_x": 1.0,
+      "solar_normal_b_y": 0.0,
+      "solar_normal_b_z": 0.0,
+      "solar_tracking_enabled": false,
+      "solar_tracking_max_slew_rad_s": 0.0,
+      "bus_power_w": 18.0,
+      "adcs_power_w": 12.0,
+      "adcs_drive_efficiency": 0.75,
+      "adcs_max_power_w": 120.0,
+      "payload_power_w": 38.0,
+      "downlink_power_w": 16.0,
+      "min_operational_soc": 0.2,
+      "payload_max_pointing_error_deg": 20.0,
+      "payload_data_rate_bps": 2500000.0,
+      "downlink_rate_bps": 1500000.0,
+      "storage_capacity_bits": 6000000000.0,
+      "initial_payload_temp_k": 295.0,
+      "payload_thermal_mass_kg": 3,
+      "thermal_earth_ir_w_m2": 234,
+      "thermal_earth_albedo": 0.3,
+      "thermal_panel_front_absorptivity": 0.9,
+      "thermal_panel_back_absorptivity": 0.35,
+      "solar_panel_structure_conductance_w_k": 2.0,
+      "payload_specific_heat_j_kg_k": 600,
+      "payload_thermal_emissivity": 0.75,
+      "payload_radiator_area_m2": 0.25,
+      "battery_heater_power_w": 12,
+      "battery_heater_setpoint_k": 286,
+      "propulsion_enabled": false,
+      "propulsion_power_w": 20.0,
+      "propulsion_burn_start_s": 5.0,
+      "propulsion_burn_on_time_s": 4.0,
+      "propulsion_thrust_n": 1.0,
+      "propulsion_isp_s": 200.0,
+      "propulsion_initial_propellant_kg": 1.0,
+      "propulsion_tank_capacity_kg": 2.0,
+      "propulsion_min_burn_soc": 0.3,
+      "propulsion_min_pulse_s": 0.05,
+      "propulsion_thruster_0_direction_b_x": 1.0,
+      "propulsion_thruster_0_direction_b_y": 0.0,
+      "propulsion_thruster_0_direction_b_z": 0.0,
+      "propulsion_thruster_0_location_b_x_m": 0.0,
+      "propulsion_thruster_0_location_b_y_m": 0.5,
+      "propulsion_thruster_0_location_b_z_m": 0.0,
+      "propulsion_thruster_1_direction_b_x": 1.0,
+      "propulsion_thruster_1_direction_b_y": 0.0,
+      "propulsion_thruster_1_direction_b_z": 0.0,
+      "propulsion_thruster_1_location_b_x_m": 0.0,
+      "propulsion_thruster_1_location_b_y_m": -0.5,
+      "propulsion_thruster_1_location_b_z_m": 0.0,
+      "comm_max_pointing_error_deg": 20.0,
+      "spacecraft_antenna_orientation_b": [
+        0.0,
+        -0.41421356237309503,
+        0.0
+      ],
+      "downlink_frequency_hz": 2200000000.0,
+      "downlink_bandwidth_hz": 1000000.0,
+      "downlink_packet_size_bits": 256.0,
+      "downlink_max_retransmissions": 10,
+      "srp_reference_area_m2": 20.0,
+      "srp_coefficient_reflection": 1.5
+    },
+    "overrides": []
+  },
+  "events": {
+    "faults": [],
+    "degradations": [
+      {
+        "id": "wheel_3_event",
+        "target": "whole_spacecraft",
+        "effect": "adcs_rw_torque_authority_loss",
+        "start_s": 5.05,
+        "end_s": 14.95,
+        "implementation": "auto",
+        "delivery": "modifier",
+        "parameters": {
+          "wheel_index": 3,
+          "torque_scale": 0.25
+        },
+        "event_type": "degradation"
+      }
+    ],
+    "constraints": []
+  },
+  "outputs": {
+    "output_root": "runs/dt1_product_entry_four_effects",
+    "trace_format": "csv",
+    "qoi": [
+      "runtime_truth_status",
+      "engineering_proxy_module_count",
+      "power_authority_inventory",
+      "resource_closure_evidence",
+      "coupling_integrity_pass",
+      "energy_bounds_pass",
+      "data_bounds_pass",
+      "comm_dynamic_power_observed"
+    ],
+    "files": [],
+    "plots": [
+      "adcs.pointing_error_deg",
+      "eps.battery_soc",
+      "data.storage_bits",
+      "thermal.payload_temp_k"
+    ],
+    "telemetry_streams": [],
+    "fmea": {
+      "enabled": false,
+      "formats": [
+        "csv",
+        "json"
+      ]
+    },
+    "include_summary": true,
+    "include_trace": true,
+    "include_labels": true,
+    "include_manifest": true
+  },
+  "assurance": {
+    "fidelity_level": "declared_by_capability",
+    "claim_level": "analysis_only",
+    "validation_profile": "default",
+    "parameter_profile": "demo",
+    "allow_proxy": false
+  },
+  "model": {
+    "capability_id": "whole_spacecraft.unified_native.v1",
+    "target": {
+      "level": "whole_spacecraft",
+      "name": "whole_spacecraft",
+      "mode": "nominal"
+    },
+    "spacecraft": {
+      "mission": {
+        "configuration_source": "form_default"
+      }
+    },
+    "orbit_environment": {},
+    "config": {
+      "environment_profile": "simplified",
+      "srp_model": "disabled",
+      "earth_gravity_model": "legacy_j2_only",
+      "magnetic_field_model": "wmm2025",
+      "epoch_utc": "2026-01-01T00:00:00Z",
+      "atmosphere_model": "none",
+      "drag_area_m2": 0.08,
+      "drag_coefficient": 2.2,
+      "spacecraft_mass_kg": 100.0,
+      "eccentricity": 0.001,
+      "raan_deg": 0.0,
+      "arg_perigee_deg": 0.0,
+      "initial_true_anomaly_rad": 0.0,
+      "initial_pointing_error_deg": 8.0,
+      "inclination_deg": 35.0,
+      "spacecraft_inertia_xx_kg_m2": 100.0,
+      "spacecraft_inertia_yy_kg_m2": 80.0,
+      "spacecraft_inertia_zz_kg_m2": 60.0,
+      "orbit_radius_m": 7000000.0,
+      "controller_k": 3.5,
+      "controller_p": 30.0,
+      "sun_sensor_fov_deg": 80.0,
+      "sun_sensor_scale_factor": 1.0,
+      "sun_sensor_bias_normalized": 0.0,
+      "sun_sensor_kelly_factor": 0.0,
+      "sun_sensor_min_output": 0.0,
+      "sun_sensor_max_output": 1000000.0,
+      "sun_sensor_normal_b_x": 0.0,
+      "sun_sensor_normal_b_y": 0.0,
+      "sun_sensor_normal_b_z": -1.0,
+      "magnetometer_mount_yaw_deg": 0,
+      "magnetometer_mount_pitch_deg": 0,
+      "magnetometer_mount_roll_deg": 0,
+      "magnetometer_bias_tesla_x": 0,
+      "magnetometer_bias_tesla_y": 0,
+      "magnetometer_bias_tesla_z": 0,
+      "magnetometer_scale_factor": 1,
+      "simulation_seed": 0,
+      "imu_gyro_bias_rad_s_x": 0,
+      "imu_gyro_bias_rad_s_y": 0,
+      "imu_gyro_bias_rad_s_z": 0,
+      "imu_accel_bias_m_s2_x": 0,
+      "imu_accel_bias_m_s2_y": 0,
+      "imu_accel_bias_m_s2_z": 0,
+      "imu_gyro_white_noise_std_rad_s": 0,
+      "imu_accel_white_noise_std_m_s2": 0,
+      "imu_gyro_quantization_lsb_rad_s": 0,
+      "imu_accel_quantization_lsb_m_s2": 0,
+      "imu_gyro_max_rad_s": 0,
+      "imu_accel_max_m_s2": 0,
+      "star_tracker_noise_std_arcsec": 0,
+      "star_tracker_mount_yaw_deg": 0,
+      "star_tracker_mount_pitch_deg": 0,
+      "star_tracker_mount_roll_deg": 0,
+      "imu_mount_yaw_deg": 0,
+      "imu_mount_pitch_deg": 0,
+      "imu_mount_roll_deg": 0,
+      "imu_position_b_x_m": 0,
+      "imu_position_b_y_m": 0,
+      "imu_position_b_z_m": 0,
+      "rw_configuration": "orthogonal_3",
+      "rw_geometry_mode": "legacy_axis_offset",
+      "rw_friction_mode": "disabled",
+      "rw_coulomb_friction_nm_0": 0.0,
+      "rw_coulomb_friction_nm_1": 0.0,
+      "rw_coulomb_friction_nm_2": 0.0,
+      "rw_viscous_friction_nms_0": 0.0,
+      "rw_viscous_friction_nms_1": 0.0,
+      "rw_viscous_friction_nms_2": 0.0,
+      "rw_command_deadband_nm": 0.0,
+      "rw_motor_response_time_constant_s": 0.0,
+      "rw_motor_current_limit_a": 10.0,
+      "rw_motor_torque_constant_nm_per_a": 0.02,
+      "rw_max_momentum_nms_0": 50,
+      "rw_max_momentum_nms_1": 50,
+      "rw_max_momentum_nms_2": 50,
+      "rw_initial_speed_rad_s_0": 10.471975511965978,
+      "rw_initial_speed_rad_s_1": 20.943951023931955,
+      "rw_initial_speed_rad_s_2": 31.41592653589793,
+      "initial_soc": 0.62,
+      "battery_capacity_wh": 160.0,
+      "solar_panel_area_m2": 2.5,
+      "solar_efficiency": 0.28,
+      "solar_normal_b_x": 1.0,
+      "solar_normal_b_y": 0.0,
+      "solar_normal_b_z": 0.0,
+      "solar_tracking_enabled": false,
+      "solar_tracking_max_slew_rad_s": 0.0,
+      "bus_power_w": 18.0,
+      "adcs_power_w": 12.0,
+      "adcs_drive_efficiency": 0.75,
+      "adcs_max_power_w": 120.0,
+      "payload_power_w": 38.0,
+      "downlink_power_w": 16.0,
+      "min_operational_soc": 0.2,
+      "payload_max_pointing_error_deg": 20.0,
+      "payload_data_rate_bps": 2500000.0,
+      "downlink_rate_bps": 1500000.0,
+      "storage_capacity_bits": 6000000000.0,
+      "initial_payload_temp_k": 295.0,
+      "payload_thermal_mass_kg": 3,
+      "thermal_earth_ir_w_m2": 234,
+      "thermal_earth_albedo": 0.3,
+      "thermal_panel_front_absorptivity": 0.9,
+      "thermal_panel_back_absorptivity": 0.35,
+      "solar_panel_structure_conductance_w_k": 2.0,
+      "payload_specific_heat_j_kg_k": 600,
+      "payload_thermal_emissivity": 0.75,
+      "payload_radiator_area_m2": 0.25,
+      "battery_heater_power_w": 12,
+      "battery_heater_setpoint_k": 286,
+      "propulsion_enabled": false,
+      "propulsion_power_w": 20.0,
+      "propulsion_burn_start_s": 30.0,
+      "propulsion_burn_on_time_s": 4.0,
+      "propulsion_thrust_n": 1.0,
+      "propulsion_isp_s": 200.0,
+      "propulsion_initial_propellant_kg": 1.0,
+      "propulsion_tank_capacity_kg": 2.0,
+      "propulsion_min_burn_soc": 0.3,
+      "propulsion_min_pulse_s": 0.05,
+      "propulsion_thruster_0_direction_b_x": 1.0,
+      "propulsion_thruster_0_direction_b_y": 0.0,
+      "propulsion_thruster_0_direction_b_z": 0.0,
+      "propulsion_thruster_0_location_b_x_m": 0.0,
+      "propulsion_thruster_0_location_b_y_m": 0.5,
+      "propulsion_thruster_0_location_b_z_m": 0.0,
+      "propulsion_thruster_1_direction_b_x": 1.0,
+      "propulsion_thruster_1_direction_b_y": 0.0,
+      "propulsion_thruster_1_direction_b_z": 0.0,
+      "propulsion_thruster_1_location_b_x_m": 0.0,
+      "propulsion_thruster_1_location_b_y_m": -0.5,
+      "propulsion_thruster_1_location_b_z_m": 0.0,
+      "comm_max_pointing_error_deg": 20.0,
+      "spacecraft_antenna_orientation_b": [
+        0.0,
+        -0.41421356237309503,
+        0.0
+      ],
+      "downlink_frequency_hz": 2200000000.0,
+      "downlink_bandwidth_hz": 1000000.0,
+      "downlink_packet_size_bits": 256.0,
+      "downlink_max_retransmissions": 10
+    },
+    "legacy_degradations": {},
+    "campaign": {},
+    "simulation_extra": {},
+    "validation": {}
+  },
+  "provenance": {
+    "fields": {
+      "task.id": {
+        "source": "user_provided",
+        "evidence": "form"
+      },
+      "simulation.level": {
+        "source": "user_provided",
+        "evidence": "form/capability contract"
+      },
+      "simulation.duration_s": {
+        "source": "user_provided",
+        "evidence": "form"
+      },
+      "simulation.sample_s": {
+        "source": "user_provided",
+        "evidence": "form"
+      },
+      "model.capability_id": {
+        "source": "user_provided",
+        "evidence": "form"
+      },
+      "parameters.values.environment_profile": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.environment_profile",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.srp_model": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.srp_model",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.earth_gravity_model": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.earth_gravity_model",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.magnetic_field_model": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.magnetic_field_model",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.epoch_utc": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.epoch_utc",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.atmosphere_model": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.atmosphere_model",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.drag_area_m2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.drag_area_m2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.drag_coefficient": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.drag_coefficient",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.spacecraft_mass_kg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.spacecraft_mass_kg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.eccentricity": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.eccentricity",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.raan_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.raan_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.arg_perigee_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.arg_perigee_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.initial_true_anomaly_rad": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.initial_true_anomaly_rad",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.initial_pointing_error_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.initial_pointing_error_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.inclination_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.inclination_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.spacecraft_inertia_xx_kg_m2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.spacecraft_inertia_xx_kg_m2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.spacecraft_inertia_yy_kg_m2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.spacecraft_inertia_yy_kg_m2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.spacecraft_inertia_zz_kg_m2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.spacecraft_inertia_zz_kg_m2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.orbit_radius_m": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.orbit_radius_m",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.controller_k": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.controller_k",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.controller_p": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.controller_p",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.sun_sensor_fov_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.sun_sensor_fov_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.sun_sensor_scale_factor": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.sun_sensor_scale_factor",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.sun_sensor_bias_normalized": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.sun_sensor_bias_normalized",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.sun_sensor_kelly_factor": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.sun_sensor_kelly_factor",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.sun_sensor_min_output": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.sun_sensor_min_output",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.sun_sensor_max_output": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.sun_sensor_max_output",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.sun_sensor_normal_b_x": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.sun_sensor_normal_b_x",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.sun_sensor_normal_b_y": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.sun_sensor_normal_b_y",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.sun_sensor_normal_b_z": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.sun_sensor_normal_b_z",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.magnetometer_mount_yaw_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.magnetometer_mount_yaw_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.magnetometer_mount_pitch_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.magnetometer_mount_pitch_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.magnetometer_mount_roll_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.magnetometer_mount_roll_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.magnetometer_bias_tesla_x": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.magnetometer_bias_tesla_x",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.magnetometer_bias_tesla_y": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.magnetometer_bias_tesla_y",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.magnetometer_bias_tesla_z": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.magnetometer_bias_tesla_z",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.magnetometer_scale_factor": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.magnetometer_scale_factor",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.simulation_seed": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.simulation_seed",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_gyro_bias_rad_s_x": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_gyro_bias_rad_s_x",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_gyro_bias_rad_s_y": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_gyro_bias_rad_s_y",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_gyro_bias_rad_s_z": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_gyro_bias_rad_s_z",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_accel_bias_m_s2_x": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_accel_bias_m_s2_x",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_accel_bias_m_s2_y": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_accel_bias_m_s2_y",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_accel_bias_m_s2_z": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_accel_bias_m_s2_z",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_gyro_white_noise_std_rad_s": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_gyro_white_noise_std_rad_s",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_accel_white_noise_std_m_s2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_accel_white_noise_std_m_s2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_gyro_quantization_lsb_rad_s": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_gyro_quantization_lsb_rad_s",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_accel_quantization_lsb_m_s2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_accel_quantization_lsb_m_s2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_gyro_max_rad_s": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_gyro_max_rad_s",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_accel_max_m_s2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_accel_max_m_s2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.star_tracker_noise_std_arcsec": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.star_tracker_noise_std_arcsec",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.star_tracker_mount_yaw_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.star_tracker_mount_yaw_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.star_tracker_mount_pitch_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.star_tracker_mount_pitch_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.star_tracker_mount_roll_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.star_tracker_mount_roll_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_mount_yaw_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_mount_yaw_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_mount_pitch_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_mount_pitch_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_mount_roll_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_mount_roll_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_position_b_x_m": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_position_b_x_m",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_position_b_y_m": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_position_b_y_m",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.imu_position_b_z_m": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.imu_position_b_z_m",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_configuration": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_configuration",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_geometry_mode": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_geometry_mode",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_friction_mode": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_friction_mode",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_coulomb_friction_nm_0": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_coulomb_friction_nm_0",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_coulomb_friction_nm_1": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_coulomb_friction_nm_1",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_coulomb_friction_nm_2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_coulomb_friction_nm_2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_viscous_friction_nms_0": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_viscous_friction_nms_0",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_viscous_friction_nms_1": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_viscous_friction_nms_1",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_viscous_friction_nms_2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_viscous_friction_nms_2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_command_deadband_nm": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_command_deadband_nm",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_motor_response_time_constant_s": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_motor_response_time_constant_s",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_motor_current_limit_a": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_motor_current_limit_a",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_motor_torque_constant_nm_per_a": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_motor_torque_constant_nm_per_a",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_max_momentum_nms_0": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_max_momentum_nms_0",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_max_momentum_nms_1": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_max_momentum_nms_1",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_max_momentum_nms_2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_max_momentum_nms_2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_initial_speed_rad_s_0": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_initial_speed_rad_s_0",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_initial_speed_rad_s_1": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_initial_speed_rad_s_1",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.rw_initial_speed_rad_s_2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.rw_initial_speed_rad_s_2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.initial_soc": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.initial_soc",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.battery_capacity_wh": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.battery_capacity_wh",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.solar_panel_area_m2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.solar_panel_area_m2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.solar_efficiency": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.solar_efficiency",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.solar_normal_b_x": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.solar_normal_b_x",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.solar_normal_b_y": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.solar_normal_b_y",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.solar_normal_b_z": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.solar_normal_b_z",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.solar_tracking_enabled": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.solar_tracking_enabled",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.solar_tracking_max_slew_rad_s": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.solar_tracking_max_slew_rad_s",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.bus_power_w": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.bus_power_w",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.adcs_power_w": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.adcs_power_w",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.adcs_drive_efficiency": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.adcs_drive_efficiency",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.adcs_max_power_w": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.adcs_max_power_w",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.payload_power_w": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.payload_power_w",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.downlink_power_w": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.downlink_power_w",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.min_operational_soc": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.min_operational_soc",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.payload_max_pointing_error_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.payload_max_pointing_error_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.payload_data_rate_bps": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.payload_data_rate_bps",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.downlink_rate_bps": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.downlink_rate_bps",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.storage_capacity_bits": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.storage_capacity_bits",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.initial_payload_temp_k": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.initial_payload_temp_k",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.payload_thermal_mass_kg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.payload_thermal_mass_kg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.thermal_earth_ir_w_m2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.thermal_earth_ir_w_m2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.thermal_earth_albedo": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.thermal_earth_albedo",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.thermal_panel_front_absorptivity": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.thermal_panel_front_absorptivity",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.thermal_panel_back_absorptivity": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.thermal_panel_back_absorptivity",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.solar_panel_structure_conductance_w_k": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.solar_panel_structure_conductance_w_k",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.payload_specific_heat_j_kg_k": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.payload_specific_heat_j_kg_k",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.payload_thermal_emissivity": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.payload_thermal_emissivity",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.payload_radiator_area_m2": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.payload_radiator_area_m2",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.battery_heater_power_w": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.battery_heater_power_w",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.battery_heater_setpoint_k": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.battery_heater_setpoint_k",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_enabled": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_enabled",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_power_w": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_power_w",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_burn_start_s": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_burn_start_s",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_burn_on_time_s": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_burn_on_time_s",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thrust_n": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thrust_n",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_isp_s": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_isp_s",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_initial_propellant_kg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_initial_propellant_kg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_tank_capacity_kg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_tank_capacity_kg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_min_burn_soc": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_min_burn_soc",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_min_pulse_s": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_min_pulse_s",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_0_direction_b_x": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_0_direction_b_x",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_0_direction_b_y": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_0_direction_b_y",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_0_direction_b_z": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_0_direction_b_z",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_0_location_b_x_m": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_0_location_b_x_m",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_0_location_b_y_m": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_0_location_b_y_m",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_0_location_b_z_m": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_0_location_b_z_m",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_1_direction_b_x": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_1_direction_b_x",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_1_direction_b_y": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_1_direction_b_y",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_1_direction_b_z": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_1_direction_b_z",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_1_location_b_x_m": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_1_location_b_x_m",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_1_location_b_y_m": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_1_location_b_y_m",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.propulsion_thruster_1_location_b_z_m": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.propulsion_thruster_1_location_b_z_m",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.comm_max_pointing_error_deg": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.comm_max_pointing_error_deg",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.spacecraft_antenna_orientation_b": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.spacecraft_antenna_orientation_b",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.downlink_frequency_hz": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.downlink_frequency_hz",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.downlink_bandwidth_hz": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.downlink_bandwidth_hz",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.downlink_packet_size_bits": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.downlink_packet_size_bits",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "parameters.values.downlink_max_retransmissions": {
+        "source": "user_provided",
+        "evidence": "Submitted form configuration value; registry contract: whole_spacecraft.unified_native.v1.parameters.downlink_max_retransmissions",
+        "note": "Engineering configuration input; this form does not attach independent hardware calibration evidence."
+      },
+      "model.spacecraft.mission.configuration_source": {
+        "source": "form_default",
+        "evidence": "Capability Registry default: whole_spacecraft.unified_native.v1.spacecraft.mission.configuration_source"
+      }
+    },
+    "assumptions": [
+      {
+        "path": "parameters.values.environment_profile",
+        "value": "simplified",
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.srp_model",
+        "value": "disabled",
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.earth_gravity_model",
+        "value": "legacy_j2_only",
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.magnetic_field_model",
+        "value": "wmm2025",
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.epoch_utc",
+        "value": "2026-01-01T00:00:00Z",
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.atmosphere_model",
+        "value": "none",
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.drag_area_m2",
+        "value": 0.08,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.drag_coefficient",
+        "value": 2.2,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.spacecraft_mass_kg",
+        "value": 100.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.eccentricity",
+        "value": 0.001,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.raan_deg",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.arg_perigee_deg",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.initial_true_anomaly_rad",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.initial_pointing_error_deg",
+        "value": 8.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.inclination_deg",
+        "value": 35.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.spacecraft_inertia_xx_kg_m2",
+        "value": 100.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.spacecraft_inertia_yy_kg_m2",
+        "value": 80.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.spacecraft_inertia_zz_kg_m2",
+        "value": 60.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.orbit_radius_m",
+        "value": 7000000.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.controller_k",
+        "value": 3.5,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.controller_p",
+        "value": 30.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.sun_sensor_fov_deg",
+        "value": 80.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.sun_sensor_scale_factor",
+        "value": 1.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.sun_sensor_bias_normalized",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.sun_sensor_kelly_factor",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.sun_sensor_min_output",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.sun_sensor_max_output",
+        "value": 1000000.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.sun_sensor_normal_b_x",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.sun_sensor_normal_b_y",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.sun_sensor_normal_b_z",
+        "value": -1.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.magnetometer_mount_yaw_deg",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.magnetometer_mount_pitch_deg",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.magnetometer_mount_roll_deg",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.magnetometer_bias_tesla_x",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.magnetometer_bias_tesla_y",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.magnetometer_bias_tesla_z",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.magnetometer_scale_factor",
+        "value": 1,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.simulation_seed",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_gyro_bias_rad_s_x",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_gyro_bias_rad_s_y",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_gyro_bias_rad_s_z",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_accel_bias_m_s2_x",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_accel_bias_m_s2_y",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_accel_bias_m_s2_z",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_gyro_white_noise_std_rad_s",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_accel_white_noise_std_m_s2",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_gyro_quantization_lsb_rad_s",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_accel_quantization_lsb_m_s2",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_gyro_max_rad_s",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_accel_max_m_s2",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.star_tracker_noise_std_arcsec",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.star_tracker_mount_yaw_deg",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.star_tracker_mount_pitch_deg",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.star_tracker_mount_roll_deg",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_mount_yaw_deg",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_mount_pitch_deg",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_mount_roll_deg",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_position_b_x_m",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_position_b_y_m",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.imu_position_b_z_m",
+        "value": 0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_configuration",
+        "value": "orthogonal_3",
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_geometry_mode",
+        "value": "legacy_axis_offset",
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_friction_mode",
+        "value": "disabled",
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_coulomb_friction_nm_0",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_coulomb_friction_nm_1",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_coulomb_friction_nm_2",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_viscous_friction_nms_0",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_viscous_friction_nms_1",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_viscous_friction_nms_2",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_command_deadband_nm",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_motor_response_time_constant_s",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_motor_current_limit_a",
+        "value": 10.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_motor_torque_constant_nm_per_a",
+        "value": 0.02,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_max_momentum_nms_0",
+        "value": 50,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_max_momentum_nms_1",
+        "value": 50,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_max_momentum_nms_2",
+        "value": 50,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_initial_speed_rad_s_0",
+        "value": 10.471975511965978,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_initial_speed_rad_s_1",
+        "value": 20.943951023931955,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.rw_initial_speed_rad_s_2",
+        "value": 31.41592653589793,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.initial_soc",
+        "value": 0.62,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.battery_capacity_wh",
+        "value": 160.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.solar_panel_area_m2",
+        "value": 2.5,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.solar_efficiency",
+        "value": 0.28,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.solar_normal_b_x",
+        "value": 1.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.solar_normal_b_y",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.solar_normal_b_z",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.solar_tracking_enabled",
+        "value": false,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.solar_tracking_max_slew_rad_s",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.bus_power_w",
+        "value": 18.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.adcs_power_w",
+        "value": 12.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.adcs_drive_efficiency",
+        "value": 0.75,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.adcs_max_power_w",
+        "value": 120.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.payload_power_w",
+        "value": 38.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.downlink_power_w",
+        "value": 16.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.min_operational_soc",
+        "value": 0.2,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.payload_max_pointing_error_deg",
+        "value": 20.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.payload_data_rate_bps",
+        "value": 2500000.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.downlink_rate_bps",
+        "value": 1500000.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.storage_capacity_bits",
+        "value": 6000000000.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.initial_payload_temp_k",
+        "value": 295.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.payload_thermal_mass_kg",
+        "value": 3,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.thermal_earth_ir_w_m2",
+        "value": 234,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.thermal_earth_albedo",
+        "value": 0.3,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.thermal_panel_front_absorptivity",
+        "value": 0.9,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.thermal_panel_back_absorptivity",
+        "value": 0.35,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.solar_panel_structure_conductance_w_k",
+        "value": 2.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.payload_specific_heat_j_kg_k",
+        "value": 600,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.payload_thermal_emissivity",
+        "value": 0.75,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.payload_radiator_area_m2",
+        "value": 0.25,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.battery_heater_power_w",
+        "value": 12,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.battery_heater_setpoint_k",
+        "value": 286,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_enabled",
+        "value": false,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_power_w",
+        "value": 20.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_burn_start_s",
+        "value": 30.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_burn_on_time_s",
+        "value": 4.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thrust_n",
+        "value": 1.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_isp_s",
+        "value": 200.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_initial_propellant_kg",
+        "value": 1.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_tank_capacity_kg",
+        "value": 2.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_min_burn_soc",
+        "value": 0.3,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_min_pulse_s",
+        "value": 0.05,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_0_direction_b_x",
+        "value": 1.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_0_direction_b_y",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_0_direction_b_z",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_0_location_b_x_m",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_0_location_b_y_m",
+        "value": 0.5,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_0_location_b_z_m",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_1_direction_b_x",
+        "value": 1.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_1_direction_b_y",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_1_direction_b_z",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_1_location_b_x_m",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_1_location_b_y_m",
+        "value": -0.5,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.propulsion_thruster_1_location_b_z_m",
+        "value": 0.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.comm_max_pointing_error_deg",
+        "value": 20.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.spacecraft_antenna_orientation_b",
+        "value": [
+          0.0,
+          -0.41421356237309503,
+          0.0
+        ],
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.downlink_frequency_hz",
+        "value": 2200000000.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.downlink_bandwidth_hz",
+        "value": 1000000.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.downlink_packet_size_bits",
+        "value": 256.0,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "parameters.values.downlink_max_retransmissions",
+        "value": 10,
+        "reason": "Submitted engineering configuration; independent source evidence was not attached to this form.",
+        "status": "accepted"
+      },
+      {
+        "path": "model.spacecraft.mission.configuration_source",
+        "reason": "Applied registered default from whole_spacecraft.unified_native.v1",
+        "status": "accepted"
+      }
+    ],
+    "pending_confirmations": []
+  },
+  "metadata": {
+    "agent": {
+      "unified_agent_version": "v24.unified-agent.v3",
+      "input_kind": "form",
+      "registry_authority": true,
+      "rag_policy": "v23.rag-boundary.v1"
+    },
+    "scenario_template": {
+      "schema_version": "scenario-templates.v4",
+      "template_id": "whole_spacecraft_unified_native",
+      "name": "\u6574\u661f\u7edf\u4e00Basilisk\u8fd0\u884c\u56fe",
+      "level": "whole_spacecraft",
+      "object_id": "whole_spacecraft",
+      "execution_scope": "direct",
+      "runtime_test_required": true,
+      "expected_validation": "PASS",
+      "expected_mission_status": null,
+      "expected_validation_reason_code": null
+    }
+  }
+}

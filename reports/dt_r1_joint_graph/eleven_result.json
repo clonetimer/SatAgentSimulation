@@ -1,0 +1,42 @@
+{
+  "rows": 16,
+  "initial_soc": 0.62,
+  "capacity_j": 576000.0,
+  "gravity": {
+    "body_mu_m3_s2": 398600436000000.0,
+    "body_equatorial_radius_m": 6378136.6,
+    "harmonics_mu_m3_s2": 398600436000000.0,
+    "harmonics_equatorial_radius_m": 6378136.6,
+    "harmonics_degree": 4
+  },
+  "weather": {
+    "OBS": 3,
+    "PRD": 1
+  },
+  "limited_samples": 5,
+  "evidence": {
+    "event_id": "wheel_3_event",
+    "event_kind": "degradation",
+    "requested_effect": "adcs_rw_torque_authority_loss",
+    "delivery_result": "PASS",
+    "effect_result": "PASS",
+    "registered": true,
+    "active_sample_count": 5,
+    "evidence_fields_present": [
+      "adcs.rw.effective_torque_ratio_3",
+      "adcs.rw.effective_max_torque_nm_3",
+      "adcs.control.applied_torque_nm_3"
+    ],
+    "evidence_fields_missing": [],
+    "reason_codes": [
+      "RUNTIME_EFFECT_VERIFIED"
+    ]
+  },
+  "validation": "PASS",
+  "seal_verified": true,
+  "files": {
+    "input/task_spec.json": "0a5d3247cd074b86c6a25ea675c8c7bf4d4cecb60155ca10a32e7753ecaba064",
+    "results/telemetry.jsonl": "2184678881d13b2197ecbddccbd4fe8e42d81a9cc1e66642142104b8ee49afab",
+    "bundle_manifest.json": "1d081227c32e5711ccb15fbfab844df7c511e9e2440d0c53b996e591065eeb21"
+  }
+}
