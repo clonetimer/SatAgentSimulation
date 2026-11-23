@@ -29,7 +29,7 @@ def test_release_left_directory_assets_and_versions(tmp_path: Path) -> None:
         assert response.status_code == 200
         text = response.text
         assert 'class="app-sidebar"' in text
-        for label in ("仿真创建", "任务中心", "实验中心", "运行中心", "系统诊断", "运行日志", "模型服务"):
+        for label in ("快速仿真", "任务中心", "实验中心", "运行中心", "系统诊断", "运行日志", "模型服务"):
             assert label in text
         assert 'id="runCenterView"' in text
         assert 'id="diagnosticView"' in text
@@ -73,6 +73,8 @@ def test_release_report_is_generated_before_bundle_seal(tmp_path: Path) -> None:
         assert (root / "SEALED.json").is_file()
         report = client.get(f"/runs/{run_id}/report.html")
         assert report.status_code == 200
+        assert "<span>运行状态</span><strong>已完成</strong>" in report.text
+        assert task_spec["task"]["id"] in report.text
         assert "卫星仿真平台 · 自动报告" in report.text
         assert "浏览器“打印/另存为 PDF”" in report.text
         run = client.get(f"/runs/{run_id}").json()["run"]

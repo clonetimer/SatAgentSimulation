@@ -70,7 +70,7 @@ def _metric_rows(payload: Mapping[str, Any], max_rows: int = 80) -> list[tuple[s
         raw = str(key)
         if raw in internal_exact or raw.startswith(internal_prefixes):
             continue
-        label = output_label(raw)
+        label = "适配器任务状态" if raw == "mission_status" else output_label(raw)
         if label == "可观测量":
             label = raw
         rows.append((label, _status_zh(value)))
@@ -243,7 +243,7 @@ table{{width:100%;border-collapse:collapse;font-size:12px}}th,td{{border:1px sol
 <div class="card"><span>主要能力</span><strong>{_escape(model.get("capability_id") or simulation.get("capability_id") or "—")}</strong></div>
 <div class="card"><span>自动验收</span><strong>{_escape(_status_zh(assertions.get("status", "NOT_CONFIGURED")))}</strong></div>
 </div><div class="content">
-<section><h2>一、任务与运行配置</h2>{_table([("任务 ID", task.get("task_id")),("任务名称",task.get("name")),("仿真时长/s",simulation.get("duration_s")),("运行状态",_status_zh(run_record.get("status"))),("终止原因",run_record.get("terminal_reason_code")),("验证原因",validation.get("reason_code"))])}</section>
+<section><h2>一、任务与运行配置</h2>{_table([("任务 ID", task.get("id") or task.get("task_id")),("任务名称",task.get("name")),("仿真时长/s",simulation.get("duration_s")),("运行状态",_status_zh(run_record.get("status"))),("终止原因",run_record.get("terminal_reason_code")),("验证原因",validation.get("reason_code"))])}</section>
 <section><h2>二、核心指标</h2>{_table(_metric_rows(metrics))}</section>
 <section><h2>三、故障、退化与运行约束事件</h2><table><thead><tr><th>类别</th><th>效果</th><th>目标</th><th>开始/s</th><th>结束/s</th></tr></thead><tbody>{event_html}</tbody></table></section>
 <section><h2>四、自动验收</h2><table><thead><tr><th>指标</th><th>运算符</th><th>期望</th><th>实际</th><th>结果</th></tr></thead><tbody>{assertion_html}</tbody></table></section>
