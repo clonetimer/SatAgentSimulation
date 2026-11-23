@@ -159,9 +159,25 @@ def check_data_conservation(trace_rows: Sequence[Mapping[str, Any]], *, toleranc
     return issues
 
 
+_NATIVE_QUATERNION = tuple(f"attitude.truth.quaternion_BN_q{i}" for i in range(4))
+
+
+def _quaternion_norm_items(row: Mapping[str, Any]):
+    for name, raw in row.items():
+        if str(name).endswith("quaternion_norm"):
+            yield str(name), raw
+    if any(key in row for key in _NATIVE_QUATERNION):
+        components = [_finite_number(row.get(key)) for key in _NATIVE_QUATERNION]
+        norm = None
+        if row.get("attitude.truth.valid") == 1 and None not in components:
+            norm = math.hypot(*components)
+        yield "norm(attitude.truth.quaternion_BN_q0..q3)", norm
+
+
 def check_quaternion_norm(trace_rows: Sequence[Mapping[str, Any]], *, warning_tol: float = 1.0e-3, fail_tol: float = 5.0e-2) -> list[PhysicalValidationIssue]:
     issues: list[PhysicalValidationIssue] = []
-    values = _matching_values(trace_rows, lambda name: name.endswith("quaternion_norm") or name in {"adcs.quaternion_norm", "attitude.quaternion_norm"})
+    values = ((idx, key, value) for idx, row in enumerate(trace_rows)
+              for key, raw in _quaternion_norm_items(row) if (value := _finite_number(raw)) is not None)
     for idx, key, norm in values:
         err = abs(norm - 1.0)
         if err > fail_tol:
@@ -231,6 +247,8 @@ def physical_validation_options(task_spec: Mapping[str, Any] | None) -> dict[str
 
 
 def _check_evidence_items(check_id: str, row: Mapping[str, Any]):
+    if check_id == "quaternion_norm":
+        return _quaternion_norm_items(row)
     if check_id in _CHECK_FIELDS:
         return ((name, row[name]) for name in _CHECK_FIELDS[check_id] if name in row)
     predicate = (lambda name: _is_temperature_field(name) or _is_thermal_safety_field(name)) if check_id == "thermal_bounds" else lambda name: name.endswith("quaternion_norm")

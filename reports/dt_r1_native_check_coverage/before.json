@@ -1,0 +1,90 @@
+{
+  "trace_sha256": "fcdb2ff618023718fc359bc5450b0fa27b15f1fb9ea82ac722b8fb8d4d5ca7e3",
+  "samples": [
+    {
+      "time_s": 0.0,
+      "spherical_height_m": 271863.7000000011,
+      "quaternion_norm": 1.0,
+      "storage_bits": 0.0,
+      "generated_sample_bits": 0.0,
+      "downlinked_sample_bits": 0.0
+    },
+    {
+      "time_s": 10.0,
+      "spherical_height_m": 271863.02709295414,
+      "quaternion_norm": 1.0,
+      "storage_bits": 25000000.0,
+      "generated_sample_bits": 25000000.0,
+      "downlinked_sample_bits": 0.0
+    },
+    {
+      "time_s": 20.0,
+      "spherical_height_m": 271861.0084256884,
+      "quaternion_norm": 1.0,
+      "storage_bits": 47500000.0,
+      "generated_sample_bits": 0.0,
+      "downlinked_sample_bits": 0.0
+    },
+    {
+      "time_s": 30.000000000000004,
+      "spherical_height_m": 271857.6442135358,
+      "quaternion_norm": 1.0,
+      "storage_bits": 47500000.0,
+      "generated_sample_bits": 0.0,
+      "downlinked_sample_bits": 0.0
+    }
+  ],
+  "reference_radius_m": 6378136.3,
+  "gravity_sha256": "71f8736f98c5d8c972d0f6d56a2389302f72b8ac7517c605d312162ca446a3a1",
+  "propulsion_enabled": false,
+  "checks": {
+    "orbit_altitude_sanity": {
+      "status": "NOT_EVALUATED",
+      "evaluated": false,
+      "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+      "minimum_samples_per_field": 1,
+      "valid_row_count": 0,
+      "valid_sample_count": 0,
+      "invalid_sample_count": 0,
+      "fields_observed": [],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "quaternion_norm": {
+      "status": "NOT_EVALUATED",
+      "evaluated": false,
+      "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+      "minimum_samples_per_field": 1,
+      "valid_row_count": 0,
+      "valid_sample_count": 0,
+      "invalid_sample_count": 0,
+      "fields_observed": [],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "fuel_monotonicity": {
+      "status": "NOT_EVALUATED",
+      "evaluated": false,
+      "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+      "minimum_samples_per_field": 2,
+      "valid_row_count": 0,
+      "valid_sample_count": 0,
+      "invalid_sample_count": 0,
+      "fields_observed": [],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "data_conservation": {
+      "status": "NOT_EVALUATED",
+      "evaluated": false,
+      "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+      "minimum_samples_per_field": 1,
+      "valid_row_count": 0,
+      "valid_sample_count": 0,
+      "invalid_sample_count": 0,
+      "fields_observed": [],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    }
+  }
+}
