@@ -149,13 +149,15 @@ def _wait_for_running(base: str, mode: str, session_id: str) -> dict:
 
 
 @pytest.mark.parametrize("mode", ["bounded", "continuous"])
-def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path):
+@pytest.mark.parametrize("entry", ["sidebar", "scene"])
+def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, tmp_path):
     if os.environ.get("SAT_SIM_P9F_NATIVE_BROWSER_TEST") != "1":
         pytest.skip("Dedicated genuine Basilisk/Chromium acceptance job only")
     import Basilisk
     from playwright.sync_api import sync_playwright
 
-    evidence = Path(os.environ.get("SAT_SIM_P9F_EVIDENCE", str(tmp_path))) / mode
+    evidence_name = mode if entry == "sidebar" else f"scene-{mode}"
+    evidence = Path(os.environ.get("SAT_SIM_P9F_EVIDENCE", str(tmp_path))) / evidence_name
     evidence.mkdir(parents=True, exist_ok=True)
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
@@ -180,6 +182,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
     report = {
         "status": "RUNNING",
         "mode": mode,
+        "creation_entry": entry,
         "basilisk_version": Basilisk.__version__,
         "transport": "product UI + real HTTP/WebSocket/REST",
         "telemetry_injection": False,
@@ -218,6 +221,7 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
 
         with sync_playwright() as pw:
             browser = pw.chromium.launch(
+                executable_path=os.environ.get("SAT_SIM_BROWSER_EXECUTABLE"),
                 headless=True,
                 args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
             )
@@ -242,23 +246,29 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, tmp_path
             page.evaluate(GLOBE_OBSERVER)
             assert page.evaluate("typeof window.Globe") == "function"
 
-            page.locator("#wizardAdvancedBtn").click()
-            nav = "#continuousNavButton" if mode == "continuous" else "#interactiveNavButton"
-            page.locator(nav + ":not(.hidden)").wait_for(state="attached", timeout=30000)
-            # Follow the product's progressive navigation using real keyboard
-            # actions; never force a click or inject disclosure/telemetry state.
-            more = page.locator("#workbenchMoreNavigation")
-            if more.get_attribute("open") is None:
-                more.locator(":scope > summary").focus()
-                more.locator(":scope > summary").press("Enter")
-            realtime = page.locator(".sidebar-nav-group").filter(
-                has=page.locator("summary", has_text="实时仿真")
-            )
-            if realtime.get_attribute("open") is None:
-                realtime.locator(":scope > summary").focus()
-                realtime.locator(":scope > summary").press("Enter")
-            page.locator(nav).wait_for(state="visible", timeout=30000)
-            page.locator(nav).click()
+            if entry == "scene":
+                page.locator("#wizardSceneShortcutBtn").click()
+                page.locator("#sceneCreateTaskBtn").click()
+                option = "continuous" if mode == "continuous" else "interactive"
+                page.locator(f'#sceneTaskCreateModal [data-scene-create="{option}"]').click()
+            else:
+                page.locator("#wizardAdvancedBtn").click()
+                nav = "#continuousNavButton" if mode == "continuous" else "#interactiveNavButton"
+                page.locator(nav + ":not(.hidden)").wait_for(state="attached", timeout=30000)
+                # Follow the product's progressive navigation using real keyboard
+                # actions; never force a click or inject disclosure/telemetry state.
+                more = page.locator("#workbenchMoreNavigation")
+                if more.get_attribute("open") is None:
+                    more.locator(":scope > summary").focus()
+                    more.locator(":scope > summary").press("Enter")
+                realtime = page.locator(".sidebar-nav-group").filter(
+                    has=page.locator("summary", has_text="实时仿真")
+                )
+                if realtime.get_attribute("open") is None:
+                    realtime.locator(":scope > summary").focus()
+                    realtime.locator(":scope > summary").press("Enter")
+                page.locator(nav).wait_for(state="visible", timeout=30000)
+                page.locator(nav).click()
 
             if mode == "continuous":
                 session_id = "p9f-native-browser-continuous"
@@ -719,6 +729,7 @@ def test_sealed_finite_run_attitude_is_restored_in_real_scene(viewport, tmp_path
 
         with sync_playwright() as pw:
             browser = pw.chromium.launch(
+                executable_path=os.environ.get("SAT_SIM_BROWSER_EXECUTABLE"),
                 headless=True,
                 args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
             )
