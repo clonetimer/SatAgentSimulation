@@ -265,8 +265,8 @@ jobs:
           selected="$(python -m pytest --collect-only -q tests/test_guided_task_workspace_browser.py -k guided_whole_spacecraft_event_run_bundle)"
           printf '%s\n' "$selected"
           count="$(printf '%s\n' "$selected" | grep -Fc '::test_guided_whole_spacecraft_event_run_bundle[')"
-          test "$count" -eq 9
-          for case_id in nominal adcs_rw_jamming adcs_rw_motor_failure gyro_bias_step gyro_noise_increase rw_friction_degradation adcs_reaction_wheel_speed_limit propulsion_thruster_ignition_failure propulsion_burn_impulse_loss; do
+          test "$count" -eq 10
+          for case_id in nominal adcs_rw_jamming adcs_rw_motor_failure gyro_bias_step gyro_noise_increase adcs_rw_torque_authority_loss rw_friction_degradation adcs_reaction_wheel_speed_limit propulsion_thruster_ignition_failure propulsion_burn_impulse_loss; do
             printf '%s\n' "$selected" | grep -Fq "::test_guided_whole_spacecraft_event_run_bundle[$case_id]"
           done
 
@@ -292,7 +292,7 @@ jobs:
           whole_runs = [case for case in cases if case.attrib.get("name", "").startswith("test_guided_whole_spacecraft_event_run_bundle[")]
           expected_whole_run_ids = {
               "nominal", "adcs_rw_jamming", "adcs_rw_motor_failure", "gyro_bias_step",
-              "gyro_noise_increase", "rw_friction_degradation", "adcs_reaction_wheel_speed_limit",
+              "gyro_noise_increase", "adcs_rw_torque_authority_loss", "rw_friction_degradation", "adcs_reaction_wheel_speed_limit",
               "propulsion_thruster_ignition_failure", "propulsion_burn_impulse_loss",
           }
           actual_whole_run_ids = {
@@ -302,7 +302,7 @@ jobs:
           assert len(eps_comm) == 6, [case.attrib for case in eps_comm]
           assert len(adcs) == 1, [case.attrib for case in adcs]
           assert len(whole) == 1, [case.attrib for case in whole]
-          assert len(whole_runs) == 9, [case.attrib for case in whole_runs]
+          assert len(whole_runs) == len(expected_whole_run_ids), [case.attrib for case in whole_runs]
           assert actual_whole_run_ids == expected_whole_run_ids, actual_whole_run_ids
           for case in [*eps_comm, *adcs, *whole, *whole_runs]:
               assert not case.findall("failure") and not case.findall("skipped"), case.attrib
@@ -326,12 +326,12 @@ jobs:
 
           root = Path("reports/native_whole_spacecraft_events")
           report = json.loads((root / "effect_ab.json").read_text(encoding="utf-8"))
-          assert len(report["cases"]) == 8, len(report["cases"])
+          assert len(report["cases"]) == 9, len(report["cases"])
           physical_paths = set()
           for case in report["cases"]:
               physical_paths.add(case["nominal_bundle_archive"])
               physical_paths.add(case["injected_bundle_archive"])
-          assert len(physical_paths) == 10, sorted(physical_paths)
+          assert len(physical_paths) == 11, sorted(physical_paths)
           for raw_path in sorted(physical_paths):
               bundle_path = Path(raw_path)
               assert (bundle_path / "SEALED.json").is_file(), bundle_path
@@ -342,8 +342,8 @@ jobs:
           browser_dir = root / "browser_run_bundles"
           archives = sorted(browser_dir.glob("*.zip"))
           sidecars = sorted(browser_dir.glob("*.json"))
-          assert len(archives) == 9, [path.name for path in archives]
-          assert len(sidecars) == 9, [path.name for path in sidecars]
+          assert len(archives) == 10, [path.name for path in archives]
+          assert len(sidecars) == 10, [path.name for path in sidecars]
           for archive_path in archives:
               metadata_path = archive_path.with_suffix(".json")
               metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
