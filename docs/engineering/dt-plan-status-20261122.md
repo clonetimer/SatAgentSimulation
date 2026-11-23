@@ -289,3 +289,11 @@
 **地影输入来源候选及同输入对照。** [#233](https://github.com/clonetimer/SatAgentSimulation/pull/233) 在原生 Eclipse 执行前记录其航天器状态消息的位置和写入时间。2 s 动力学步长、10 s 输出的原生回归逐帧对照密集真值；5400 s 整轨直接从记录的输入位置重算，2701 帧的光照比例最大绝对差为 2.116×10⁻⁹。
 
 在 #233 父提交 `4624c3a7` 和候选 `46802ac` 上执行同一份 TaskSpec，太阳活动输入使用同一份观测天气快照。两份封存包均通过完整性校验，任务输入字节、整体验证文件字节及轨道环境配置相同。对照 2701 帧、每帧 332 个已有字段，共 896732 个字段值全部相等；新报告含五个来源字段（输入位置三轴、消息时间及几何有效性）。此结果覆盖显式启用 SRP 的本次全轨工况。[复核脚本](../../reports/dt_r1_eclipse/observer_ab.py)及[两份运行清单和逐字段核对摘要](../../reports/dt_r1_eclipse/observer_ab.json)。
+
+### R1 历史天气资产与重放
+
+在 #234 的提交 46db217、Basilisk 2.11.0 和同一组离线资产上，从三个历史封存包取出 TaskSpec 后重跑。三例的输入、两种遥测序列化和验证结果均与原运行逐字节相等。[十二对文件的 SHA-256](../../reports/dt_r1_weather_replay/comparison.json)。
+
+另在 2026-03-04 案例执行[带资产核对的独立重放脚本](../../reports/dt_r1_weather_replay/check_weather_replay.py)。脚本读取通过封存校验的历史摘要，比对天气文件指纹后才准备新运行；运行结束再检查原生记录、遥测和验证结果。传入日期覆盖相同的仓库测试夹具时，因 SHA-256 不同而在创建输出目录前中止。使用原公开快照时，真实重放及两项结果比对通过。此脚本用于上述整星原生案例。平台通用重放、其他资产类别与跨机资格仍待验证。
+
+复验时在目标提交的 Python 环境中配置已有的 SPICE 与 Basilisk 支持数据，执行 python check_weather_replay.py HISTORICAL_RUN WEATHER_CSV NEW_OUTPUT_ROOT。指定新的输出根目录，避免已有运行 ID 冲突。[#234 的整星原生 CI](https://github.com/clonetimer/SatAgentSimulation/actions/runs/45188728423/job/137741086638) 已通过。

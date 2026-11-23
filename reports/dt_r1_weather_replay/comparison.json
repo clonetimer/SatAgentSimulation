@@ -1,0 +1,65 @@
+[
+  {
+    "case": "2026-03-04",
+    "files": {
+      "input/task_spec.json": {
+        "identical": true,
+        "sha256": "e9f6e8688aacdc00714f38ae4d01caaff3ae932020987fe73cc1e252c3a6307b"
+      },
+      "results/telemetry.jsonl": {
+        "identical": true,
+        "sha256": "60e8e500a03adb5bc4e3e7f2a2101f1b941d0bf9a362d4edb9b3964185409a05"
+      },
+      "results/telemetry.csv": {
+        "identical": true,
+        "sha256": "c80615018976009b0de180d2490c2e0a8aa93bfd2af89a5b65ce0fffab3de7cc"
+      },
+      "validation/validation_outcome.json": {
+        "identical": true,
+        "sha256": "1c199920dab1feb2fbd6b8061fce553f4c61b88e5967e9ae7214bd95eb1306b8"
+      }
+    }
+  },
+  {
+    "case": "2026-11-23",
+    "files": {
+      "input/task_spec.json": {
+        "identical": true,
+        "sha256": "efa7c04e713878fbedcc6afc92f03ebaa38521e4243418466e930d97c255e0a0"
+      },
+      "results/telemetry.jsonl": {
+        "identical": true,
+        "sha256": "16101ee0c9277d6d12057355fbbdbd27078bf094f7c0bdbb2c331a8d5560f951"
+      },
+      "results/telemetry.csv": {
+        "identical": true,
+        "sha256": "88ae32210803c1b606394742ce12da115e1c8310ed0d56f9be3db423021ae6ff"
+      },
+      "validation/validation_outcome.json": {
+        "identical": true,
+        "sha256": "1c199920dab1feb2fbd6b8061fce553f4c61b88e5967e9ae7214bd95eb1306b8"
+      }
+    }
+  },
+  {
+    "case": "2026-11-28",
+    "files": {
+      "input/task_spec.json": {
+        "identical": true,
+        "sha256": "5a0f14e9304b51d097c0a81419ad84f19458f994d7ae4647b6ecf04221771f2b"
+      },
+      "results/telemetry.jsonl": {
+        "identical": true,
+        "sha256": "b22e5fbc058271f67c5c901bf9a197bb3a87dfed60c0ae641dd5bbfd63246ce1"
+      },
+      "results/telemetry.csv": {
+        "identical": true,
+        "sha256": "6702286f6d557290e77b077ada8e90cad63218d4fc3c8ddb75cdaa6e0ac664ad"
+      },
+      "validation/validation_outcome.json": {
+        "identical": true,
+        "sha256": "1c199920dab1feb2fbd6b8061fce553f4c61b88e5967e9ae7214bd95eb1306b8"
+      }
+    }
+  }
+]
