@@ -97,6 +97,7 @@ class NativeAdcsInitial(_Strict):
     imu_position_b_y_m: float = Field(default=0., ge=-2., le=2., description="IMU 安装中心在机体系 B 中的 Y 坐标 (m)")
     imu_position_b_z_m: float = Field(default=0., ge=-2., le=2., description="IMU 安装中心在机体系 B 中的 Z 坐标 (m)")
     star_tracker_mount_yaw_deg: float = Field(default=0., ge=-180., le=180., description="星敏相对机体系的航向安装角 (321 Euler; deg)")
+    star_tracker_earth_occlusion_half_fov_deg: float = Field(default=0., ge=0., le=89., description="星敏地球全视场遮挡半角，0 关闭（deg）")
     star_tracker_mount_pitch_deg: float = Field(default=0., ge=-89., le=89., description="星敏相对机体系的俯仰安装角 (321 Euler; deg)")
     star_tracker_mount_roll_deg: float = Field(default=0., ge=-180., le=180., description="星敏相对机体系的横滚安装角 (321 Euler; deg)")
     sun_sensor_normal_b_x: float = Field(default=0., ge=-1., le=1., description="B 系太阳敏感器原生 CSS nHat_B 法线 X；须与 Y/Z 构成单位矢量")
@@ -467,6 +468,7 @@ _UNITS = {
     "imu_position_b_y_m": "m",
     "imu_position_b_z_m": "m",
     "star_tracker_mount_yaw_deg": "deg",
+    "star_tracker_earth_occlusion_half_fov_deg": "deg",
     "star_tracker_mount_pitch_deg": "deg",
     "star_tracker_mount_roll_deg": "deg",
     "orbit_radius_m": "m", "eccentricity": "1", "inclination_deg": "deg",

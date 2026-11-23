@@ -61,7 +61,7 @@ def test_native_initial_catalog_has_exactly_supported_device_groups():
     assert adcs_fields["rw_viscous_friction_nms"]["unit"] == "N·m·s/rad"
     for field in ("imu_mount_yaw_deg", "imu_mount_pitch_deg", "imu_mount_roll_deg",
                   "star_tracker_mount_yaw_deg", "star_tracker_mount_pitch_deg",
-                  "star_tracker_mount_roll_deg"):
+                  "star_tracker_mount_roll_deg", "star_tracker_earth_occlusion_half_fov_deg"):
         assert adcs_fields[field]["unit"] == "deg"
         assert adcs_fields[field]["default"] == 0.
     for field in ("imu_position_b_x_m", "imu_position_b_y_m", "imu_position_b_z_m"):
@@ -116,6 +116,7 @@ def test_continuous_web_form_matches_registered_native_catalog():
     {"adcs": {"imu_mount_roll_deg": float("inf")}},
     {"adcs": {"imu_position_b_x_m": 2.01}},
     {"adcs": {"imu_position_b_y_m": -2.01}},
+    {"adcs": {"star_tracker_earth_occlusion_half_fov_deg": 90}},
     {"adcs": {"star_tracker_mount_pitch_deg": 90}},
     {"adcs": {"star_tracker_mount_roll_deg": float("nan")}},
     {"adcs": {"imu_gyro_bias_rad_s_x": 0.10001}},
@@ -204,7 +205,7 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
                          "imu_position_b_x_m": .1, "imu_position_b_y_m": -.2,
                          "imu_position_b_z_m": .3,
                          "star_tracker_mount_yaw_deg": -14.,
-                         "star_tracker_mount_pitch_deg": 7.,
+                         "star_tracker_earth_occlusion_half_fov_deg": 10., "star_tracker_mount_pitch_deg": 7.,
                          "star_tracker_mount_roll_deg": -3.,
                          "imu_gyro_bias_rad_s_x": 0.001,
                          "imu_accel_bias_m_s2_z": 0.06,
@@ -263,6 +264,7 @@ def test_continuous_creation_writes_immutable_original_native_initial_values(tmp
         assert values["imu_position_b_y_m"] == -.2
         assert values["imu_position_b_z_m"] == .3
         assert values["star_tracker_mount_yaw_deg"] == -14.
+        assert values["star_tracker_earth_occlusion_half_fov_deg"] == 10.
         assert values["star_tracker_mount_pitch_deg"] == 7.
         assert values["star_tracker_mount_roll_deg"] == -3.
         assert values["imu_gyro_bias_rad_s_x"] == .001
@@ -479,7 +481,7 @@ def test_native_basilisk_configured_parameters_affect_real_output(tmp_path, monk
                     "imu_position_b_y_m": -.2,
                     "imu_position_b_z_m": .3,
                     "star_tracker_mount_yaw_deg": -14.,
-                    "star_tracker_mount_pitch_deg": 7.,
+                    "star_tracker_earth_occlusion_half_fov_deg": 10., "star_tracker_mount_pitch_deg": 7.,
                     "star_tracker_mount_roll_deg": -3.,
                     "imu_gyro_bias_rad_s_x": 0.001,
                     "imu_gyro_bias_rad_s_y": -0.002,

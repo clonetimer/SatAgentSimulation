@@ -59,10 +59,10 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
         assert key not in whole["native_source_keys_missing_whole_registry"]
         assert key not in whole["continuous_fields_without_source_lookup"]
         assert key not in whole["whole_registry_keys_without_direct_lookup"]
-    assert whole["continuous_initial_field_count"] == 172 + len(rw_driver_present)
+    assert whole["continuous_initial_field_count"] == 173 + len(rw_driver_present)
     assert len(whole["continuous_groups"]["propulsion"]) == 22
     assert len(whole["continuous_groups"]["thermal"]) == 16
-    assert whole["registered_parameter_count"] == 184 + len(rw_driver_present)
+    assert whole["registered_parameter_count"] == 185 + len(rw_driver_present)
     for key in ("imu_gyro_bias_random_walk_std_rad_s_sqrt_s",
                 "imu_accel_bias_random_walk_std_m_s2_sqrt_s"):
         assert key in whole["continuous_groups"]["adcs"]
@@ -81,7 +81,7 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     for key in (f"rw_initial_speed_rad_s_{i}" for i in range(4)):
         assert key not in whole["native_source_keys_missing_whole_registry"]
         assert key not in whole["whole_registry_keys_without_direct_lookup"]
-    for key in ("star_tracker_mount_yaw_deg", "star_tracker_mount_pitch_deg", "star_tracker_mount_roll_deg"):
+    for key in ("star_tracker_earth_occlusion_half_fov_deg", "star_tracker_mount_yaw_deg", "star_tracker_mount_pitch_deg", "star_tracker_mount_roll_deg"):
         assert key in whole["continuous_groups"]["adcs"]
         assert key not in whole["native_source_keys_missing_whole_registry"]
     assert "solar_panel_structure_conductance_w_k" in whole["continuous_groups"]["thermal"]
@@ -103,7 +103,7 @@ def test_native_and_continuous_gaps_are_exposed_not_misreported_as_passed_physic
     assert "adcs_drive_efficiency" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs_max_power_w" not in whole["native_source_keys_missing_whole_registry"]
     assert "adcs" in whole["continuous_groups"]
-    assert len(whole["continuous_groups"]["adcs"]) == 108 + len(rw_driver_present)
+    assert len(whole["continuous_groups"]["adcs"]) == 109 + len(rw_driver_present)
     assert len(whole["continuous_groups"]["orbit"]) == 12
     assert {"environment_profile", "epoch_utc", "raan_deg", "arg_perigee_deg"}.issubset(whole["continuous_groups"]["orbit"])
     assert "spacecraft_mass_kg" in whole["continuous_groups"]["orbit"]
