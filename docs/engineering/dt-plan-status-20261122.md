@@ -103,6 +103,17 @@
 
 #227 提交 `ef8d5292656348cd23f66b615ac572edbd08c749` 的 [GitHub Checks](https://github.com/clonetimer/SatAgentSimulation/commit/ef8d5292656348cd23f66b615ac572edbd08c749/checks) 已结束，35 项 SUCCESS、2 项 SKIPPED、0 项失败。整星与官方 Basilisk 原生组件检查均通过。
 
+### DT-3 日月方向的独立解析对照
+
+对 #215 同一归档的 0、2700、5400 s 三个时刻，使用 GMAT 报告 TT 和 PyERFA 2.0.1.5 的解析模型。取地球日心位置的相反数得到几何太阳向量（epv00，地心 TT→TDB），取 moon98 得到地心月球向量（TT）。复算没有加载 DE421，也没有拟合旋转。逐行比对 GMAT ICRF、Basilisk SpiceInterface N 和 NAIF J2000 向量，并核查 GMAT 原始输出和归档校验值。epv00 的坐标定向参考了 DE405；这属于独立计算路径，仍与 JPL 星历体系有来源关联。[ERFA 太阳模型](https://github.com/liberfa/erfa/blob/master/src/epv00.c)和[月球模型](https://github.com/liberfa/erfa/blob/master/src/moon98.c)。
+
+| Basilisk 环境消息与解析参考 | 三时刻方向差范围 | 三维位置差范围 |
+| --- | ---: | ---: |
+| 太阳 | 0.002085–0.002093 角秒 | 2.625–2.627 km |
+| 月球 | 0.2341–0.2461 角秒 | 3.266–3.331 km |
+
+另外枚举三轴的置换与符号翻转。除恒等映射外共 47 种，取各映射在六个向量上的最大方向差，再取其中最小值，仍达 11.6547°（交换 Y、Z）。这支持本案例环境消息的轴序与正号。对任意小角度旋转的判别能力受解析模型误差限制。原始点质量航天器的位置、速度未进入本次计算，其状态坐标链仍需直接证据。以上公里数是星历向量间的差值，任务轨道误差预算保持待定。[独立复算脚本](../../reports/dt3_celestial_axes/audit.py)与[逐历元三引擎对照](../../reports/dt3_celestial_axes/result.json)。
+
 ### DT-4 从参考外形到安装映射的核查表
 
 #207 的候选提交 `e0f00d944ee661d9c810332cfaff230c83c37d1f` 使用同一个独立轮组 GLB。以下信息按每个轮位分别登记；任务配置仅记录该次仿真的输入。现场数据由参考方或设备集成人提供并注明版本。
