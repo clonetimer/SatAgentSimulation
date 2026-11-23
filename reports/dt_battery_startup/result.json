@@ -1,0 +1,41 @@
+[
+  {
+    "soc": 0.62,
+    "initial_energy_j": 357120.0,
+    "capacity_j": 576000.0,
+    "first_net_w": 851.150316529361,
+    "peak_heater_w": 12.0,
+    "peak_thrust_n": 2.0,
+    "max_energy_balance_error_j": 2.8904878490720876e-11,
+    "main_rows": 25,
+    "grouped_rows": 7,
+    "soc_check": "PASS",
+    "status": "PASS"
+  },
+  {
+    "soc": 0.1,
+    "initial_energy_j": 57600.0,
+    "capacity_j": 576000.0,
+    "first_net_w": 913.150316529361,
+    "peak_heater_w": 0.0,
+    "peak_thrust_n": 0.0,
+    "max_energy_balance_error_j": 3.183231456205249e-12,
+    "main_rows": 25,
+    "grouped_rows": 7,
+    "soc_check": "PASS",
+    "status": "PASS"
+  },
+  {
+    "soc": 0.01,
+    "initial_energy_j": 5760.0,
+    "capacity_j": 576000.0,
+    "first_net_w": 913.150316529361,
+    "peak_heater_w": 0.0,
+    "peak_thrust_n": 0.0,
+    "max_energy_balance_error_j": 8.810729923425242e-13,
+    "main_rows": 25,
+    "grouped_rows": 7,
+    "soc_check": "WARNING",
+    "status": "PASS"
+  }
+]

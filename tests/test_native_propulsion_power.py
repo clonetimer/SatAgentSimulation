@@ -106,6 +106,11 @@ def test_ongoing_burn_keeps_electrical_load_after_start_permission_drops():
 def test_native_propulsion_power_closes_eps_and_heat_without_changing_dynamics():
     adapter = get_adapter_for_capability(WHOLE)
     on = adapter.run(_whole_spec())
+    initial = on.trace_rows[0]
+    assert initial["time_s"] == 0
+    assert initial["eps.battery_capacity_j"] == pytest.approx(160 * 3600)
+    assert initial["eps.battery_soc"] == pytest.approx(0.9)
+    assert abs(initial["eps.net_power_w"]) > 0
     off_spec = _whole_spec(propulsion_power_w=0.0)
     off_spec["mission"] = {"required_couplings": ["propulsion_activity_to_eps_thermal"]}
     off = adapter.run(off_spec)
