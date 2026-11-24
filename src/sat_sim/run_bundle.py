@@ -1366,10 +1366,6 @@ def execute_prepared_run(
             write_json(root / "results" / "events.json", _events_payload(spec, summary))
             write_json(root / "results" / "assertions.json", assertion_results)
             write_json(root / "results" / "plot_manifest.json", _plot_manifest_payload(spec, rows))
-            # The HTML report reads validation and claim artifacts, so write them before report generation.
-            write_json(root / "validation" / "validation_outcome.json", validation.model_dump(mode="json"))
-            write_json(root / "validation" / "claim_report.json", claims.model_dump(mode="json"))
-            generate_run_report(root)
             dataset_artifact = DatasetArtifact(
                 output_root=str(dataset.output_root),
                 files=dict(dataset.files),
@@ -1439,6 +1435,8 @@ def execute_prepared_run(
             "sealed": True,
         })
         _write_record(root / "run_record.json", record)
+        if execution_status == ExecutionStatus.SUCCEEDED:
+            generate_run_report(root)
         write_json(root / "results" / "artifact_index.json", _artifact_index_payload(root))
         manifest = _bundle_manifest(root, record)
         write_json(root / "bundle_manifest.json", manifest)

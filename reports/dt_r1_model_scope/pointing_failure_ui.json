@@ -1,0 +1,30 @@
+{
+  "browser": "157.0.8103.79",
+  "run_id": "required-open",
+  "validation": "FAIL",
+  "card_collapsed": "验证：未通过\n验收指标 final_pointing_error_deg 未通过。实际值 25.561629583857492，要求 <= 8。\n模型适用范围 · 未确认声明等级\n物理检查覆盖：部分（已执行 4 项）。未评估：轨道高度、推进剂单调性、数据守恒、四元数归一。警告 2 条，失败 0 条。",
+  "sealed_report_sha256": "d643833e60f3986d3de1f13629561b6c950f910956e18e7a01033b512729661d",
+  "sealed_html_summary": {
+    "运行状态": "已完成",
+    "验证结果": "未通过",
+    "主要能力": "whole_spacecraft.unified_native.v1",
+    "自动验收": "未通过"
+  },
+  "bundles": [
+    {
+      "run_id": "free",
+      "validation": "PASS",
+      "seal": "0328affed31f4bd604ec69305dd9a77ca8f9e47b1e07178c27551c2f0053c768"
+    },
+    {
+      "run_id": "required-open",
+      "validation": "FAIL",
+      "seal": "b22d9c71a30afabeb7d09b4f55a9e2f2b3c40c5fa7197d3624fb3a0c62ced38a"
+    },
+    {
+      "run_id": "required-closed",
+      "validation": "PASS",
+      "seal": "8c344a3770359723ceb2c793542605dd415a62c92633bc53c4625f1a90372be1"
+    }
+  ]
+}

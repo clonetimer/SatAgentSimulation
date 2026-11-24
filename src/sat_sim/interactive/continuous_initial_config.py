@@ -69,11 +69,22 @@ class NativeAdcsInitial(_Strict):
     imu_accel_white_noise_std_m_s2: float = Field(default=0., ge=0., le=1., description="官方 Basilisk ImuSensor 加速度计三轴白噪声标准差（m/s²），直接配置 PMatrixAccel 与 A=0；0=禁用")
     imu_gyro_quantization_lsb_rad_s: float = Field(default=0., ge=0., le=.1, description="官方 Basilisk ImuSensor 原生陀螺测量量化 LSB（rad/s）；0=关闭，非飞行标定")
     imu_accel_quantization_lsb_m_s2: float = Field(default=0., ge=0., le=1., description="官方 Basilisk ImuSensor 原生加速度计测量量化 LSB（m/s²）；0=关闭，非飞行标定")
+    imu_gyro_bias_random_walk_std_rad_s_sqrt_s: float = Field(default=0., ge=0., le=.01, description="项目 Basilisk 调度的陀螺偏置随机游走增量标准差系数（rad/s/√s）；0=关闭，非 OEM 标定")
+    imu_accel_bias_random_walk_std_m_s2_sqrt_s: float = Field(default=0., ge=0., le=.1, description="项目 Basilisk 调度的加速度计偏置随机游走增量标准差系数（m/s²/√s）；0=关闭，非 OEM 标定")
+
     @field_validator("imu_gyro_quantization_lsb_rad_s", "imu_accel_quantization_lsb_m_s2", mode="before")
     @classmethod
     def strict_native_imu_quantization_lsb(cls, value):
         if type(value) not in (int, float):
             raise ValueError("NATIVE_IMU_QUANTIZATION_INVALID")
+        return value
+
+    @field_validator("imu_gyro_bias_random_walk_std_rad_s_sqrt_s",
+                     "imu_accel_bias_random_walk_std_m_s2_sqrt_s", mode="before")
+    @classmethod
+    def strict_native_imu_bias_random_walk(cls, value):
+        if type(value) not in (int, float):
+            raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_INVALID")
         return value
 
     imu_gyro_max_rad_s: float = Field(default=0., ge=0., le=1000., description="原生 IMU 陀螺最大量程（rad/s，0=保持原生默认）")
@@ -86,6 +97,7 @@ class NativeAdcsInitial(_Strict):
     imu_position_b_y_m: float = Field(default=0., ge=-2., le=2., description="IMU 安装中心在机体系 B 中的 Y 坐标 (m)")
     imu_position_b_z_m: float = Field(default=0., ge=-2., le=2., description="IMU 安装中心在机体系 B 中的 Z 坐标 (m)")
     star_tracker_mount_yaw_deg: float = Field(default=0., ge=-180., le=180., description="星敏相对机体系的航向安装角 (321 Euler; deg)")
+    star_tracker_earth_occlusion_half_fov_deg: float = Field(default=0., ge=0., le=89., description="星敏地球全视场遮挡半角，0 关闭（deg）")
     star_tracker_mount_pitch_deg: float = Field(default=0., ge=-89., le=89., description="星敏相对机体系的俯仰安装角 (321 Euler; deg)")
     star_tracker_mount_roll_deg: float = Field(default=0., ge=-180., le=180., description="星敏相对机体系的横滚安装角 (321 Euler; deg)")
     sun_sensor_normal_b_x: float = Field(default=0., ge=-1., le=1., description="B 系太阳敏感器原生 CSS nHat_B 法线 X；须与 Y/Z 构成单位矢量")
@@ -132,6 +144,9 @@ class NativeAdcsInitial(_Strict):
         resolve_sun_sensor_boresight(specified)
         return self
 
+    initial_body_rate_x_rad_s: float = Field(default=0.01, strict=True, allow_inf_nan=False)
+    initial_body_rate_y_rad_s: float = Field(default=-0.004, strict=True, allow_inf_nan=False)
+    initial_body_rate_z_rad_s: float = Field(default=0.002, strict=True, allow_inf_nan=False)
     initial_pointing_error_deg: float = Field(default=8., ge=0., le=90.)
     controller_k: float = Field(default=3.5, gt=0., le=100.)
     controller_p: float = Field(default=30., gt=0., le=300.)
@@ -441,6 +456,8 @@ _UNITS = {
     "imu_accel_white_noise_std_m_s2": "m/s²",
     "imu_gyro_quantization_lsb_rad_s": "rad/s",
     "imu_accel_quantization_lsb_m_s2": "m/s²",
+    "imu_gyro_bias_random_walk_std_rad_s_sqrt_s": "rad/s/√s",
+    "imu_accel_bias_random_walk_std_m_s2_sqrt_s": "m/s²/√s",
     "imu_gyro_max_rad_s": "rad/s",
     "imu_accel_max_m_s2": "m/s²",
     "star_tracker_noise_std_arcsec": "arcsec",
@@ -451,11 +468,15 @@ _UNITS = {
     "imu_position_b_y_m": "m",
     "imu_position_b_z_m": "m",
     "star_tracker_mount_yaw_deg": "deg",
+    "star_tracker_earth_occlusion_half_fov_deg": "deg",
     "star_tracker_mount_pitch_deg": "deg",
     "star_tracker_mount_roll_deg": "deg",
     "orbit_radius_m": "m", "eccentricity": "1", "inclination_deg": "deg",
     "raan_deg": "deg", "arg_perigee_deg": "deg", "environment_profile": "枚举", "epoch_utc": "UTC",
     "initial_true_anomaly_rad": "rad",
+    "initial_body_rate_x_rad_s": "rad/s",
+    "initial_body_rate_y_rad_s": "rad/s",
+    "initial_body_rate_z_rad_s": "rad/s",
     "initial_pointing_error_deg": "deg", "controller_k": "1", "controller_p": "1",
     "rw_geometry_mode": "枚举",
     "rw_axis_b_x_0": "1",

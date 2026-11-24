@@ -1,0 +1,5 @@
+{"case": "default", "samples": 21, "requested_rad_s": [0.01, -0.004, 0.002], "initial_truth_rad_s": [0.01, -0.004, 0.002], "final_truth_rad_s": [-0.0008961772057610432, -3.234144340590786e-05, -7.502125003071153e-05]}
+.{"case": "legacy", "samples": 21, "requested_rad_s": [0.01, -0.004, 0.002], "initial_truth_rad_s": [0.01, -0.004, 0.002], "final_truth_rad_s": [-0.0008961772057610432, -3.234144340590786e-05, -7.502125003071153e-05]}
+.{"case": "custom", "samples": 21, "requested_rad_s": [-0.003, 0.0, 0.006], "initial_truth_rad_s": [-0.003, 0.0, 0.006], "final_truth_rad_s": [-0.003535073284138401, -0.0002827149582327714, 0.00014233303620144003]}
+........
+10 passed in 11.12s

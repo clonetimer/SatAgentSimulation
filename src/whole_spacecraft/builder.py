@@ -1181,6 +1181,9 @@ def build_whole_spacecraft_graph(
         recorders["downlink_node"] = native_downlink.nodeDataOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         recorders["downlink"] = native_downlink.downlinkOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         recorders["conservation_downlink"] = native_downlink.downlinkOutMsg.recorder(macros.sec2nano(conservation_sample_s))
+    else:
+        recorders["conservation_transmitter"] = transmitter.nodeDataOutMsg.recorder(macros.sec2nano(float(cfg.adcs_dyn_step_s)))
+        sim.AddModelToTask(sim_task_name, recorders["conservation_transmitter"], None, -10)
     if rf_access_graph is not None:
         recorders["ground_access"] = rf_access_graph.access_msg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         recorders["rf_link_budget"] = rf_access_graph.link_budget_msg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
@@ -1205,8 +1208,9 @@ def build_whole_spacecraft_graph(
         rec_name = f"thermal_power_bridge_{node_name}"
         recorders[rec_name] = bridge.heatOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
         sim.AddModelToTask(recorder_task_name, recorders[rec_name])
-    for heater_name, heater in heater_power_sources.items():
-        recorders[f"heater_eps_power_{heater_name}"] = heater.electricalPowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
+    if coupling.enable_thermal_heaters_to_eps_load:
+        for heater_name, heater in heater_power_sources.items():
+            recorders[f"heater_eps_power_{heater_name}"] = heater.electricalPowerOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))
 
     if fuel_tank is not None:
         recorders["fuel_tank"] = fuel_tank.fuelTankOutMsg.recorder(macros.sec2nano(float(cfg.recorder_step_s)))

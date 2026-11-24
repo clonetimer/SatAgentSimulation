@@ -155,27 +155,18 @@ def test_r9i_genuine_basilisk_battery_public_reset_must_not_be_called_recovery(
         print("R9I_SIGNED_ENERGY_ERROR_AUDIT:"+json.dumps(
             signed_energy_samples,sort_keys=True,allow_nan=False,
         ),flush=True)
-        # The first post-import scheduler tick can still have an unwritten
-        # PowerNodeUsageMsg and SimpleBattery consequently emits a zero
-        # storageStatusMsg. Only compare the later, initialized battery samples.
-        runtime_signed_samples=signed_energy_samples[1:]
-        assert runtime_signed_samples
-        assert all(sample["baseline_energy_j"] > 0.0 for sample in runtime_signed_samples), signed_energy_samples
-        assert all(sample["reset_energy_j"] > 0.0 for sample in runtime_signed_samples), signed_energy_samples
-        # The first post-import row is an uninitialized zero battery message
-        # in both child arms. The later valid rows show that public Reset changes
-        # the battery trajectory and can reverse the sign of its energy error.
-        assert outcome["samples"][0]["reset_changed"] is False, outcome
+        # Power nodes now publish before SimpleBattery on the first scheduler
+        # tick. Compare every initialized sample, including the first one.
+        assert signed_energy_samples
+        for index, sample in enumerate(signed_energy_samples):
+            assert sample["baseline_energy_j"] > 0.0, sample
+            assert sample["reset_energy_j"] > 0.0, sample
+            assert abs(sample["signed_error_change_j"]) > 1.0, sample
+            assert outcome["samples"][index]["reset_changed"], outcome
         assert any(
-            abs(sample["signed_error_change_j"]) > 1.0
-            and sample["baseline_signed_error_j"] * sample["reset_signed_error_j"] < 0.0
-            for sample in runtime_signed_samples
+            sample["baseline_signed_error_j"] * sample["reset_signed_error_j"] < 0.0
+            for sample in signed_energy_samples
         ), signed_energy_samples
-        assert any(
-            outcome["samples"][index + 1]["reset_changed"]
-            for index,sample in enumerate(runtime_signed_samples)
-            if abs(sample["signed_error_change_j"]) > 1.0
-        ), outcome
         print("R9I_REAL_NATIVE_PUBLIC_BATTERY_RESET_BARRIER:"+json.dumps(
             outcome,sort_keys=True,allow_nan=False,
         ),flush=True)

@@ -1,0 +1,14 @@
+{
+  "frames": 2701,
+  "unchanged_original_field_values": 896732,
+  "max_vector_error_n": 1.5720931501039814e-18,
+  "unchanged_file_sha256": {
+    "input/task_spec.json": "a9a837c3a2c1b42ef13f4210e38346ca85348cbe883246426b3a32c9512a882a",
+    "validation/validation_outcome.json": "562b051fde327f7de7ae4c8ab741594250cc997a3865dd4be4d9ae847f7f9fd1"
+  },
+  "weather_sha256": "bc963becc48620d1adfe5460b77dc4e70d070a17f2308ceeac14a7d79c729c7a",
+  "manifest_sha256": [
+    "2dd1c566a4777558aa5ceedfa8d9e76371c9a9ed91b29659a48fe763083cc3ef",
+    "2154c24516fdf6661dc9db0e5295f0d8e846e633e19a4c488e90ead495fc862c"
+  ]
+}

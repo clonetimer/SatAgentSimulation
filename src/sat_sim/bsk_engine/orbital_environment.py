@@ -13,7 +13,7 @@ import threading
 from typing import Any
 
 from integrated.orbit_environment.assets import (
-    THIRD_PARTY_DIR, resolve_space_weather_asset, resolve_spice_assets, resolve_wmm_asset,
+    THIRD_PARTY_DIR, describe_asset, resolve_space_weather_asset, resolve_spice_assets, resolve_wmm_asset,
 )
 from .space_weather import validate_space_weather_coverage
 from .gravity_harmonics_asset import GRAVITY_CHOICES, inspect_ggm03s
@@ -101,6 +101,7 @@ class NativeOrbitalEnvironment:
                 gravity = gravity_dir / "GGM03S-J2-only.txt"
                 if not gravity.is_file():
                     raise FileNotFoundError("NATIVE_J2_GRAVITY_ASSET_MISSING")
+                self.assets['gravity_j2'] = describe_asset(gravity).__dict__
             self.gravity_path = gravity.resolve()
             if self.drag_enabled:
                 self.space_weather_asset, _ = resolve_space_weather_asset(strict=True)
@@ -187,6 +188,7 @@ class NativeOrbitalEnvironment:
                 'gravity_degree':self.gravity_degree,
                 'gravity_model':self.gravity_model,
                 'gravity_source':self.gravity_asset,
+                'altitude_definition':'geocentric_radius_minus_gravity_source_reference_radius_m',
                 'gravity_reference_frame':'Earth_planet_fixed_from_SPICE',
                 'spherical_harmonic_scope':'full_degree_and_order_includes_tesseral_terms',
                 'tide_evolution_modeled':False,

@@ -352,8 +352,26 @@ class StarTrackerFaultInjector(sysModel.SysModel):
         super().__init__(); self.ModelTag = "project_star_tracker_fault_injector"
         self.events = tuple(event for event in events if event.effect in self.EFFECTS)
         self.starInMsg = messaging.STSensorMsgReader(); self.starOutMsg = messaging.STSensorMsg()
+        self.spacecraftStateInMsg = messaging.SCStatesMsgReader()
+        self.earth_occultation_half_angle_rad = 0.0
+        self.boresight_b = np.array([0., 0., 1.])
         self.validOutMsg = messaging.DeviceStatusMsg(); self._last = [1.0, 0.0, 0.0, 0.0]
         self._rng = random.Random(int(seed) + 701)
+
+    def _earth_blocks_field(self) -> bool:
+        if self.earth_occultation_half_angle_rad == 0:
+            return False
+        if not self.spacecraftStateInMsg.isWritten():
+            return True
+        state = self.spacecraftStateInMsg()
+        position = np.asarray(state.r_BN_N, dtype=float)
+        distance = np.linalg.norm(position)
+        earth_radius_m = 6371000.0
+        if not math.isfinite(distance) or distance <= earth_radius_m:
+            return True
+        nadir_b = RigidBodyKinematics.MRP2C(state.sigma_BN) @ (-position / distance)
+        separation = math.acos(float(np.clip(nadir_b @ self.boresight_b, -1, 1)))
+        return separation + self.earth_occultation_half_angle_rad <= math.asin(earth_radius_m / distance)
 
     def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
         self.UpdateState(current_sim_nanos)
@@ -375,6 +393,8 @@ class StarTrackerFaultInjector(sysModel.SysModel):
             elif effect == "adcs_star_tracker_accuracy_loss":
                 noise_arcsec = _event_number(event, ("noise_arcsec",), 30.0)
                 sigma = [value + math.tan(math.radians(self._rng.gauss(0.0, noise_arcsec / 3600.0)) / 4.0) for value in sigma]
+        if self._earth_blocks_field():
+            valid = stuck = False
         if stuck:
             quaternion = list(self._last)
         elif valid:
@@ -426,6 +446,95 @@ class SunVectorFaultInjector(sysModel.SysModel):
         payload = messaging.TAMSensorMsgPayload(); payload.tam_S = vector
         self.vectorOutMsg.write(payload, current_sim_nanos, self.moduleID)
         _write_status(self.validOutMsg, int(valid), current_sim_nanos, self.moduleID)
+
+
+class ImuBiasRandomWalk(sysModel.SysModel):
+    """Drive seeded gyro/accelerometer bias random walks before official IMU updates.
+
+    This is a project-owned Basilisk-scheduled SysModel. It updates the public
+    official ImuSensor bias properties before ImuSensor.UpdateState, so the
+    random-walk bias is included in the official measurement, delta-angle /
+    delta-velocity integration, quantization and saturation stages.
+    """
+
+    def __init__(
+        self,
+        imu_sensor: Any,
+        *,
+        gyro_bias_rad_s: Sequence[float],
+        accel_bias_m_s2: Sequence[float],
+        gyro_random_walk_std_rad_s_sqrt_s: float = 0.0,
+        accel_random_walk_std_m_s2_sqrt_s: float = 0.0,
+        seed: int = 0,
+    ) -> None:
+        super().__init__()
+        self.ModelTag = "project_imu_bias_random_walk"
+        self.imu_sensor = imu_sensor
+        self.base_gyro_bias = tuple(float(x) for x in gyro_bias_rad_s)
+        self.base_accel_bias = tuple(float(x) for x in accel_bias_m_s2)
+        if len(self.base_gyro_bias) != 3 or len(self.base_accel_bias) != 3:
+            raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_VECTOR_INVALID")
+        if not all(math.isfinite(x) for x in (*self.base_gyro_bias, *self.base_accel_bias)):
+            raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_VECTOR_INVALID")
+        values = (gyro_random_walk_std_rad_s_sqrt_s, accel_random_walk_std_m_s2_sqrt_s)
+        limits = (0.01, 0.1)
+        if any(type(value) not in (int, float) or not math.isfinite(value)
+               or value < 0.0 or value > limit
+               for value, limit in zip(values, limits, strict=True)):
+            raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_INVALID")
+        self.gyro_random_walk_std_rad_s_sqrt_s = float(values[0])
+        self.accel_random_walk_std_m_s2_sqrt_s = float(values[1])
+        self.seed = int(seed)
+        # Basilisk ImuSensor exposes one shared RNGSeed for its internal gyro
+        # and accelerometer Gauss-Markov streams. These project-side bias walks
+        # deliberately derive independent deterministic streams by channel.
+        self._gyro_rng = random.Random((self.seed ^ 0x9E3779B9) & 0xFFFFFFFF)
+        self._accel_rng = random.Random((self.seed ^ 0x85EBCA6B) & 0xFFFFFFFF)
+        self._gyro_walk = [0.0, 0.0, 0.0]
+        self._accel_walk = [0.0, 0.0, 0.0]
+        self._last_time_ns: int | None = None
+        self.biasWalkOutMsg = messaging.IMUSensorMsg()
+
+    def _apply_bias(self, current_sim_nanos: int) -> None:
+        self.imu_sensor.senRotBias = [
+            self.base_gyro_bias[i] + self._gyro_walk[i] for i in range(3)
+        ]
+        self.imu_sensor.senTransBias = [
+            self.base_accel_bias[i] + self._accel_walk[i] for i in range(3)
+        ]
+        payload = messaging.IMUSensorMsgPayload()
+        payload.AngVelPlatform = list(self._gyro_walk)
+        payload.AccelPlatform = list(self._accel_walk)
+        self.biasWalkOutMsg.write(payload, current_sim_nanos, self.moduleID)
+
+    def Reset(self, current_sim_nanos: int) -> None:  # noqa: N802
+        self._gyro_rng = random.Random((self.seed ^ 0x9E3779B9) & 0xFFFFFFFF)
+        self._accel_rng = random.Random((self.seed ^ 0x85EBCA6B) & 0xFFFFFFFF)
+        self._gyro_walk = [0.0, 0.0, 0.0]
+        self._accel_walk = [0.0, 0.0, 0.0]
+        self._last_time_ns = int(current_sim_nanos)
+        self._apply_bias(current_sim_nanos)
+
+    def UpdateState(self, current_sim_nanos: int) -> None:  # noqa: N802
+        now_ns = int(current_sim_nanos)
+        if self._last_time_ns is None:
+            dt_s = 0.0
+        else:
+            elapsed_ns = now_ns - self._last_time_ns
+            if elapsed_ns < 0:
+                raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_TIME_NOT_MONOTONIC")
+            dt_s = float(elapsed_ns) * macros.NANO2SEC
+        if dt_s > 0.0:
+            root_dt = math.sqrt(dt_s)
+            gyro_scale = self.gyro_random_walk_std_rad_s_sqrt_s * root_dt
+            accel_scale = self.accel_random_walk_std_m_s2_sqrt_s * root_dt
+            for axis in range(3):
+                if gyro_scale > 0.0:
+                    self._gyro_walk[axis] += self._gyro_rng.gauss(0.0, gyro_scale)
+                if accel_scale > 0.0:
+                    self._accel_walk[axis] += self._accel_rng.gauss(0.0, accel_scale)
+        self._last_time_ns = now_ns
+        self._apply_bias(current_sim_nanos)
 
 
 class ImuFaultInjector(sysModel.SysModel):
@@ -892,6 +1001,63 @@ class PowerDataModeGate(sysModel.SysModel):
         _write_status(self.payloadStatusOutMsg, payload_enabled, current_sim_nanos, self.moduleID)
         _write_status(self.downlinkStatusOutMsg, downlink_enabled, current_sim_nanos, self.moduleID)
         _write_status(self.safeModeStatusOutMsg, safe_mode, current_sim_nanos, self.moduleID)
+
+
+class StorageBalanceObserver(sysModel.SysModel):
+    """Observe the native single-partition store after its two input nodes update."""
+
+    counters = ("steps", "offered_bits", "admitted_bits", "withdrawn_bits", "max_error_bits")
+
+    def __init__(self, instrument, downlink, storage):
+        super().__init__()
+        self.instrument = messaging.DataNodeUsageMsgReader()
+        self.downlink = messaging.DataNodeUsageMsgReader()
+        self.storage = messaging.DataStorageStatusMsgReader()
+        self.instrument.subscribeTo(instrument)
+        self.downlink.subscribeTo(downlink)
+        self.storage.subscribeTo(storage)
+        self.Reset(0)
+
+    def Reset(self, current_sim_nanos):
+        self.previous_time = None
+        self.valid = True
+        self.predicted_bits = 0
+        for name in self.counters:
+            setattr(self, name, 0)
+
+    def recorder(self, period):
+        return self.logger((*self.counters, "valid"), period)
+
+    def UpdateState(self, current_sim_nanos):
+        now = _seconds(current_sim_nanos)
+        if not self.valid:
+            return
+        if not all(reader.isWritten() and reader.timeWritten() == current_sim_nanos
+                   for reader in (self.instrument, self.downlink, self.storage)):
+            self.valid = False
+            return
+        status = self.storage()
+        source_rate = self.instrument().baudRate
+        drain_rate = self.downlink().baudRate
+        if not (math.isfinite(source_rate) and math.isfinite(drain_rate) and source_rate >= 0 >= drain_rate):
+            self.valid = False
+            return
+        if self.previous_time is None:
+            self.predicted_bits = int(status.storageLevel)
+        else:
+            dt = now - self.previous_time
+            offered = math.floor(source_rate * dt + 0.5)
+            requested = math.floor(-drain_rate * dt + 0.5)
+            # SimpleStorageUnit rejects a positive write that reaches capacity.
+            admitted = offered if self.predicted_bits + offered < status.storageCapacity else 0
+            withdrawn = min(self.predicted_bits + admitted, requested)
+            self.predicted_bits += admitted - withdrawn
+            self.offered_bits += offered
+            self.admitted_bits += admitted
+            self.withdrawn_bits += withdrawn
+            self.steps += 1
+            self.max_error_bits = max(self.max_error_bits, abs(status.storageLevel - self.predicted_bits))
+        self.previous_time = now
 
 
 class NativeRfDownlinkGate(sysModel.SysModel):

@@ -1,0 +1,325 @@
+{
+  "healthy": {
+    "configuration": "pyramid_4",
+    "wheel_index": 3,
+    "template": "whole_spacecraft_unified_native",
+    "validation": "PASS",
+    "rows": 101
+  },
+  "loss50": {
+    "configuration": "pyramid_4",
+    "wheel_index": 3,
+    "template": "whole_spacecraft_unified_native",
+    "validation": "PASS",
+    "rows": 101,
+    "injection_evidence": {
+      "event_id": "wheel_3_event",
+      "event_kind": "degradation",
+      "requested_effect": "adcs_rw_torque_authority_loss",
+      "delivery_result": "PASS",
+      "effect_result": "PASS",
+      "registered": true,
+      "active_sample_count": 49,
+      "evidence_fields_present": [
+        "adcs.rw.effective_torque_ratio_3",
+        "adcs.rw.effective_max_torque_nm_3",
+        "adcs.control.applied_torque_nm_3"
+      ],
+      "evidence_fields_missing": [],
+      "reason_codes": [
+        "RUNTIME_EFFECT_VERIFIED"
+      ]
+    },
+    "requested_s": [
+      5.05,
+      14.95
+    ],
+    "transition_samples": [
+      {
+        "time_s": 5.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_3": {
+          "event": -0.03071653692184182,
+          "healthy": -0.03071653692184182
+        },
+        "adcs.rw.speed_rad_s_3": {
+          "event": 34.02581978565398,
+          "healthy": 34.02581978565398
+        },
+        "attitude.truth.pointing_error_deg": {
+          "event": 44.96891381841977,
+          "healthy": 44.96891381841977
+        },
+        "eps.loads.adcs_power_w": {
+          "event": 22.24179487628248,
+          "healthy": 22.24179487628248
+        },
+        "eps.battery_energy_j": {
+          "event": 361620.5166619933,
+          "healthy": 361620.5166619933
+        }
+      },
+      {
+        "time_s": 5.2,
+        "limit_ratio": 0.5,
+        "adcs.rw.actual_applied_torque_nm_3": {
+          "event": -0.029451763899492136,
+          "healthy": -0.029451763899492136
+        },
+        "adcs.rw.speed_rad_s_3": {
+          "event": 33.948599026934616,
+          "healthy": 33.948599026934616
+        },
+        "attitude.truth.pointing_error_deg": {
+          "event": 44.862518374718114,
+          "healthy": 44.862518374718114
+        },
+        "eps.loads.adcs_power_w": {
+          "event": 20.78069404449732,
+          "healthy": 20.78069404449732
+        },
+        "eps.battery_energy_j": {
+          "event": 361802.9924616185,
+          "healthy": 361802.9924616185
+        }
+      },
+      {
+        "time_s": 14.8,
+        "limit_ratio": 0.5,
+        "adcs.rw.actual_applied_torque_nm_3": {
+          "event": 0.0003667949078583698,
+          "healthy": 0.0006796642221068242
+        },
+        "adcs.rw.speed_rad_s_3": {
+          "event": 33.414664451572314,
+          "healthy": 33.30718762567326
+        },
+        "attitude.truth.pointing_error_deg": {
+          "event": 38.982122408061265,
+          "healthy": 38.963433909477445
+        },
+        "eps.loads.adcs_power_w": {
+          "event": 12.706823122504044,
+          "healthy": 12.7207206841285
+        },
+        "eps.battery_energy_j": {
+          "event": 370645.34758427774,
+          "healthy": 370644.98956807744
+        }
+      },
+      {
+        "time_s": 15.000000000000002,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_3": {
+          "event": 0.0003811089500470339,
+          "healthy": 0.0006714369924618819
+        },
+        "adcs.rw.speed_rad_s_3": {
+          "event": 33.415602656401866,
+          "healthy": 33.30891285359216
+        },
+        "attitude.truth.pointing_error_deg": {
+          "event": 38.86457186953708,
+          "healthy": 38.84593712666176
+        },
+        "eps.loads.adcs_power_w": {
+          "event": 12.707651105498794,
+          "healthy": 12.71950523278565
+        },
+        "eps.battery_energy_j": {
+          "event": 370829.7395710832,
+          "healthy": 370829.3774999981
+        }
+      },
+      {
+        "time_s": 20.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_3": {
+          "event": 0.00037566980427577827,
+          "healthy": 0.0003676719910253399
+        },
+        "adcs.rw.speed_rad_s_3": {
+          "event": 33.45121174460992,
+          "healthy": 33.34264364616014
+        },
+        "attitude.truth.pointing_error_deg": {
+          "event": 36.03990079128001,
+          "healthy": 36.02269198595627
+        },
+        "eps.loads.adcs_power_w": {
+          "event": 12.675081235903262,
+          "healthy": 12.670519043749698
+        },
+        "eps.battery_energy_j": {
+          "event": 375439.6149226674,
+          "healthy": 375439.2504301239
+        }
+      }
+    ],
+    "first_difference_s": {
+      "adcs.rw.actual_applied_torque_nm_3": 5.4,
+      "adcs.rw.speed_rad_s_3": 5.6000000000000005,
+      "attitude.truth.pointing_error_deg": 5.6000000000000005,
+      "eps.loads.adcs_power_w": 5.4,
+      "eps.battery_energy_j": 5.6000000000000005
+    }
+  },
+  "loss75": {
+    "configuration": "pyramid_4",
+    "wheel_index": 3,
+    "template": "whole_spacecraft_unified_native",
+    "validation": "PASS",
+    "rows": 101,
+    "injection_evidence": {
+      "event_id": "wheel_3_event",
+      "event_kind": "degradation",
+      "requested_effect": "adcs_rw_torque_authority_loss",
+      "delivery_result": "PASS",
+      "effect_result": "PASS",
+      "registered": true,
+      "active_sample_count": 49,
+      "evidence_fields_present": [
+        "adcs.rw.effective_torque_ratio_3",
+        "adcs.rw.effective_max_torque_nm_3",
+        "adcs.control.applied_torque_nm_3"
+      ],
+      "evidence_fields_missing": [],
+      "reason_codes": [
+        "RUNTIME_EFFECT_VERIFIED"
+      ]
+    },
+    "requested_s": [
+      5.05,
+      14.95
+    ],
+    "transition_samples": [
+      {
+        "time_s": 5.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_3": {
+          "event": -0.03071653692184182,
+          "healthy": -0.03071653692184182
+        },
+        "adcs.rw.speed_rad_s_3": {
+          "event": 34.02581978565398,
+          "healthy": 34.02581978565398
+        },
+        "attitude.truth.pointing_error_deg": {
+          "event": 44.96891381841977,
+          "healthy": 44.96891381841977
+        },
+        "eps.loads.adcs_power_w": {
+          "event": 22.24179487628248,
+          "healthy": 22.24179487628248
+        },
+        "eps.battery_energy_j": {
+          "event": 361620.5166619933,
+          "healthy": 361620.5166619933
+        }
+      },
+      {
+        "time_s": 5.2,
+        "limit_ratio": 0.25,
+        "adcs.rw.actual_applied_torque_nm_3": {
+          "event": -0.029451763899492136,
+          "healthy": -0.029451763899492136
+        },
+        "adcs.rw.speed_rad_s_3": {
+          "event": 33.948599026934616,
+          "healthy": 33.948599026934616
+        },
+        "attitude.truth.pointing_error_deg": {
+          "event": 44.862518374718114,
+          "healthy": 44.862518374718114
+        },
+        "eps.loads.adcs_power_w": {
+          "event": 20.78069404449732,
+          "healthy": 20.78069404449732
+        },
+        "eps.battery_energy_j": {
+          "event": 361802.9924616185,
+          "healthy": 361802.9924616185
+        }
+      },
+      {
+        "time_s": 14.8,
+        "limit_ratio": 0.25,
+        "adcs.rw.actual_applied_torque_nm_3": {
+          "event": -5.38693631450106e-05,
+          "healthy": 0.0006796642221068242
+        },
+        "adcs.rw.speed_rad_s_3": {
+          "event": 33.55074296520411,
+          "healthy": 33.30718762567326
+        },
+        "attitude.truth.pointing_error_deg": {
+          "event": 39.002325810253765,
+          "healthy": 38.963433909477445
+        },
+        "eps.loads.adcs_power_w": {
+          "event": 12.673891978618938,
+          "healthy": 12.7207206841285
+        },
+        "eps.battery_energy_j": {
+          "event": 370645.5963850906,
+          "healthy": 370644.98956807744
+        }
+      },
+      {
+        "time_s": 15.000000000000002,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_3": {
+          "event": -2.547687701796018e-05,
+          "healthy": 0.0006714369924618819
+        },
+        "adcs.rw.speed_rad_s_3": {
+          "event": 33.55062211747087,
+          "healthy": 33.30891285359216
+        },
+        "attitude.truth.pointing_error_deg": {
+          "event": 38.88486468920239,
+          "healthy": 38.84593712666176
+        },
+        "eps.loads.adcs_power_w": {
+          "event": 12.67458614867052,
+          "healthy": 12.71950523278565
+        },
+        "eps.battery_energy_j": {
+          "event": 370829.9963168309,
+          "healthy": 370829.3774999981
+        }
+      },
+      {
+        "time_s": 20.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_3": {
+          "event": 0.0003704855542148522,
+          "healthy": 0.0003676719910253399
+        },
+        "adcs.rw.speed_rad_s_3": {
+          "event": 33.57322499173437,
+          "healthy": 33.34264364616014
+        },
+        "attitude.truth.pointing_error_deg": {
+          "event": 36.059670944168595,
+          "healthy": 36.02269198595627
+        },
+        "eps.loads.adcs_power_w": {
+          "event": 12.678596030525735,
+          "healthy": 12.670519043749698
+        },
+        "eps.battery_energy_j": {
+          "event": 375439.9640369777,
+          "healthy": 375439.2504301239
+        }
+      }
+    ],
+    "first_difference_s": {
+      "adcs.rw.actual_applied_torque_nm_3": 5.4,
+      "adcs.rw.speed_rad_s_3": 5.6000000000000005,
+      "attitude.truth.pointing_error_deg": 5.6000000000000005,
+      "eps.loads.adcs_power_w": 5.4,
+      "eps.battery_energy_j": 5.6000000000000005
+    }
+  }
+}

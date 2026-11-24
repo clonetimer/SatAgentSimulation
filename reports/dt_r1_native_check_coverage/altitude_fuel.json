@@ -1,0 +1,169 @@
+{
+  "control": {
+    "samples": 61,
+    "height_min_m": 271857.6442104969,
+    "height_max_m": 271863.7000000011,
+    "max_recalculation_error_m": 9.313225746154785e-10,
+    "radius_m": 6378136.3,
+    "definition": "geocentric_radius_minus_gravity_source_reference_radius_m",
+    "asset_sha256": "71f8736f98c5d8c972d0f6d56a2389302f72b8ac7517c605d312162ca446a3a1",
+    "altitude": {
+      "status": "PASS",
+      "evaluated": true,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "minimum_samples_per_field": 1,
+      "valid_row_count": 61,
+      "valid_sample_count": 61,
+      "invalid_sample_count": 0,
+      "fields_observed": [
+        "orbit.altitude_m"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "fuel": {
+      "status": "NOT_EVALUATED",
+      "evaluated": false,
+      "reason_code": "PHYSICAL_EVIDENCE_MISSING",
+      "minimum_samples_per_field": 2,
+      "valid_row_count": 0,
+      "valid_sample_count": 0,
+      "invalid_sample_count": 0,
+      "fields_observed": [],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    }
+  },
+  "burn": {
+    "samples": 61,
+    "height_min_m": 271859.45401581377,
+    "height_max_m": 271863.7000000011,
+    "max_recalculation_error_m": 9.313225746154785e-10,
+    "radius_m": 6378136.3,
+    "definition": "geocentric_radius_minus_gravity_source_reference_radius_m",
+    "asset_sha256": "71f8736f98c5d8c972d0f6d56a2389302f72b8ac7517c605d312162ca446a3a1",
+    "altitude": {
+      "status": "PASS",
+      "evaluated": true,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "minimum_samples_per_field": 1,
+      "valid_row_count": 61,
+      "valid_sample_count": 61,
+      "invalid_sample_count": 0,
+      "fields_observed": [
+        "orbit.altitude_m"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "fuel": {
+      "status": "PASS",
+      "evaluated": true,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "minimum_samples_per_field": 2,
+      "valid_row_count": 61,
+      "valid_sample_count": 61,
+      "invalid_sample_count": 0,
+      "fields_observed": [
+        "propulsion.fuel_mass_kg"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "initial_mass_kg": 1.0,
+    "final_mass_kg": 0.9957511824459253,
+    "peak_thrust_n": 2.0,
+    "positive_thrust_samples": 8,
+    "sampled_impulse_ns": 8.0,
+    "consumed_mass_kg": 0.004248817554074691,
+    "step_s": 0.5
+  },
+  "burn-0.25": {
+    "samples": 121,
+    "height_min_m": 271859.43711862434,
+    "height_max_m": 271863.7000000011,
+    "max_recalculation_error_m": 9.313225746154785e-10,
+    "radius_m": 6378136.3,
+    "definition": "geocentric_radius_minus_gravity_source_reference_radius_m",
+    "asset_sha256": "71f8736f98c5d8c972d0f6d56a2389302f72b8ac7517c605d312162ca446a3a1",
+    "altitude": {
+      "status": "PASS",
+      "evaluated": true,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "minimum_samples_per_field": 1,
+      "valid_row_count": 121,
+      "valid_sample_count": 121,
+      "invalid_sample_count": 0,
+      "fields_observed": [
+        "orbit.altitude_m"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "fuel": {
+      "status": "PASS",
+      "evaluated": true,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "minimum_samples_per_field": 2,
+      "valid_row_count": 121,
+      "valid_sample_count": 121,
+      "invalid_sample_count": 0,
+      "fields_observed": [
+        "propulsion.fuel_mass_kg"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "initial_mass_kg": 1.0,
+    "final_mass_kg": 0.9958361587970059,
+    "peak_thrust_n": 2.0,
+    "positive_thrust_samples": 16,
+    "sampled_impulse_ns": 8.0,
+    "consumed_mass_kg": 0.0041638412029940675,
+    "step_s": 0.25
+  },
+  "burn-0.125": {
+    "samples": 241,
+    "height_min_m": 271859.4286701996,
+    "height_max_m": 271863.7000000011,
+    "max_recalculation_error_m": 9.313225746154785e-10,
+    "radius_m": 6378136.3,
+    "definition": "geocentric_radius_minus_gravity_source_reference_radius_m",
+    "asset_sha256": "71f8736f98c5d8c972d0f6d56a2389302f72b8ac7517c605d312162ca446a3a1",
+    "altitude": {
+      "status": "PASS",
+      "evaluated": true,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "minimum_samples_per_field": 1,
+      "valid_row_count": 241,
+      "valid_sample_count": 241,
+      "invalid_sample_count": 0,
+      "fields_observed": [
+        "orbit.altitude_m"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "fuel": {
+      "status": "PASS",
+      "evaluated": true,
+      "reason_code": "PHYSICAL_CHECK_EVALUATED",
+      "minimum_samples_per_field": 2,
+      "valid_row_count": 241,
+      "valid_sample_count": 241,
+      "invalid_sample_count": 0,
+      "fields_observed": [
+        "propulsion.fuel_mass_kg"
+      ],
+      "finding_fail_count": 0,
+      "finding_warning_count": 0
+    },
+    "initial_mass_kg": 1.0,
+    "final_mass_kg": 0.9958786469725467,
+    "peak_thrust_n": 2.0,
+    "positive_thrust_samples": 32,
+    "sampled_impulse_ns": 8.0,
+    "consumed_mass_kg": 0.004121353027453312,
+    "step_s": 0.125
+  }
+}

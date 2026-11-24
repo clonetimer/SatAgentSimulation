@@ -270,6 +270,7 @@ def evaluate_runtime_effect(
     rows: Sequence[Mapping[str, Any]],
     delivery_ok: bool,
     event: Mapping[str, Any] | None = None,
+    active_rows: Sequence[Mapping[str, Any]] | None = None,
 ) -> RuntimeEffectEvaluation | None:
     """Evaluate direct effect evidence for one registered V32 profile."""
 
@@ -311,7 +312,10 @@ def evaluate_runtime_effect(
             limitations=profile.claim_limitations,
         )
     results = tuple(
-        _assertion_result(item, rows, profile.kind, effect_id=effect_id, event=event)
+        _assertion_result(
+            item, active_rows if active_rows is not None and item.get("scope") in {"active_all", "active_any"} else rows,
+            profile.kind, effect_id=effect_id, event=event,
+        )
         for item in profile.assertions
     )
     if not results:

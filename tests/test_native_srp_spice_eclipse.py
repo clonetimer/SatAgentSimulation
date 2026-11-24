@@ -156,3 +156,16 @@ def test_same_real_spice_sun_and_eclipse_drive_native_cannonball_force(capsys):
             assert max(factors) < 0.001
             assert max(forces) < 1.0e-10
             assert deltar < 1.0e-4
+
+def test_eclipse_input_timestamps_and_positions_survive_sparse_output():
+    values = dict(environment_profile="spice_wmm", srp_model="cannonball",
+                  srp_reference_area_m2=20., srp_coefficient_reflection=1.5)
+    cfg = replace(_config(**values), duration_s=20., step_s=2.)
+    dense = UnifiedNativeRuntime(replace(cfg, sample_s=2.)).run().trace_rows
+    sparse = UnifiedNativeRuntime(replace(cfg, sample_s=10.)).run().trace_rows
+    for row in sparse:
+        i = round(row["time_s"]/2.)
+        assert row["orbit.eclipse_spacecraft_source_time_s"] == pytest.approx(max(0., 2.*(i-1)))
+        xyz = [row[f"orbit.eclipse_spacecraft_position_m_{axis}"] for axis in "xyz"]
+        assert row["orbit.eclipse_spacecraft_geometry_valid"]
+        np.testing.assert_array_equal(xyz, _position(dense[max(i-1, 0)]))

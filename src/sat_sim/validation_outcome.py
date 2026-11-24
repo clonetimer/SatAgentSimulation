@@ -414,6 +414,32 @@ def _event_payload(spec: Mapping[str, Any], event_id: str) -> Mapping[str, Any] 
     return None
 
 
+def _repeated_effect_rows(
+    rows: Sequence[Mapping[str, Any]], event_id: str, effect: str,
+    siblings: Mapping[str, Mapping[str, Any]],
+) -> list[Mapping[str, Any]]:
+    """Attribute sampled telemetry using explicit IDs or one unambiguous active window."""
+    attributed = []
+    for row in rows:
+        ids = {key.strip() for key in str(row.get("modifier.active_ids") or "").split(",") if key.strip()}
+        if ids:
+            if event_id in ids:
+                attributed.append(row)
+            continue
+        active = {key.strip() for key in str(row.get("event.active_effects") or "").split(",")}
+        time_s = row.get("time_s")
+        if effect not in active or not isinstance(time_s, (int, float)) or not math.isfinite(time_s):
+            continue
+        candidates = [
+            key for key, event in siblings.items()
+            if event.get("start_s", 0.0) <= time_s
+            and (event.get("end_s") is None or time_s <= event["end_s"])
+        ]
+        if candidates == [event_id]:
+            attributed.append(row)
+    return attributed
+
+
 def _injection_evidence(
     spec: Mapping[str, Any],
     resolved: ResolvedSpec,
@@ -425,17 +451,25 @@ def _injection_evidence(
         str(item.get("modifier_id") or item.get("fault_id") or item.get("degradation_id") or item.get("effect_id"))
         for item in modifiers
     }
+    by_effect: dict[str, dict[str, Mapping[str, Any]]] = {}
+    for binding in resolved.effect_bindings:
+        payload = _event_payload(spec, binding.event_id) or {}
+        by_effect.setdefault(binding.requested_effect, {})[binding.event_id] = payload
+
     out: list[InjectionEvidence] = []
     for binding in resolved.effect_bindings:
-        active_count = _active_count(
+        siblings = by_effect[binding.requested_effect]
+        repeated = len(siblings) > 1
+        observed = _repeated_effect_rows(rows, binding.event_id, binding.requested_effect, siblings) if repeated else rows
+        active_count = len(observed) if repeated else _active_count(
             binding.event_id, binding.event_kind, rows, summary, binding.requested_effect
         )
         runtime_registered = any(
             binding.requested_effect in {part.strip() for part in str(row.get("event.active_effects") or "").split(",") if part.strip()}
-            for row in rows
+            for row in observed
         )
-        registered = binding.event_id in registered_ids or runtime_registered
-        present = [field for field in binding.evidence_fields if _field_present(field, summary, rows)]
+        registered = binding.event_id in registered_ids or runtime_registered or (repeated and bool(observed))
+        present = [field for field in binding.evidence_fields if _field_present(field, summary, observed)]
         missing = [field for field in binding.evidence_fields if field not in present]
         delivery_ok = registered and active_count > 0
         delivery_result = ValidationResult.PASS if delivery_ok else ValidationResult.FAIL
@@ -450,7 +484,8 @@ def _injection_evidence(
             summary=summary,
             rows=rows,
             delivery_ok=delivery_ok,
-            event=_event_payload(spec, binding.event_id),
+            event=siblings[binding.event_id],
+            active_rows=observed if repeated else None,
         )
         if runtime_effect is not None:
             present = list(runtime_effect.evidence_fields_present)

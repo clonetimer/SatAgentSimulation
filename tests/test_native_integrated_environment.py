@@ -22,10 +22,10 @@ from sat_sim.bsk_engine.unified_native import (
 )
 
 
-def run_whole(values, *, duration=120.):
+def run_whole(values, *, duration=120., sample_s=10.):
     return UnifiedNativeRuntime(UnifiedRuntimeConfig(
         capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
-        duration_s=duration, step_s=1., sample_s=10.,
+        duration_s=duration, step_s=1., sample_s=sample_s,
         adcs_only=False, events=(), values=values,
     )).run()
 
@@ -80,6 +80,11 @@ def test_actual_four_effects_coexist_with_independent_ablation(tmp_path, monkeyp
     j2 = run_whole({**base,**high,**drag,**srp,
                     "earth_gravity_model":"legacy_j2_only"})
     evidence = all_on.summary["orbital_environment"]
+    ref_radius = evidence["gravity_source"]["reference_radius_m"]
+    for row in all_on.trace_rows:
+        expected = math.hypot(*(row[f"orbit.position_m_{axis}"] for axis in "xyz")) - ref_radius
+        assert math.isclose(row["orbit.altitude_m"], expected, abs_tol=1e-7, rel_tol=0)
+    assert all("orbit.altitude_m" not in row for row in j2.trace_rows)
     assert evidence["drag_enabled"] is True
     assert evidence["space_weather"]["coverage_status"] == "PASS"
     assert evidence["space_weather"]["source_url"] == "test-fixture://celestrak-compatible-sample"
@@ -102,6 +107,20 @@ def test_actual_four_effects_coexist_with_independent_ablation(tmp_path, monkeyp
             "magnetic_field","magnetometer"}.issubset(tags)
     rows = all_on.trace_rows
     assert len(rows) == 13
+    # With 1 s dynamics and 10 s export, the previous *exported* row
+    # does not contain the density used by the current force evaluation.
+    dense = run_whole({**base, **high, **drag, **srp}, sample_s=1.).trace_rows
+    assert all("orbit.drag_input_density_kg_m3" not in row for row in no_drag.trace_rows)
+    assert rows[0]["orbit.drag_input_density_kg_m3"] == 0.
+    drag_scale = -0.5 * evidence["drag_area_m2"] * evidence["drag_coefficient"]
+    for row in rows[1:]:
+        assert abs(row["orbit.drag_density_source_time_s"] - (row["time_s"] - 1.)) < 1e-8
+        relative_velocity = vector(row, "orbit.drag_relative_velocity_b_m_s")
+        source = dense[round(row["orbit.drag_density_source_time_s"])]
+        assert abs(source["time_s"] - row["orbit.drag_density_source_time_s"]) < 1e-8
+        assert source["environment.atmosphere_density_kg_m3"] == row["orbit.drag_input_density_kg_m3"]
+        expected = drag_scale * row["orbit.drag_input_density_kg_m3"] * np.linalg.norm(relative_velocity) * relative_velocity
+        np.testing.assert_allclose(vector(row, "orbit.drag_force_b"), expected, rtol=1e-12, atol=1e-17)
     samples = rows[1:]
     assert len(samples) == 12
     density = [r["environment.atmosphere_density_kg_m3"] for r in samples]
@@ -275,6 +294,92 @@ def test_all_four_effects_one_real_orbit_crosses_eclipse_with_drag_still_active(
         "space_weather_source=test-fixture://celestrak-compatible-sample",
         flush=True,
     )
+
+
+def test_four_effects_full_orbit_timestep_refinement(tmp_path, monkeypatch):
+    """Predeclared h/h2/h4 refinement with the four effects in one native graph.
+
+    This is an internal numerical check under synthetic engineering inputs.
+    It does not use an independent trajectory reference or task error budget.
+    """
+    configure_weather(tmp_path, monkeypatch)
+    base = {
+        "environment_profile": "spice_wmm",
+        "epoch_utc": "2026-03-04T21:48:00Z",
+        "orbit_radius_m": 6_650_000.,
+        "eccentricity": 0.,
+        "inclination_deg": 0.,
+        "spacecraft_mass_kg": 100.,
+        "controller_k": 0.,
+        "controller_p": 0.,
+    }
+    probe = run_whole(base, duration=10.)
+    sun = vector(probe.trace_rows[0], "orbit.sun_position_m")
+    base["initial_true_anomaly_rad"] = math.atan2(float(sun[1]), float(sun[0])) % (2. * math.pi)
+    values = {
+        **base,
+        "earth_gravity_model": "ggm03s_degree4",
+        "magnetic_field_model": "igrf14",
+        "atmosphere_model": "nrlmsise00",
+        "drag_area_m2": 1.,
+        "drag_coefficient": 2.2,
+        "srp_model": "cannonball",
+        "srp_reference_area_m2": 20.,
+        "srp_coefficient_reflection": 1.5,
+    }
+    runs = []
+    for step_s in (10., 5., 2.5):
+        runs.append(UnifiedNativeRuntime(UnifiedRuntimeConfig(
+            capability_id=WHOLE_UNIFIED_CAPABILITY_ID,
+            duration_s=5400., step_s=step_s, sample_s=60.,
+            adcs_only=False, events=(), values=values,
+        )).run())
+    assert all(len(run.trace_rows) == 91 for run in runs)
+    assert all(run.summary["orbital_environment"]["gravity_degree"] == 4 for run in runs)
+    assert all(run.summary["aerodynamic_environment"]["status"] == "PASS" for run in runs)
+    assert all(run.summary["solar_radiation_pressure"]["status"] == "PASS" for run in runs)
+    assert all(run.summary["orbital_environment"]["magnetic_field_model_id"] == "IGRF14_2025_2030" for run in runs)
+    assert all(run.summary["orbital_environment"]["space_weather"]["coverage_status"] == "PASS" for run in runs)
+    for run in runs:
+        assert np.allclose([row["time_s"] for row in run.trace_rows],
+                           range(0, 5401, 60), rtol=0., atol=1e-6)
+        assert any(row["orbit.eclipse_factor"] < .001 for row in run.trace_rows[1:])
+        assert any(row["orbit.eclipse_factor"] > .999 for row in run.trace_rows[1:])
+        assert all(row["orbit.drag_force_norm_n"] > 0. for row in run.trace_rows[1:])
+    positions = [vector(run.trace_rows[-1], "orbit.position_m") for run in runs]
+    velocities = [vector(run.trace_rows[-1], "orbit.velocity_m_s") for run in runs]
+    coarse_m = float(np.linalg.norm(positions[0] - positions[1]))
+    fine_m = float(np.linalg.norm(positions[1] - positions[2]))
+    coarse_m_s = float(np.linalg.norm(velocities[0] - velocities[1]))
+    fine_m_s = float(np.linalg.norm(velocities[1] - velocities[2]))
+    order = math.log(coarse_m / fine_m, 2.)
+    radial = positions[2] / np.linalg.norm(positions[2])
+    normal = np.cross(positions[2], velocities[2])
+    normal /= np.linalg.norm(normal)
+    transverse = np.cross(normal, radial)
+    fine_delta = positions[1] - positions[2]
+    fine_rtn_m = [float(fine_delta @ axis) for axis in (radial, transverse, normal)]
+    max_trace_m = max(float(np.linalg.norm(
+        vector(a, "orbit.position_m") - vector(b, "orbit.position_m")))
+        for a, b in zip(runs[1].trace_rows, runs[2].trace_rows))
+    print(
+        "DT3_FOUR_EFFECTS_FULL_ORBIT_REFINEMENT "
+        f"duration_s=5400 sample_s=60 steps_s=10,5,2.5 "
+        f"coarse_position_delta_m={coarse_m:.9e} "
+        f"fine_position_delta_m={fine_m:.9e} "
+        f"observed_position_order={order:.8f} "
+        f"coarse_velocity_delta_m_s={coarse_m_s:.9e} "
+        f"fine_velocity_delta_m_s={fine_m_s:.9e} "
+        f"fine_rtn_m={','.join(f'{value:.9e}' for value in fine_rtn_m)} "
+        f"max_fine_trace_delta_m={max_trace_m:.9e} "
+        "reference=internal_refinement_not_independent_truth",
+        flush=True,
+    )
+    # Reuse the pre-existing coupled-SPICE numerical gate, not a new
+    # after-the-fact tolerance selected from this run's measured values.
+    assert 1.5 < order < 4.5, (coarse_m, fine_m, order)
+    assert fine_m < 2., (coarse_m, fine_m)
+    assert coarse_m_s > fine_m_s > 0., (coarse_m_s, fine_m_s)
 
 def test_four_effects_pass_canonical_taskspec_exported_script_and_sealed_run_bundle(tmp_path, monkeypatch):
     """Product entry regression: opt-in physics cannot vanish after TaskSpec export.

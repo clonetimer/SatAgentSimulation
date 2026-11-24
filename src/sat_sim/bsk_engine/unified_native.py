@@ -62,6 +62,21 @@ RW_COMMAND_EVENT_EFFECTS = {
 }
 
 
+def _validate_wheel_target(event: BSKEventSpec, wheel_count: int) -> None:
+    value = event.parameters.get("wheel_index", 0)
+    message = f"wheel_index must be an integer between 0 and {wheel_count - 1}"
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        raise ValueError(message)
+    if isinstance(value, float) and not value.is_integer():
+        raise ValueError(message)
+    try:
+        index = int(value)
+    except ValueError as exc:
+        raise ValueError(message) from exc
+    if not 0 <= index < wheel_count:
+        raise ValueError(message)
+
+
 def _mapping(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -643,42 +658,38 @@ def _required_coupling_evidence(required: tuple[str, ...], bridge_health: Mappin
         "adcs_control_effort_to_eps_thermal": "adcs",
         "propulsion_activity_to_eps_thermal": "propulsion",
     }
+    def samples(*fields: str):
+        for row in rows:
+            values = tuple(row.get(field) for field in fields)
+            if all(isinstance(value, (float, int, np.floating, np.integer)) and math.isfinite(value) for value in values):
+                yield values
+
     items: list[dict[str, Any]] = []
     for coupling_id in required:
         bridge_name = mapping.get(coupling_id)
         if bridge_name is None:
-            # Non-resource causal edges are evidenced directly in telemetry.
+            # A measured zero can evidence an inactive gate; a missing field cannot.
             if coupling_id == "adcs_pointing_to_payload_gate":
-                observed = any(int(row.get("payload.active", 0)) == 0 and float(row.get("adcs.pointing_error_deg", 0.0)) > 0.0 for row in rows)
+                observed = any(active == 0 and error > 0 for active, error in
+                               samples("payload.active", "adcs.pointing_error_deg"))
             elif coupling_id == "adcs_pointing_to_comm_gate":
-                observed = any(int(row.get("comm.active", 0)) == 0 and int(row.get("comm.command_permitted", 0)) == 0 for row in rows)
+                observed = any(active == 0 and permitted == 0 for active, permitted in
+                               samples("comm.active", "comm.command_permitted"))
             elif coupling_id == "orbit_sun_attitude_eclipse_to_eps_solar_power":
-                observed = (max((float(row.get("eps.solar_array_power_w", 0.0)) for row in rows), default=0.0) - min((float(row.get("eps.solar_array_power_w", 0.0)) for row in rows), default=0.0)) > 1.0e-6
+                powers = [power for power, in samples("eps.solar_array_power_w")]
+                observed = bool(powers) and max(powers) - min(powers) > 1.0e-6
             elif coupling_id == "propulsion_effector_to_spacecraft":
-                observed = any(float(row.get("propulsion.total_thrust_n", 0.0)) > 0.0 for row in rows)
+                observed = any(thrust > 0 for thrust, in samples("propulsion.total_thrust_n"))
             elif coupling_id == "ground_access_to_comm_downlink":
-                observed = any(
-                    int(row.get("comm.geometric_access", 0)) == 0 and int(row.get("comm.active", 0)) == 0
-                    for row in rows
-                ) or any(
-                    int(row.get("comm.geometric_access", 0)) == 1 and float(row.get("comm.downlink_bps", 0.0)) > 0.0
-                    for row in rows
-                )
+                observed = any(access == 0 and active == 0 for access, active in
+                               samples("comm.geometric_access", "comm.active")) or any(
+                    access == 1 and rate > 0 for access, rate in samples("comm.geometric_access", "comm.downlink_bps"))
             elif coupling_id == "native_rf_quality_to_comm_downlink":
-                observed = any(
-                    float(row.get("comm.gated_cnr", 0.0)) > 0.0 and float(row.get("comm.downlink_bps", 0.0)) > 0.0
-                    for row in rows
-                ) or any(
-                    float(row.get("comm.gated_cnr", 0.0)) <= 0.0 and float(row.get("comm.downlink_bps", 0.0)) == 0.0
-                    for row in rows
-                )
+                observed = any((cnr > 0 and rate > 0) or (cnr <= 0 and rate == 0)
+                               for cnr, rate in samples("comm.gated_cnr", "comm.downlink_bps"))
             elif coupling_id == "thermal_safety_to_payload_comm_gate":
-                observed = any(
-                    int(row.get("thermal.safe", 1)) == 0
-                    and int(row.get("payload.active", 1)) == 0
-                    and int(row.get("comm.active", 1)) == 0
-                    for row in rows
-                )
+                observed = any(safe == 0 and payload == 0 and comm == 0 for safe, payload, comm in
+                               samples("thermal.safe", "payload.active", "comm.active"))
             else:
                 observed = False
             items.append({"coupling_id": coupling_id, "status": "OBSERVED_SINGLE_RUN" if observed else "NOT_EXERCISED", "evidence_source": "telemetry"})
@@ -830,11 +841,22 @@ def _build_unified_rows(
     sample_interval_s: float,
     *,
     start_index: int = 0,
+    altitude_reference_radius_m: float | None = None,
 ) -> list[dict[str, Any]]:
     from Basilisk.utilities import RigidBodyKinematics, macros  # type: ignore
     recorder_map = {name: _RecorderSnapshot(recorder) for name, recorder in recorder_map.items()}
     rows: list[dict[str, Any]] = []
     times = recorder_map["state"].times()
+    eclipse_input = recorder_map.get("eclipse_spacecraft_input")
+    if eclipse_input is not None:
+        if not np.array_equal(eclipse_input.times(), times):
+            raise RuntimeError("NATIVE_ECLIPSE_INPUT_SAMPLE_GRID_MISMATCH")
+        eclipse_source_times = eclipse_input.timesWritten()
+    drag_input = recorder_map.get("drag_density_input")
+    if drag_input is not None:
+        if not np.array_equal(drag_input.times(), times):
+            raise RuntimeError("NATIVE_DRAG_INPUT_SAMPLE_GRID_MISMATCH")
+        drag_source_times = drag_input.timesWritten()
     if start_index < 0 or start_index > len(times):
         raise ValueError("start_index must be within the recorder range")
     mag_mount_321 = [
@@ -963,7 +985,17 @@ def _build_unified_rows(
             "adcs.fusion.estimated_omega_BN_B_y": float(recorder_map["fusion_attitude"].omega_BN_B[index][1]),
             "adcs.fusion.estimated_omega_BN_B_z": float(recorder_map["fusion_attitude"].omega_BN_B[index][2]),
         }
+        if "imu_bias_walk" in recorder_map:
+            for axis, component in enumerate("xyz"):
+                row[f"adcs.sensor.gyro_bias_walk_rad_s_{component}"] = float(
+                    recorder_map["imu_bias_walk"].AngVelPlatform[index][axis]
+                )
+                row[f"adcs.sensor.accel_bias_walk_m_s2_{component}"] = float(
+                    recorder_map["imu_bias_walk"].AccelPlatform[index][axis]
+                )
         row.update(attitude_truth)
+        if altitude_reference_radius_m is not None:
+            row["orbit.altitude_m"] = row["orbit.radius_m"] - altitude_reference_radius_m
         for axis, component in enumerate('xyz'):
             row[f"attitude.truth.omega_BN_B_{component}"] = float(state.omega_BN_B[index][axis])
         for axis, component in enumerate('xyz'):
@@ -971,6 +1003,14 @@ def _build_unified_rows(
             row[f'orbit.velocity_m_s_{component}'] = float(state.v_BN_N[index][axis])
             if 'sun_ephemeris' in recorder_map:
                 row[f'orbit.sun_position_m_{component}'] = float(recorder_map['sun_ephemeris'].PositionVector[index][axis])
+        if eclipse_input is not None:
+            input_position = eclipse_input.r_BN_N[index]
+            row["orbit.eclipse_spacecraft_source_time_s"] = float(eclipse_source_times[index]) * 1e-9
+            row["orbit.eclipse_spacecraft_geometry_valid"] = bool(
+                np.isfinite(input_position).all() and np.linalg.norm(input_position) > 0.
+            )
+            for axis, component in enumerate("xyz"):
+                row[f"orbit.eclipse_spacecraft_position_m_{component}"] = float(input_position[axis])
         if "srp_force" in recorder_map:
             srp_n = np.asarray(recorder_map["srp_force"].forceExternal_N[index], dtype=float).reshape(3)
             sun_n = np.asarray(recorder_map["sun_ephemeris"].PositionVector[index], dtype=float).reshape(3)
@@ -986,6 +1026,9 @@ def _build_unified_rows(
             atmosphere_sample = recorder_map["atmosphere"]
             row["environment.atmosphere_density_kg_m3"] = float(atmosphere_sample.neutralDensity[index])
             row["environment.atmosphere_temperature_k"] = float(atmosphere_sample.localTemp[index])
+        if drag_input is not None:
+            row["orbit.drag_input_density_kg_m3"] = float(drag_input.neutralDensity[index])
+            row["orbit.drag_density_source_time_s"] = float(drag_source_times[index]) * 1e-9
         if "drag_force" in recorder_map:
             drag_force_b = np.asarray(recorder_map["drag_force"].forceExternal_B[index], dtype=float).reshape(3)
             drag_velocity_b = np.asarray(recorder_map["drag_force"].v_B[index], dtype=float).reshape(3)
@@ -1083,7 +1126,9 @@ def _build_unified_rows(
         if not cfg.adcs_only:
             battery = recorder_map["battery"]
             storage = recorder_map["storage"]
-            capacity = max(float(battery.storageCapacity[index]), 1.0e-12)
+            capacity = float(battery.storageCapacity[index])
+            if not math.isfinite(capacity) or capacity < 0:
+                raise ValueError("NATIVE_BATTERY_STATUS_CAPACITY_INVALID")
             payload_active = int(recorder_map["payload_status"].deviceStatus[index])
             downlink_active = int(recorder_map["downlink_status"].deviceStatus[index])
             row.update({
@@ -1103,7 +1148,8 @@ def _build_unified_rows(
                     active_default=0.5,
                 ),
                 "eps.battery_energy_wh": float(battery.storageLevel[index]) / 3600.0,
-                "eps.battery_soc": float(battery.storageLevel[index]) / capacity,
+                # A complete capacity-loss event leaves no usable charge.
+                "eps.battery_soc": float(battery.storageLevel[index]) / capacity if capacity else 0.0,
                 "eps.net_power_w": float(battery.currentNetPower[index]),
                 "eps.loads.adcs_power_w": sum(
                     max(0.0, -float(recorder_map[f"adcs_power_{wheel_index}"].netPower[index]))
@@ -1139,10 +1185,23 @@ def _build_unified_rows(
                 "data.storage_bits": float(storage.storageLevel[index]),
                 "data.storage_capacity_bits": float(storage.storageCapacity[index]),
                 "data.net_baud_bps": float(storage.currentNetBaud[index]),
+                "data.downlink_node_baud_bps": float(recorder_map["downlink_node"].baudRate[index]),
                 "thermal.safe": int(recorder_map["thermal_status"].deviceStatus[index]),
                 "thermal.payload_temp_k": float(recorder_map["thermal_temp_payload"].deviceStatus[index]),
                 "thermal.payload_temp_c": float(recorder_map["thermal_temp_payload"].deviceStatus[index]) - 273.15,
             })
+            ledger = recorder_map["storage_balance"]
+            if ledger.valid[index]:
+                row.update({
+                    "data.cumulative_offered_bits": int(ledger.offered_bits[index]),
+                    "data.cumulative_admitted_bits": int(ledger.admitted_bits[index]),
+                    "data.cumulative_withdrawn_bits": int(ledger.withdrawn_bits[index]),
+                })
+                if ledger.steps[index] > 0:
+                    row["data.max_abs_storage_balance_error_bits"] = float(ledger.max_error_bits[index])
+            else:
+                # A missed dynamics tick invalidates the cumulative evidence until reset.
+                row["data.max_abs_storage_balance_error_bits"] = None
             heater_electrical_power_w = 0.0
             for thermal_node_name in ("battery", "electronics", "payload", "adcs", "structure", "solar_panel", "comm", "propulsion"):
                 heater_key = f"thermal_heater_electrical_{thermal_node_name}"
@@ -1264,6 +1323,10 @@ class UnifiedNativeRuntime:
         _test_only_fresh_native_graph_probe: Any = None,
     ) -> None:
         self.config = config
+        for event in config.events:
+            if event.effect in RW_COMMAND_EVENT_EFFECTS:
+                axes = _reaction_wheel_axes(str(config.values.get("rw_configuration", "orthogonal_3")))
+                _validate_wheel_target(event, len(axes))
         # Isolated test process only. This hook never appears in TaskSpec,
         # the persistent runtime, HTTP handlers or a recoverable checkpoint.
         if _test_only_fresh_native_graph_probe is not None:
@@ -1293,9 +1356,11 @@ class UnifiedNativeRuntime:
         from .project_native_modules import (
             AdcsSensorFusion,
             EarthHorizonSensor,
+            ImuBiasRandomWalk,
             ImuFaultInjector,
             NativeEventStatus,
             NativeRfDownlinkGate,
+            StorageBalanceObserver,
             PowerDataModeGate,
             PropulsionBurnController,
             ReactionWheelCommandFaultManager,
@@ -1385,7 +1450,14 @@ class UnifiedNativeRuntime:
         sc.hub.v_CN_NInit = velocity
         initial_error_deg = float(values.get("initial_pointing_error_deg", 8.0))
         sc.hub.sigma_BNInit = [math.tan(math.radians(initial_error_deg) / 4.0), 0.0, 0.0]
-        sc.hub.omega_BN_BInit = [0.01, -0.004, 0.002]
+        initial_body_rate = [
+            values.get("initial_body_rate_x_rad_s", 0.01),
+            values.get("initial_body_rate_y_rad_s", -0.004),
+            values.get("initial_body_rate_z_rad_s", 0.002),
+        ]
+        if any(type(v) not in (int, float) or not math.isfinite(v) for v in initial_body_rate):
+            raise ValueError("INITIAL_BODY_RATE_REQUIRES_FINITE_NUMBERS")
+        sc.hub.omega_BN_BInit = initial_body_rate
         add(sc, "spacecraft", "basilisk_official_native", 100)
 
         rw = reactionWheelStateEffector.ReactionWheelStateEffector()
@@ -1781,6 +1853,15 @@ class UnifiedNativeRuntime:
         # configuration untouched, for strict legacy-default compatibility.
         if gyro_lsb > 0. or accel_lsb > 0.:
             imu.setLSBs(accel_lsb, gyro_lsb)
+        raw_gyro_walk = values.get("imu_gyro_bias_random_walk_std_rad_s_sqrt_s", 0.)
+        raw_accel_walk = values.get("imu_accel_bias_random_walk_std_m_s2_sqrt_s", 0.)
+        if any(type(v) not in (int, float) for v in (raw_gyro_walk, raw_accel_walk)):
+            raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_INVALID")
+        gyro_walk_std = float(raw_gyro_walk)
+        accel_walk_std = float(raw_accel_walk)
+        if (not math.isfinite(gyro_walk_std) or not 0. <= gyro_walk_std <= .01
+                or not math.isfinite(accel_walk_std) or not 0. <= accel_walk_std <= .1):
+            raise ValueError("NATIVE_IMU_BIAS_RANDOM_WALK_INVALID")
         gyro_max = float(values.get("imu_gyro_max_rad_s", 0.0))
         accel_max = float(values.get("imu_accel_max_m_s2", 0.0))
         if not all(math.isfinite(v) for v in (gyro_max, accel_max)) or not (
@@ -1796,6 +1877,17 @@ class UnifiedNativeRuntime:
         imu.scStateInMsg.subscribeTo(sc.scStateOutMsg)
         add(imu, "imu", "basilisk_official_native", 90)
         connected("spacecraft.scStateOutMsg", "imu")
+        imu_bias_walk = None
+        if gyro_walk_std > 0. or accel_walk_std > 0.:
+            imu_bias_walk = ImuBiasRandomWalk(
+                imu,
+                gyro_bias_rad_s=gyro_bias,
+                accel_bias_m_s2=accel_bias,
+                gyro_random_walk_std_rad_s_sqrt_s=gyro_walk_std,
+                accel_random_walk_std_m_s2_sqrt_s=accel_walk_std,
+                seed=int(values.get("simulation_seed", values.get("random_seed", 0))),
+            )
+            add(imu_bias_walk, "project_imu_bias_random_walk", "basilisk_project_native", 91)
 
         sun_sensor = coarseSunSensor.CoarseSunSensor()
         from .sun_sensor_geometry import resolve_sun_sensor_boresight
@@ -1899,6 +1991,14 @@ class UnifiedNativeRuntime:
 
         star_fault = StarTrackerFaultInjector(cfg.events, seed=int(values.get("simulation_seed", 0)))
         star_fault.starInMsg.subscribeTo(tracker.sensorOutMsg)
+        half_fov = float(values.get("star_tracker_earth_occlusion_half_fov_deg", 0.0))
+        if not 0 <= half_fov <= 89:
+            raise ValueError("star_tracker_earth_occlusion_half_fov_deg must be in [0, 89]")
+        if half_fov:
+            star_fault.earth_occultation_half_angle_rad = math.radians(half_fov)
+            star_fault.boresight_b = tracker_dcm_cb[2].copy()
+            star_fault.spacecraftStateInMsg.subscribeTo(sc.scStateOutMsg)
+            connected("spacecraft.scStateOutMsg", "project_star_tracker_fault_injector")
         add(star_fault, "project_star_tracker_fault_injector", "basilisk_project_native", 84)
         connected("star_tracker.sensorOutMsg", "project_star_tracker_fault_injector")
 
@@ -2054,7 +2154,9 @@ class UnifiedNativeRuntime:
             battery.addPowerNodeToModel(panel.nodePowerOutMsg)
             for node in power_nodes:
                 battery.addPowerNodeToModel(node.nodePowerOutMsg)
-            add(battery, "battery", "basilisk_official_native", 50)
+            # Integrate after the heater (priority 0) and all other electrical
+            # nodes. Decisions earlier in the tick read the last battery state.
+            add(battery, "battery", "basilisk_official_native", -1)
             connected("solar_panel.nodePowerOutMsg", "battery")
             for node in power_nodes:
                 connected(f"{node.ModelTag}.nodePowerOutMsg", "battery")
@@ -2175,6 +2277,12 @@ class UnifiedNativeRuntime:
             add(rf_gate, "project_native_rf_downlink_gate", "basilisk_project_native", 44)
             add(native_downlink, "native_downlink_handling", "basilisk_official_native", 38)
             add(storage, "storage", "basilisk_official_native", 35)
+            balance = StorageBalanceObserver(instrument.nodeDataOutMsg, native_downlink.nodeDataOutMsg,
+                                             storage.storageUnitDataOutMsg)
+            add(balance, "project_storage_balance_observer", "basilisk_project_native", 34)
+            connected("payload_instrument.nodeDataOutMsg", balance.ModelTag)
+            connected("native_downlink_handling.nodeDataOutMsg", balance.ModelTag)
+            connected("storage.storageUnitDataOutMsg", balance.ModelTag)
             connected("payload_instrument.nodeDataOutMsg", "storage")
             connected("ground_location.accessOutMsgs[0]", "project_native_rf_downlink_gate")
             connected("native_link_budget.linkBudgetOutPayload", "project_native_rf_downlink_gate")
@@ -2280,6 +2388,7 @@ class UnifiedNativeRuntime:
                 "rf_access": rf_access,
                 "rf_gate": rf_gate,
                 "native_downlink": native_downlink,
+                "storage_balance": balance,
             })
 
             propulsion_enabled = bool(
@@ -2599,6 +2708,8 @@ class UnifiedNativeRuntime:
             "event_degradation": event_status.degradationOutMsg,
             "event_constraint": event_status.constraintOutMsg,
         }
+        if imu_bias_walk is not None:
+            messages["imu_bias_walk"] = imu_bias_walk.biasWalkOutMsg
         if space_weather is not None and atmosphere_model is not None and wind_model is not None:
             messages["atmosphere"] = atmosphere_model.envOutMsgs[0]
             messages["wind"] = wind_model.envOutMsgs[0]
@@ -2624,6 +2735,8 @@ class UnifiedNativeRuntime:
                 "native_link_budget": whole_modules["rf_access"].link_budget_msg,
                 "gated_link_budget": whole_modules["rf_gate"].linkBudgetOutMsg,
                 "downlink_handling": whole_modules["native_downlink"].downlinkOutMsg,
+                "downlink_node": whole_modules["native_downlink"].nodeDataOutMsg,
+                "storage_balance": whole_modules["storage_balance"],
                 "payload_status": whole_modules["gate"].payloadStatusOutMsg,
                 "downlink_status": whole_modules["gate"].downlinkStatusOutMsg,
                 "safe_mode_status": whole_modules["gate"].safeModeStatusOutMsg,
@@ -2659,12 +2772,20 @@ class UnifiedNativeRuntime:
                 messages["earth_orientation"] = earth_msg
             if self._orbital_environment.igrf14_asset is not None:
                 messages["igrf14_earth_frame"] = earth_msg
+        power_recorder_priorities = {name: -2 for name in messages
+                                     if name == "battery" or name.startswith("thermal_heater_electrical_")}
         for name, message in messages.items():
             recorder = message.recorder(macros.sec2nano(cfg.sample_s))
-            sim.AddModelToTask(task_name, recorder, None, 1)
+            sim.AddModelToTask(task_name, recorder, None, power_recorder_priorities.get(name, 1))
             recorder_map[name] = recorder
             record_sources.append(name)
         if drag_effector is not None:
+            # Dynamics runs at priority 100; MSIS publishes the next density
+            # at 97. Record the published input before either executes.
+            density_input = atmosphere_model.envOutMsgs[0].recorder(macros.sec2nano(cfg.sample_s))
+            sim.AddModelToTask(task_name, density_input, None, 101)
+            recorder_map["drag_density_input"] = density_input
+            record_sources.append("drag_density_input")
             drag_log = drag_effector.logger(
                 ["forceExternal_B", "v_B", "v_hat_B"],
                 macros.sec2nano(cfg.sample_s),
@@ -2673,6 +2794,12 @@ class UnifiedNativeRuntime:
             recorder_map["drag_force"] = drag_log
             record_sources.append("drag_force")
         if srp_effector is not None:
+            # Capture the actual state message before Eclipse (105) reads it.
+            # The ordinary spacecraft recorder samples after dynamics (100).
+            source_recorder = sc.scStateOutMsg.recorder(macros.sec2nano(cfg.sample_s))
+            sim.AddModelToTask(task_name, source_recorder, None, 106)
+            recorder_map["eclipse_spacecraft_input"] = source_recorder
+            record_sources.append("eclipse_spacecraft_input")
             # RadiationPressure writes inherited forceExternal_N (inertial
             # Newtons), NOT the DragDynamicEffector body-frame force field.
             srp_log = srp_effector.logger(["forceExternal_N"], macros.sec2nano(cfg.sample_s))
@@ -2701,7 +2828,8 @@ class UnifiedNativeRuntime:
 
         from sat_sim.basilisk_recorder_groups import attach_grouped_message_recorders, group_manifest
         recorder_groups = attach_grouped_message_recorders(
-            sim=sim, task_name=task_name, message_handles=messages, streams=cfg.telemetry_streams
+            sim=sim, task_name=task_name, message_handles=messages, streams=cfg.telemetry_streams,
+            recorder_priorities=power_recorder_priorities,
         )
 
         vizard_recording_file = None
@@ -2812,6 +2940,25 @@ class UnifiedNativeRuntime:
                 raise ValueError(f"operation has no unified runtime adapter: {operation}")
 
         sim.InitializeSimulation()
+        if "battery" in whole_modules:
+            # First-tick load decisions need a previous battery state. Leave
+            # independent permission and safe-mode reset interlocks intact.
+            # The official battery replaces it before the t=0 recorders run.
+            battery = whole_modules["battery"]
+            initial_status = messaging.PowerStorageStatusMsgPayload()
+            initial_status.storageCapacity = battery.storageCapacity
+            initial_status.storageLevel = battery.storedCharge_Init
+            battery.batPowerOutMsg.write(initial_status, 0, battery.moduleID)
+        orbital_environment_evidence = self._orbital_environment.evidence()
+        if self._orbital_environment.spice is not None:
+            harmonics = earth.gravityModel
+            orbital_environment_evidence["initialized_earth_gravity"] = {
+                "body_mu_m3_s2": earth.mu,
+                "body_equatorial_radius_m": earth.radEquator,
+                "harmonics_mu_m3_s2": harmonics.muBody,
+                "harmonics_equatorial_radius_m": harmonics.radEquator,
+                "harmonics_degree": harmonics.maxDeg,
+            }
         if self._test_only_fresh_native_graph_probe is not None:
             # Strictly after Basilisk has registered all native StateData,
             # strictly before executing the FIRST simulation time step.
@@ -2854,6 +3001,8 @@ class UnifiedNativeRuntime:
                 history_bounds["data"] &= 0.0 <= row["data.storage_bits"] <= row["data.storage_capacity_bits"] + 1e-6
                 history_bounds["thermal"] &= row.get("thermal.safe", 1) == 1
 
+        gravity_source = self._orbital_environment.gravity_asset
+        altitude_radius = float(gravity_source["reference_radius_m"]) if gravity_source else None
         if cfg.execution_controller is not None:
             cfg.execution_controller.runtime_prepared()
             emitted_count = 0
@@ -2988,6 +3137,7 @@ class UnifiedNativeRuntime:
                     live_cfg,
                     cfg.sample_s,
                     start_index=emitted_count,
+                    altitude_reference_radius_m=altitude_radius,
                 )
                 if not cfg.adcs_only:
                     _overlay_exact_thermal_trace(live_rows, whole_modules["thermal"], tolerance_s=max(cfg.step_s, cfg.sample_s) + 1.0e-9)
@@ -3019,7 +3169,7 @@ class UnifiedNativeRuntime:
         if interactive_events:
             cfg = replace(cfg, events=(*cfg.events, *interactive_events), execution_controller=None)
 
-        rows = _build_unified_rows(recorder_map, cfg, cfg.sample_s)
+        rows = _build_unified_rows(recorder_map, cfg, cfg.sample_s, altitude_reference_radius_m=altitude_radius)
         if cfg.execution_controller is not None and not rows:
             # A final partial quantum may be shorter than the native recorder
             # cadence.  The preceding published row is still the correct
@@ -3030,7 +3180,8 @@ class UnifiedNativeRuntime:
             _overlay_exact_thermal_trace(rows, whole_modules["thermal"], tolerance_s=max(cfg.step_s, cfg.sample_s) + 1.0e-9)
         native_streams: list[dict[str, Any]] = []
         for group in recorder_groups.values():
-            stream_rows = _build_unified_rows(group.recorders, cfg, group.spec.sample_s)
+            stream_rows = _build_unified_rows(group.recorders, cfg, group.spec.sample_s,
+                                              altitude_reference_radius_m=altitude_radius)
             if not cfg.adcs_only:
                 _overlay_exact_thermal_trace(
                     stream_rows,
@@ -3150,7 +3301,7 @@ class UnifiedNativeRuntime:
             "mission_reason_codes": mission_reason_codes,
             "capability_id": cfg.capability_id,
             "engine": "basilisk_unified_native_runtime",
-            "orbital_environment": self._orbital_environment.evidence(),
+            "orbital_environment": orbital_environment_evidence,
             "backend_type": "basilisk_native_mixed",
             "runtime_truth_status": "instantiated_connected_recorded_unified",
             "process_count": 1,
@@ -3179,6 +3330,19 @@ class UnifiedNativeRuntime:
             "runtime_message_read_error_count": len(runtime_read_errors),
             "runtime_message_read_errors": runtime_read_errors[:20],
         }
+        if gyro_walk_std > 0. or accel_walk_std > 0.:
+            summary["imu_bias_random_walk"] = {
+                "source": "project_native_modules.ImuBiasRandomWalk",
+                "target": "official Basilisk ImuSensor.senRotBias/senTransBias before measurement update",
+                "gyro_increment_std_rad_s_sqrt_s": gyro_walk_std,
+                "accel_increment_std_m_s2_sqrt_s": accel_walk_std,
+                "sample_clock": "Basilisk scheduler current_sim_nanos",
+                "project_sysmodel_priority": 91,
+                "official_imu_priority": 90,
+                "seed_streams": "simulation_seed with distinct deterministic gyro/accelerometer derivations",
+                "installation_evidence": "NOT_PROVIDED",
+                "hardware_calibration": False,
+            }
         if gyro_lsb > 0. or accel_lsb > 0.:
             summary["imu_quantization"] = {
                 "source": "Basilisk.simulation.imuSensor.ImuSensor.setLSBs",
@@ -3402,6 +3566,8 @@ class UnifiedNativeRuntime:
                 "reference_area_m2": self._srp_selection.reference_area_m2,
                 "coefficient_reflection": self._srp_selection.coefficient_reflection,
                 "force_frame": "N_INERTIAL",
+                "eclipse_spacecraft_input": "pre-Eclipse scStateOutMsg; source time is the message write time",
+                "force_sampling": "forceExternal_N recorded after the spacecraft dynamics update",
                 "force_max_n": max(srp_forces),
                 "force_min_n": min(srp_forces),
                 "illumination_min": min(srp_illuminations),
@@ -3542,6 +3708,22 @@ class _BaseUnifiedAdapter:
             issues.append(ValidationIssue('error', '$.simulation.sample_s', str(exc), 'native_sampling'))
         if not self.adcs_only:
             values = _parameter_values(spec)
+            if "star_tracker_earth_occlusion_half_fov_deg" in values:
+                angle = values["star_tracker_earth_occlusion_half_fov_deg"]
+                if type(angle) not in (int, float) or not 0 <= angle <= 89:
+                    issues.append(ValidationIssue("error", "$.parameters.values.star_tracker_earth_occlusion_half_fov_deg",
+                        "must be a number within [0, 89] degrees", "range"))
+            if "initial_payload_temp_k" in values:
+                from subsystems.thermal.network_config import build_nominal_thermal_network_config
+
+                node = build_nominal_thermal_network_config().nodes["payload"]
+                try:
+                    temperature = float(values["initial_payload_temp_k"])
+                except (TypeError, ValueError, OverflowError):
+                    temperature = math.nan
+                if not node.min_temp_k <= temperature <= node.max_temp_k:
+                    issues.append(ValidationIssue("error", "$.parameters.values.initial_payload_temp_k",
+                        f"must be within [{node.min_temp_k}, {node.max_temp_k}] K", "range"))
             propulsion_enabled = bool(
                 values.get("propulsion_enabled", values.get("enable_propulsion", False))
             ) or any(
@@ -3583,13 +3765,11 @@ class _BaseUnifiedAdapter:
             if event.start_s > duration_s:
                 issues.append(ValidationIssue("error", f"$.events[{index}].start_s", "must not exceed simulation duration", "time"))
             if event.effect in RW_COMMAND_EVENT_EFFECTS:
+                axes = _reaction_wheel_axes(str(_parameter_values(spec).get("rw_configuration", "orthogonal_3")))
                 try:
-                    wheel_index = int(event.parameters.get("wheel_index", 0))
-                except (TypeError, ValueError):
-                    wheel_index = -1
-                wheel_count = len(_reaction_wheel_axes(str(_parameter_values(spec).get("rw_configuration", "orthogonal_3"))))
-                if not 0 <= wheel_index < wheel_count:
-                    issues.append(ValidationIssue("error", f"$.events[{index}].parameters.wheel_index", f"must be between 0 and {wheel_count - 1}", "range"))
+                    _validate_wheel_target(event, len(axes))
+                except ValueError as exc:
+                    issues.append(ValidationIssue("error", f"$.events[{index}].parameters.wheel_index", str(exc), "range"))
         return tuple(issues)
 
     def run(self, spec: Mapping[str, Any], capability: Mapping[str, Any] | None = None) -> SimulationResult:

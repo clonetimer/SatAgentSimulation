@@ -27,6 +27,7 @@ _EFFECT_PARAMETER_KEYS: dict[str, frozenset[str]] = {
     "adcs_rw_torque_authority_loss": frozenset({"wheel_index", "remaining_torque_ratio", "torque_scale", "fmea"}),
     "rw_motor_failure": frozenset({"wheel_index", "remaining_torque_ratio", "fmea"}),
     "adcs_reaction_wheel_speed_limit": frozenset({"wheel_index", "max_speed_rad_s", "max_speed_rpm", "fmea"}),
+    "adcs_star_tracker_dropout": frozenset({"fmea"}),
     "gyro_bias_step": frozenset({"bias_step_deg_s", "fmea"}),
     "adcs_gyro_bias_step": frozenset({"bias_deg_s", "fmea"}),
     "gyro_noise_increase": frozenset({"noise_scale", "fmea"}),

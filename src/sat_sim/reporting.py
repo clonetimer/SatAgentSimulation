@@ -70,7 +70,7 @@ def _metric_rows(payload: Mapping[str, Any], max_rows: int = 80) -> list[tuple[s
         raw = str(key)
         if raw in internal_exact or raw.startswith(internal_prefixes):
             continue
-        label = output_label(raw)
+        label = "适配器任务状态" if raw == "mission_status" else output_label(raw)
         if label == "可观测量":
             label = raw
         rows.append((label, _status_zh(value)))
@@ -86,8 +86,44 @@ def _claim_label(value: Any) -> str:
         "simulation_execution_completed": "仿真执行已完成",
         "task_requirements_satisfied": "任务要求已满足",
         "taskspec_schema_valid": "TaskSpec结构校验通过",
+        "certified_high_fidelity": "高保真认证",
+        "flight_correlated": "飞行数据相关验证",
+        "flight_validated": "飞行验证",
+        "ground_calibrated": "地面标定",
+        "hardware_calibrated": "硬件标定",
     }
     return mapping.get(raw, raw)
+
+
+def run_model_scope(environment: Mapping, claim: Mapping, validation: Mapping) -> dict:
+    """Present only the assurance and claims recorded for this run."""
+    assurance = environment.get("assurance") or {}
+    physical = validation.get("physical_validation") or {}
+    levels = {
+        "analysis_only": "仅分析用途", "engineering_estimate": "工程估算",
+        "ground_calibrated": "地面标定", "flight_correlated": "飞行数据相关验证",
+    }
+    allowed = claim.get("allowed_claims") or []
+    forbidden = claim.get("forbidden_claims")
+    supported = [label for key, label in levels.items()
+                 if f"claim_level:{key}" in allowed and f"claim_level:{key}" not in (forbidden or [])]
+    trust = assurance.get("capability_trust_level")
+    trust_label = "工程预览" if trust == "engineering_preview" else trust
+    eligibility = assurance.get("capability_can_claim_high_fidelity")
+    requested = claim.get("requested_claim_level")
+    missing = physical.get("checks_missing")
+    limits = list(dict.fromkeys([*(claim.get("limitations") or []), *(physical.get("limitations") or [])]))
+    fields = {
+        "请求的声明等级": levels.get(requested, requested) or "未记录",
+        "能力可信等级": trust_label or "未记录",
+        "能力允许声明高保真": {True: "是", False: "否"}.get(eligibility, "未记录"),
+        "本次禁止声明": ("、".join(_claim_label(item) for item in forbidden) or "清单为空")
+                    if isinstance(forbidden, list) else "未记录",
+        "本次未评估的物理检查": ("、".join(missing) or "清单为空") if isinstance(missing, list) else "未记录",
+    }
+    if limits:
+        fields["验证限制"] = " ".join(limits)
+    return {"summary": "、".join(supported) or "未确认声明等级", "fields": fields}
 
 
 def _svg_chart(csv_path: Path, series: Sequence[str], *, width: int = 900, height: int = 260) -> str:
@@ -164,6 +200,7 @@ def generate_run_report(bundle_root: str | Path) -> dict[str, Any]:
     assertions = _read_json(root / "results" / "assertions.json")
     plots = _read_json(root / "results" / "plot_manifest.json")
     environment = _read_json(root / "runtime" / "environment.json")
+    scope = run_model_scope(environment, claim, validation)
     dependency_doc = _read_json(root / "runtime" / "dependency_versions.json")
     dependencies = dependency_doc.get("dependencies") if isinstance(dependency_doc.get("dependencies"), Mapping) else dependency_doc
     task = spec.get("task") if isinstance(spec.get("task"), Mapping) else {}
@@ -206,13 +243,13 @@ table{{width:100%;border-collapse:collapse;font-size:12px}}th,td{{border:1px sol
 <div class="card"><span>主要能力</span><strong>{_escape(model.get("capability_id") or simulation.get("capability_id") or "—")}</strong></div>
 <div class="card"><span>自动验收</span><strong>{_escape(_status_zh(assertions.get("status", "NOT_CONFIGURED")))}</strong></div>
 </div><div class="content">
-<section><h2>一、任务与运行配置</h2>{_table([("任务 ID", task.get("task_id")),("任务名称",task.get("name")),("仿真时长/s",simulation.get("duration_s")),("运行状态",_status_zh(run_record.get("status"))),("终止原因",run_record.get("terminal_reason_code")),("验证原因",validation.get("reason_code"))])}</section>
+<section><h2>一、任务与运行配置</h2>{_table([("任务 ID", task.get("id") or task.get("task_id")),("任务名称",task.get("name")),("仿真时长/s",simulation.get("duration_s")),("运行状态",_status_zh(run_record.get("status"))),("终止原因",run_record.get("terminal_reason_code")),("验证原因",validation.get("reason_code"))])}</section>
 <section><h2>二、核心指标</h2>{_table(_metric_rows(metrics))}</section>
 <section><h2>三、故障、退化与运行约束事件</h2><table><thead><tr><th>类别</th><th>效果</th><th>目标</th><th>开始/s</th><th>结束/s</th></tr></thead><tbody>{event_html}</tbody></table></section>
 <section><h2>四、自动验收</h2><table><thead><tr><th>指标</th><th>运算符</th><th>期望</th><th>实际</th><th>结果</th></tr></thead><tbody>{assertion_html}</tbody></table></section>
 <section><h2>五、时序曲线</h2>{_svg_chart(root / "results" / "telemetry.csv", series)}</section>
 <section><h2>六、环境与可复现性</h2><h3>运行环境</h3>{_table([("Python",(environment.get("python") or {}).get("version")),("操作系统",(environment.get("platform") or {}).get("platform")),("主能力",environment.get("primary_capability_id")),("Basilisk",dependencies.get("Basilisk") or dependencies.get("bsk") or "未安装/未记录"),("包版本",dependencies.get("satellite-simulation-platform") or "未记录")])}<h3>允许声明</h3>{_table(((index, _claim_label(value)) for index, value in enumerate(claim.get("allowed_claims") or [], 1)),empty="未声明")}</section>
-<section><h2>七、模型边界</h2><div class="boundary">本报告只证明该 Run Bundle 在声明的软件、参数和能力边界内执行。除非另有标定证据，不应将结果解释为飞行级、认证级或已完成飞行数据相关性的数字孪生结论。</div></section>
+<section><h2>七、模型边界</h2><div class="boundary">{_escape(scope["summary"])}</div>{_table(scope["fields"].items())}</section>
 <footer>报告 Schema：{REPORT_SCHEMA_VERSION} · Run Bundle：{_escape(root.name)} · 可使用浏览器“打印/另存为 PDF”生成 PDF 版本。</footer>
 </div></article></body></html>'''
     output = root / "results" / "report.html"

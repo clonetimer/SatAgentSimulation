@@ -126,3 +126,51 @@ def test_api_chart_endpoint_bounds_and_non_destructive(tmp_path):
                           params={"start_s": 20, "end_s": 10}).status_code == 422
         assert client.get("/runs/missing/telemetry/overview").status_code == 404
     assert (root / "results" / "telemetry.jsonl").read_bytes() == original
+
+
+def test_ten_thousand_actual_samples_are_available_without_resampling(tmp_path):
+    from fastapi.testclient import TestClient
+    from sat_sim.api import create_app
+
+    runs = tmp_path / "runs"
+    root = _bundle(runs, (
+        {"time_s": i * .1, "sample_index": i, "x": -42 if i == 9876 else i}
+        for i in range(10_000)
+    ))
+    source = root / "results" / "telemetry.jsonl"
+    before = source.read_bytes()
+    data = read_telemetry_overview(root, max_points=10_000, fields=("x",))
+    assert data["total"] == data["count"] == 10_000
+    assert data["sampled"] is False
+    assert data["rows"][9876] == {"time_s": 987.6, "sample_index": 9876, "x": -42}
+    app = create_app(runs_root=runs, artifacts_root=tmp_path / "artifacts",
+                     embedded_worker=False, auth_mode="disabled")
+    with TestClient(app) as client:
+        response = client.get("/runs/run-001/telemetry/overview",
+                              params={"max_points": 10_000, "fields": "x"})
+        assert response.status_code == 200
+        assert response.json()["count"] == 10_000
+        assert client.get("/runs/run-001/telemetry/overview",
+                          params={"max_points": 10_001}).status_code == 422
+    assert source.read_bytes() == before
+
+
+def test_cached_window_preserves_duplicates_and_detects_replaced_unordered_file(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    source_rows = [{"time_s": i // 600, "i": i, "padding": "z" * 240} for i in range(3000)]
+    root = _bundle(tmp_path, source_rows)
+    def window():
+        return read_telemetry_overview(root, start_s=2, end_s=2)["rows"]
+
+    expected = [row for row in source_rows if row["time_s"] == 2]
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        assert list(pool.map(lambda _: window(), range(3))) == [expected] * 3
+    assert window() == expected
+
+    source = root / "results/telemetry.jsonl"
+    replacement = source.with_suffix(".new")
+    unordered = [{"time_s": 5}, {"time_s": 2, "i": 1}, {"time_s": 1}, {"time_s": 2, "i": 2}]
+    replacement.write_text("".join(json.dumps(row) + "\n" for row in unordered), encoding="utf-8")
+    replacement.replace(source)
+    assert window() == window() == [unordered[1], unordered[3]]

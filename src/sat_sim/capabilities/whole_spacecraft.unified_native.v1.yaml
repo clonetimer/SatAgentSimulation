@@ -58,6 +58,7 @@ modes:
     effects:
     - adcs_rw_jamming
     - adcs_rw_motor_failure
+    - adcs_star_tracker_dropout
     - gyro_bias_step
     - payload_instrument_off
     - comm_data_downlink_link_loss
@@ -68,6 +69,7 @@ modes:
     timed_events_supported: true
     effects:
     - gyro_noise_increase
+    - adcs_rw_torque_authority_loss
     - rw_friction_degradation
     - solar_panel_efficiency_loss
     - thermal_radiator_rejection_loss
@@ -169,6 +171,24 @@ parameters:
     default: 0.0
     min: 0.0
     max: 6.283185307179586
+  initial_body_rate_x_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    default: 0.01
+    description: 机体相对惯性系的初始角速度，机体系 X 分量
+  initial_body_rate_y_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    default: -0.004
+    description: 机体相对惯性系的初始角速度，机体系 Y 分量
+  initial_body_rate_z_rad_s:
+    type: number
+    unit: rad/s
+    required: false
+    default: 0.002
+    description: 机体相对惯性系的初始角速度，机体系 Z 分量
   initial_pointing_error_deg:
     type: number
     unit: deg
@@ -396,6 +416,22 @@ parameters:
     default: 0
     min: 0
     max: 1
+  imu_gyro_bias_random_walk_std_rad_s_sqrt_s:
+    type: number
+    unit: rad/s/√s
+    required: false
+    default: 0
+    min: 0
+    max: 0.01
+    description: Project Basilisk-scheduled gyro bias random-walk increment standard deviation coefficient. Applied to official ImuSensor bias before its measurement update; 0 disables; not OEM calibration.
+  imu_accel_bias_random_walk_std_m_s2_sqrt_s:
+    type: number
+    unit: m/s²/√s
+    required: false
+    default: 0
+    min: 0
+    max: 0.1
+    description: Project Basilisk-scheduled accelerometer bias random-walk increment standard deviation coefficient. Applied to official ImuSensor bias before its measurement update; 0 disables; not OEM calibration.
   imu_gyro_quantization_lsb_rad_s:
     type: number
     unit: rad/s
@@ -442,6 +478,15 @@ parameters:
     default: 0
     min: -180
     max: 180
+  star_tracker_earth_occlusion_half_fov_deg:
+    type: number
+    label: 星敏地球遮挡视场半角
+    description: 以机壳 +Z 为光轴的圆锥视场。按 6371 km 球形地球判断全视场遮挡；0 关闭。部分遮挡仍允许输出。工程几何模型。
+    unit: deg
+    required: false
+    default: 0.0
+    min: 0.0
+    max: 89.0
   star_tracker_mount_pitch_deg:
     type: number
     label: 星敏安装俯仰角
@@ -1005,7 +1050,8 @@ parameters:
     unit: K
     required: false
     default: 295.0
-    min: 1.0
+    min: 220.0
+    max: 340.0
   payload_thermal_mass_kg:
     type: number
     unit: kg
@@ -1273,9 +1319,19 @@ parameters:
     default: 10
     min: 1
 outputs:
+  trace_metadata:
+    orbit.drag_input_density_kg_m3:
+      unit: kg/m^3
+      dtype: number
+      description: 动力学步开始前已发布的大气密度，用于核对本步三轴阻力。启用大气阻力时输出。
+    orbit.drag_density_source_time_s:
+      unit: s
+      dtype: number
+      description: 阻力输入密度消息的写入时刻，单位为自仿真开始的秒数。零时刻包含初始化帧。
   trace_fields:
   - time_s
   - orbit.radius_m
+  - orbit.altitude_m
   - orbit.position_m_*
   - orbit.velocity_m_s_*
   - orbit.sun_position_m_*
@@ -1294,11 +1350,15 @@ outputs:
   - environment.space_weather.*
   - orbit.drag_force_b_*
   - orbit.drag_force_norm_n
+  - orbit.drag_input_density_kg_m3
+  - orbit.drag_density_source_time_s
   - orbit.drag_force_relative_velocity_power_w
   - orbit.drag_relative_velocity_b_m_s_*
   - orbit.drag_relative_speed_m_s
   - orbit.drag_direction_b_*
   - orbit.drag_acceleration_m_s2
+  - adcs.star_tracker.valid
+  - adcs.fusion.source_mode
   - adcs.pointing_error_deg
   - attitude.truth.pointing_error_deg
   - adcs.body_rate_rad_s_*
@@ -1319,6 +1379,11 @@ outputs:
   - comm.downlink_bps
   - data.storage_bits
   - data.net_baud_bps
+  - data.downlink_node_baud_bps
+  - data.cumulative_offered_bits
+  - data.cumulative_admitted_bits
+  - data.cumulative_withdrawn_bits
+  - data.max_abs_storage_balance_error_bits
   - thermal.payload_temp_k
   - thermal.radiator_rejection_ratio
   - adcs.sensor.gyro_measured_rad_s_*
@@ -1433,6 +1498,14 @@ operator:
     - adcs.rw.effective_max_torque_nm_{wheel_index}
     - adcs.control.applied_torque_nm_{wheel_index}
     verification: declared
+  - effect_id: adcs_star_tracker_dropout
+    kind: fault
+    owner: project_star_tracker_fault_injector
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.star_tracker.valid
+    - adcs.fusion.source_mode
+    verification: declared
   - effect_id: gyro_bias_step
     kind: fault
     owner: project_imu_fault_injector
@@ -1494,6 +1567,15 @@ operator:
     - adcs.sensor.gyro_noise_rad_s_x
     - adcs.sensor.gyro_noise_rad_s_y
     - adcs.sensor.gyro_noise_rad_s_z
+    verification: declared
+  - effect_id: adcs_rw_torque_authority_loss
+    kind: degradation
+    owner: project_rw_command_fault_manager
+    implementation: basilisk_native
+    evidence_fields:
+    - adcs.rw.effective_torque_ratio_{wheel_index}
+    - adcs.rw.effective_max_torque_nm_{wheel_index}
+    - adcs.control.applied_torque_nm_{wheel_index}
     verification: declared
   - effect_id: rw_friction_degradation
     kind: degradation
@@ -1583,6 +1665,9 @@ operator:
       - adcs.rw.effective_torque_ratio_{wheel_index}
       - adcs.rw.effective_max_torque_nm_{wheel_index}
       - adcs.control.applied_torque_nm_{wheel_index}
+      adcs_star_tracker_dropout:
+      - adcs.star_tracker.valid
+      - adcs.fusion.source_mode
       gyro_bias_step:
       - adcs.sensor.gyro_bias_norm_rad_s
       - adcs.sensor.gyro_bias_rad_s_x
@@ -1593,6 +1678,10 @@ operator:
       - adcs.sensor.gyro_noise_rad_s_x
       - adcs.sensor.gyro_noise_rad_s_y
       - adcs.sensor.gyro_noise_rad_s_z
+      adcs_rw_torque_authority_loss:
+      - adcs.rw.effective_torque_ratio_{wheel_index}
+      - adcs.rw.effective_max_torque_nm_{wheel_index}
+      - adcs.control.applied_torque_nm_{wheel_index}
       rw_friction_degradation:
       - adcs.rw.effective_drag_nms_{wheel_index}
       - adcs.rw.speed_rad_s_{wheel_index}

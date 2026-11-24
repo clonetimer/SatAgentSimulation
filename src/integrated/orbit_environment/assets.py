@@ -49,7 +49,7 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def _asset(path: Path) -> ResolvedAsset:
+def describe_asset(path: Path) -> ResolvedAsset:
     resolved = path.expanduser().resolve()
     return ResolvedAsset(
         name=resolved.name,
@@ -109,7 +109,7 @@ def resolve_wmm_asset(path: str | None = None, *, strict: bool = False) -> tuple
     if path and Path(path).expanduser().is_file():
         candidate = Path(path).expanduser()
         if candidate.suffix.upper() == ".COF":
-            return _asset(candidate), tuple(searched)
+            return describe_asset(candidate), tuple(searched)
         searched.append(str(candidate))
     for directory in _candidate_dirs(path, DEFAULT_WMM_DIR, specific_env="SAT_SIM_WMM_PATH", asset_subdir="wmm"):
         searched.append(str(directory))
@@ -117,7 +117,7 @@ def resolve_wmm_asset(path: str | None = None, *, strict: bool = False) -> tuple
             continue
         files = sorted(directory.glob("*.COF")) + sorted(directory.glob("*.cof"))
         if files:
-            return _asset(files[0]), tuple(searched)
+            return describe_asset(files[0]), tuple(searched)
     if strict:
         raise FileNotFoundError(f"WMM coefficient file not found; searched: {searched}")
     return None, tuple(searched)
@@ -158,7 +158,7 @@ def resolve_spice_assets(
     missing = tuple(name for name in names if name not in found)
     if missing and strict:
         raise FileNotFoundError(f"SPICE kernels missing: {missing}; searched: {searched}")
-    return tuple(_asset(found[name]) for name in names if name in found), tuple(missing), tuple(searched)
+    return tuple(describe_asset(found[name]) for name in names if name in found), tuple(missing), tuple(searched)
 
 
 def write_environment_asset_manifest(root: Path, *, wmm_path: str | None = None, spice_path: str | None = None) -> dict:
@@ -194,12 +194,12 @@ def resolve_space_weather_asset(
         if configured_path.is_file():
             if configured_path.suffix.lower() != ".csv":
                 raise ValueError("SPACE_WEATHER_ASSET_MUST_BE_CSV")
-            return _asset(configured_path), ()
+            return describe_asset(configured_path), ()
         if configured_path.is_dir():
             for name in names:
                 candidate = configured_path / name
                 if candidate.is_file():
-                    return _asset(candidate), (str(configured_path),)
+                    return describe_asset(candidate), (str(configured_path),)
 
     searched: list[str] = []
     for directory in _candidate_dirs(
@@ -214,7 +214,7 @@ def resolve_space_weather_asset(
         for name in names:
             candidate = directory / name
             if candidate.is_file():
-                return _asset(candidate), tuple(searched)
+                return describe_asset(candidate), tuple(searched)
     if strict:
         raise FileNotFoundError(f"SPACE_WEATHER_ASSET_NOT_FOUND; searched: {searched}")
     return None, tuple(searched)

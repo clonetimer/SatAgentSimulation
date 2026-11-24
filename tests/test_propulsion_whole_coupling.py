@@ -26,7 +26,9 @@ def test_propulsion_is_physically_coupled_into_recommended_whole_runtime() -> No
     assert result.summary["runtime_truth_status"] == "instantiated_connected_recorded_unified"
     assert result.summary["propulsion_enabled"] is True
     assert result.summary["official_module_count"] == 32
-    assert result.summary["project_native_module_count"] == 31
+    assert result.summary["project_native_module_count"] == 32
+    assert {"tag": "project_storage_balance_observer", "source": "basilisk_project_native"} in (
+        result.metadata["runtime_manifest"]["instantiated_modules"])
     assert result.summary["external_or_proxy_module_count"] == 0
     assert result.summary["propellant_used_kg"] > 0.0
     assert result.summary["max_total_thrust_n"] > 0.0
@@ -62,7 +64,9 @@ def test_propulsion_burn_changes_orbit_relative_to_same_no_burn_baseline() -> No
     assert abs(radius_delta) > 0.1
     assert base_result.summary["propulsion_enabled"] is False
     assert base_result.summary["official_module_count"] == 28
-    assert base_result.summary["project_native_module_count"] == 28
+    assert base_result.summary["project_native_module_count"] == 29
+    assert {"tag": "project_storage_balance_observer", "source": "basilisk_project_native"} in (
+        base_result.metadata["runtime_manifest"]["instantiated_modules"])
 
 
 def test_native_thruster_direction_ab_changes_trajectory_without_changing_fuel_rate() -> None:

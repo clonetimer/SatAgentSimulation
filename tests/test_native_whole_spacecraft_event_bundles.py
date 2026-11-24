@@ -22,8 +22,10 @@ RUN_DURATION_S = 14.0
 ADCS_EFFECTS = (
     "adcs_rw_jamming",
     "adcs_rw_motor_failure",
+    "adcs_star_tracker_dropout",
     "gyro_bias_step",
     "gyro_noise_increase",
+    "adcs_rw_torque_authority_loss",
     "rw_friction_degradation",
     "adcs_reaction_wheel_speed_limit",
 )
@@ -244,8 +246,10 @@ def _at(rows, time_s: float) -> dict[str, Any]:
     [
         ("adcs", "fault", "adcs_rw_jamming", {"wheel_index": 0, "brake_torque_nm": 0.2}),
         ("adcs", "fault", "adcs_rw_motor_failure", {"wheel_index": 0}),
+        ("adcs", "fault", "adcs_star_tracker_dropout", {}),
         ("adcs", "fault", "gyro_bias_step", {"bias_step_deg_s": [0.5, 0.0, 0.0]}),
         ("adcs", "degradation", "gyro_noise_increase", {"noise_scale": 100.0}),
+        ("adcs", "degradation", "adcs_rw_torque_authority_loss", {"wheel_index": 0, "torque_scale": 0.25}),
         ("adcs", "degradation", "rw_friction_degradation", {"wheel_index": 0, "drag_nms": 0.012}),
         ("adcs", "constraint", "adcs_reaction_wheel_speed_limit", {
             "wheel_index": 0, "max_speed_rad_s": 5.0,
@@ -296,6 +300,11 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_sealed_run_bundles(
         assert injected_active["adcs.rw.effective_max_torque_nm_0"] == pytest.approx(0.0, abs=1e-12)
         assert nominal_active["adcs.rw.effective_max_torque_nm_0"] > 0.0
         assert injected_after["adcs.rw.effective_max_torque_nm_0"] == pytest.approx(nominal_after["adcs.rw.effective_max_torque_nm_0"])
+    elif effect == "adcs_star_tracker_dropout":
+        assert nominal_active["adcs.star_tracker.valid"] == injected_after["adcs.star_tracker.valid"] == 1
+        assert all(row["adcs.star_tracker.valid"] == 0 for row in active_rows)
+        assert all(injected_active[f"adcs.star_tracker.q{i}"] == 0 for i in range(4))
+        assert sum(injected_active[f"adcs.star_tracker.raw_q{i}"] ** 2 for i in range(4)) == pytest.approx(1.)
     elif effect == "gyro_bias_step":
         assert injected_active["adcs.sensor.gyro_bias_norm_rad_s"] > 0.0
         assert nominal_active["adcs.sensor.gyro_bias_norm_rad_s"] == pytest.approx(0.0, abs=1e-12)
@@ -304,6 +313,10 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_sealed_run_bundles(
         assert injected_active["adcs.sensor.gyro_noise_norm_rad_s"] > 0.0
         assert nominal_active["adcs.sensor.gyro_noise_norm_rad_s"] == pytest.approx(0.0, abs=1e-12)
         assert injected_after["adcs.sensor.gyro_noise_norm_rad_s"] == pytest.approx(nominal_after["adcs.sensor.gyro_noise_norm_rad_s"], abs=1e-12)
+    elif effect == "adcs_rw_torque_authority_loss":
+        assert injected_active["adcs.rw.effective_torque_ratio_0"] == pytest.approx(0.25)
+        assert injected_after["adcs.rw.effective_torque_ratio_0"] == pytest.approx(1.0)
+        assert injected_active["adcs.rw.effective_torque_ratio_1"] == pytest.approx(1.0)
     elif effect == "rw_friction_degradation":
         assert injected_active["adcs.rw.effective_drag_nms_0"] == pytest.approx(0.012, rel=1e-9)
         assert nominal_active["adcs.rw.effective_drag_nms_0"] == pytest.approx(0.0, abs=1e-12)
@@ -394,3 +407,11 @@ def test_whole_spacecraft_events_have_paired_native_basilisk_sealed_run_bundles(
         },
     })
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8")
+
+
+@pytest.mark.parametrize("wheel", [True, 1.5, -1, 3])
+def test_whole_spacecraft_rejects_invalid_three_wheel_event_target(tmp_path, wheel):
+    spec = _spec("adcs", "invalid_target", category="degradation",
+                 effect="adcs_rw_torque_authority_loss", parameters={"wheel_index": wheel, "torque_scale": .5})
+    with pytest.raises(ValueError, match="range"):
+        prepare_run(spec, output_root=tmp_path, run_id="invalid_target")

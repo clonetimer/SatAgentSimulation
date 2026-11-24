@@ -1,0 +1,184 @@
+{
+  "prior-0.5": {
+    "step_s": 0.5,
+    "requested_duration_s": 4.0,
+    "command_first_seen_s": 5.0,
+    "peak_flow_kg_s": 0.0010197162129779282,
+    "tank_loss_kg": 0.004248817554074691,
+    "flow_trapezoid_kg": 0.004078864851911713,
+    "excess_over_trapezoid_kg": 0.00016995270216297806,
+    "edges": [
+      {
+        "start_s": 5.0,
+        "end_s": 5.5,
+        "left_flow_kg_s": 0.0,
+        "right_flow_kg_s": 0.0010197162129779282,
+        "tank_loss_kg": 0.0004248817554074469,
+        "trapezoid_kg": 0.00025492905324448205,
+        "effective_full_flow_fraction": 0.8333333333332879
+      },
+      {
+        "start_s": 9.0,
+        "end_s": 9.5,
+        "left_flow_kg_s": 0.0010197162129779282,
+        "right_flow_kg_s": 0.0,
+        "tank_loss_kg": 0.00025492905324453474,
+        "trapezoid_kg": 0.00025492905324448205,
+        "effective_full_flow_fraction": 0.5000000000001034
+      }
+    ],
+    "max_non_edge_difference_kg": 6.5052130349130266e-18
+  },
+  "prior-0.25": {
+    "step_s": 0.25,
+    "requested_duration_s": 4.0,
+    "command_first_seen_s": 5.0,
+    "peak_flow_kg_s": 0.0010197162129779282,
+    "tank_loss_kg": 0.0041638412029940675,
+    "flow_trapezoid_kg": 0.004078864851911713,
+    "excess_over_trapezoid_kg": 8.497635108235466e-05,
+    "edges": [
+      {
+        "start_s": 5.0,
+        "end_s": 5.25,
+        "left_flow_kg_s": 0.0,
+        "right_flow_kg_s": 0.0010197162129779282,
+        "tank_loss_kg": 0.00021244087770377895,
+        "trapezoid_kg": 0.00012746452662224103,
+        "effective_full_flow_fraction": 0.8333333333335056
+      },
+      {
+        "start_s": 9.0,
+        "end_s": 9.25,
+        "left_flow_kg_s": 0.0010197162129779282,
+        "right_flow_kg_s": 0.0,
+        "tank_loss_kg": 0.00012746452662226737,
+        "trapezoid_kg": 0.00012746452662224103,
+        "effective_full_flow_fraction": 0.5000000000001034
+      }
+    ],
+    "max_non_edge_difference_kg": 5.3613797429408194e-17
+  },
+  "prior-0.125": {
+    "step_s": 0.125,
+    "requested_duration_s": 4.0,
+    "command_first_seen_s": 5.0,
+    "peak_flow_kg_s": 0.0010197162129779282,
+    "tank_loss_kg": 0.004121353027453312,
+    "flow_trapezoid_kg": 0.004078864851911713,
+    "excess_over_trapezoid_kg": 4.2488175541598866e-05,
+    "edges": [
+      {
+        "start_s": 5.0,
+        "end_s": 5.125,
+        "left_flow_kg_s": 0.0,
+        "right_flow_kg_s": 0.0010197162129779282,
+        "tank_loss_kg": 0.00010622043885188948,
+        "trapezoid_kg": 6.373226331112051e-05,
+        "effective_full_flow_fraction": 0.8333333333335056
+      },
+      {
+        "start_s": 9.0,
+        "end_s": 9.125,
+        "left_flow_kg_s": 0.0010197162129779282,
+        "right_flow_kg_s": 0.0,
+        "tank_loss_kg": 6.373226331113369e-05,
+        "trapezoid_kg": 6.373226331112051e-05,
+        "effective_full_flow_fraction": 0.5000000000001034
+      }
+    ],
+    "max_non_edge_difference_kg": 2.72405795836983e-17
+  },
+  "finer": {
+    "step_s": 0.0625,
+    "requested_duration_s": 4.0,
+    "command_first_seen_s": 5.0,
+    "peak_flow_kg_s": 0.0010197162129779282,
+    "tank_loss_kg": 0.004100108939682823,
+    "flow_trapezoid_kg": 0.004078864851911713,
+    "excess_over_trapezoid_kg": 2.124408777110995e-05,
+    "edges": [
+      {
+        "start_s": 5.0,
+        "end_s": 5.0625,
+        "left_flow_kg_s": 0.0,
+        "right_flow_kg_s": 0.0010197162129779282,
+        "tank_loss_kg": 5.311021942588923e-05,
+        "trapezoid_kg": 3.1866131655560256e-05,
+        "effective_full_flow_fraction": 0.8333333333326346
+      },
+      {
+        "start_s": 9.0,
+        "end_s": 9.0625,
+        "left_flow_kg_s": 0.0010197162129779282,
+        "right_flow_kg_s": 0.0,
+        "tank_loss_kg": 3.186613165551133e-05,
+        "trapezoid_kg": 3.1866131655560256e-05,
+        "effective_full_flow_fraction": 0.49999999999923234
+      }
+    ],
+    "max_non_edge_difference_kg": 1.408107571515549e-17,
+    "predicted_loss_kg": 0.004100108939682086
+  },
+  "longer": {
+    "step_s": 0.25,
+    "requested_duration_s": 8.0,
+    "command_first_seen_s": 5.0,
+    "peak_flow_kg_s": 0.0010197162129779282,
+    "tank_loss_kg": 0.008242706054906623,
+    "flow_trapezoid_kg": 0.008157729703823426,
+    "excess_over_trapezoid_kg": 8.497635108319773e-05,
+    "edges": [
+      {
+        "start_s": 5.0,
+        "end_s": 5.25,
+        "left_flow_kg_s": 0.0,
+        "right_flow_kg_s": 0.0010197162129779282,
+        "tank_loss_kg": 0.00021244087770377895,
+        "trapezoid_kg": 0.00012746452662224103,
+        "effective_full_flow_fraction": 0.8333333333335056
+      },
+      {
+        "start_s": 13.0,
+        "end_s": 13.25,
+        "left_flow_kg_s": 0.0010197162129779282,
+        "right_flow_kg_s": 0.0,
+        "tank_loss_kg": 0.00012746452662226737,
+        "trapezoid_kg": 0.00012746452662224103,
+        "effective_full_flow_fraction": 0.5000000000001034
+      }
+    ],
+    "max_non_edge_difference_kg": 5.3613797429408194e-17,
+    "predicted_loss_kg": 0.00824270605490492
+  },
+  "off-grid": {
+    "step_s": 0.25,
+    "requested_duration_s": 4.125,
+    "command_first_seen_s": 5.0,
+    "peak_flow_kg_s": 0.0010197162129779282,
+    "tank_loss_kg": 0.004291305729616335,
+    "flow_trapezoid_kg": 0.004078864851911713,
+    "excess_over_trapezoid_kg": 0.00021244087770462203,
+    "edges": [
+      {
+        "start_s": 5.0,
+        "end_s": 5.25,
+        "left_flow_kg_s": 0.0,
+        "right_flow_kg_s": 0.0010197162129779282,
+        "tank_loss_kg": 0.00021244087770377895,
+        "trapezoid_kg": 0.00012746452662224103,
+        "effective_full_flow_fraction": 0.8333333333335056
+      },
+      {
+        "start_s": 9.0,
+        "end_s": 9.25,
+        "left_flow_kg_s": 0.0010197162129779282,
+        "right_flow_kg_s": 0.0,
+        "tank_loss_kg": 0.00025492905324453474,
+        "trapezoid_kg": 0.00012746452662224103,
+        "effective_full_flow_fraction": 1.0000000000002067
+      }
+    ],
+    "max_non_edge_difference_kg": 5.3613797429408194e-17
+  }
+}

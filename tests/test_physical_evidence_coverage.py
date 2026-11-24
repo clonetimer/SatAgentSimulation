@@ -56,6 +56,18 @@ def test_kelvin_only_valid_trace_has_measured_thermal_coverage():
     assert failed['issues'][0]['limit'].endswith(' K')
 
 
+@pytest.mark.parametrize("components,valid,expected", [
+    ([0.5] * 4, 1, "pass"), ([2., 0., 0., 0.], 1, "fail"),
+    ([1., 0., 0.], 1, "fail"), ([1., 0., 0., 0.], 0, "fail"),
+    ([1., float("nan"), 0., 0.], 1, "fail"),
+])
+def test_native_quaternion_checks_raw_components(components, valid, expected):
+    row = {f"attitude.truth.quaternion_BN_q{i}": value for i, value in enumerate(components)}
+    row["attitude.truth.valid"] = valid
+    report = evaluate_physical_validation([row], checks=["quaternion_norm"])
+    assert report["status"] == expected
+
+
 def test_native_nrlmsise_neutral_temperature_is_not_a_spacecraft_thermal_limit():
     # Exact native failure from DT-1 CI 44802673560: 1067..1071 K is the
     # atmospheric neutral temperature, not a spacecraft component reading.
@@ -270,3 +282,19 @@ def test_interactive_runner_mission_result_cannot_be_overridden_by_safe_final_ro
     report=_validation(SessionState.COMPLETED,[{'thermal.safe':1,'thermal.payload_temp_k':300.}],[],
         runtime_summary={'execution_status':'PASS','mission_status':status})
     assert report.result is expected
+
+
+def test_streaming_checks_follow_measurements_and_schema_changes():
+    checks = PhysicalValidationAccumulator(checks=["thermal_bounds", "quaternion_norm"])
+    first = {"thermal.bus_temp_k": 295., "adcs.quaternion_norm": 1.}
+    checks.add(first)
+    checks.add({**first, "thermal.bus_temp_k": 500.})
+    checks.add({"thermal.payload_safe": False})
+    checks.add({"attitude.truth.valid": 1, **{
+        f"attitude.truth.quaternion_BN_q{i}": value for i, value in enumerate((2., 0., 0., 0.))
+    }})
+    report = checks.result()
+    assert [item["path"] for item in report["issues"]] == [
+        "trace[1].thermal.bus_temp_k", "trace[2].thermal.payload_safe",
+        "trace[3].norm(attitude.truth.quaternion_BN_q0..q3)",
+    ]

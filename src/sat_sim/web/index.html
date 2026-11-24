@@ -6,6 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <meta name="description" content="卫星仿真工作台：三维卫星场景、仿真配置与结果分析。">
   <title>卫星仿真工作台</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232c6482'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E">
   <script>
     (() => {
       const saved = localStorage.getItem('sat-sim-theme') || 'system';
@@ -1247,6 +1248,9 @@
                     <p class="continuous-muted">IMU 数字量化由官方 Basilisk ImuSensor.setLSBs(加速度计 LSB, 陀螺 LSB) 原生计算，非页面曲线取整；两项均为 0 时保持原模型。LSB 为工程假设，不代表设备实装标定。</p>
                     <label>IMU 陀螺测量量化 LSB（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_quantization_lsb_rad_s" type="number" min="0" max="0.1" step="any" value="0" required title="原生 Basilisk ImuSensor 量化，0=关闭；非传感器噪声方差或飞行校准值"></label>
                     <label>IMU 加速度计量化 LSB（m/s²）<input data-native-group="adcs" data-native-key="imu_accel_quantization_lsb_m_s2" type="number" min="0" max="1" step="any" value="0" required title="原生 Basilisk ImuSensor 量化，0=关闭；不得据此推断物理安装或器件规格"></label>
+                    <p class="continuous-muted">偏置随机游走由项目 SysModel 在 Basilisk 调度中、官方 ImuSensor 更新之前注入，因此会进入原生测量、增量积分及后续量化；随机增量标准差按系数 × √Δt 计算。两项默认关闭，系数仅为工程假设，不代表 OEM 数据或实测标定。</p>
+                    <label>IMU 陀螺偏置随机游走系数（rad/s/√s）<input data-native-group="adcs" data-native-key="imu_gyro_bias_random_walk_std_rad_s_sqrt_s" type="number" min="0" max="0.01" step="any" value="0" required title="项目 Basilisk SysModel 在官方 IMU 测量前更新 senRotBias；0=关闭；非 OEM 标定"></label>
+                    <label>IMU 加速度计偏置随机游走系数（m/s²/√s）<input data-native-group="adcs" data-native-key="imu_accel_bias_random_walk_std_m_s2_sqrt_s" type="number" min="0" max="0.1" step="any" value="0" required title="项目 Basilisk SysModel 在官方 IMU 测量前更新 senTransBias；0=关闭；非 OEM 标定"></label>
                     <label>IMU 陀螺 X 轴恒定偏置（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_bias_rad_s_x" type="number" min="-0.1" max="0.1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
                     <label>IMU 陀螺 Y 轴恒定偏置（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_bias_rad_s_y" type="number" min="-0.1" max="0.1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
                     <label>IMU 陀螺 Z 轴恒定偏置（rad/s）<input data-native-group="adcs" data-native-key="imu_gyro_bias_rad_s_z" type="number" min="-0.1" max="0.1" step="any" value="0" required title="直接配置官方 Basilisk ImuSensor；0 量程参数保留原生默认"></label>
@@ -1266,6 +1270,7 @@
                     <label>IMU 安装位置 Z_B（m）<input data-native-group="adcs" data-native-key="imu_position_b_z_m" type="number" min="-2" max="2" step="any" value="0" required title="传入原生 IMU.sensorPos_B 第三个坐标，机体系"></label>
                     <p class="continuous-muted"><strong>星敏原生安装</strong>：机体系 B → 星敏机壳系 C，3-2-1 欧拉角；此处仅配置安装几何，不改变测量噪声。</p>
                     <label>星敏安装航向角（°）<input data-native-group="adcs" data-native-key="star_tracker_mount_yaw_deg" type="number" min="-180" max="180" step="any" value="0" required title="采用 Basilisk RigidBodyKinematics.euler3212C，机体系到星敏机壳系"></label>
+                    <label>地球遮挡半视场角（°）<input data-native-group="adcs" data-native-key="star_tracker_earth_occlusion_half_fov_deg" type="number" min="0" max="89" step="any" value="0" required title="0 关闭；全视场被地球遮挡时抑制星敏测量"></label>
                     <label>星敏安装俯仰角（°）<input data-native-group="adcs" data-native-key="star_tracker_mount_pitch_deg" type="number" min="-89" max="89" step="any" value="0" required title="机体系到星敏机壳系 3-2-1 欧拉角第二项"></label>
                     <label>星敏安装横滚角（°）<input data-native-group="adcs" data-native-key="star_tracker_mount_roll_deg" type="number" min="-180" max="180" step="any" value="0" required title="机体系到星敏机壳系 3-2-1 欧拉角第三项"></label>
                     <p class="continuous-muted"><strong>太阳敏感器独立安装方向</strong>：以下机体系 B 法线为官方 Basilisk CoarseSunSensor.nHat_B，不是太阳电池板法线。必须设置单位向量（X²+Y²+Z²=1）。原有默认方向为 (0, 0, −1)，调整会改变真实余弦测量与视场响应，不会改变电池板方向。</p>
@@ -1281,6 +1286,9 @@
                       <label>输出上限 maxOutput<input data-native-group="adcs" data-native-key="sun_sensor_max_output" type="number" min="0.000001" max="1000000" step="any" value="1000000" required title="缩放后的读数上限；1000000 是 Basilisk 2.11 旧默认"></label>
                     </details>
                     <label>太阳敏感器视场（°）<input data-native-group="adcs" data-native-key="sun_sensor_fov_deg" type="number" min="0.001" max="180" step="any" value="80" required title="设置 Basilisk CoarseSunSensor.fov，不代表星敏感器视场"></label>
+                    <label>初始机体角速度 X（rad/s）<input data-native-group="adcs" data-native-key="initial_body_rate_x_rad_s" type="number" step="any" value="0.01" required></label>
+                    <label>初始机体角速度 Y（rad/s）<input data-native-group="adcs" data-native-key="initial_body_rate_y_rad_s" type="number" step="any" value="-0.004" required></label>
+                    <label>初始机体角速度 Z（rad/s）<input data-native-group="adcs" data-native-key="initial_body_rate_z_rad_s" type="number" step="any" value="0.002" required></label>
                     <label>初始指向误差（°）<input data-native-group="adcs" data-native-key="initial_pointing_error_deg" type="number" min="0" max="90" step="any" value="8" required></label>
                     <label>姿态控制 K<input data-native-group="adcs" data-native-key="controller_k" type="number" min="0.001" max="100" step="any" value="3.5" required></label>
                     <label>姿态控制 P<input data-native-group="adcs" data-native-key="controller_p" type="number" min="0.001" max="300" step="any" value="30" required></label>

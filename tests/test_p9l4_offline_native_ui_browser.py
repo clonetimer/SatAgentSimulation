@@ -239,3 +239,60 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
         (evidence / "offline-ui-native-report.json").write_text(
             json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
         )
+
+
+def test_wizard_json_input_survives_initial_capability_selection(tmp_path):
+    from urllib.parse import urlsplit
+
+    from fastapi.testclient import TestClient
+    from playwright.sync_api import expect, sync_playwright
+    from sat_sim.api import create_app
+    from sat_sim.form_schema import capability_form_schema
+    from sat_sim.unified_agent import normalize_form_task_spec
+
+    executable = os.environ.get("SAT_SIM_BROWSER_EXECUTABLE")
+    if not executable and os.environ.get("SAT_SIM_P9L4_NATIVE_UI_TEST") != "1":
+        pytest.skip("Requires Chromium")
+
+    app = create_app(runs_root=tmp_path / "runs", artifacts_root=tmp_path / "artifacts",
+                     embedded_worker=False, auth_mode="disabled")
+    with TestClient(app) as client, sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            page = browser.new_page()
+            pending = []
+
+            def serve(route):
+                request = route.request
+                url = urlsplit(request.url)
+                response = client.request(
+                    request.method, url.path + ("?" + url.query if url.query else ""),
+                    content=request.post_data_buffer,
+                    headers={"content-type": request.headers.get("content-type", "application/json")},
+                )
+                route.fulfill(status=response.status_code, body=response.content,
+                              content_type=response.headers.get("content-type", "application/octet-stream"))
+
+            def proxy(route):
+                if urlsplit(route.request.url).path == "/auth/status":
+                    pending.append(route)
+                else:
+                    serve(route)
+
+            page.route("https://workbench.test/**", proxy)
+            with page.expect_request("**/auth/status"):
+                page.goto("https://workbench.test/", wait_until="domcontentloaded")
+            page.locator('[data-wizard-goal="taskspec"]').click()
+            editor = page.locator("#taskSpecEditor")
+            expect(editor).to_be_visible()
+            expect(editor).not_to_be_editable()
+            serve(pending.pop())
+            expect(editor).to_be_editable(timeout=30000)
+            spec = normalize_form_task_spec(capability_form_schema("component.thermal_node.v1")["default_form"])
+            spec["task"]["id"] = "user-pasted"
+            editor.fill(json.dumps(spec))
+            page.locator("#wizardValidateTaskSpecBtn").click()
+            expect(page.locator("#wizardNotice")).to_contain_text("TaskSpec 校验通过")
+            assert json.loads(editor.input_value())["task"]["id"] == "user-pasted"
+        finally:
+            browser.close()

@@ -43,7 +43,7 @@ KNOWN_FAULT_TYPES = {
     "intermittent", "link_loss", "noise_increase", "nozzle_blockage",
     "open_circuit", "overpressure", "pressure_loss", "rapid_leak",
     "rw_jamming", "rw_motor_failure", "adcs_rw_jamming", "adcs_rw_motor_failure",
-    "gyro_bias_step", "payload_instrument_off", "comm_data_downlink_link_loss",
+    "adcs_star_tracker_dropout", "gyro_bias_step", "payload_instrument_off", "comm_data_downlink_link_loss",
     "eps_battery_capacity_loss", "propulsion_thruster_ignition_failure",
     "scale_factor_error", "signal_loss", "solar_panel_degradation",
     "solar_panel_failure", "stuck_at_last", "stuck_at_zero",
