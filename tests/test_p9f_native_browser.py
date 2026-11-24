@@ -149,14 +149,17 @@ def _wait_for_running(base: str, mode: str, session_id: str) -> dict:
 
 
 @pytest.mark.parametrize("mode", ["bounded", "continuous"])
-@pytest.mark.parametrize("entry", ["sidebar", "scene"])
+@pytest.mark.parametrize("entry", ["sidebar", "scene", "form", "json", "graph", "scene_custom", "natural_language"])
 def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, tmp_path):
     if os.environ.get("SAT_SIM_P9F_NATIVE_BROWSER_TEST") != "1":
         pytest.skip("Dedicated genuine Basilisk/Chromium acceptance job only")
+    if entry == "natural_language" and not os.environ.get("SAT_SIM_DT_MODEL_URL"):
+        pytest.skip("Requires an actual local model service")
     import Basilisk
     from playwright.sync_api import sync_playwright
 
-    evidence_name = mode if entry == "sidebar" else f"scene-{mode}"
+    custom_case = entry in {"form", "json", "graph", "natural_language", "scene_custom"}
+    evidence_name = mode if entry == "sidebar" else f"{entry}-{mode}"
     evidence = Path(os.environ.get("SAT_SIM_P9F_EVIDENCE", str(tmp_path))) / evidence_name
     evidence.mkdir(parents=True, exist_ok=True)
     with socket.socket() as sock:
@@ -242,12 +245,50 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
                 websocket.on("framereceived", lambda data: report["socket_messages"].append(data))
 
             page.on("websocket", observe_socket)
+            if entry == "natural_language":
+                from dt_creation_browser import register_local_model
+                register_local_model(page, base)
             page.goto(base, wait_until="domcontentloaded")
             page.evaluate(GLOBE_OBSERVER)
             assert page.evaluate("typeof window.Globe") == "function"
 
-            if entry == "scene":
+            rates = dict(zip("xyz", [-0.003, 0.0, 0.006]))
+            if entry in {"form", "json", "graph", "natural_language"}:
+                if entry == "json":
+                    from dt_creation_browser import apply_json_case
+                    apply_json_case(page)
+                elif entry == "natural_language":
+                    from dt_creation_browser import apply_natural_language_case
+                    apply_natural_language_case(page, evidence)
+                elif entry == "graph":
+                    from dt_creation_browser import configure_graph_case
+                    configure_graph_case(page)
+                else:
+                    page.locator('[data-wizard-goal="normal_run"]').click()
+                    page.locator('[data-wizard-level="whole_spacecraft"]').click()
+                    page.locator('#wizardOptions [data-wizard-object]').first.click()
+                    page.locator('[data-wizard-mode="offline"]').click()
+                    page.locator("#wizardParametersPanel > summary").click()
+                    page.locator('[data-wizard-parameter-mode="all"]').click()
+                    for axis, value in rates.items():
+                        path = f"parameters.values.initial_body_rate_{axis}_rad_s"
+                        page.locator("#wizardParameterSearch").fill(path)
+                        page.locator(f'[data-path="{path}"]').fill(str(value))
+                        page.locator("#wizardParameterSearch").focus()
+                if entry != "graph":
+                    page.locator("#wizardAdvancedBtn").click()
+                button = "#modeBoundedRealtimeBtn" if mode == "bounded" else "#modeContinuousRealtimeBtn"
+                page.locator(button).click()
+            elif entry in {"scene", "scene_custom"}:
                 page.locator("#wizardSceneShortcutBtn").click()
+                if entry == "scene_custom":
+                    root_object = page.locator("#p9dObjectTree [role=treeitem]").first
+                    root_object.click()
+                    report["selected_object"] = root_object.inner_text()
+                    for axis, value in rates.items():
+                        field = page.locator("#p9dParameterHost label").filter(has_text=f"机体系 {axis.upper()} 分量")
+                        field.locator("input").fill(str(value))
+                        field.locator("input").press("Tab")
                 page.locator("#sceneCreateTaskBtn").click()
                 option = "continuous" if mode == "continuous" else "interactive"
                 page.locator(f'#sceneTaskCreateModal [data-scene-create="{option}"]').click()
@@ -270,6 +311,13 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
                 page.locator(nav).wait_for(state="visible", timeout=30000)
                 page.locator(nav).click()
 
+            if entry == "scene_custom":
+                if mode == "bounded":
+                    page.locator("#interactiveCapability").select_option("whole_spacecraft.unified_native.v1")
+                prefix = "interactive" if mode == "bounded" else "continuous"
+                page.locator(f"#{prefix}ImportOfflineConfigBtn").click()
+                from playwright.sync_api import expect
+                expect(page.locator(f"#{prefix}OfflineConfigStatus")).to_contain_text("已导入")
             if mode == "continuous":
                 session_id = "p9f-native-browser-continuous"
                 _set_control(page, "#continuousSessionId", session_id)
@@ -278,14 +326,18 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
                 identifier.fill("probe:valid-1")
                 assert identifier.evaluate("(node) => node.checkValidity()") is True
                 identifier.fill(session_id)
-                _set_control(page, "#continuousQuantum", "0.2")
+                _set_control(page, "#continuousQuantum", "0.5" if custom_case else "0.2")
                 _set_control(page, "#continuousHorizon", "120")
                 create = page.locator('#continuousCreateForm button[type="submit"]')
                 create_path = "/interactive/continuous/sessions"
                 start_selector = '[data-continuous-action="start"]'
             else:
-                page.locator("#interactiveCapability").select_option("whole_spacecraft.unified_native.v1")
-                _set_control(page, "#interactiveDuration", "120")
+                capability = page.locator("#interactiveCapability")
+                if custom_case:
+                    assert capability.input_value() == "whole_spacecraft.unified_native.v1"
+                else:
+                    capability.select_option("whole_spacecraft.unified_native.v1")
+                _set_control(page, "#interactiveDuration", "20" if custom_case else "120")
                 _set_control(page, "#interactiveQuantum", "0.5")
                 page.locator("#interactivePaced").check()
                 create = page.locator("#createInteractiveSessionBtn")
@@ -317,6 +369,14 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
             session_id = created["session_id"]
             report["session_id"] = session_id
             assert creation_requests, "UI_SESSION_CREATE_REQUEST_NOT_CAPTURED"
+            if custom_case:
+                payload = creation_requests[-1]
+                report["creation_payload"] = payload
+                report["runtime_capabilities"] = _json_request(base, "/interactive/capabilities")
+                config = (payload["task_spec"]["parameters"]["values"] if mode == "bounded"
+                          else payload["initial_configuration"]["adcs"])
+                assert [config[f"initial_body_rate_{a}_rad_s"] for a in rates] == list(rates.values())
+                report["requested_rates_body_rad_s"] = rates
 
             detail = _json_request(base, f"/interactive/sessions/{quote(session_id)}")
             assert detail["orbit_time_system"] == "UTC"
@@ -372,6 +432,50 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
             page.locator(start_selector).click()
             running_snapshot = _wait_for_running(base, mode, session_id)
             report["running_snapshot"] = running_snapshot
+            if custom_case:
+                trace = tmp_path / "api" / "interactive_sessions" / session_id / "telemetry.jsonl"
+                deadline = time.monotonic() + 15
+                while time.monotonic() < deadline:
+                    if trace.exists():
+                        with trace.open("rb") as source:
+                            first = source.readline()
+                        if first.endswith(b"\n"):
+                            break
+                    page.wait_for_timeout(100)
+                else:
+                    pytest.fail(f"No native frame recorded for {session_id}")
+                frame = json.loads(first)["frame"]
+                assert frame["session_id"] == session_id and frame["sim_time_s"] == 0
+                truth = {a: frame["values"][f"attitude.truth.omega_BN_B_{a}"] for a in rates}
+                assert truth == pytest.approx(rates, abs=1e-14, rel=0)
+                report["first_frame_rates_body_rad_s"] = truth
+                if mode == "bounded":
+                    detail_path = f"/interactive/sessions/{quote(session_id)}"
+                    for action in ("Pause", "Step", "Resume"):
+                        with page.expect_response(lambda r: r.request.method == "POST" and
+                                                  r.url.endswith(detail_path + "/control")) as response:
+                            page.locator(f"#interactive{action}Btn").click()
+                        assert response.value.ok
+                        snap = _json_request(base, detail_path)
+                        report[action.lower()] = {"state": snap["state"], "time_s": snap["sim_time_s"]}
+                        if action == "Pause":
+                            assert snap["state"] == "PAUSED"
+                            time.sleep(0.65)
+                            assert _json_request(base, detail_path)["sim_time_s"] == snap["sim_time_s"]
+                            page.locator("#interactiveCommandTarget").select_option("whole_spacecraft")
+                            page.locator("#interactiveCommandOperation").select_option("session.mode.set")
+                            page.locator('#interactiveCommandForm [data-parameter="mode"]').select_option("safe")
+                            page.locator("#interactiveCommandTime").fill(str(snap["sim_time_s"] + 0.5))
+                            with page.expect_response(lambda r: r.request.method == "POST" and
+                                                      r.url.endswith(detail_path + "/commands")) as receipt:
+                                page.locator("#interactiveSendCommandBtn").click()
+                            assert receipt.value.status == 202
+                            command_id = receipt.value.json()["command_id"]
+                        if action == "Step":
+                            assert snap["state"] == "PAUSED"
+                            assert snap["sim_time_s"] == report["pause"]["time_s"] + 0.5
+                        if action == "Resume":
+                            assert snap["state"] == "RUNNING"
 
             # This is the product's actual scene navigation action. The active
             # real session and its existing telemetry transport must survive.
@@ -603,6 +707,56 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
                     and orbit["sim_time_s"] == adcs["sim_time_s"]
                     for orbit in orbit_messages for adcs in adcs_messages
                 ), "BOUNDED_BROWSER_NO_EXACT_ORBIT_ADCS_TIME_PAIR"
+            if custom_case:
+                if mode == "continuous":
+                    previous_time = _json_request(base, f"/interactive/sessions/{quote(session_id)}")["sim_time_s"]
+                    page.goto(base, wait_until="domcontentloaded")
+                    page.locator("#wizardAdvancedBtn").click()
+                    nav = page.locator("#continuousNavButton")
+                    for ancestor in ("#workbenchMoreNavigation", ".sidebar-nav-group:has(#continuousNavButton)"):
+                        group = page.locator(ancestor)
+                        if group.count() == 1 and group.get_attribute("open") is None:
+                            group.locator(":scope > summary").click()
+                    nav.click()
+                    session_button = page.locator("#continuousSessionList button").filter(has_text=session_id)
+                    session_button.click()
+                    resumed = _wait_for_running(base, mode, session_id)
+                    assert resumed["session_id"] == session_id and resumed["sim_time_s"] >= previous_time
+                    assert len(creation_requests) == 1
+                    report["reconnected_session_id"] = session_id
+                    page.locator('[data-continuous-action="stop"]').click()
+                deadline = time.monotonic() + 60
+                while time.monotonic() < deadline:
+                    snap = _json_request(base, f"/interactive/sessions/{quote(session_id)}")
+                    if snap["state"] == "COMPLETED" and snap["archive_status"] == "SEALED":
+                        break
+                    page.wait_for_timeout(200)
+                assert (snap["state"], snap["archive_status"]) == ("COMPLETED", "SEALED"), snap
+                if mode == "bounded":
+                    assert snap["sim_time_s"] == 20
+                    acks = _json_request(base, detail_path + "/commands?command_id=" + command_id)["acks"]
+                    assert any(a["state"] == "ACKED" for a in acks), acks
+                    recorded = (json.loads(line)["frame"] for line in trace.read_bytes().splitlines())
+                    frames = [frame for frame in recorded if frame["stream"] == "runtime.trace"]
+                    assert frames[0]["values"]["eps.pdu.payload_enabled"] == 1
+                    assert frames[-1]["values"]["eps.pdu.payload_enabled"] == 0
+                    report["safe_mode_command"] = {"id": command_id, "acks": acks,
+                                                    "payload_enabled_first": 1, "payload_enabled_last": 0}
+                import hashlib
+                manifest = json.loads((trace.parent / "telemetry_manifest.json").read_bytes())
+                assert manifest["telemetry_sha256"] == hashlib.sha256(trace.read_bytes()).hexdigest()
+                report["completion"] = {key: snap[key] for key in ("session_id", "state", "sim_time_s", "archive_status")}
+                report["telemetry_sha256"] = manifest["telemetry_sha256"]
+                result = json.loads((trace.parent / "runtime_result.json").read_bytes())["result"]
+                report["native_epoch_utc"] = result["summary"]["orbital_environment"]["epoch_utc"]
+                assert report["native_epoch_utc"].replace("+00:00", "Z") == "2026-01-01T00:00:00Z"
+                with trace.open("rb") as source:
+                    native_times = [frame["sim_time_s"] for frame in
+                                    (json.loads(line)["frame"] for line in source)
+                                    if frame["stream"] == "runtime.trace"]
+                assert len(native_times) > 1 and native_times[0] == 0
+                assert native_times[-1] == snap["sim_time_s"]
+                report["native_first_last_s"] = [native_times[0], native_times[-1]]
             report["status"] = "PASS"
             page.screenshot(path=str(evidence / "native-scene.png"), full_page=True)
             browser.close()

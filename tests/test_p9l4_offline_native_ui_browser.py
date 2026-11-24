@@ -7,6 +7,7 @@ import socket
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import urlopen
 
@@ -18,11 +19,15 @@ def _get_json(base: str, path: str) -> dict:
         return json.load(response)
 
 
-def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(tmp_path):
+@pytest.mark.parametrize("entry", ["default", "custom", "json", "scene", "graph", "natural_language"])
+def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(tmp_path, entry):
     """The user creates and runs a finite task in the actual UI; no API fixture."""
     if os.environ.get("SAT_SIM_P9L4_NATIVE_UI_TEST") != "1":
         pytest.skip("Dedicated official Basilisk + Chromium P9-L4 job only")
+    if entry == "natural_language" and not os.environ.get("SAT_SIM_DT_MODEL_URL"):
+        pytest.skip("Requires an actual local model service")
 
+    custom_rates = entry != "default"
     import Basilisk
     from playwright.sync_api import expect, sync_playwright
 
@@ -32,6 +37,8 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
     base = f"http://127.0.0.1:{port}"
     runs_root = tmp_path / "runs"
     evidence = Path(os.environ.get("SAT_SIM_P9L4_EVIDENCE", str(tmp_path)))
+    if custom_rates:
+        evidence = evidence / entry
     evidence.mkdir(parents=True, exist_ok=True)
     env = {
         **os.environ,
@@ -84,6 +91,7 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
         with sync_playwright() as pw:
             browser = pw.chromium.launch(
                 headless=True,
+                executable_path=os.environ.get("SAT_SIM_BROWSER_EXECUTABLE"),
                 args=["--enable-webgl", "--use-gl=swiftshader", "--ignore-gpu-blocklist"],
             )
             page = browser.new_page(viewport={"width": 1600, "height": 1000}, locale="zh-CN")
@@ -94,65 +102,108 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
                 "url": request.url, "failure": request.failure,
             }))
             page.on("dialog", lambda dialog: dialog.accept())
+            if entry == "natural_language":
+                from dt_creation_browser import register_local_model
+                register_local_model(page, base)
             page.goto(base, wait_until="domcontentloaded")
 
-            page.locator('#wizardOptions [data-wizard-goal="normal_run"]').click()
-            page.locator('#wizardOptions [data-wizard-level="whole_spacecraft"]').wait_for(
-                state="visible", timeout=30000
-            )
-            page.locator('#wizardOptions [data-wizard-level="whole_spacecraft"]').click()
-            whole_spacecraft = page.locator("#wizardOptions [data-wizard-object]").first
-            whole_spacecraft.wait_for(state="visible", timeout=30000)
-            report["selected_object_label"] = whole_spacecraft.inner_text()
-            whole_spacecraft.click()
-            page.locator('#wizardOptions [data-wizard-mode="offline"]').wait_for(
-                state="visible", timeout=30000
-            )
-            page.locator('#wizardOptions [data-wizard-mode="offline"]').click()
-            expect(page.locator("#wizardConfigSections")).to_be_visible()
+            source_spec = None
+            rates = dict(zip("xyz", [-0.003, 0.0, 0.006] if custom_rates else [0.01, -0.004, 0.002]))
+            if entry == "graph":
+                from dt_creation_browser import configure_graph_case
+                configure_graph_case(page)
+                configured_step_s = 0.1
+                submitted_duration_s = 20
+                report["task_spec_validated"] = True
+                run_button = page.locator("#graphRunBtn")
+            else:
+                if entry == "json":
+                    from dt_creation_browser import apply_json_case
+                    source_spec = apply_json_case(page)
+                elif entry == "natural_language":
+                    from dt_creation_browser import apply_natural_language_case
+                    source_spec = apply_natural_language_case(page, evidence)
+                else:
+                    if entry == "scene":
+                        page.locator("#wizardSceneShortcutBtn").click()
+                        page.locator("#sceneCreateTaskBtn").click()
+                        page.locator('[data-scene-create="offline"]').click()
+                    else:
+                        page.locator('#wizardOptions [data-wizard-goal="normal_run"]').click()
+                    page.locator('#wizardOptions [data-wizard-level="whole_spacecraft"]').wait_for(
+                        state="visible", timeout=30000
+                    )
+                    page.locator('#wizardOptions [data-wizard-level="whole_spacecraft"]').click()
+                    whole_spacecraft = page.locator("#wizardOptions [data-wizard-object]").first
+                    whole_spacecraft.wait_for(state="visible", timeout=30000)
+                    report["selected_object_label"] = whole_spacecraft.inner_text()
+                    whole_spacecraft.click()
+                    page.locator('#wizardOptions [data-wizard-mode="offline"]').wait_for(
+                        state="visible", timeout=30000
+                    )
+                    page.locator('#wizardOptions [data-wizard-mode="offline"]').click()
+                expect(page.locator("#wizardConfigSections")).to_be_visible()
+                if custom_rates and source_spec is None:
+                    panel = page.locator("#wizardParametersPanel")
+                    if panel.get_attribute("open") is None:
+                        panel.locator(":scope > summary").click()
+                    page.locator('[data-wizard-parameter-mode="all"]').click()
+                    fields = {"simulation.step_s": 0.1}
+                    fields.update({f"parameters.values.initial_body_rate_{axis}_rad_s": value
+                                   for axis, value in rates.items()})
+                    for path, value in fields.items():
+                        page.locator("#wizardParameterSearch").fill(path)
+                        control = page.locator(f'[data-path="{path}"]')
+                        control.fill(str(value))
+                        page.locator("#wizardParameterSearch").focus()
+                    page.locator("#wizardParameterSearch").fill("")
 
-            # Runtime fields are rendered in the guided step; dynamicForm belongs to the inactive advanced workspace.
-            duration = page.locator('[data-wizard-field="simulation.duration_s"]')
-            expect(duration).to_be_visible()
-            duration.fill("20")
-            duration.press("Tab")
-            sample = page.locator('[data-wizard-field="simulation.sample_s"]')
-            expect(sample).to_be_visible()
-            sample.fill("10")
-            sample.press("Tab")
-            submitted_duration_s = duration.input_value()
-            submitted_sample_s = sample.input_value()
-            configured_step_s = 10.0  # whole-spacecraft form-schema fallback resolved by _simulation_defaults
-            report["configured_duration_s"] = submitted_duration_s
-            report["configured_sample_s"] = submitted_sample_s
-            report["configured_step_s"] = configured_step_s
-            assert configured_step_s <= float(submitted_sample_s) <= float(submitted_duration_s)
-            page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
-            page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
-            page.wait_for_function(
-                """() => {
-                  const text = document.querySelector('#wizardNotice')?.textContent || '';
-                  return text.length > 0 && !text.includes('正在校验配置');
-                }""",
-                timeout=60000,
-            )
-            validation_notice = page.locator("#wizardNotice").inner_text()
-            validation_summary = page.locator("#formValidationSummary").inner_text()
-            report["validation_notice"] = validation_notice
-            report["validation_summary"] = validation_summary
-            assert "校验通过" in validation_notice, {
-                "notice": validation_notice,
-                "summary": validation_summary,
-                "selected_capability": page.locator("#selectedCapabilityName").inner_text(),
-                "duration_s": submitted_duration_s,
-            }
-            report["task_spec_validated"] = True
+                # Runtime fields are rendered in the guided step; dynamicForm belongs to the inactive advanced workspace.
+                duration = page.locator('[data-wizard-field="simulation.duration_s"]')
+                expect(duration).to_be_visible()
+                if source_spec is None:
+                    duration.fill("20")
+                    duration.press("Tab")
+                sample = page.locator('[data-wizard-field="simulation.sample_s"]')
+                expect(sample).to_be_visible()
+                if source_spec is None:
+                    sample.fill("0.5" if custom_rates else "10")
+                    sample.press("Tab")
+                submitted_duration_s = duration.input_value()
+                submitted_sample_s = sample.input_value()
+                configured_step_s = 0.1 if custom_rates else 10.0
+                report["configured_duration_s"] = submitted_duration_s
+                report["configured_sample_s"] = submitted_sample_s
+                report["configured_step_s"] = configured_step_s
+                assert configured_step_s <= float(submitted_sample_s) <= float(submitted_duration_s)
+                page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
+                page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
+                page.wait_for_function(
+                    """() => {
+                      const text = document.querySelector('#wizardNotice')?.textContent || '';
+                      return text.length > 0 && !text.includes('正在校验配置');
+                    }""",
+                    timeout=60000,
+                )
+                validation_notice = page.locator("#wizardNotice").inner_text()
+                validation_summary = page.locator("#formValidationSummary").inner_text()
+                report["validation_notice"] = validation_notice
+                report["validation_summary"] = validation_summary
+                assert "校验通过" in validation_notice, {
+                    "notice": validation_notice,
+                    "summary": validation_summary,
+                    "selected_capability": page.locator("#selectedCapabilityName").inner_text(),
+                    "duration_s": submitted_duration_s,
+                }
+                report["task_spec_validated"] = True
+
+                run_button = page.locator("#wizardOptions").get_by_role("button", name="运行仿真")
 
             with page.expect_request(
                 lambda request: request.method == "POST" and request.url.endswith("/runs"),
                 timeout=30000,
             ) as submitted_request:
-                page.locator("#wizardOptions").get_by_role("button", name="运行仿真").click()
+                run_button.click()
             request_payload = json.loads(submitted_request.value.post_data or "{}")
             report["submitted_execution_mode"] = request_payload.get("execution_mode")
             report["submitted_execute"] = request_payload.get("execute")
@@ -169,7 +220,7 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
                 timeout=240000,
             )
             run_rows = page.locator("#runList [data-run-id]")
-            run_rows.first.wait_for(state="visible", timeout=30000)
+            run_rows.first.wait_for(state="attached", timeout=30000)
             run_id = run_rows.first.get_attribute("data-run-id")
             assert run_id
             run = _get_json(base, f"/runs/{run_id}")
@@ -180,8 +231,30 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
             report["run_status"] = "SUCCEEDED"
             report["sealed"] = True
             report["integrity"] = "PASS"
+            submitted = request_payload["task_spec"]
+            if source_spec:
+                for key in ("simulation", "model", "parameters", "events", "outputs"):
+                    assert submitted[key] == source_spec[key], key
+            values = submitted["parameters"]["values"]
+            assert submitted["simulation"]["step_s"] == configured_step_s
+            assert submitted["simulation"]["random_seed"] == 0
+            summary = json.loads((runs_root / run_id / "results/summary.json").read_bytes())
+            report["submitted_epoch_utc"] = values.get("epoch_utc")
+            report["native_epoch_utc"] = summary["orbital_environment"]["epoch_utc"]
+            assert datetime.fromisoformat(report["native_epoch_utc"].replace("Z", "+00:00")) == datetime(2026, 1, 1, tzinfo=timezone.utc)
+            trace = runs_root / run_id / "results" / "telemetry.jsonl"
+            frames = [json.loads(line) for line in trace.read_bytes().splitlines()]
+            assert frames[0]["time_s"] == 0
+            assert frames[-1]["time_s"] == float(submitted_duration_s)
+            for axis, expected in rates.items():
+                assert values[f"initial_body_rate_{axis}_rad_s"] == expected
+                assert frames[0][f"attitude.truth.omega_BN_B_{axis}"] == pytest.approx(expected, rel=0, abs=1e-14)
+            report["initial_rate_body_rad_s"] = {axis: frames[0][f"attitude.truth.omega_BN_B_{axis}"] for axis in rates}
+            report["frame_count"] = len(frames)
+            report["last_sim_time_s"] = frames[-1]["time_s"]
 
-            page.locator("#wizardAdvancedBtn").click()
+            if entry != "graph":
+                page.locator("#wizardAdvancedBtn").click()
             page.locator('.sidebar-nav button[data-view="scene"]').click()
             expect(page.locator("#satelliteSceneView")).to_be_visible()
             page.locator('[data-scene-mode="orbit"]').click()
@@ -198,6 +271,23 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
             report["scene_frame_source"] = page.locator("#sceneFrameSource").inner_text()
             report["scene_quality"] = page.locator("#sceneFrameQuality").inner_text()
             report["scene_truth"] = page.locator("#sceneTruthStatus").inner_text()
+            if entry == "default":
+                component_page = browser.new_page()
+                component_page.goto(base)
+                component_page.locator('[data-wizard-goal="component_native"]').click()
+                component_page.locator('[data-wizard-object="component.reaction_wheel"]').click()
+                expect(component_page.locator("#wizardConfigSections")).to_be_visible()
+                expect(component_page.locator("#wizardConversation")).to_contain_text("有限时长")
+                assert component_page.locator('[data-wizard-mode$="realtime"]').count() == 0
+                for continuous in (False, True):
+                    rejected = component_page.request.post(base + "/interactive/sessions", data={
+                        "session_id": "wheel-negative", "capability_id": "component.reaction_wheel.v1",
+                        "task_spec": {}, "continuous": continuous})
+                    assert rejected.status == 422
+                    assert rejected.json()["detail"]["reason_code"] == "INTERACTIVE_CAPABILITY_NOT_APPROVED"
+                assert component_page.request.get(base + "/interactive/sessions").json()["sessions"] == []
+                report["wheel_realtime_restriction"] = "both rejected; no session created"
+                component_page.close()
             assert not report["page_errors"], report["page_errors"]
             assert not report["console_errors"], report["console_errors"]
             assert not report["request_failures"], report["request_failures"]

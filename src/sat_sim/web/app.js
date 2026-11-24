@@ -6573,7 +6573,8 @@
       state.chartWindowRequestId += 1;
       const runSpec = state.activeRun?.task_spec || {};
       const runParameters = runSpec.parameters?.values || {};
-      const runEpoch = runParameters.epoch_utc || runSpec.simulation?.epoch_utc
+      const runEpoch = state.activeRun?.summary?.orbital_environment?.epoch_utc
+        || runParameters.epoch_utc || runSpec.simulation?.epoch_utc
         || runSpec.orbit_environment?.epoch_utc || null;
       const runTimeSystem = runSpec.simulation?.time_system || null;
       const runStatus = String(state.activeRun?.run_record?.status || '').toUpperCase();
@@ -8610,6 +8611,10 @@
 
   function wizardSetStep(step, prompt, userMessage = null) {
     if (userMessage) wizardMessage('user', userMessage);
+    if (step === 'configure' && state.wizard.step !== step) {
+      const parameters = el('wizardParametersPanel');
+      if (parameters) parameters.open = false;
+    }
     state.wizard.step = step;
     state.wizard.validated = false;
     state.wizard.validatedForm = null;
@@ -9479,7 +9484,6 @@
       option('下一步：检查配置', '确认输出和事件设置，执行正式 TaskSpec 校验', {}, () => wizardSetStep('review', '请检查配置摘要。校验只检查参数与执行计划，不会启动仿真。通过后才能运行。'));
       const faultPanel = el('wizardFaultPanel'); if (faultPanel) faultPanel.open = state.wizard.goal === 'fault_run' || (state.formData.events?.faults || []).length > 0;
       const outputPanel = el('wizardOutputPanel'); if (outputPanel) outputPanel.open = true;
-      const parameterPanel = el('wizardParametersPanel'); if (parameterPanel) parameterPanel.open = false;
       renderWizardCurveChoices();
     } else if (state.wizard.step === 'review') {
       const review = document.createElement('div'); review.className = 'wizard-review';

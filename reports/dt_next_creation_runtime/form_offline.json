@@ -1,0 +1,38 @@
+{
+  "entry": "form",
+  "mode": "offline",
+  "candidate_commit": "8757abc39a69fe2b2f97b6f0313abc769620fb42",
+  "report_sha256": "3705cc288caccb5a79dfe919c132bb721cf0241c084aadc2a4d85cd56474d167",
+  "basilisk": "2.11.0+satfix2",
+  "run_id": "whole_spacecraft_unified_native_v1_mwu3l4t0",
+  "run_status": "SUCCEEDED",
+  "integrity": "PASS",
+  "native_epoch_utc": "2026-01-01T00:00:00+00:00",
+  "scene_quality": "SEALED",
+  "scene_frame_source": "run:whole_spacecraft_unified_native_v1_mwu3l4t0",
+  "selected_object_label": "整星数字样机\n一个整星对象，按任务选择综合、姿轨、电热轨、通信载荷或推进机动场景。",
+  "sealed_spec_sha256": "c946b3343ffe5057fa07c8b7c8e718676c53fd5a03dcf8e03fda8edecb9052c5",
+  "simulation_seed": {
+    "value": 0,
+    "source": "explicit"
+  },
+  "validation": {
+    "result": "PASS",
+    "execution_status": "SUCCEEDED",
+    "reason_code": "VALIDATION_PASSED"
+  },
+  "validation_sha256": "6ee10f69cf058e6e528b98a19a581661ee3d8663e39369350ad20eb81007838e",
+  "native_frames": 41,
+  "first_last_s": [
+    0.0,
+    20.0
+  ],
+  "sample_s": 0.5,
+  "max_time_grid_float_error_s": 1.7763568394002505e-15,
+  "first_body_rates_rad_s": [
+    -0.003,
+    0.0,
+    0.006
+  ],
+  "telemetry_sha256": "2ce63590ea0c4ebe5b513c700cb7f00b9b7be1d310cbf69ddc67c54e933d32ec"
+}
