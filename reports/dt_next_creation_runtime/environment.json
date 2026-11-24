@@ -1,0 +1,34 @@
+{
+  "candidate_commit": "8757abc39a69fe2b2f97b6f0313abc769620fb42",
+  "uv": "uv 0.12.12 (c4be69153 2026-09-09 x86_64-pc-windows-msvc)",
+  "native_environment": {
+    "python": "3.12.12",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "basilisk": "2.11.0+satfix2",
+    "playwright": "1.57.0",
+    "pytest": "9.0.3",
+    "fastapi": "0.139.2"
+  },
+  "chrome": "157.0.8103.79",
+  "local_globe_manifest_sha256": "7B7146BA5ED9AE8CDF68051A7B7214DC468FF0E3591AC3B7FF8D13684BC0576B",
+  "loopback_only": true,
+  "offline_worker": "embedded",
+  "bounded_runtime": "in-process native",
+  "continuous_runtime": "supervised native child",
+  "epoch_utc": "2026-01-01T00:00:00Z",
+  "simulation_seed": 0,
+  "seed_scope": "simulation_seed defaults to zero in the native configuration when omitted",
+  "initial_body_rates_rad_s": [
+    -0.003,
+    0,
+    0.006
+  ],
+  "abs_tolerance_rad_s": 1E-14,
+  "sample_s": 0.5,
+  "integration_step_s": 0.1,
+  "bounded_end_s": 20,
+  "continuous_setup_horizon_s": 120,
+  "model_id": "dt-qwen25-coder15-v5",
+  "adapter_safetensors_sha256": "C72D08C6AA573929275C3DE244A6A511FA4B3809E1CFABDB5D5007AFB21C8547",
+  "base_manifest_sha256": "A8213FF226D85F8DFD7CF58E63FB829F29B1C5D6A9584FEF4BF8267AA27ABF38"
+}

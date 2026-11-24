@@ -1,0 +1,20 @@
+{
+  "results": {
+    "tests": "95",
+    "time": "657.539",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "junit_sha256": "8429c7ed45c838674c160e07e26505d0b2cbead65e4117d48b1732328b5cbe73"
+  },
+  "wizard": {
+    "tests": "13",
+    "time": "9.765",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "junit_sha256": "c5fc640eae7bd175737e75c2358d4f0b4567b945ba869f982db5e1ad34785982"
+  },
+  "component_restriction": "both rejected; no session created",
+  "native_crash_test": "test_live_session_child_crash_preserves_active_sqlite_owner_fence"
+}

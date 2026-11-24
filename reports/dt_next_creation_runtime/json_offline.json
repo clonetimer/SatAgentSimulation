@@ -1,0 +1,37 @@
+{
+  "entry": "json",
+  "mode": "offline",
+  "candidate_commit": "8757abc39a69fe2b2f97b6f0313abc769620fb42",
+  "report_sha256": "cf19d811d51fadbe4254e8d5c831d8a36f941bee27b0da1a4bc9317c7c735f1f",
+  "basilisk": "2.11.0+satfix2",
+  "run_id": "dt_creation_matrix_mwu3lk5u",
+  "run_status": "SUCCEEDED",
+  "integrity": "PASS",
+  "native_epoch_utc": "2026-01-01T00:00:00+00:00",
+  "scene_quality": "SEALED",
+  "scene_frame_source": "run:dt_creation_matrix_mwu3lk5u",
+  "sealed_spec_sha256": "dc23d4efd1b906b1fb11f79013a43c3c9b5323a94d30c8fd2d040076428e6131",
+  "simulation_seed": {
+    "value": 0,
+    "source": "explicit"
+  },
+  "validation": {
+    "result": "PASS",
+    "execution_status": "SUCCEEDED",
+    "reason_code": "VALIDATION_PASSED"
+  },
+  "validation_sha256": "6ee10f69cf058e6e528b98a19a581661ee3d8663e39369350ad20eb81007838e",
+  "native_frames": 41,
+  "first_last_s": [
+    0.0,
+    20.0
+  ],
+  "sample_s": 0.5,
+  "max_time_grid_float_error_s": 1.7763568394002505e-15,
+  "first_body_rates_rad_s": [
+    -0.003,
+    0.0,
+    0.006
+  ],
+  "telemetry_sha256": "2ce63590ea0c4ebe5b513c700cb7f00b9b7be1d310cbf69ddc67c54e933d32ec"
+}
