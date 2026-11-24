@@ -6267,7 +6267,9 @@
         if (state.wizard.step === 'running' && state.wizard.pendingRunId === runId) {
           state.wizard.pendingRunId = null;
           state.wizard.step = 'results';
-          wizardMessage('assistant', message);
+          wizardMessage('assistant', execution.state === 'SUCCEEDED'
+            ? `仿真已完成：${displayName}（${runId}），验证结果 ${execution.validation_result || '待确认'}。`
+            : `仿真任务已结束：${message}`);
           if (state.activeView === 'wizard') renderSimulationWizard();
         }
         if ((execution.error || ['FAILED', 'TIMED_OUT'].includes(execution.state)) && state.activeVisualRunContext?.runId === runId) {
