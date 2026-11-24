@@ -1,0 +1,490 @@
+# DT-2 / BE-26 — CROSS-LEO-001 independent two-body comparison
+
+**Scope:** One initial, 5,400-second two-body propagation from a real upstream
+Basilisk 2.11.0 execution, paired with a generated but **not yet executed**
+GMAT R2026a input script. This is independent of PR #213's merge gate. It does
+not use synthetic data as external-engine truth, nor qualify flight accuracy.
+
+## Reused and newly declared inputs
+
+- The date **2026-03-04T21:48:00Z**, semi-major axis **6,650,000 m**, circular
+  equatorial orbit, **5 s** Basilisk task and **60 s** telemetry cadence come
+  from the actual 5,400 s four-effect test on PR #213.
+- Unlike #213's *SPICE Sun-aligned* initial true anomaly, CROSS-LEO-001 **newly
+  declares f = 0 degrees** to make the two-body comparison fully reproducible
+  without borrowing undocumented/orbit-specific SPICE output. It is **not**
+  the same six-dimensional initial condition as the four-effect full-orbit run.
+- Earth gravitational parameter and full initial r/v are obtained from the
+  **actually running Basilisk** `gravBodyFactory.createEarth()` plus
+  `orbitalMotion.elem2rv`, saved verbatim in `case_manifest.json` and used to
+  generate GMAT's Cartesian initial state. No trajectory points are invented.
+- Both force-model lists have **only Earth point mass enabled**. Drag,
+  J2/J3/J4, SRP, third-body, tides, atmosphere/winds and magnetic force are
+  OFF, even though the broader simulator can enable some of them. Both tools
+  use a 5 s maximum step; Basilisk uses its native spacecraft integrator,
+  whereas GMAT script requests RungeKutta89, accuracy `1e-12`. They are not
+  asserted to be identical integrators.
+
+## Already implemented (not evidence of an external GMAT run)
+
+`python scripts/dt2_cross_leo_001.py basilisk --output reports/dt2-cross-leo-001 --checkout-sha <actual 40-hex git SHA>`
+
+This path imports the actual Basilisk Python package, requires `bsk==2.11.0`,
+instantiates the real `Spacecraft`/Earth point mass/recorder, executes 5,400 s,
+then writes **91 observed full six-dimensional states** (including t=0 and
+5,400) to `basilisk_state.csv`. The SHA manifest binds the resulting CSV,
+script, input epoch, orbit elements, real `earth.mu`, actual initial state,
+frame metadata, all force-model switches, package version, Python and Git SHA.
+It also writes `gmat_two_body.script` with the same actual initial Cartesian
+state converted to GMAT km and km/s. The script is only an input artifact;
+`external_vv_status=NOT_RUN` and `gmat_executed=false` remain explicit.
+
+The GitHub workflow `.github/workflows/dt2-cross-leo-001.yml` runs the
+pure-Python fail-closed tests, **actually executes Basilisk** and uploads its
+raw six-state CSV, manifest and GMAT script. A `SUCCESS` on that workflow
+qualifies only the **Basilisk output half**.
+
+## Independently execute GMAT (requires a real locally installed GMAT)
+
+From an environment with NASA's real `GmatConsole` binary:
+
+`python scripts/dt2_cross_leo_001.py gmat --output reports/dt2-cross-leo-001 --executable /path/to/GmatConsole`
+
+On Windows use an absolute path to `GmatConsole.exe`. The script's CLI uses
+GMAT's documented `--run <script>` operation. It records the actual binary
+SHA-256, command, executed script SHA, version stdout, run stdout/stderr,
+return code, raw ReportFile SHA and **only if real GMAT output exists** a
+converted SI `gmat_state.csv`. Existing `gmat_raw.txt` refuses overwrite to
+avoid a stale-success artifact. GMAT's native ReportFile is comma-separated,
+headerless elapsed seconds, EarthMJ2000Eq km/km/s; the conversion requires all
+91 finite records on the correct 60 s grid. GMAT syntax and runtime behavior
+remain **unverified until this command actually succeeds**. Its release and
+builtin Earth GM must also be independently verified; a script merely being
+successfully generated is not GMAT qualification.
+
+`python scripts/dt2_cross_leo_001.py compare --output reports/dt2-cross-leo-001`
+
+This explicitly requires the GMAT execution provenance, raw GMAT file, both
+normalized CSVs and matching SHA-256. It then computes the raw Earth-centered
+3-D position/velocity residual and RTN position components at every matched
+sample, and max/P95/P99/first/mid/last diagnostics. **It always outputs
+`INCONCLUSIVE` until independent time/frame/GM alignment and a pre-approved
+mission accuracy envelope are documented**; it cannot create fake GMAT data
+or automatically label a numerical match `PASS`.
+
+## Status and validation boundary
+
+| Gate | Status until proven | Completion evidence |
+| --- | --- | --- |
+| Basilisk real 91-state two-body execution | **NOT_RUN before native CI** | SHA-bound `basilisk_state.csv`, run log and manifest |
+| GMAT script generation | GENERATED only | Script SHA; no claim of execution |
+| GMATConsole R2026a real execution | **NOT_RUN** | Executable hash/version, command, raw report/log |
+| Independent coordinate/GM/time consistency | **NOT_VERIFIED** | versioned environment, EOP/time/frame mapping, GM constant |
+| Numerical comparison and predeclared tolerances | **INCONCLUSIVE** | two real traces, frozen error budget, residual audit |
+| Flight-grade or hardware qualification | **UNSUPPORTED** | Never inferred from this exercise |
+
+No extra SPICE/GMAT asset download happens in the first two-body case.
+Failure to install `bsk==2.11.0`, missing actual GMAT executable or
+unaligned reference frames **cannot** be rebranded as PASS. Model comparison
+comes *after* both independent tools have truly run.
+
+The official NASA GMAT script conventions for Cartesian EarthMJ2000Eq state,
+`ForceModel.PointMasses={Earth}`, `ReportFile`, `Propagate` and `GmatConsole
+--run` were used as references, not as evidence that this generated script
+has already executed:
+
+- https://github.com/nasa/GMAT/blob/main/application/samples/Ex_LunarTransfer.script
+- https://github.com/nasa/GMAT/discussions/9
+- https://documentation.help/GMAT/CommandLine.html
+
+## Genuine GMAT R2026a CI execution attempt (separate fail-closed gate)
+
+The separate `.github/workflows/dt2-gmat-cross-leo-001.yml` is a **real, opt-in-engine validation attempt** on this Draft PR, not a flight accuracy release gate. It executes a fresh real bsk==2.11.0 two-body baseline, downloads the official Ubuntu GMAT R2026a binary from the NASA team's SourceForge release, records archive + actual executable SHA-256 and download URL, invokes actual `GmatConsole --run`, requires 91 authentic finite GMAT ReportFile rows, and only then computes an **INCONCLUSIVE** two-engine residual diagnostic. The external software is ~400 MB compressed, is not vendored into Git, and is never embedded in evidence artifacts. If download, initialization, script parser, or execution fails, the CI job fails and uploads available raw logs; it cannot fabricate a matching GMAT trajectory.
+
+The independent GMAT ReportFile reference specifies enum `Delimiter = Comma`, **not** the earlier syntactically unverified `Delimiter = ','`. The generated script and parser test now use the official enumerated value. Passing the script-generator unit test alone is insufficient; the actual GmatConsole run must produce the real 91-row report. No claim of frame/μ equivalence or approved mission acceptance tolerances is made in this initial execution attempt.
+
+Official release file: https://sourceforge.net/projects/gmat/files/GMAT/GMAT-R2026a/gmat-ubuntu-x64-R2026a.tar.gz/download
+Official report-field reference: https://documentation.help/GMAT/ReportFile.html
+
+### GMAT exact executable discovery and input encoding
+
+- Native [CI 44817225430](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44817225430) fetched the authentic SourceForge Ubuntu archive (**401,664,992 bytes**, SHA-256 `fe124b4a606b2e3b704a6fbb1c37b87598d5df0d18cb661c304b5f60074a7754`), but its launcher is **`GmatConsole-R2026a`** rather than unsuffixed `GmatConsole`. This discovery is based on the actual extracted archive, not an assumed naming convention.
+- Follow-up real [CI 44817699249](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44817699249) found, launched and version-checked `GMAT/R2026a/bin/GmatConsole-R2026a` (binary SHA-256 `f7cf5b3188902353ed4245bb21c22c1afa0451efdd221b7e19f6a74dc7ed1d93`). The real GMAT Console engine initialized successfully but rejected the candidate script because a comment contained Unicode `—`: **GMAT R2026a only accepts ASCII source scripts**. The engine emitted `contains characters outside of the ASCII character set`; no `gmat_raw.txt` was written.
+- The `_gmat_script` generator now uses ASCII-only source comments and explicitly fails before any GMAT run if future generated text is not ASCII. Unit test asserts `script.isascii()`. This changes no orbital initial state, `earth.mu`, numeric integrator selection, sample cadence or flight-model assumptions.
+- The above is a genuine failed first GMAT script execution, **not** a completed external comparison. The next exact-head native GMAT workflow must actually produce 91 authentic GMAT rows before the result can advance beyond `NOT_RUN`/execution-blocked.
+
+### Real GMAT execution exposed two more input-contract defects (2026-11-21)
+
+[CI 44818023876](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44818023876) **actually invoked** NASA R2026a `GmatConsole-R2026a` and stdout confirms "Successfully interpreted the script", "Mission run completed", and real **0.665-second** console runtime. It wrote a genuine `gmat_raw.txt`, 91 lines. The parser correctly rejected this as invalid: **it was not a 5400 s comma-separated trajectory**.
+
+Measured from authentic `gmat_raw.txt` (artifact **#14670805290**):
+1. The generated `ReportFile.Delimiter = Comma` (an earlier documentation-driven assumption) produced the literal character **`C`** between all 7 fields, e.g. `0C6650C0C0C0C7.742...C0`. The only reliable supported form for this release is `Delimiter = ','`; this restores the original quoted comma character with an explicit regression assertion.
+2. Setting `CrossSat.ElapsedSecs = 60,120,180,...5400` in consecutive `Propagate` commands **does not mean absolute elapsed time**: the real report had approximately `0,60,180,360,600,900,...,245700` seconds. A GMAT propagation stop condition is relative to each Propagate start, so the script now repeats the **60-second** duration exactly 90 times. The new unit regression asserts 90 repeated `= 60` commands, no `= 120` / `= 5400` cumulative request, and unchanged 91 Report commands.
+
+The changed script is still purely ASCII, 5,400 s requested, point-mass-only; the *actual executable version, archive and binary SHA* are the same verified R2026a inputs. No fabricated trajectory or post-hoc tolerance adjustment. A fresh current-head CI must produce 91 true 60-second-spaced GMAT states and an **INCONCLUSIVE** independent diagnostic before the case can move beyond GMAT execution-blocked.
+
+### Bounded **input-time representation** pilot (not physics acceptance tolerance)
+
+[Real GMAT CI 44818433025](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44818433025) produced 91 genuine R2026a rows with the intended comma format and 0–5400 s cadence. Its last *original* `ElapsedSecs` was **5399.999989313073 s**, i.e. **-10.686927 microseconds** relative to the nominal 5400-second tick, because the real GMAT Console reports elapsed time after calendar/time-scale round trips. Original 10-microsecond exact-grid parser limit correctly failed at index 85. This is **not** a flight dynamics error.
+
+For the **next run only**, a separate and explicit **20 microsecond GMAT input-representation limit** is frozen by test and source constant. Every *raw GMAT timestamp remains unmodified* and is checked for finite values, monotonic cadence, expected 91 rows, and max 20 microsecond skew. The stricter existing Basilisk exact-grid guard is **unchanged**, and a synthetic negative control at 1 millisecond skew must still FAIL. The real GMAT raw and normalized reports retain timestamps; diagnostic differences include both original engine clocks and `clock_skew_s`, plus the maximum velocity-equivalent positional clock offset. No interpolation/extrapolation or invented samples are introduced.
+
+**This 20 microsecond figure is only a representation/readability bound, selected after an explicit real pilot and predeclared for the upcoming new run; it is NOT a position/velocity error budget, physical tolerance relaxation, independent clock/frame approval, or a retroactive PASS on the pilot.** Even if the next run successfully produces two authentic 91-state datasets, `comparison_diagnostic.json` will stay **INCONCLUSIVE** with `paired_samples=91`, `aligned_samples=0` until frame/GM/time alignment and independent mission tolerances are approved.
+
+The evolving manifest will mark GMAT executed only after the actual 91-row raw report is verified; absent/invalid GMAT outputs keep `NOT_RUN`/failed execution status and may not be promoted to comparison acceptance.
+
+## Earth-Mu matched genuine GMAT control (independent second execution)
+
+The first genuine GMAT-versus-Basilisk data on exact #215 head 6cad46b1 provides **91 real state pairs** and a **1.151936372 m final position difference**. An independent high-precision pure-central-gravity integration from the *recorded, true shared initial state* predicts **1.153071928 m** final relative position if the only model difference is **Basilisk's measured Earth mu 398600.436 km^3/s^2** versus the GMAT documented default **398600.4415 km^3/s^2**. This leaves **~1.14 mm** in the *vector residual after removing the theoretical constant-induced difference*; it is not a physically approved correction or a synthetic substitute for running GMAT.
+
+The exact constants and method are grounded in GMAT's CelestialBody and Propagator documentation (point masses use `Earth.Mu`), and the mature open-source Stanford-NavLab **LuPNT/GMAT cross-validation** explicitly uses `GMAT Earth.Mu = ...` to ensure constant alignment. References:
+- https://documentation.help/GMAT/CelestialBody.html
+- https://documentation.help/GMAT/Propagator.html
+- https://github.com/Stanford-NavLab/LuPNT/blob/main/cpp/test/gmat/gen_gmat_reference.py
+
+The new `gmat-mu-control` CLI will actually invoke **the same verified R2026a executable a second time** with the same original measured Cartesian initial state and 90x60s propagation commands; the *only intentional force-model change* is an **explicit `GMAT Earth.Mu` override** from the actual Basilisk `case_manifest.json` mu, before force model initialization. The first default-GMAT original raw CSV and all SHA hashes remain untouched. The second real GMAT output is recorded separately as `gmat_mu_control_raw.txt`, `gmat_mu_control_state.csv`, full stdout/stderr, binary/script/report hashes and an auditable execution JSON.
+
+The `compare-mu-control` path **requires both genuine GMAT executions and the Basilisk source evidence**, checks exact file SHA identities and two independent 91-point grids, then produces an `INCONCLUSIVE` diagnostic and side-by-side raw residual CSV. Even if observed residuals become millimeter-scale, no PASS threshold is inferred from the result, **0 samples are marked independently frame/time aligned**, and no UTC/TT frame certification or flight grade correlation is asserted. The separate time-readability bound stays 20 microseconds; raw elapsed values are never modified. This is a limited one-variable sensitivity control, not a new physical model or a general-purpose validation framework.
+
+
+## Independent exact circular two-body reference (analytic, **not** flight truth)
+
+After two genuinely executed GMAT runs and the actual Basilisk source trace, the
+new command `python scripts/dt2_cross_leo_001.py analytic-reference --output
+reports/dt2-cross-leo-001` checks the original manifest, exact file SHA
+identities, two real GMAT run receipts and a circular Earth point-mass state
+before creating a **mathematical closed-form comparison**. It never generates
+GMAT data or substitutes an analytic solution as externally measured truth.
+
+For this circular-equal-plane case, with the *actual* initial position r0,
+velocity v0 and Earth mu from Basilisk, the unique exact two-body solution is
+
+- n = sqrt(mu / |r0|^3)
+- r(t) = r0*cos(n*t) + (v0/n)*sin(n*t)
+- v(t) = v0*cos(n*t) - n*r0*sin(n*t)
+
+The code strictly rejects non-circular speeds, non-tangential initial states,
+nonfinite mu/epoch inputs and unverified engine data. It evaluates **both**
+(1) the nominal 60-second state index and (2) the unmodified original GMAT
+reported `ElapsedSecs` time. It saves all 91 rows in
+`analytic_reference_difference_rows.csv` and explicit provenance,
+sample pairing and status in `analytic_reference_diagnostic.json`.
+
+An independent local computation of the previously published real #215 artifact
+(#14671573546) yielded **maximum position differences** relative to this
+mathematical reference (all model mu set to the *Basilisk* value):
+
+| Real recorded state vs circular closed-form | Nominal sample ticks | Using each engine's reported ElapsedSecs |
+|---|---:|---:|
+| Basilisk native RK4-like 5s propagation | 0.001159607 m | 0.001159607 m |
+| GMAT R2026a default Earth mu | 1.153072129 m | 1.235811254 m |
+| GMAT R2026a explicitly matched Earth mu | 0.0000003346 m | 0.082739452 m |
+
+This strongly suggests the original GMAT `ElapsedSecs` 10.69 microsecond
+skew is a *reported-time representation* effect for this case: its propagated
+six-state agrees with the nominal 60-second exact solution at sub-micrometer
+level, while treating the raw float column as exact physical epoch introduces
+~8.27 cm apparent positional discrepancy. This does **not** authorize changing
+or overwriting raw time values, certifying UTC/TT offsets, or automatically
+assuming an absolute EarthMJ2000Eq↔Basilisk N rotation.
+
+Scientific guard: GMAT documents `EarthMJ2000Eq` as an MJ2000Eq
+IAU-1976/FK5 inertial axis system, different in definition from `EarthICRF`.
+Our isolated point-mass baseline intentionally injects the SAME numeric
+Cartesian initial state into both tools; that is a case-defined abstract
+common frame, **not** an independently validated physical inertial frame tie
+for real spacecraft data. Official frame description:
+https://documentation.help/GMAT/CoordinateSystem.html .
+
+The diagnostic remains `INCONCLUSIVE` and records
+`approved_frame_time_aligned_samples=0`, `mission_residual_acceptance_limits_approved=false`;
+no post-hoc residual acceptance limit is introduced. This check is an
+independent mathematical interpretation of already authentic outputs, not
+qualification of flight accuracy or replacement of third-party data.
+
+
+## Real GMAT two-frame and numerical timescale experiment (not yet qualified)
+
+A new (third) genuine GMAT R2026a console invocation reuses the authenticated
+Basilisk six-state and both previously executed GMAT runs, with SHA-bound
+inputs, identical Earth-Mu override and a wholly separate output path.
+Original Basilisk, default-GMAT and matched-Mu-GMAT original trajectories
+and hashes remain untouched. Its explicit additional GMAT ReportFile
+records 91 simultaneous numerical observations:
+
+- ElapsedSecs, UTCModJulian, TAIModJulian, TTModJulian and A1ModJulian.
+- The same GMAT spacecraft state expressed in EarthMJ2000Eq and EarthICRF
+  Cartesian position and velocity (six components per frame).
+- The actual R2026a script, raw report, stdout/stderr, executable SHA,
+  optionally the local packaged tai-utc.dat hash, and a diagnostic file
+  whose scientific status remains INCONCLUSIVE.
+
+Time conventions are **not interchangeable**: GMAT ModJulian = JD-2430000.0,
+while conventional MJD = JD-2400000.5. For the frozen 2026-03-04T21:48 UTC
+to 23:18 UTC interval, official NIST/USNO resources state TAI-UTC=37 seconds
+and TT-TAI=32.184 seconds; no leap second occurs during this short arc.
+A **predeclared 1 millisecond bound is ONLY a numerical report sanity check**,
+not mission clock accuracy qualification. The original GMAT ElapsedSecs
+10.69-microsecond raw skew is preserved; no re-timing or resampling.
+
+The observed two-frame difference comes directly from GMAT, not an assumed
+identity. EarthMJ2000Eq (IAU-1976/FK5) and EarthICRF (IAU-2000/2006) are
+different realizations according to official GMAT documentation; the
+actual Basilisk two-body-only N frame was numerically initialized in a
+case-defined Cartesian basis but never tied to an independently measured
+celestial reference vector. Thus a successful GMAT internal frame probe
+**does not** qualify an absolute physical Basilisk N-to-ICRF rotation.
+
+The output must contain 91 verified finite rows, the correct GMAT JD
+offset, consistent UTC/TAI/TT numerical epoch relation, the same
+EarthMJ2000Eq state in the two GMAT ReportFiles, and verified source SHAs.
+Any deviation fails closed and preserves original console output. After
+success the diagnostic must still contain zero independently certified
+Basilisk-to-GMAT frame-aligned samples, false absolute time/axis approval
+and false mission accuracy qualification. Do not fit an Earth rotation
+from a 2-body-only test or retroactively invent a physical tolerance.
+
+Documentation/provenance:
+- https://documentation.help/GMAT/CoordinateSystem.html
+- https://documentation.help/GMAT/CalculationParameters.html
+- https://documentation.help/GMAT/SpacecraftEpoch.html
+- https://www.nist.gov/pml/time-and-frequency-division/time-realization/leap-seconds
+- https://maia.usno.navy.mil/information/eo-values
+
+The scientific goal remains independent real-world frame tie and
+advance-approved mission error budget; this small experiment exposes
+actual GMAT frame conversion and epoch-reporting behavior without
+changing any existing physics or overriding the INCONCLUSIVE verdict.
+
+
+## Shared-kernel external celestial direction check — first implementation candidate
+
+This test addresses a real gap: injecting identical *numeric* Cartesian states
+in Earth point-mass models does NOT establish a physical celestial orientation.
+NASA NAIF documents that in SPICE, frame J2000 uses ICRF axes; GMAT separately
+defines its EarthICRF and EarthMJ2000Eq frames. Both models must query an
+ephemeris direction at a specified physical epoch rather than inventing a
+rotation by fitting the two-body state histories.
+
+The existing real GMAT R2026a Linux archive contains
+data/planetary_ephem/spk/DE421AllPlanets.bsp and the SPICE leap-second and
+planetary-constants kernels. The new scripts/dt2_sun_anchor.py runs only after
+all three existing genuine Basilisk/GMAT runs with verified SHA-256 receipts:
+
+1. Read exactly the start, middle and end A1 epoch values from the REAL
+   91-row GMAT time report, without assuming A1=UTC or deriving a new clock.
+2. Run a new genuine GMAT Console mission reporting the geocentric Sun
+   six-state at those A1 instants in EarthICRF and EarthMJ2000Eq, with
+   SolarSystem.EphemerisSource set to SPICE and actual absolute kernel paths.
+   GMAT's documented SpacePoint coordinate-dependent parameters permit
+   reporting Sun.EarthICRF.X etc. The console's actual original ReportFile,
+   return code, stdout/stderr and executable/SolarSystem kernel fingerprints
+   remain in the artifact.
+3. Execute the *actual* Basilisk 2.11.0 SpiceInterface with explicit
+   referenceBase=J2000, zeroBase=earth and the SAME pinned GMAT release SPK,
+   LSK and PCK, saving its actual Sun planet-state messages at 0/2700/5400 s.
+4. Query the SAME underlying SPK with a separate NAIF SpiceyPy 8.4.0 wrapper
+   for Earth-relative Sun in J2000 at the actual UTC instants.
+5. Record the genuine three-way vectors and independent angular/distance
+   differences, including GMAT EarthICRF vs GMAT EarthMJ2000Eq. All sources
+   must be finite, physically plausible and SHA-bound. No artificial Sun
+   vectors or "reference" trajectories are generated to satisfy tests.
+
+**Important comparison boundary:** All three evaluations share the *same*
+DE421 planetary ephemeris; this is a controlled cross-tool axis-implementation
+check, NOT three statistically independent astrophysical truth sets. The
+R2026a bundled DE421 differs from the DE430 assets in DT-1 #213. Therefore
+this cannot replace the original spacecraft's source-orbit/frame acceptance
+nor establish that its *purely numerical* point-mass N initial axes were
+physically attached to the ICRF. Any observed vector discrepancy is reported
+and investigated, rather than silently correcting, fitting or post-hoc
+relaxing a numerical tolerance.
+
+The CI will indicate SUCCESS only for execution, provenance and validity of
+three real data sources; the diagnostic status will remain INCONCLUSIVE, with
+independent physical N frame tie and mission accuracy envelope explicitly
+UNAPPROVED until a separate frame/mission approval is demonstrated.
+
+Official sources:
+- https://naif.jpl.nasa.gov/pub/naif/self_training/individual_docs/16_frames_and_coordinate_systems.pdf
+- https://documentation.help/GMAT/CalculationParameters.html
+- https://documentation.help/GMAT/CoordinateSystem.html
+- https://documentation.help/GMAT/SolarSystem.html
+
+No change to the original 5400-second three-engine raw state data, high-order
+gravity, atmosphere, radiation force, instrument defaults or approval gates.
+
+
+### R2026a authentic three-engine Sun anchor startup-kernel gate
+
+The actual R2026a run [44826078436](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44826078436), preserved in failure artifact **14675775837**, completed all genuine Basilisk/GMAT two-body and Earth-mu controls, but **FAILed** the additional Sun anchor at the GMAT script parser. Exact executable stdout rejected `SolarSystem.LSKFilename` as **deprecated**, requiring the LSK filename to be supplied by the GMAT startup file. No genuine Sun anchor ReportFile existed on that head, and the three-engine vector proof is NOT complete. The residual diagnostics preceding this step remain **INCONCLUSIVE**, not a new physical PASS.
+
+For R2026a, the [official tagged GMAT startup config](https://github.com/nasa/GMAT/blob/R2026a/application/bin/gmat_startup_file.txt) binds `PLANETARY_SPK_FILE`, `LSK_FILE` and `PLANETARY_PCK_FILE` (each to the intended packaged DE421/LSK/PCK). The replacement contract verifies the real installed startup's effective last active assignments resolve to these exact three packaged kernel paths, emits startup-file SHA-256, and **fails closed** for missing or mismatched paths. The generated Sun script selects SPICE but no longer attempts deprecated SolarSystem kernel-filename assignments. Test-only fixtures cover all three mismatch negatives. This changes no orbit state, physical parameters, original raw engine outputs, acceptance thresholds or independent-frame approval status. **The new head requires a genuine R2026a CI run before marking this Sun anchor executed.**
+
+### Exact-head source-audit correction: Basilisk factory default-kernel trap
+
+Although the real R2026a [run 44828820088](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44828820088) completed the Sun ReportFile and three finite data rows, the raw native log prints **three `ERROR loading kernel` lines for the desired GMAT-packaged DE421/LSK/PCK filenames** under Basilisk's unrelated `supportData/EphemerisData` cache. The factory-generated Basilisk vector deviated up to **335.4998187 m / 4.664597873e-4 arcsec** from same-GMAT-SPK NAIF; this must **NOT** be described as an authenticated *same-kernel* cross-tool comparison. GMAT to NAIF itself differed by at most **0.3113493 m / 4.328420286e-7 arcsec**, reported as an observed cross-tool delta, not a mission accuracy PASS.
+
+Upstream pinned source [Basilisk v2.11.0 simIncludeGravBody.py:538-578](https://github.com/AVSLab/basilisk/blob/v2.11.0/src/utilities/simIncludeGravBody.py#L538-L578) ignores the given `path` for these non-enum strings and falls back to POOCH; [SpiceInterface SWIG](https://github.com/AVSLab/basilisk/blob/v2.11.0/src/simulation/environment/spiceInterface/spiceInterface.i) explicitly supports `auto_configure_kernels=False` and [native addKernelPaths](https://github.com/AVSLab/basilisk/blob/v2.11.0/src/simulation/environment/spiceInterface/spiceInterface.h#L133-L140). The replacement uses that official native interface with exactly the three packaged absolute paths, checks `isKernelLoaded` for all three and `countKernelsLoaded()==3` on the actual C++ SPICE pool, **failing closed** on accidental DE430 or any extra kernel. This does not rewrite an ephemeris formula, change source/physics defaults, invent a frame transform or relax any scientific criterion. The next real CI must rerun before calling the Basilisk same-source evidence valid.
+
+### 3-sample Sun direction frame-identifiability audit
+
+The authentic same-DE421 [run 44829300844 artifact #14676181785](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44829300844/artifacts/14676181785) contains the three original NAIF geocentric Sun vectors at 0/2700/5400 simulated seconds. An independent read-only SVD of their **normalized** directions finds singular values approximately `[1.732050635, 7.72604174e-4, 2.34424005e-11]`, condition number **`7.38853786e10`**, maximum angular separation **`0.0626029361 degrees`**. Thus three close directions are highly ill-conditioned for inferring a full 3D frame rotation; a tiny same-kernel Sun residual **cannot** validate an unconstrained inertial-frame alignment.
+
+The new `sun_triplet_condition` diagnostic records these numerical properties from genuine NAIF vectors **only after** the actual GMAT/NAIF/Basilisk run and raw-data checks. Synthetic unit tests verify the mathematics for orthogonal, collinear and near-collinear vectors, but do not constitute celestial evidence. No empirical acceptance threshold, solved frame rotation, new physical model, flight comparison or automatic `PASS` is introduced: `absolute_inertial_frame_tie_approved=false` and `scientific_verdict=INCONCLUSIVE` remain binding. This is a model-identifiability limitation and development lesson, not an excuse to adjust downstream residuals.
+
+#### Rotation-geometry interpretation (SO(3), not unrestricted matrix fitting)
+
+The three-unit-vector **matrix** condition `7.38853786e10` describes an unconstrained linear 3×3 solve and must **not** be presented as the condition of a physical rotation estimate. For a linearized three-axis rotation, the correct unit-weighted direction-Jacobian information matrix is `JᵀJ = Σ(I − uᵢuᵢᵀ)`. Independent calculation from the same real Sun vectors gives eigenvalues about `[5.9691721e−7, 2.9999994, 3.0]` and information condition about **`5.0258e6`**; under identical isotropic direction noise its linearized sensitivity ratio is approximately **`sqrt(5.0258e6) = 2242`**. Two nonparallel vectors can mathematically determine a proper rotation; the issue here is poor conditioning, **not** categorical rotational unidentifiability. Neither matrix supplies a certified noise covariance, independent axis tie, or mission tolerance. The code now records **both distinct diagnostics** with names that prevent substitution.
+
+### Evidence manifest transition must match genuine engine execution
+
+Audit of the actual case manifest found that `evidence.gmat_executed=true` and `external_vv_status=INCONCLUSIVE` were correctly updated after a real 91-row GMAT run, but the original pre-execution `limitations` list still asserted "no external GMAT execution". This is contradictory provenance in a sealed comparison even though its raw files are authentic. The existing `run_gmat` success path now replaces that *one obsolete limitation only after a genuine, hash-verified GMAT report*, while retaining "independent frame/time alignment and mission limits not approved". On initial Basilisk-only export, `NOT_RUN` and its original limitation remain intact. The real GMAT CI gate asserts that final manifest flags and limitation statements agree. No state, model, solver or tolerance is modified.
+
+### Same-DE421 independent lunar direction — original CROSS-LEO-001 scope, no orbital physics change
+
+The prior real [CROSS-LEO-001 Sun-only three-vector run 44832794244](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44832794244) proved genuine Sun ephemeris source agreement but did not provide well-conditioned independent 3D frame information (`0.062603°` direction sweep, SO(3) direction-information condition ~`5.03e6`). The next *read-only* celestial source test adds one physically distinct Earth-to-Luna direction at **the same three epochs**, still from the **identical pinned DE421 SPK and LSK** and without touching the two-body spacecraft state or integrator.
+
+This reuses the **already executing R2026a GMAT Console process**: GMAT's built-in Moon is named `Luna` (GMAT official Space Point example uses `Luna.Epoch.A1ModJulian` and `Luna.EarthMJ2000Eq.X/VX`), while NAIF uses `MOON` and Basilisk `moon`. The GMAT script separately saves `gmat_moon_anchor_raw.txt` without changing the original Sun report; native Basilisk 2.11.0 adds an actual third `SpiceInterface` planet message using the same explicit three kernel paths; independent SpiceyPy queries the same Earth-centered J2000 lunar state. All three paths yield true 0/2700/5400 s observations and separate SHA-bound `moon_anchor_three_engines.csv`.
+
+The diagnostic records per-epoch Sun–Moon directional separation and the correct two-direction linearized SO(3) information eigenvalues/condition, with **no fitted frame transform** or invented source data. This can strengthen the *ephemeris-frame observability* argument, but cannot by itself prove the frozen independent point-mass spacecraft N axes equal the GMAT inertial frame. `scientific_verdict=INCONCLUSIVE`, approved aligned spacecraft samples `=0`, mission budgets not approved, and original `f=0°` versus #213 Sun-aligned state caveat remain unchanged. No artificial pass tolerance, new drag/SRP force, or model default modification. The complete genuine R2026a CI run is required before claiming lunar measurements exist in this branch.
+
+Official GMAT Space Point parameter example: https://documentation.help/GMAT/CalculationParameters.html
+
+### Frozen celestial-only GMAT MJ2000Eq → NAIF J2000 frame probe (91 genuine holdout states)
+
+The real [run 44835702689](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44835702689) furnished genuine three-epoch Sun/Luna vectors in both GMAT `EarthMJ2000Eq` and `EarthICRF`, independent NAIF J2000 Sun/Moon vectors, and a 91-row genuine GMAT spacecraft two-frame ReportFile. Those original data already show a maximum **1.488026576 m** numerical difference between the two GMAT Cartesian frame representations when coordinates are compared without a frame conversion. That is **not** a two-engine orbital integration error.
+
+A new **read-only** probe constructs one proper SO(3) `R_MJ→NAIF` rotation using **only the two true GMAT MJ2000Eq Sun/Luna directions at t=0 as source** and the two authentic independent NAIF DE421 J2000 directions as target. No spacecraft position or velocity is fitted, no GMAT EarthICRF reference is used in the solution, and the t=0 rotation is kept **frozen** for all 91 original GMAT spacecraft EarthMJ2000Eq positions and velocities. The holdout checks compare their transformed values against the original, independent GMAT EarthICRF ReportFile, **preserving each original reported elapsed time**. Each difference is recorded in `gmat_mj_naif_frame_probe_rows.csv`; `gmat_mj_naif_frame_probe.json` holds the proper rotation, 3-epoch celestial orientation drift, input SHA-256 and maximum holdout residuals. Both outputs are SHA-256 bound to the original genuine three-engine execution receipt.
+
+Independent local read-only pilot on [prior real artifact 14678167802](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44835702689/artifacts/14678167802) found maximum **0.000144679 m** position and **2.31945e−7 m/s** velocity difference on the 91 GMAT holdout records; 3-epoch celestial rotation change from frozen t=0 is below **6.5e−6 arcsec**. These pilot numbers are source-data diagnostics, **not a new accuracy acceptance threshold**; the next exact-head real CI must reproduce its own result, never claim the pilot as its actual run. The original numerical orbit inputs and both engines' state samples are unchanged.
+
+**Scientific limitation:** a successful GMAT MJ→NAIF J2000 orientation reconstruction checks an *ephemeris-to-GMAT-frame representation* using actual celestial vectors. It does **not** independently tie the already-frozen Basilisk point-mass spacecraft `N` axes to EarthICRF, nor approve UTC/A1 or TDB epoch matching, real mission residual limits, or flight accuracy. Therefore the output explicitly retains `status=INCONCLUSIVE`, `original_pointmass_orbit_frame_time_qualified_samples=0` and `mission_accuracy_budget_approved=false`. This is evidence of **frame mapping consistency**, not a scientific V&V PASS.
+
+### Genuine fourth GMAT EarthICRF numeric-initial-state control (separate execution)
+
+The original CROSS-LEO-001 real Basilisk initial six-state was entered numerically into GMAT's **EarthMJ2000Eq** initial coordinates, although the independent actual DE421 Sun/Luna frame bridge shows these axes differ from NAIF J2000/ICRF. The previous index-paired final position residual `1.151936372 m` and μ-matched residual `0.001135455196 m` cannot independently separate integrator error from a physical-frame hypothesis. A **new independently executed GMAT R2026a** control is therefore added on the SAME existing issue/PR, never substituting for the prior original outputs.
+
+`python scripts/dt2_cross_leo_001.py gmat-icrf-numeric-control --output <real case directory> --executable <actual GMATConsole-R2026a>` uses the actual original Basilisk initial numeric Cartesian components, the independently observed Basilisk Earth μ, the same **pure Earth point-mass** and original GMAT RungeKutta89 step/accuracy, but explicitly declares `CrossSat.CoordinateSystem = EarthICRF` and reports real `CrossSat.EarthICRF.X/Y/Z/VX/VY/VZ`. The original `EarthMJ2000Eq` GMAT run, matched-μ control, GMAT time/frame probe, Basilisk baseline and Sun/Luna reports are left byte-for-byte unchanged. The separate real GMAT command produces a raw unmodified 91-sample ReportFile, a normalized CSV, actual console logs, an executed script and SHA-bound status/diagnostic files.
+
+The execution **refuses** to run without hash-verified real Basilisk, original GMAT, matched-μ, numeric frame/epoch, authentic three-engine Sun/Luna and NAIF frame-probe evidence. It compares the 91 actual GMAT `EarthICRF` states to native Basilisk `N` **by index for diagnostic purposes only**, preserving raw GMAT elapsed timestamps. It does **not** infer or fit any coordinate transformation. A bounded source-script delta test asserts that relative to the old μ-matched GMAT script, only the initial frame declaration and report-component frame labels change. Genuine CI independently verifies all input/output SHA hashes and leaves `scientific_verdict=INCONCLUSIVE`, `independently_frame_time_aligned_samples=0`, mission accuracy budget unapproved.
+
+**Scientific caution:** The numerical initial state is physically common *only if* the original Basilisk spacecraft `N` axes are independently known to be NAIF J2000/ICRF at the frozen epoch. This control is an explicit **conditional frame-hypothesis experiment** and an independent real-GMAT run, not certification of that N frame or absolute UTC/A1/ET clock mapping. No comparison tolerances, model defaults, original source states, or old force assumptions change. Never promote an observed small residual into a mission/flight PASS.
+
+### Genuine same-Process Basilisk spacecraft state and SPICE clock audit
+
+The original sealed `CROSS-LEO-001` two-body Basilisk 91-state CSV has only simulation elapsed time + synthetically constructed UTC labels; it does not itself include a native inertial ephemeris clock output. Merely calculating GMAT versus NAIF Sun/Moon direction agreement **in a separate** Basilisk process cannot demonstrate that the actual orbit renderer's native 5-second spacecraft states and J2000 epoch messages were observed under one Basilisk clock.
+
+This read-only evidence extension repeats the original frozen Basilisk six-state, Earth central point-mass μ, 5 s native spacecraft task and 60 s spacecraft telemetry in a **second true Basilisk execution**. A 2700 s pinned-DE421 `SpiceInterface` J2000 task shares **the very same Basilisk Process**, with `spiceTimeOutMsg` recorder. The original 91-state Basilisk source run stays sealed, and the output is a *separately identified replay*, not a reinterpretation of the original sealed timestamp. At 0/2700/5400 s, native C++ `SpiceTimeMsg.J2000Current` is compared to independent NAIF `str2et` of the documented UTC epoch plus elapsed time, while GMAT's original unaltered `ElapsedSecs`, `UTCModJulian`, `TAIModJulian`, `TTModJulian`, `A1ModJulian` readings are retained side by side. The three pinned LSK/PCK/SPK kernel SHA-256 and both original evidence inputs are also recorded.
+
+The new `basilisk_same_process_spacecraft.csv` (91 native replay states), `basilisk_same_process_clock.csv` (3 native clock/NAIF/GMAT time rows), and `basilisk_same_process_clock_diagnostic.json` are SHA-bound into the genuine execution receipt. A quantitative A/B describes the replay-to-original position and velocity differences **without applying a newly post-hoc pass threshold**; the original initial state consistency check uses the pre-existing 1e-6 SI component-level guard. Real CI verifies source/outputs, native clock telemetry row counts, actual C++ kernel loading, the same-process replay and invariant `INCONCLUSIVE` status.
+
+**This is NOT a scientific time/frame qualification**. A separate replay plus ephemeris timestamps cannot independently certify the physical N axes of the *original* central-force-only spacecraft run, cannot demonstrate that GMAT's A1 and Basilisk's ET clocks are physically aligned at sub-microsecond levels without an approved time conversion, and cannot define a user mission accuracy budget. `absolute_GMAT_A1_to_Basilisk_ET_approved=false`, `absolute_Basilisk_spacecraft_N_to_EarthICRF_approved=false`, `independently_qualified_cross_engine_samples=0` remain explicit. No change to the original runtime's physics, default, integration step, or source data.
+
+### Genuine GMAT R2026a A1/TT → NAIF ET → native Basilisk J2000Current audit
+
+The existing [real run 44838530173](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44838530173) contains genuine 91-row GMAT A1/TAI/TT/UTC time reports and a second genuine Basilisk simulation that emitted its J2000 SPICE clock alongside a 91-state spacecraft replay in the same Process. The prior comparison placed GMAT MJD and Basilisk ET side by side, but **did not convert the actual GMAT A1/TT numerical epochs into a common uniform ET scale**. Consequently, a measured raw A1-vs-ET number could conflate a time-scale offset with a clock error.
+
+The [official GMAT R2026a source](https://github.com/nasa/GMAT/blob/R2026a/src/gmatutil/util/GmatConstants.hpp) defines `A1_TAI_OFFSET = +0.0343817 s`, `TT_TAI_OFFSET = +32.184 s`, `JD_JAN_5_1941 = 2430000.0`, and J2000 `MJD = 21545.0` in that convention. [NAIF SPICE UNITIM reference](https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/FORTRAN/spicelib/unitim.html) defines `TDT/TT → ET/TDB` conversion using the furnished LSK. This experiment computes **two independent reported-time paths** from exactly the same real GMAT frame ReportFile, neither fitted to Basilisk nor NAIF outputs:
+
+- `GMAT TT MJD → (TT MJD - 21545)*86400 TDT seconds → real spiceypy.unitim(TDT,ET)`.
+- `GMAT A1 MJD → (A1 MJD - 21545)*86400 - 0.0343817 + 32.184 TDT seconds → real spiceypy.unitim(TDT,ET)`.
+
+Subtract the day numbers before multiplying to avoid full Julian-date cancellation. The actual `spice.unitim` calls run while the precise SHA-bound official GMAT LSK is loaded into the true NAIF CSPICE pool, followed by separate comparison at 0/2700/5400 s against real NAIF `str2et(original UTC+elapsed)` and actual Basilisk `spiceTimeOutMsg.J2000Current`. Retain each original GMAT `ElapsedSecs`, MJD report and ET output; do **not** replace the raw 10.6869 μs elapsed-seconds discrepancy with nominal times.
+
+New `gmat_a1_tt_naif_ET_rows.csv` and `gmat_a1_tt_naif_ET_diagnostic.json` are SHA-bound to `sun_anchor_execution.json`, including old genuine GMAT-frame and native same-process clock source hashes. The real R2026a CI validates 3 finite observed rows, source/output SHA identities, exact official A1–TAI constant and preserved `INCONCLUSIVE` markers. No post-hoc clock accuracy tolerance, physical trajectory change, a priori cross-engine frame registration, mission acceptance budget or scientific PASS is introduced. The resulting discrepancies measure the effect of authentic source numerical epoch representation, TT↔TDB periodic conversion and raw reporter clock skew, **not** automatically independent flight-grade absolute time certification.
+
+### Full 91-point original time-scale correlation (real BSK J2000 messages, GMAT R2026a, NAIF)
+
+The original three-point [real run 44839481289](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44839481289) proved that authentic GMAT A1/TT → CSPICE `unitim(TDT,ET)`, BSK native J2000Current and independent NAIF `str2et(UTC+nominal elapsed)` are numerically close at t=0/2700/5400s, without a certified mission-clock criterion. However, *three samples cannot characterize all 91 original GMAT ReportFile epoch representations*. The original report shows a monotone raw `ElapsedSecs` source skew from 0 to `-10.6869274532 μs`; A1−TAI presents only four distinct floating-point values (quantization, not real clock jumps).
+
+This controlled evidence extension makes the **actual** Basilisk native 3-kernel `SpiceInterface` execute at the existing 60-second telemetry cadence inside the SAME Process as the replayed 5s spacecraft task, and records **91 genuine C++ `spiceTimeOutMsg.J2000Current` samples** (not interpolated). The original Sun/Luna celestial state recorders remain at 2700s, giving unchanged original 0/2700/5400 ephemerides and an unchanged 91-state central-force spacecraft replay. Independent NAIF with the real GMAT-packaged LSK computes **91** `str2et(UTC+exact nominal sample elapsed)`; the same genuine SpiceyPy session converts **91 GMAT `TTModJulian` and `A1ModJulian` source records** separately using real `unitim(TDT,ET)`. No GMAT timestamp is overwritten; each original `ElapsedSecs` is preserved in the new per-point output. A read-only decomposition `(GMAT_TT_ET-NAIF_ET)-reported_elapsed_skew` and kinematic `abs(raw_elapsed_skew)*actual_Basilisk_speed` quantify representation effects, **not** physical time-estimation uncertainty or allowable residuals.
+
+Three additional SHA-bound files `basilisk_same_process_spice_ET_91.csv`, `gmat_full_grid_a1_tt_to_ET_91.csv`, `gmat_full_grid_ET_diagnostic.json` are generated only from genuine executed engines, immutable original source hashes and direct native message samples. CI checks all three SHA values, 91 finite samples, and keeps `INCONCLUSIVE`, `independently_aligned_original_two_engine_states=0`, `mission_accuracy_budget_approved=false`. Original spacecraft states, RungeKutta89 configuration, 5s Basilisk integration step, force flags and empirical acceptance policies remain untouched. This supplies a full **observational clock budget** for qualification review; it is not a mission-approved one.
+
+### Direction-sensitive physical falsification preflight — not a new external force-model run
+
+**Observation-driven reason for next test.** The actual central Earth point-mass acceleration `aₑ(r)=−μₑ r/|r|³` obeys `aₑ(Qr)=Q aₑ(r)` for every constant proper rotation `Q`. Hence **none of the already completed 91-row two-body correlation tests can, even with arbitrarily many time samples or smaller residuals, independently establish the absolute spacecraft inertial-axis orientation**. The existing 61-file [genuine source artifact #14680232216](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44840431013/artifacts/14680232216) provides separate REAL Earth-centered NAIF and actual GMAT DE421 Sun/Moon ephemerides and two actual 91-state orbit runs. We now use these *actual observed inputs* at t=0/2700/5400 to quantify what an anisotropic third-body differential force would predict; this is NOT itself a force execution or independent V&V.
+
+The physical model under study is the standard Newtonian geocentric third-body differential acceleration `a₃(r,R)=μ[(R−r)/|R−r|³−R/|R|³]`; the indirect term is essential for using an Earth-centered satellite state. The declared Sun/Moon μ constants come from **Basilisk v2.11.0 [astroConstants.h](https://github.com/AVSLab/basilisk/blob/v2.11.0/src/architecture/utilities/astroConstants.h)**: `μSun=132712440023.310 km³/s²`, `μMoon=4902.799 km³/s²`. They are NOT presumed equal to GMAT's defaults until separately verified. Read `r` from authentic original Basilisk six-state CSV, `R` from authentic DE421 NAIF Sun/Moon positions, and independently compute the formula on the genuine GMAT EarthICRF numeric control and GMAT Sun/Luna positions. All four source CSV SHA-256 identities must match the actual sealed receipts.
+
+To demonstrate a falsifiable *direction-sensitive* distinction rather than a cosmetic same-frame residual, an artificial counterfactual rotates **only the spacecraft position by +90 degrees about J2000 z**, keeps the authentic ephemerides fixed and analytically recalculates the tidal force. The predicted nonzero force-vector difference quantifies sensitivity to inertial orientation. This counterfactual is **NOT a real GMAT/Basilisk propagated trajectory**, is NOT an inference about flight attitude, and must never be counted as independent engine force-model evidence. The computed `directional_thirdbody_analytic_preflight_rows.csv` and `directional_thirdbody_analytic_preflight.json` are SHA-bound and marked `INCONCLUSIVE`, `force_model_executed_in_new_basilisk_run=false`, `force_model_executed_in_new_gmat_run=false`, and `mission_error_budget_approved=false`.
+
+**Prospective actual-force acceptance protocol, declared here before any such external run:** compare two **genuinely executed**, separately hashed native Basilisk and GMAT R2026a directional Sun/Moon third-body **on/off** controls at the same physically defined J2000/ICRF initial six-state, time epoch and 5400s observation arc, using exactly the same DE421 SPK/LSK, Earth/Sun/Moon gravitational parameters, central-body origin and actual step/convergence records. Preserve the two original point-mass baselines and all raw input time scales. Report each engine's 91-point force-on minus force-off 3D/RTN trajectory response and source ephemeris residuals; require model force switches, mass parameters and inertial axes to be independently reviewable. **No absolute residual tolerance or scientific PASS is preapproved:** mission requirements, physical frame tie, independent force-model equivalence and measured numerical convergence must be reviewed and frozen *before* executing a validation run. A pure analytic third-body preflight or a successful CI job is *not* sufficient.
+
+**Development experience:** rotational invariance of central gravity is a mathematical observability limit, not a software coverage bug. The next external V&V should test a direction-dependent physical force with independently sourced Sun/Moon directions, rather than endlessly reducing numerical differences in the rotation-invariant central-force benchmark. Do not treat a source-ephemeris formula calculated in Python as native GMAT/Basilisk force output, and do not retrofit a mission tolerance to the observed effect size.
+
+
+### Real native Basilisk and independent GMAT R2026a third-body ON/OFF experiment
+
+The analytic direction-sensitive preflight is not force-model evidence. On genuine R2026a CI, the next step independently runs a 5-second native Basilisk spacecraft with real DE421 Sun/Moon gravity ON and OFF (two actual Python/Basilisk processes), and also calls the genuine GMAT R2026a executable twice with the identical original source six numerical components declared in EarthICRF, point-mass Earth only (OFF) or Earth/Sun/Luna (ON). Both modes use genuine 91-row, 0–5400-second trajectories. Native Sun/Moon GravBodyData subscribe directly to the actual 5-second SPICE messages; no fake force component is created.
+
+Crucially, real GMAT R2026a scripts explicitly declare and *report back* the effective Earth, Sun and Luna Mu prior to acceptance: Earth 398600.436, Sun 132712440023.310, Luna 4902.799 km^3/s^2, taken from native Basilisk 2.11.0. Scripts select the same officially packaged DE421 SPK/LSK/PCK and verify the startup file and binary SHA-256. An absent actual Mu ReportFile or a readback mismatch fails closed. This distinguishes the actual execution parameters from the differing official GMAT defaults.
+
+Within each actual engine, the 91 ON-minus-OFF position and velocity response vectors are measured and saved, then compared across engines as a strictly **conditional diagnostic**. The physical inertial-axis tie for the original Basilisk spacecraft N system to GMAT EarthICRF and the original absolute clock agreement have not been approved; therefore even close ON/OFF responses cannot become a science PASS. The original two-body and Sun/Luna source reports are never overwritten. The job saves scripts, original GMAT ReportFile bytes, Mu readback, genuine BSK states, engine logs and SHA-256 receipts. The prospective mission error-budget signoff remains unfilled, and no numerical residual tolerance is chosen after seeing the outputs.
+
+Development lessons: verify *actual* three-body Mu parameters from the running GMAT model rather than assuming defaults; compare two genuine ON/OFF trajectories per engine, not an analytic displacement substituted for a real simulation; retain directional-frame and clock uncertainty labels even after an engineering regression passes.
+
+#### GMAT R2026a first real ON/OFF parser failure and fail-closed repair
+
+The first actual native directional ON and OFF Basilisk 2.11.0 runs both succeeded in [run 44843303933](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44843303933); the genuine GMAT OFF script was rejected by R2026a before execution because ReportFile does not accept direct CelestialBody object properties (`Earth.Mu`, `Sun.Mu`, `Luna.Mu`). The [raw failure artifact 14681424056](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44843303933/artifacts/14681424056) includes the exact parser errors, failed script and original console stdout. This is not a physical mismatch and does not count as real GMAT third-body force evidence.
+
+The next attempt uses GMAT's declared Variable resource mechanism (`Create Variable EarthMuRead SunMuRead LunaMuRead`), assigns the three actual CelestialBody Mu properties into these variables and reports them through ReportFile. The exact running values **must still** be read back and matched to the upstream Basilisk constants before a GMAT ON/OFF run can be accepted. The real engine test must rerun; no direct-source fallback, missing mu tolerance or validation threshold is relaxed. The project governance failure (two script-header/inventory violations) was separately fixed by adding the required 用途/参数/输出 header and registering the runner in `scripts/SCRIPT_INVENTORY.md`.
+
+#### Real R2026a Mu readback unsupported; source declaration is NOT effective Mu verification
+
+In actual [run #44843749262](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44843749262) the native Basilisk ON/OFF executions both succeeded again, but the genuine R2026a interpreter rejected assigning `Earth.Mu`, `Sun.Mu` and `Luna.Mu` to Variables. Its [raw artifact #14681414717](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44843749262/artifacts/14681414717) preserves the exact parser error, executed script and console output. Because both direct Report and Variable RHS are unsupported, **do not invent effective GMAT force-model Mu readbacks**. The corrected next real run retains explicit Earth/Sun/Luna `GMAT ...Mu=` declarations, binary/startup/LSK/DE421/script SHAs and real GMAT ON/OFF orbit results, but marks effective GMAT Mu independently UNVERIFIED. This is a narrower real-engine engineering experiment, not a scientifically qualified force-parameter match. The effective GMAT Mu inspection must be solved through a separately validated interface before BE-26 physical PASS. No force, step, state or scientific acceptance tolerance is changed.
+
+### Real R2026a Sun and Moon twofold Mu causal falsification (no effective-Mu readback)
+
+The original four real Sun/Luna ON/OFF engine trajectories are now complete, but R2026a rejected both direct ReportFile CelestialBody.Mu fields and Variable assignments. To test whether the **declared celestial Mu** actually changes GMAT's computed dynamics, this preregistered *nonphysical intervention* executes **two more genuine R2026a propagations**: one changes ONLY Sun.Mu to 2x its originally pinned Basilisk value; the other changes ONLY Luna.Mu to 2x. The Earth Mu, unrelated third body Mu, DE421 SPK/LSK/PCK, original frozen six-state, EarthICRF declaration, force model, RungeKutta89 settings, input epoch, fixed output grid and original nominal third-body ON trajectory remain immutable.
+
+The documented official R2026a C++ code path supplies independent support: CelestialBody::SetRealParameter(MU) updates the source body constant, then PointMassForce::Initialize() explicitly reads it from the configured CelestialBody into the force model; GetDerivatives uses this mu in direct and indirect third-body acceleration. These are code semantics, NOT an actual R2026a GetGravitationalConstant object readback. The script runner checks exact, single-property script differences, authentic executable and kernel SHA-256 identities, real nominal 91-state GMAT evidence, original source signatures, and requires each separately executed 91-state probe to show an actual *nonzero* response. It records two unmodified real ReportFiles, independent normalized states, stdout/stderr, exact scripts and byte-bound receipts, then a combined 182-row response diagnostic.
+
+This enables **causal input efficacy** testing without inventing parameter inspection. It does NOT prove the original effective body Mu was independently read back, true Basilisk N-axis equals GMAT EarthICRF, both engines share a qualified absolute epoch, or any flight/mission orbit-error threshold was satisfied. Asymmetric 2x Mu is deliberately unphysical and must never be called a mission simulation or training calibration. Scientific state stays INCONCLUSIVE, no post-hoc accuracy tolerance. Lessons: use independently executed one-parameter perturbation to falsify a no-op coefficient while retaining raw source and honest scope limits.
+
+### Independent Qz(90deg) actual-engine orientation-sensitive physics experiment
+
+An Earth-central point-mass force is SO(3)-equivariant. Therefore two-body propagation alone cannot independently establish physical inertial-axis orientation. After already collecting authentic Sun/Moon ON/OFF trajectories in both GMAT R2026a and Basilisk 2.11.0, this isolated control runs FOUR ADDITIONAL real engine trajectories, rotating ONLY the spacecraft initial position and velocity by one predetermined Qz(+90deg) in each engine; Earth pointmass and Sun/Moon ON force settings, pinned DE421/LSK/PCK, absolute source epoch, Earth/Sun/Moon mu and integration settings are unchanged. The real Sun and Moon ephemerides are never rotated.
+
+For each engine independently, rotated OFF is compared to Q times the original genuine OFF state, serving as a central-field negative control. Independently the real rotated ON-minus-OFF response is compared to Q of the original real ON-minus-OFF response, which should be nonzero when fixed external Sun/Moon directions break the central-force symmetry. Each engine produces actual 91-state trajectories and raw GMAT reports and console logs, with strict source state, executed script and source kernel SHA. The resulting 182-row diagnostic quantifies symmetry errors and directional response; its only predeclared condition is a real finite nonzero directional effect, never a post-hoc mission precision threshold.
+
+This is a deliberately counterfactual orientation experiment, not flight data, and it does not independently qualify physical Basilisk N vs GMAT EarthICRF axes, GMAT A1 vs Basilisk ET epoch alignment, real GMAT effective Mu getter, or a task-approved orbit residual budget. Science stays INCONCLUSIVE and all original data must remain immutable. Development lesson: use real central-force SO(3) covariance as a negative control and real fixed-ephemeris third-body anisotropy as a positive control, never synthetic rotated output as a claimed engine result.
+
+### Real third-body ON/OFF step and ephemeris-cadence refinement (5, 2.5, 1 seconds)
+
+This stage executes eight additional genuine NASA GMAT R2026a / native Basilisk 2.11.0 trajectories, one Sun/Luna OFF and one ON at each 2.5s and 1s step setting in each engine. The four original 5s ON/OFF traces and all authenticated real source/DE421 records remain unchanged. Each of the twelve executed true engine-mode cases produces 91 original Cartesian state records.
+
+Native Basilisk changes the Spacecraft task execution AND native SPICE ephemeris message update cadence together. Therefore this is a JOINT scheduler/integration convergence test and not a mathematically isolated integrator order claim. In GMAT, only RungeKutta89 InitialStepSize and MaxStep change from 5s to 2.5s and 1s; these declared caps do not certify that every adaptive internal step equals the maximum. No mu, force flag, epoch, initial state, orientation or other numerical tolerance is changed.
+
+The real-response diagnostic separately calculates within-engine ON-minus-OFF trajectory vectors at all three cadences, 5→2.5 and 2.5→1 response differences, and conditional Basilisk-vs-GMAT response-vector differences at each step. It retains 273 genuine time samples across three requested cadences, source SHA-256 and all real execution logs/scripts; no small-mismatch threshold is selected after seeing outcomes, and non-monotonic changes must be reported rather than hidden.
+
+Physical N/EarthICRF mapping, absolute GMAT A1/Basilisk ET timing, independently read effective GMAT mu, approved mission accuracy budget and flight truth remain NOT APPROVED. This quantitative numerical robustness experiment does not alone qualify scientific BE-26 V&V. The isolated CROSS-LEO-001 f=0-degree case is not the original full-force #213 Sun-aligned initial condition.
+
+Development lesson: numerical convergence must use matched ON and OFF integrations at each step, and meaningful scheduler effects must not be misreported as pure solver truncation error.
+
+
+#### Exact-head CI correction — preserve prior rotation modes while extending convergence
+
+First convergence-head [run 44847581849](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44847581849) failed 5 pure Python tests before downloading/running GMAT because the new GMAT script path referred to a nonexistent `_physical_mode` function instead of the already existing `base_mode`; reuse of the new `step_s` validator also unintentionally changed the old rotation-API error tag. Corrected only the function reference and restored the existing `DT2_ROT90_INVALID_MODE` contract while keeping the new step validation separate. No numerical or force-model settings, source data, execution test criteria or scientifically unapproved flags are changed. This is a genuine software regression, not evidence of physical model failure. Development lesson: extending a proven shared engine entry point must preserve its previous caller/error contracts and validate the new mode dispatch before expensive real GMAT CI.
+
+
+#### Convergence CI contract remediation, without changing simulated physics
+
+The second exact-head attempt [run 44847801694](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44847801694) passed 44 Python tests but failed one new test because it called obsolete `_physical_mode`, while the actual exported/used mode function is `base_mode`. The original physical engine, GMAT scripts, scenario initial state and all convergence step settings remain unchanged; the test now references the established public mode contract. The earlier first attempt [run 44847581849](https://github.com/clonetimer/SatAgentSimulation/actions/runs/44847581849) had five failures due to a same-root API symbol mismatch and changing the original `DT2_ROT90_INVALID_MODE` rejection tag; these were already fixed separately. Development lesson: prior to costly external-engine CI, validate both producer and consumer API symbols and preserve existing negative-case test contracts instead of repeatedly modifying unrelated simulation code.
+
+### Frame-rotation-invariant ON/OFF response geometry — intermediate cross-engine observation
+
+The actual four 91-point Basilisk/GMAT Sun+Moon ON/OFF state files are independently executed and hash-verified by the existing `dt2_thirdbody_real.py compare` path. This phase derives, **from those unchanged real files**, per-time ON−OFF displacement/velocity response norms and all 4,095 cross-time response-vector chord distances, plus position response Gram (dot-product) differences. Unlike direct 3D component subtraction, these metrics are invariant under an unknown **single constant orthogonal frame rotation**; no rotation is estimated, fitted or silently assigned. Every original engine state/report SHA receipt remains mandatory. The original comparison CSV and its SHA are kept, with the new metrics stored in `thirdbody_two_engine_ON_OFF_diagnostic.json.frame_invariant_geometry`.
+
+The new CI first tests SO(3) rotation invariance with synthetic mathematical controls, tests that changing the underlying response shape is detected, and rejects absent/nonfinite or representation-misaligned input samples. It then runs the actual NASA GMAT R2026a and Basilisk 2.11.0 source paths and prints `DT2_REAL_THIRDBODY_FRAME_INVARIANT_GEOMETRY` only after both real engine outputs pass SHA and runtime checks. These are **observation metrics, not an after-the-fact acceptance tolerance**; no mission-scale residual threshold is introduced.
+
+**Scope restriction:** orientation-invariant response geometry cannot register the absolute original Basilisk spacecraft N axes to GMAT EarthICRF, independently approve GMAT A1 ↔ Basilisk ET time equivalence, read back the actual effective GMAT body gravitational parameters, or approve a task accuracy budget. Per-index time matching uses only the existing 60-second report grid and its finite floating-point representation allowance, not a calibrated clock uncertainty. A time-dependent rotation is *not* removed by the constant-frame invariance. Accordingly `scientific_verdict` remains `INCONCLUSIVE`; mission/flight level claims remain prohibited.
+
+**Development lesson:** reduce a specific unidentifiable nuisance (constant axis rotation) with invariant measurements derived from real independent engine responses, rather than fitting unknown frames or obtaining impressive but circular vector residuals. Keep independent frame/time/model certification and preregistered mission acceptance thresholds as separate approval gates.
+
+### 2026-11-22 latest-main test-merge requalification checkpoint
+
+The project main advanced to `4624c3a7df432dc01c8f6df1f479ffc8a196b9ba` after the prior genuine GMAT run. GitHub currently exposes PR #215's actual test merge `dbdc71a85bd3d05302cd464533816a1570865820` with parents `4624c3a7df432dc01c8f6df1f479ffc8a196b9ba` and `47f1cced1a29942235a28311c95ab277b1b1bfce`. This is a merge candidate, not a commit on main. The earlier run `44895952241` verified the feature HEAD against its then-current base; its real dual-engine outputs remain valid for that earlier tree but cannot certify the new integration tree.
+
+Requalification must record the newly tested exact checkout SHA and both parents, run the genuine Basilisk/GMAT workflow and contract tests without loosening thresholds, preserve the original engine outputs and their receipts, and keep the scientific verdict `INCONCLUSIVE` until the unresolved frame, absolute time, effective GMAT μ and mission-budget gates are independently closed. A green requalification is an engineering integration result, not a scientific or flight qualification.
