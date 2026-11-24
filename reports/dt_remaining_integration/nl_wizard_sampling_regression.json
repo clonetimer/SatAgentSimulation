@@ -1,0 +1,63 @@
+{
+  "candidate": "84f2ed3",
+  "model": "Qwen2.5-Coder-1.5B-Instruct with local v5 LoRA",
+  "adapter_sha256": "c72d08c6aa573929275c3de244a6a511fa4b3809e1cfabdb5d5007afb21c8547",
+  "cases": [
+    {
+      "request": "使用 whole_spacecraft.unified_native.v1 创建通用近地小卫星原生整星仿真。Basilisk 后端，仿真20秒，步长0.2秒，记录周期1秒。environment_profile=spice_wmm，epoch_utc=2026-01-01T00:00:00Z，thermal_earth_ir_w_m2=234，thermal_earth_albedo=0.30。输出轨道半径、电池SOC、载荷温度和 thermal.payload_earth_ir_heat_w、thermal.payload_albedo_heat_w。无故障、退化或约束事件。",
+      "request_id": "chatcmpl-d47938b0783f476d99d3fb58ddb5a086",
+      "model_id": "dt-qwen25-coder15-v5",
+      "latency_ms": 175860.85,
+      "usage": {
+        "prompt_tokens": 9852,
+        "completion_tokens": 1445
+      },
+      "prompt_sha256": "820fa8a881e85018b8dd6e07c3122d8e6ee7775f6a7f33a3696310ff5d94c885",
+      "provider_response_sha256": "ef49bdc3ce5499db7a17a4c0eec8aca1d4b098a7a5659e6241ac0acd3aa0d431",
+      "raw_file": "nl_wizard_first_answer_1.json",
+      "raw_sha256": "ef49bdc3ce5499db7a17a4c0eec8aca1d4b098a7a5659e6241ac0acd3aa0d431",
+      "requested_sample_s": 1,
+      "actual_sample_s": 0.2,
+      "actual_step_s": 0.2,
+      "first_answer_pass": false,
+      "first_validation_errors": [
+        {
+          "severity": "error",
+          "path": "$.simulation.sample_s",
+          "code": "USER_TIME_REQUIREMENT_MISMATCH",
+          "message": "User explicitly requested sample_s=1 s, but the model returned 0.2. Preserve the requested value exactly."
+        }
+      ],
+      "browser_outcome": "validation rejected",
+      "sealed_run": false
+    },
+    {
+      "request": "使用 whole_spacecraft.unified_native.v1 创建通用近地小卫星原生整星仿真。Basilisk 后端，仿真20秒，步长0.2秒，记录周期1秒。environment_profile=spice_wmm，epoch_utc=2026-01-01T00:00:00Z，thermal_earth_ir_w_m2=234，thermal_earth_albedo=0.30。积分步长 simulation.solver.step_s=0.2，遥测记录周期 simulation.sample_s=1.0，每五次积分记录一帧。输出轨道半径、电池SOC、载荷温度和 thermal.payload_earth_ir_heat_w、thermal.payload_albedo_heat_w。无故障、退化或约束事件。",
+      "request_id": "chatcmpl-dcc0211e4b614fc2b7f06998c6b185a8",
+      "model_id": "dt-qwen25-coder15-v5",
+      "latency_ms": 149411.72,
+      "usage": {
+        "prompt_tokens": 9885,
+        "completion_tokens": 1130
+      },
+      "prompt_sha256": "51e28f252ce84e4ee3dd98aa18c372bb75762eaa3d957c2ddd17d5a40aca27ff",
+      "provider_response_sha256": "57e0080cf688b67d22acc272d59062775606bed840f76628e371fe1b2a0b0501",
+      "raw_file": "nl_wizard_first_answer_2.json",
+      "raw_sha256": "57e0080cf688b67d22acc272d59062775606bed840f76628e371fe1b2a0b0501",
+      "requested_sample_s": 1,
+      "actual_sample_s": 0.2,
+      "actual_step_s": 0.2,
+      "first_answer_pass": false,
+      "first_validation_errors": [
+        {
+          "severity": "error",
+          "path": "$.simulation.sample_s",
+          "code": "USER_TIME_REQUIREMENT_MISMATCH",
+          "message": "User explicitly requested sample_s=1 s, but the model returned 0.2. Preserve the requested value exactly."
+        }
+      ],
+      "browser_outcome": "360s observer timeout; final response unverified",
+      "sealed_run": false
+    }
+  ]
+}

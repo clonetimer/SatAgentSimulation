@@ -1,0 +1,29 @@
+{
+  "case": "custom",
+  "submitted": {
+    "initial_body_rate_x_rad_s": -0.003,
+    "initial_body_rate_y_rad_s": 0,
+    "initial_body_rate_z_rad_s": 0.006
+  },
+  "accepted": {
+    "initial_body_rate_x_rad_s": -0.003,
+    "initial_body_rate_y_rad_s": 0.0,
+    "initial_body_rate_z_rad_s": 0.006
+  },
+  "first": {
+    "time_s": 0.0,
+    "truth": [
+      -0.003,
+      0.0,
+      0.006
+    ],
+    "runtime_values": {
+      "initial_body_rate_x_rad_s": -0.003,
+      "initial_body_rate_y_rad_s": 0.0,
+      "initial_body_rate_z_rad_s": 0.006
+    }
+  },
+  "commit": "5f403b5589670659c1e18520959d0ee349617d88",
+  "bsk": "2.11.0+satfix2",
+  "chrome": "157.0.8103.79"
+}

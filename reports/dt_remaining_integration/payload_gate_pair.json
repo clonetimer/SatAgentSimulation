@@ -1,0 +1,309 @@
+{
+  "candidate": "d6fec67",
+  "compared_samples": 15,
+  "responding_samples": 15,
+  "restrictive": {
+    "limit_deg": 20,
+    "validation": "PASS",
+    "manifest_sha256": "1f6cb718f0ae533a1d042e6f3ec8b93f18f04ba1e01853b632c1754bb1b85c25",
+    "telemetry_sha256": "4a67b9fc8b6a128d2a62bbfebebfae6fb8305858b542b810d30f08148f0a969f",
+    "rows": [
+      {
+        "time_s": 0.0,
+        "adcs.pointing_error_deg": 45.0,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 2.0,
+        "adcs.pointing_error_deg": 45.89563564716773,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 4.0,
+        "adcs.pointing_error_deg": 46.15296221588489,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 6.0,
+        "adcs.pointing_error_deg": 46.20375532741488,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 8.0,
+        "adcs.pointing_error_deg": 46.21637937458415,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 10.0,
+        "adcs.pointing_error_deg": 46.22101707681094,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 12.0,
+        "adcs.pointing_error_deg": 46.22305020492356,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 14.0,
+        "adcs.pointing_error_deg": 46.22400076726272,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 16.0,
+        "adcs.pointing_error_deg": 46.22443840994461,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 18.0,
+        "adcs.pointing_error_deg": 46.22455182023496,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 20.0,
+        "adcs.pointing_error_deg": 46.22457417164186,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 22.0,
+        "adcs.pointing_error_deg": 46.22457856233983,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 24.0,
+        "adcs.pointing_error_deg": 46.224579424360016,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 26.0,
+        "adcs.pointing_error_deg": 46.224579593558374,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 28.0,
+        "adcs.pointing_error_deg": 46.22457962676479,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 30.000000000000004,
+        "adcs.pointing_error_deg": 46.22457963328141,
+        "payload.active": 0,
+        "payload.generated_bps": 0.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      }
+    ]
+  },
+  "permissive": {
+    "limit_deg": 175,
+    "validation": "INCONCLUSIVE",
+    "manifest_sha256": "86d882f4d5ce343ed52ad88824f41439a2b7cd635078eea631a4bb70202a6d66",
+    "telemetry_sha256": "4c4c64205707705d3731f159f3011be52ddf54f42c9f27955412d4b92bceb2ec",
+    "rows": [
+      {
+        "time_s": 0.0,
+        "adcs.pointing_error_deg": 45.0,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 2.0,
+        "adcs.pointing_error_deg": 45.89563564716773,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 4.0,
+        "adcs.pointing_error_deg": 46.15296221588489,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 6.0,
+        "adcs.pointing_error_deg": 46.20375532741488,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 8.0,
+        "adcs.pointing_error_deg": 46.21637937458415,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 10.0,
+        "adcs.pointing_error_deg": 46.22101707681094,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 12.0,
+        "adcs.pointing_error_deg": 46.22305020492356,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 14.0,
+        "adcs.pointing_error_deg": 46.22400076726272,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 16.0,
+        "adcs.pointing_error_deg": 46.22443840994461,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 18.0,
+        "adcs.pointing_error_deg": 46.22455182023496,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 20.0,
+        "adcs.pointing_error_deg": 46.22457417164186,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 22.0,
+        "adcs.pointing_error_deg": 46.22457856233983,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 24.0,
+        "adcs.pointing_error_deg": 46.224579424360016,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 26.0,
+        "adcs.pointing_error_deg": 46.224579593558374,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 28.0,
+        "adcs.pointing_error_deg": 46.22457962676479,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      },
+      {
+        "time_s": 30.000000000000004,
+        "adcs.pointing_error_deg": 46.22457963328141,
+        "payload.active": 1,
+        "payload.generated_bps": 2500000.0,
+        "eps.pdu.payload_enabled": 1,
+        "thermal.safe": 1,
+        "comm.command_permitted": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "source_commit": "28c67b67a3fcc1ab612b559edfd3cc686c529eba",
+  "qualification": "diagnostic only",
+  "advance_deadline_wall_s": 360,
+  "archive_wait_wall_s": 15,
+  "sim_time_s": 3600.5,
+  "running_to_paused_wall_s": 161.905105,
+  "completed_to_seal_timestamp_wall_s": 10.597423,
+  "frame_count": 10803,
+  "streams": {
+    "runtime.trace": 7202,
+    "whole.soak": 3601
+  },
+  "seal": {
+    "bundle_manifest_sha256": "aad9e1d24ef8473a073601ef42e80c15cf3eeb9dafbca479131c37beaef8eccf",
+    "immutability_policy": "sealed interactive evidence is immutable; recovery creates a new epoch",
+    "run_id": "native-continuous-180s-soak",
+    "schema_version": "interactive-run-bundle.v1",
+    "sealed_at": "2026-11-23T15:30:51.021685Z"
+  },
+  "independent_bundle_verify_ok": true,
+  "nested_timings": {
+    "fsync": {
+      "calls": 10827,
+      "seconds": 24.677798101562075
+    },
+    "append_telemetry": {
+      "calls": 10803,
+      "seconds": 40.31859880068805
+    },
+    "advance_to": {
+      "calls": 7201,
+      "seconds": 117.85441390844062
+    },
+    "_advance": {
+      "calls": 7201,
+      "seconds": 161.66570889716968
+    }
+  }
+}

@@ -1,0 +1,68 @@
+[
+  {
+    "sample_s": 0.2,
+    "frames": 71,
+    "validation": "PASS",
+    "reason": "VALIDATION_PASSED",
+    "window_samples": [
+      [
+        4.4,
+        0,
+        1
+      ],
+      [
+        4.6000000000000005,
+        0,
+        1
+      ]
+    ],
+    "seal_sha256": "d1c2b674854f149e44ec273c0a6bb0522800560d0e41ff67347e88f8255ad9d8",
+    "injections": [
+      {
+        "event_id": "adcs_star_tracker_dropout_event",
+        "event_kind": "fault",
+        "requested_effect": "adcs_star_tracker_dropout",
+        "delivery_result": "PASS",
+        "effect_result": "PASS",
+        "registered": true,
+        "active_sample_count": 2,
+        "evidence_fields_present": [
+          "adcs.star_tracker.valid",
+          "adcs.fusion.source_mode"
+        ],
+        "evidence_fields_missing": [],
+        "reason_codes": [
+          "RUNTIME_EFFECT_VERIFIED"
+        ]
+      }
+    ]
+  },
+  {
+    "sample_s": 1.0,
+    "frames": 15,
+    "validation": "FAIL",
+    "reason": "RUNTIME_INJECTION_UNVERIFIED",
+    "window_samples": [],
+    "seal_sha256": "3ba7b29a7b036a9948732ea1e52b1668b63b1d3b1b4eb4e15596cb262a532a85",
+    "injections": [
+      {
+        "event_id": "adcs_star_tracker_dropout_event",
+        "event_kind": "fault",
+        "requested_effect": "adcs_star_tracker_dropout",
+        "delivery_result": "FAIL",
+        "effect_result": "INCONCLUSIVE",
+        "registered": true,
+        "active_sample_count": 0,
+        "evidence_fields_present": [
+          "adcs.star_tracker.valid",
+          "adcs.fusion.source_mode"
+        ],
+        "evidence_fields_missing": [],
+        "reason_codes": [
+          "RUNTIME_EVENT_NOT_ACTIVE",
+          "RUNTIME_INJECTION_UNVERIFIED"
+        ]
+      }
+    ]
+  }
+]

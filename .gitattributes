@@ -30,3 +30,4 @@ reports/progress_checkpoint/model-distribution-2026-11-02/*.xml -text whitespace
 reports/progress_checkpoint/model-distribution-2026-11-02/raw_model_output.txt -text whitespace=-blank-at-eol
 # Raw pytest tracebacks retain their original trailing spaces as evidence.
 reports/progress_checkpoint/maintenance-closure-2026-11-02/*.xml -text whitespace=cr-at-eol,-blank-at-eol
+reports/dt_remaining_integration/nl_wizard_first_answer_*.json -text

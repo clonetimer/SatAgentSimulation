@@ -1,0 +1,69 @@
+{
+  "left": {
+    "run_id": "whole_spacecraft_unified_native_v1_mwtdczdg",
+    "archive_sha256": "8fb6534c753b2c0bb5065a0176f1a9463392ff6cb139863223d9dbf7ecdc2d3a",
+    "manifest_sha256": "4decfef246804c6612446e21b3040ea1cd8a30661e19dd7b588e71ff0a623080",
+    "verified_files": 47,
+    "rows": 15,
+    "event_id": "adcs_rw_torque_authority_loss_1",
+    "active_times_s": [
+      4.0,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0,
+      10.0
+    ],
+    "wheel_index": 0,
+    "remaining_ratio": 0.25
+  },
+  "right": {
+    "run_id": "whole_spacecraft_unified_native_v1_mwtebszy",
+    "archive_sha256": "705b3ec93d90d4f3257ae7eeae5fadf8eac821d9cde7445e64e659397cf3c9d8",
+    "manifest_sha256": "5b087292832426cb3d55495e3a92854422f93396c618c59e11c05b9fbffb4cde",
+    "verified_files": 47,
+    "rows": 15,
+    "event_id": "adcs_rw_torque_authority_loss_1",
+    "active_times_s": [
+      4.0,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0,
+      10.0
+    ],
+    "wheel_index": 0,
+    "remaining_ratio": 0.25
+  },
+  "same_input_sections": {
+    "model": true,
+    "simulation": true,
+    "parameters": true,
+    "events": true,
+    "mission": true
+  },
+  "differences": {
+    "adcs.rw.actual_applied_torque_nm_0": {
+      "max_abs": 0.0,
+      "time_s": 0.0
+    },
+    "adcs.rw.speed_rad_s_0": {
+      "max_abs": 0.0,
+      "time_s": 0.0
+    },
+    "attitude.truth.pointing_error_deg": {
+      "max_abs": 0.0,
+      "time_s": 0.0
+    },
+    "eps.loads.adcs_power_w": {
+      "max_abs": 0.0,
+      "time_s": 0.0
+    },
+    "eps.battery_energy_j": {
+      "max_abs": 0.0,
+      "time_s": 0.0
+    }
+  }
+}

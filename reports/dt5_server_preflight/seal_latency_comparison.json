@@ -1,0 +1,127 @@
+{
+  "source": "Windows native-continuous-180s-soak; 3600.5 simulated seconds",
+  "frame_count": 10803,
+  "baseline_source": "cfc47059",
+  "candidate_base": "bc0a659",
+  "runs_per_version": 1,
+  "seconds": {
+    "baseline": {
+      "finalize": 4.565,
+      "inspect": 2.356,
+      "semantic_trace_including_checks": 9.621,
+      "seal_total": 13.042,
+      "overall": 17.607
+    },
+    "candidate": {
+      "finalize": 4.811,
+      "inspect": 2.646,
+      "semantic_trace_including_checks": 6.044,
+      "seal_total": 9.791,
+      "overall": 14.603
+    }
+  },
+  "timing_scope": "overall includes finalize and seal, excludes workspace reopen and source copy; inspect and semantic trace are nested in seal_total",
+  "verified_files": {
+    "input/execution_plan.json": {
+      "sha256": "971df63b4c600a217d7825873a954ddeee8d32df93a71dd3709acd7964875c8a",
+      "size_bytes": 337
+    },
+    "input/interactive_session_spec.json": {
+      "sha256": "a7023637c9b48a1d321a95348d496e97d13671561cace91ce7ea2eef2ff9a048",
+      "size_bytes": 1140
+    },
+    "input/task_spec.json": {
+      "sha256": "a305ef106fd0d4a44d96b511c2744d0bf423dc30e9a42632cbaf46ea0b6675af",
+      "size_bytes": 429
+    },
+    "interactive/command_events.jsonl": {
+      "sha256": "6194dc4bd1fbbf6584da3ae1cea03c69a84c78ebac300e07f9e40533f10b02b4",
+      "size_bytes": 5926
+    },
+    "interactive/runtime_result.json": {
+      "sha256": "61def270c6d62a87108249c66b23b561a08efa99d4fca738821cf52609895e8a",
+      "size_bytes": 157201
+    },
+    "interactive/session_spec.json": {
+      "sha256": "f5fa44bdf4898d109d2dd4993198c6446a98b7455384b2213ed27e42c78bf6f0",
+      "size_bytes": 1394
+    },
+    "interactive/state_events.jsonl": {
+      "sha256": "115bfb9bf2a8227376771e676cd0fa01656925bf9ae08d7378ed165e27f682e5",
+      "size_bytes": 7356
+    },
+    "interactive/telemetry.jsonl": {
+      "sha256": "955ba14ccdba4bd0d297e16f87b8fb4b594fb7b6ac13c6d49b24ce6a6b3fda4b",
+      "size_bytes": 92258082
+    },
+    "interactive/telemetry_manifest.json": {
+      "sha256": "6cbf13b092b786876b6a07897947fbaf53ac83de972ad12670a61d6017d30698",
+      "size_bytes": 1110
+    },
+    "results/command_effect_windows.json": {
+      "sha256": "171e5b5644ab2f91ff42404e57d091c8f8b26d33cf28adee170cdf6ea02370c3",
+      "size_bytes": 485
+    },
+    "results/semantic_trace.json": {
+      "sha256": "db09fa328ef7ee8cdaf8ecfadc7f95516373ff8eaa690ff904a475557675b52c",
+      "size_bytes": 82425905
+    },
+    "run_record.json": {
+      "sha256": "d35892735b5e26bcf5e704c7bd7238dd96f5cd68be3d45b6681e04a04ab99a07",
+      "size_bytes": 805
+    },
+    "validation/claim_report.json": {
+      "sha256": "851e69e51e5d0258c9422a9e45f3c74a521872f34a92c41d2aadc60ef9d99109",
+      "size_bytes": 1253
+    },
+    "validation/validation_outcome.json": {
+      "sha256": "6226a5ed85a3da9d76b05e364f625800ae8e9884f9204939f3665c8cb8546841",
+      "size_bytes": 1200945
+    }
+  },
+  "candidate_commit": "28c67b67a3fcc1ab612b559edfd3cc686c529eba",
+  "windows_advance_failures": [
+    {
+      "label": "main exploration",
+      "started_utc": "2026-11-23T15:17:54.778739+00:00",
+      "terminal": {
+        "wall_time": "2026-11-23T15:20:54.822872+00:00",
+        "sim_time_s": 3169.0,
+        "state": "ABORTED",
+        "reason_code": "ABORT_REQUESTED",
+        "entry_hash": "2c866c306c33285ae4dd96ac7059e37698cd351b741689e3d3689ef1f858d70d"
+      },
+      "state_journal_sha256": "89f495bba5a32300cc4fa05938d8e4cf78d41e5abcbb0aaf9b974fa004d7cf2d",
+      "advance_budget_wall_s": 180,
+      "archive_wait_test_reached": false
+    },
+    {
+      "label": "combined with sampling",
+      "started_utc": "2026-11-23T15:21:05.371500+00:00",
+      "terminal": {
+        "wall_time": "2026-11-23T15:24:05.439673+00:00",
+        "sim_time_s": 3415.5,
+        "state": "ABORTED",
+        "reason_code": "ABORT_REQUESTED",
+        "entry_hash": "dbee3f1197ccfffced0c48542225a54ca0a64fa71e0a03ee91b51d62eb1c9aa5"
+      },
+      "state_journal_sha256": "7c7d5083ad13b2ac777cf692634903b353497dd3d2325486336fc528a7b06a24",
+      "advance_budget_wall_s": 180,
+      "archive_wait_test_reached": false
+    },
+    {
+      "label": "combined unmodified pytest",
+      "started_utc": "2026-11-23T15:24:25.982166+00:00",
+      "terminal": {
+        "wall_time": "2026-11-23T15:27:26.048848+00:00",
+        "sim_time_s": 2884.0,
+        "state": "ABORTED",
+        "reason_code": "ABORT_REQUESTED",
+        "entry_hash": "9557dd87ebf8192dfa881d017ea659f649f8b7f8142159b10f04e9bd28c82dd2"
+      },
+      "state_journal_sha256": "8e3673e6ca5162937c3239f54b16da2beb86b132cbfbae7d0cc069532834e37c",
+      "advance_budget_wall_s": 180,
+      "archive_wait_test_reached": false
+    }
+  ]
+}

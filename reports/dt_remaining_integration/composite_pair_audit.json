@@ -1,0 +1,2895 @@
+{
+  "original": {
+    "report_sha256": "a3043d092f5b45709a89748fc507eda78ef450a5f508bb5a8034af348788f1a6",
+    "manifest_sha256": "6628df2adabe3ce7244d1d99bff41b0aa48c39b504b775222f80c85d760edfe5",
+    "verified_member_count": 215,
+    "runtime_coupling_coverage": {
+      "schema_version": "v0573.runtime-coupling-causal-coverage.v1",
+      "status": "FAIL",
+      "active_runtime_coupling_count": 19,
+      "causally_validated_runtime_coupling_count": 14,
+      "causal_coverage_ratio": 0.7368421052631579,
+      "required_runtime_couplings": [
+        "payload_to_comm_storage",
+        "payload_activity_to_eps_thermal",
+        "orbit_sun_attitude_eclipse_to_eps_solar_power",
+        "comm_native_odh_to_storage_drain",
+        "eps_pdu_to_payload_activity",
+        "adcs_pointing_to_payload_comm_gate",
+        "comm_activity_to_eps_thermal",
+        "eps_pdu_to_comm_activity",
+        "eps_loads_to_thermal_heat",
+        "comm_transmitter_to_storage_drain",
+        "adcs_control_effort_to_eps_thermal",
+        "adcs_spacecraft_to_orbit_environment",
+        "eps_pdu_to_thermal_heaters",
+        "gravity_to_spacecraft",
+        "ground_access_rf_link_budget",
+        "orbit_eclipse_to_thermal_shadow",
+        "propulsion_activity_to_eps_thermal",
+        "propulsion_effector_to_spacecraft",
+        "thermal_heaters_to_eps_load"
+      ],
+      "missing_required_runtime_couplings": [
+        "adcs_control_effort_to_eps_thermal",
+        "adcs_pointing_to_payload_comm_gate",
+        "comm_activity_to_eps_thermal",
+        "comm_transmitter_to_storage_drain",
+        "thermal_heaters_to_eps_load"
+      ],
+      "unknown_required_runtime_couplings": [],
+      "validated_runtime_couplings": [
+        "adcs_spacecraft_to_orbit_environment",
+        "comm_native_odh_to_storage_drain",
+        "eps_loads_to_thermal_heat",
+        "eps_pdu_to_comm_activity",
+        "eps_pdu_to_payload_activity",
+        "eps_pdu_to_thermal_heaters",
+        "gravity_to_spacecraft",
+        "ground_access_rf_link_budget",
+        "orbit_eclipse_to_thermal_shadow",
+        "orbit_sun_attitude_eclipse_to_eps_solar_power",
+        "payload_activity_to_eps_thermal",
+        "payload_to_comm_storage",
+        "propulsion_activity_to_eps_thermal",
+        "propulsion_effector_to_spacecraft"
+      ],
+      "not_yet_validated_runtime_couplings": [
+        "adcs_control_effort_to_eps_thermal",
+        "adcs_pointing_to_payload_comm_gate",
+        "comm_activity_to_eps_thermal",
+        "comm_transmitter_to_storage_drain",
+        "thermal_heaters_to_eps_load"
+      ],
+      "records": [
+        {
+          "coupling_id": "adcs_spacecraft_to_orbit_environment",
+          "source_subsystem": "spacecraft_dynamics",
+          "sink_subsystem": "orbit_environment",
+          "runtime_status": "coupled_required_core_link",
+          "active": true,
+          "interface": "spacecraft.scStateOutMsg -> eclipse/magnetic environment modules",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "spacecraft_state_to_eclipse_and_thermal_shadow"
+          ],
+          "passed_case_ids": [
+            "spacecraft_state_to_eclipse_and_thermal_shadow"
+          ]
+        },
+        {
+          "coupling_id": "gravity_to_spacecraft",
+          "source_subsystem": "orbit_environment",
+          "sink_subsystem": "spacecraft_dynamics",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "gravBodyFactory.addBodiesTo(spacecraft)",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "gravity_to_spacecraft_orbit_dynamics"
+          ],
+          "passed_case_ids": [
+            "gravity_to_spacecraft_orbit_dynamics"
+          ]
+        },
+        {
+          "coupling_id": "orbit_sun_attitude_eclipse_to_eps_solar_power",
+          "source_subsystem": "orbit_environment,spacecraft_dynamics,adcs",
+          "sink_subsystem": "eps",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "SunMsg + SCStatesMsg + EclipseMsg -> SimpleSolarPanel -> SimpleBattery",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "solar_generation_to_eps"
+          ],
+          "passed_case_ids": [
+            "solar_generation_to_eps"
+          ]
+        },
+        {
+          "coupling_id": "payload_to_comm_storage",
+          "source_subsystem": "payload",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "instrument.nodeDataOutMsg -> storage.addDataNodeToModel",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "payload_fault_to_storage",
+            "payload_generation_to_storage"
+          ],
+          "passed_case_ids": [
+            "payload_generation_to_storage"
+          ]
+        },
+        {
+          "coupling_id": "comm_transmitter_to_storage_drain",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "transmitter.storageUnitDataOutMsg + transmitter.nodeDataOutMsg -> storage drain",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [
+            "legacy_transmitter_to_storage_drain"
+          ],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "ground_access_rf_link_budget",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "groundLocation.AccessMsg + SimpleAntenna x2 -> LinkBudget.LinkBudget",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "ground_access_geometry_to_rf_link_budget"
+          ],
+          "passed_case_ids": [
+            "ground_access_geometry_to_rf_link_budget"
+          ]
+        },
+        {
+          "coupling_id": "comm_native_odh_to_storage_drain",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "DataStorageStatusMsg + LinkBudgetMsg -> DownlinkHandling -> storage.addDataNodeToModel",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "comm_link_loss_to_eps_thermal_storage",
+            "native_downlink_to_storage_drain"
+          ],
+          "passed_case_ids": [
+            "native_downlink_to_storage_drain"
+          ]
+        },
+        {
+          "coupling_id": "propulsion_effector_to_spacecraft",
+          "source_subsystem": "propulsion",
+          "sink_subsystem": "spacecraft_dynamics",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "ThrusterDynamicEffector/FuelTank -> spacecraft dynamic effector",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "propulsion_activity_to_power_heat_and_orbit"
+          ],
+          "passed_case_ids": [
+            "propulsion_activity_to_power_heat_and_orbit"
+          ]
+        },
+        {
+          "coupling_id": "eps_pdu_to_payload_activity",
+          "source_subsystem": "eps",
+          "sink_subsystem": "payload",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PDU payloadStatusOutMsg + instrument DataNodeUsageMsg -> PayloadActivityStatusAdapter -> official SimplePowerSink",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "low_soc_to_payload_gate"
+          ],
+          "passed_case_ids": [
+            "low_soc_to_payload_gate"
+          ]
+        },
+        {
+          "coupling_id": "payload_activity_to_eps_thermal",
+          "source_subsystem": "payload",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "SimpleInstrument.nodeDataOutMsg -> PayloadActivityStatusAdapter -> official SimplePowerSink.nodePowerOutMsg -> battery + payload thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "payload_power_to_eps",
+            "payload_power_to_thermal"
+          ],
+          "passed_case_ids": [
+            "payload_power_to_eps",
+            "payload_power_to_thermal"
+          ]
+        },
+        {
+          "coupling_id": "adcs_control_effort_to_eps_thermal",
+          "source_subsystem": "adcs",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "reactionWheelStateEffector.rwOutMsgs[i] -> official ReactionWheelPower -> battery + ADCS thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [
+            "adcs_pointing_to_payload_and_downlink"
+          ],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "eps_pdu_to_comm_activity",
+          "source_subsystem": "eps",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PDU commStatusOutMsg + native DownlinkHandling + physical SimpleAntenna log -> DownlinkAntennaStatusAdapter -> gated AntennaLogMsg/AntennaPower and TX/idle SimplePowerSink",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "low_soc_to_payload_gate"
+          ],
+          "passed_case_ids": [
+            "low_soc_to_payload_gate"
+          ]
+        },
+        {
+          "coupling_id": "comm_activity_to_eps_thermal",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "SimpleAntenna.antennaOutMsg -> DownlinkAntennaStatusAdapter gated AntennaLogMsg -> official AntennaPower; official base/idle SimplePowerSink -> battery + electronics thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [
+            "comm_link_loss_to_eps_thermal_storage"
+          ],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "propulsion_activity_to_eps_thermal",
+          "source_subsystem": "propulsion",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "THROutputMsg.thrustFactor -> ThrusterActivityStatusAdapter -> official SimplePowerSink per thruster -> battery + structure thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "propulsion_activity_to_power_heat_and_orbit"
+          ],
+          "passed_case_ids": [
+            "propulsion_activity_to_power_heat_and_orbit"
+          ]
+        },
+        {
+          "coupling_id": "eps_loads_to_thermal_heat",
+          "source_subsystem": "eps",
+          "sink_subsystem": "thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PowerNodeUsageMsg -> node-specific ThermalPowerBridge -> ThermalNode.heatInMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "eps_bus_load_to_thermal_heat"
+          ],
+          "passed_case_ids": [
+            "eps_bus_load_to_thermal_heat"
+          ]
+        },
+        {
+          "coupling_id": "orbit_eclipse_to_thermal_shadow",
+          "source_subsystem": "orbit_environment",
+          "sink_subsystem": "thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "EclipseMsg -> ThermalNetwork.SolarHeatInput.eclipseInMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "spacecraft_state_to_eclipse_and_thermal_shadow"
+          ],
+          "passed_case_ids": [
+            "spacecraft_state_to_eclipse_and_thermal_shadow"
+          ]
+        },
+        {
+          "coupling_id": "eps_pdu_to_thermal_heaters",
+          "source_subsystem": "eps",
+          "sink_subsystem": "thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PDU heaterStatusOutMsg -> ThermalHeater.enableInMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "eps_pdu_to_thermal_heaters"
+          ],
+          "passed_case_ids": [
+            "eps_pdu_to_thermal_heaters"
+          ]
+        },
+        {
+          "coupling_id": "thermal_heaters_to_eps_load",
+          "source_subsystem": "thermal",
+          "sink_subsystem": "eps",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "ThermalHeater.electricalPowerOutMsg -> battery.addPowerNodeToModel",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [
+            "thermal_heaters_to_eps_load"
+          ],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "adcs_pointing_to_payload_comm_gate",
+          "source_subsystem": "adcs",
+          "sink_subsystem": "payload,comm_data",
+          "runtime_status": "proxy_coupled_verified",
+          "active": true,
+          "interface": "AttGuidMsg + EPS/Thermal status -> WholeSpacecraftMissionGate -> instrument baud and native downlink LinkBudgetMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [
+            "adcs_pointing_to_payload_and_downlink"
+          ],
+          "passed_case_ids": []
+        }
+      ],
+      "claim_scope": "coverage only counts runtime couplings backed by at least one passing sealed paired-run case"
+    },
+    "status": "FAIL",
+    "matrix_sha256": "2bf34a879bb545e99347ec0ab1f6e148367bb08f1dba1dc3e9186d606e9b0bbc",
+    "baseline_spec_sha256": "6bb882b19bf8ee273c187a1425d30ecdfa0af8d86fb8ffa937570f08bfeae0ef",
+    "case_count": 17,
+    "pass_count": 12,
+    "fail_count": 3,
+    "inconclusive_count": 2,
+    "cases": [
+      {
+        "case_id": "payload_generation_to_storage",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "payload_activity_to_comm_storage",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 1500000.0,
+            "source_delta_median": 1500000.0,
+            "source_delta_max_abs": 1500000.0,
+            "response_delta": 97500000.0,
+            "response_delta_median": 97500000.0,
+            "response_delta_max_abs": 180000000.0,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "payload_power_to_eps",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "payload_activity_to_eps",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -32.0,
+            "source_delta_median": -32.0,
+            "source_delta_max_abs": 32.00000000000001,
+            "response_delta": -0.0035999999999994183,
+            "response_delta_median": -0.0035999999999993815,
+            "response_delta_max_abs": 0.0066555555555547485,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "payload_power_to_thermal",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "payload_activity_to_thermal",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -162.0,
+            "source_delta_median": -162.0,
+            "source_delta_max_abs": 162.00000000000003,
+            "response_delta": 0.022542441745988146,
+            "response_delta_median": 0.017185465079535334,
+            "response_delta_max_abs": 0.0619226483016746,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 20.000000000000004,
+            "response_fraction": 0.8333333333333334,
+            "max_consecutive_response_samples": 10,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "payload_fault_to_storage",
+        "status": "INCONCLUSIVE",
+        "reason_codes": [
+          "CAUSAL_EVALUATION_INCONCLUSIVE"
+        ],
+        "checks": [
+          {
+            "coupling_id": "payload_fault_to_data_storage",
+            "status": "INCONCLUSIVE",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 1,
+            "post_sample_count": 11,
+            "source_delta": -2272727.272727273,
+            "source_delta_median": -2500000.0,
+            "source_delta_max_abs": 2500000.0,
+            "response_delta": -121650668.81818181,
+            "response_delta_median": -120906373.0,
+            "response_delta_max_abs": 245906373.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 30.000000000000004,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 0.9090909090909091,
+            "max_consecutive_response_samples": 10,
+            "pre_equivalent": false,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": [
+              "INSUFFICIENT_PRE_INTERVENTION_SAMPLES",
+              "PRE_INTERVENTION_EQUIVALENCE_FAILED"
+            ]
+          }
+        ]
+      },
+      {
+        "case_id": "solar_generation_to_eps",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "solar_generation_to_eps_storage",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 84.63481576602959,
+            "source_delta_median": 84.63482112167377,
+            "source_delta_max_abs": 84.63484011360033,
+            "response_delta": 0.009550805314606309,
+            "response_delta_median": 0.009550805919026684,
+            "response_delta_max_abs": 0.01763225386169609,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "native_downlink_to_storage_drain",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "comm_native_odh_to_storage_drain",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 244966.2830251914,
+            "source_delta_median": 0.0,
+            "source_delta_max_abs": 1000000.0000000088,
+            "response_delta": -24268994.666666668,
+            "response_delta_median": -25762521.0,
+            "response_delta_max_abs": 29765247.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "low_soc_to_payload_gate",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "eps_storage_to_payload_gate",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -0.46122083296571503,
+            "source_delta_median": -0.46122083297435745,
+            "source_delta_max_abs": 0.46866874996721386,
+            "response_delta": -2500000.0,
+            "response_delta_median": -2500000.0,
+            "response_delta_max_abs": 2500000.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "eps_storage_to_payload_data_storage",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -0.46122083296571503,
+            "source_delta_median": -0.46122083297435745,
+            "source_delta_max_abs": 0.46866874996721386,
+            "response_delta": -114504779.75,
+            "response_delta_median": -108406373.0,
+            "response_delta_max_abs": 245906373.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "eps_storage_to_comm_gate",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -0.46122083296571503,
+            "source_delta_median": -0.46122083297435745,
+            "source_delta_max_abs": 0.46866874996721386,
+            "response_delta": -1500000.0,
+            "response_delta_median": -1500000.0,
+            "response_delta_max_abs": 1500000.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "adcs_pointing_to_payload_and_downlink",
+        "status": "FAIL",
+        "reason_codes": [
+          "CAUSAL_EVALUATION_FAIL"
+        ],
+        "checks": [
+          {
+            "coupling_id": "adcs_pointing_to_payload_gate",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 85.85929017029264,
+            "source_delta_median": 86.15623884252395,
+            "source_delta_max_abs": 87.18500884005039,
+            "response_delta": -2500000.0,
+            "response_delta_median": -2500000.0,
+            "response_delta_max_abs": 2500000.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "adcs_pointing_to_downlink_gate",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 85.85929017029264,
+            "source_delta_median": 86.15623884252395,
+            "source_delta_max_abs": 87.18500884005039,
+            "response_delta": -48070214.876250595,
+            "response_delta_median": -54093619.86606414,
+            "response_delta_max_abs": 54093619.86606414,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "adcs_control_effort_to_eps",
+            "status": "FAIL",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 37.28593045125763,
+            "source_delta_median": 40.0529033346812,
+            "source_delta_max_abs": 59.82913158802846,
+            "response_delta": 0.0042712379050588445,
+            "response_delta_median": 0.004619441909004873,
+            "response_delta_max_abs": 0.006449464231509383,
+            "observed_direction": "increase",
+            "source_change_time_s": 30.000000000000004,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": false,
+            "lag_ok": true,
+            "reason_codes": [
+              "SINK_RESPONSE_DIRECTION_MISMATCH"
+            ]
+          },
+          {
+            "coupling_id": "adcs_control_effort_to_thermal",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 37.28593045125763,
+            "source_delta_median": 40.0529033346812,
+            "source_delta_max_abs": 59.82913158802846,
+            "response_delta": 1.070732160468604,
+            "response_delta_median": 0.9585460381510984,
+            "response_delta_max_abs": 2.452731777531028,
+            "observed_direction": "increase",
+            "source_change_time_s": 30.000000000000004,
+            "first_response_time_s": 50.0,
+            "first_response_lag_s": 19.999999999999996,
+            "response_fraction": 0.6666666666666666,
+            "max_consecutive_response_samples": 8,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "comm_link_loss_to_eps_thermal_storage",
+        "status": "INCONCLUSIVE",
+        "reason_codes": [
+          "CAUSAL_EVALUATION_INCONCLUSIVE"
+        ],
+        "checks": [
+          {
+            "coupling_id": "comm_activity_to_eps_storage",
+            "status": "INCONCLUSIVE",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 1,
+            "post_sample_count": 11,
+            "source_delta": -21076598.04681883,
+            "source_delta_median": -24093619.866064135,
+            "source_delta_max_abs": 24093619.866064135,
+            "response_delta": 0.0024217171717178065,
+            "response_delta_median": 0.0024208333333340937,
+            "response_delta_max_abs": 0.004851388888889696,
+            "observed_direction": "increase",
+            "source_change_time_s": 30.000000000000004,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 0.9090909090909091,
+            "max_consecutive_response_samples": 10,
+            "pre_equivalent": false,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": [
+              "INSUFFICIENT_PRE_INTERVENTION_SAMPLES",
+              "PRE_INTERVENTION_EQUIVALENCE_FAILED"
+            ]
+          },
+          {
+            "coupling_id": "comm_activity_to_thermal",
+            "status": "INCONCLUSIVE",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 1,
+            "post_sample_count": 11,
+            "source_delta": -21076598.04681883,
+            "source_delta_median": -24093619.866064135,
+            "source_delta_max_abs": 24093619.866064135,
+            "response_delta": -0.3518454997743716,
+            "response_delta_median": -0.3539771212747951,
+            "response_delta_max_abs": 0.6980863609745143,
+            "observed_direction": "decrease",
+            "source_change_time_s": 30.000000000000004,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 0.9090909090909091,
+            "max_consecutive_response_samples": 10,
+            "pre_equivalent": false,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": [
+              "INSUFFICIENT_PRE_INTERVENTION_SAMPLES",
+              "PRE_INTERVENTION_EQUIVALENCE_FAILED"
+            ]
+          },
+          {
+            "coupling_id": "comm_link_to_storage_drain",
+            "status": "INCONCLUSIVE",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 1,
+            "post_sample_count": 11,
+            "source_delta": -21076598.04681883,
+            "source_delta_median": -24093619.866064135,
+            "source_delta_max_abs": 24093619.866064135,
+            "response_delta": 21049331.181818184,
+            "response_delta_median": 24093627.0,
+            "response_delta_max_abs": 24093627.0,
+            "observed_direction": "increase",
+            "source_change_time_s": 30.000000000000004,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 0.9090909090909091,
+            "max_consecutive_response_samples": 10,
+            "pre_equivalent": false,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": [
+              "INSUFFICIENT_PRE_INTERVENTION_SAMPLES",
+              "PRE_INTERVENTION_EQUIVALENCE_FAILED"
+            ]
+          }
+        ]
+      },
+      {
+        "case_id": "eps_bus_load_to_thermal_heat",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "eps_bus_load_to_battery",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -37.0,
+            "source_delta_median": -37.0,
+            "source_delta_max_abs": 37.0,
+            "response_delta": -0.00417534722222158,
+            "response_delta_median": -0.004175347222221515,
+            "response_delta_max_abs": 0.007708333333332429,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 20.0,
+            "first_response_lag_s": 10.0,
+            "response_fraction": 0.9166666666666666,
+            "max_consecutive_response_samples": 11,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "eps_bus_load_to_thermal",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -37.0,
+            "source_delta_median": -37.0,
+            "source_delta_max_abs": 37.0,
+            "response_delta": 0.6711299379917222,
+            "response_delta_median": 0.6749745554486424,
+            "response_delta_max_abs": 1.224461928655046,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "legacy_transmitter_to_storage_drain",
+        "status": "FAIL",
+        "reason_codes": [
+          "RUN_EXECUTION_STATUS_NOT_ACCEPTED"
+        ],
+        "checks": [
+          {
+            "coupling_id": "legacy_transmitter_activity",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -750000.0,
+            "source_delta_median": -750000.0,
+            "source_delta_max_abs": 1500000.0,
+            "response_delta": 5145220.25,
+            "response_delta_median": -300000.0,
+            "response_delta_max_abs": 23793627.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 20.000000000000004,
+            "response_fraction": 0.8333333333333334,
+            "max_consecutive_response_samples": 10,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "spacecraft_state_to_eclipse_and_thermal_shadow",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "spacecraft_state_to_orbit_eclipse",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -13955976.864533613,
+            "source_delta_median": -13965442.072782528,
+            "source_delta_max_abs": 13999186.537600204,
+            "response_delta": -1.0,
+            "response_delta_median": -1.0,
+            "response_delta_max_abs": 1.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "orbit_eclipse_to_thermal_shadow",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -1.0,
+            "source_delta_median": -1.0,
+            "source_delta_max_abs": 1.0,
+            "response_delta": -20.421164808839038,
+            "response_delta_median": -21.1251528208536,
+            "response_delta_max_abs": 34.93546945035001,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 20.0,
+            "first_response_lag_s": 10.0,
+            "response_fraction": 0.9166666666666666,
+            "max_consecutive_response_samples": 11,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "ground_access_geometry_to_rf_link_budget",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "ground_access_to_rf_link_distance",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 883355.8105237518,
+            "source_delta_median": 896039.985789963,
+            "source_delta_max_abs": 997225.0666393231,
+            "response_delta": 883355.8105237518,
+            "response_delta_median": 896039.985789963,
+            "response_delta_max_abs": 997225.0666393231,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "gravity_to_spacecraft_orbit_dynamics",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "gravity_to_spacecraft_orbit_radius",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -1.0,
+            "source_delta_median": -1.0,
+            "source_delta_max_abs": 1.0,
+            "response_delta": 21972.086098323187,
+            "response_delta_median": 17264.45642564725,
+            "response_delta_max_abs": 58326.85796980932,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 20.0,
+            "first_response_lag_s": 10.0,
+            "response_fraction": 0.9166666666666666,
+            "max_consecutive_response_samples": 11,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "propulsion_activity_to_power_heat_and_orbit",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "propulsion_activity_to_eps",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 757.3333333333338,
+            "source_delta_median": 792.0000000000005,
+            "source_delta_max_abs": 792.0000000000005,
+            "response_delta": -0.001314814814568956,
+            "response_delta_median": -0.0013749999996712226,
+            "response_delta_max_abs": 0.001374999999974702,
+            "observed_direction": "decrease",
+            "source_change_time_s": 20.0,
+            "first_response_time_s": 20.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "propulsion_activity_to_thermal",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 757.3333333333338,
+            "source_delta_median": 792.0000000000005,
+            "source_delta_max_abs": 792.0000000000005,
+            "response_delta": 0.062449501597015455,
+            "response_delta_median": 0.06501849247700875,
+            "response_delta_max_abs": 0.06674151120057559,
+            "observed_direction": "increase",
+            "source_change_time_s": 20.0,
+            "first_response_time_s": 20.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "propulsion_effector_to_spacecraft_orbit",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 0.019323622235927318,
+            "source_delta_median": 0.02019038101695836,
+            "source_delta_max_abs": 0.02019038101695836,
+            "response_delta": 2.8979518577301255,
+            "response_delta_median": 2.889464374165982,
+            "response_delta_max_abs": 5.772166459821165,
+            "observed_direction": "increase",
+            "source_change_time_s": 20.0,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 10.000000000000004,
+            "response_fraction": 0.8333333333333334,
+            "max_consecutive_response_samples": 10,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "eps_pdu_to_thermal_heaters",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "eps_pdu_to_heater_enable",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -1.0,
+            "source_delta_median": -1.0,
+            "source_delta_max_abs": 1.0,
+            "response_delta": -1.0,
+            "response_delta_median": -1.0,
+            "response_delta_max_abs": 1.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "thermal_heaters_to_eps_load",
+        "status": "FAIL",
+        "reason_codes": [
+          "CAUSAL_EVALUATION_FAIL"
+        ],
+        "checks": [
+          {
+            "coupling_id": "thermal_heater_feedback_to_eps",
+            "status": "FAIL",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 0.0,
+            "source_delta_median": 0.0,
+            "source_delta_max_abs": 0.0,
+            "response_delta": 0.001354166666666055,
+            "response_delta_median": 0.0013541666666659902,
+            "response_delta_max_abs": 0.0024999999999991696,
+            "observed_direction": "increase",
+            "source_change_time_s": null,
+            "first_response_time_s": null,
+            "first_response_lag_s": null,
+            "response_fraction": 0.6666666666666666,
+            "max_consecutive_response_samples": 8,
+            "pre_equivalent": true,
+            "source_changed": false,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": false,
+            "reason_codes": [
+              "SOURCE_PERTURBATION_NOT_OBSERVED",
+              "SINK_RESPONSE_LAG_EXCEEDED"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "faster_recording": {
+    "report_sha256": "c2920c77d592066a1f3bd078392c6ff33f24f16b27d7bcb944369f02a5084f22",
+    "manifest_sha256": "a1e86dff6b935d40dfeb05357467839ca20ac858257747480290d0e0252649a8",
+    "verified_member_count": 34,
+    "runtime_coupling_coverage": {
+      "schema_version": "v0573.runtime-coupling-causal-coverage.v1",
+      "status": "PASS",
+      "active_runtime_coupling_count": 19,
+      "causally_validated_runtime_coupling_count": 3,
+      "causal_coverage_ratio": 0.15789473684210525,
+      "required_runtime_couplings": [
+        "payload_to_comm_storage",
+        "comm_activity_to_eps_thermal",
+        "comm_native_odh_to_storage_drain"
+      ],
+      "missing_required_runtime_couplings": [],
+      "unknown_required_runtime_couplings": [],
+      "validated_runtime_couplings": [
+        "comm_activity_to_eps_thermal",
+        "comm_native_odh_to_storage_drain",
+        "payload_to_comm_storage"
+      ],
+      "not_yet_validated_runtime_couplings": [
+        "adcs_control_effort_to_eps_thermal",
+        "adcs_pointing_to_payload_comm_gate",
+        "adcs_spacecraft_to_orbit_environment",
+        "comm_transmitter_to_storage_drain",
+        "eps_loads_to_thermal_heat",
+        "eps_pdu_to_comm_activity",
+        "eps_pdu_to_payload_activity",
+        "eps_pdu_to_thermal_heaters",
+        "gravity_to_spacecraft",
+        "ground_access_rf_link_budget",
+        "orbit_eclipse_to_thermal_shadow",
+        "orbit_sun_attitude_eclipse_to_eps_solar_power",
+        "payload_activity_to_eps_thermal",
+        "propulsion_activity_to_eps_thermal",
+        "propulsion_effector_to_spacecraft",
+        "thermal_heaters_to_eps_load"
+      ],
+      "records": [
+        {
+          "coupling_id": "adcs_spacecraft_to_orbit_environment",
+          "source_subsystem": "spacecraft_dynamics",
+          "sink_subsystem": "orbit_environment",
+          "runtime_status": "coupled_required_core_link",
+          "active": true,
+          "interface": "spacecraft.scStateOutMsg -> eclipse/magnetic environment modules",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "gravity_to_spacecraft",
+          "source_subsystem": "orbit_environment",
+          "sink_subsystem": "spacecraft_dynamics",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "gravBodyFactory.addBodiesTo(spacecraft)",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "orbit_sun_attitude_eclipse_to_eps_solar_power",
+          "source_subsystem": "orbit_environment,spacecraft_dynamics,adcs",
+          "sink_subsystem": "eps",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "SunMsg + SCStatesMsg + EclipseMsg -> SimpleSolarPanel -> SimpleBattery",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "payload_to_comm_storage",
+          "source_subsystem": "payload",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "instrument.nodeDataOutMsg -> storage.addDataNodeToModel",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "payload_fault_to_storage"
+          ],
+          "passed_case_ids": [
+            "payload_fault_to_storage"
+          ]
+        },
+        {
+          "coupling_id": "comm_transmitter_to_storage_drain",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "transmitter.storageUnitDataOutMsg + transmitter.nodeDataOutMsg -> storage drain",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "ground_access_rf_link_budget",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "groundLocation.AccessMsg + SimpleAntenna x2 -> LinkBudget.LinkBudget",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "comm_native_odh_to_storage_drain",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "DataStorageStatusMsg + LinkBudgetMsg -> DownlinkHandling -> storage.addDataNodeToModel",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "comm_link_loss_to_eps_thermal_storage"
+          ],
+          "passed_case_ids": [
+            "comm_link_loss_to_eps_thermal_storage"
+          ]
+        },
+        {
+          "coupling_id": "propulsion_effector_to_spacecraft",
+          "source_subsystem": "propulsion",
+          "sink_subsystem": "spacecraft_dynamics",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "ThrusterDynamicEffector/FuelTank -> spacecraft dynamic effector",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "eps_pdu_to_payload_activity",
+          "source_subsystem": "eps",
+          "sink_subsystem": "payload",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PDU payloadStatusOutMsg + instrument DataNodeUsageMsg -> PayloadActivityStatusAdapter -> official SimplePowerSink",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "payload_activity_to_eps_thermal",
+          "source_subsystem": "payload",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "SimpleInstrument.nodeDataOutMsg -> PayloadActivityStatusAdapter -> official SimplePowerSink.nodePowerOutMsg -> battery + payload thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "adcs_control_effort_to_eps_thermal",
+          "source_subsystem": "adcs",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "reactionWheelStateEffector.rwOutMsgs[i] -> official ReactionWheelPower -> battery + ADCS thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "eps_pdu_to_comm_activity",
+          "source_subsystem": "eps",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PDU commStatusOutMsg + native DownlinkHandling + physical SimpleAntenna log -> DownlinkAntennaStatusAdapter -> gated AntennaLogMsg/AntennaPower and TX/idle SimplePowerSink",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "comm_activity_to_eps_thermal",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "SimpleAntenna.antennaOutMsg -> DownlinkAntennaStatusAdapter gated AntennaLogMsg -> official AntennaPower; official base/idle SimplePowerSink -> battery + electronics thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "comm_link_loss_to_eps_thermal_storage"
+          ],
+          "passed_case_ids": [
+            "comm_link_loss_to_eps_thermal_storage"
+          ]
+        },
+        {
+          "coupling_id": "propulsion_activity_to_eps_thermal",
+          "source_subsystem": "propulsion",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "THROutputMsg.thrustFactor -> ThrusterActivityStatusAdapter -> official SimplePowerSink per thruster -> battery + structure thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "eps_loads_to_thermal_heat",
+          "source_subsystem": "eps",
+          "sink_subsystem": "thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PowerNodeUsageMsg -> node-specific ThermalPowerBridge -> ThermalNode.heatInMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "orbit_eclipse_to_thermal_shadow",
+          "source_subsystem": "orbit_environment",
+          "sink_subsystem": "thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "EclipseMsg -> ThermalNetwork.SolarHeatInput.eclipseInMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "eps_pdu_to_thermal_heaters",
+          "source_subsystem": "eps",
+          "sink_subsystem": "thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PDU heaterStatusOutMsg -> ThermalHeater.enableInMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "thermal_heaters_to_eps_load",
+          "source_subsystem": "thermal",
+          "sink_subsystem": "eps",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "ThermalHeater.electricalPowerOutMsg -> battery.addPowerNodeToModel",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        },
+        {
+          "coupling_id": "adcs_pointing_to_payload_comm_gate",
+          "source_subsystem": "adcs",
+          "sink_subsystem": "payload,comm_data",
+          "runtime_status": "proxy_coupled_verified",
+          "active": true,
+          "interface": "AttGuidMsg + EPS/Thermal status -> WholeSpacecraftMissionGate -> instrument baud and native downlink LinkBudgetMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "NOT_VALIDATED",
+          "declared_case_ids": [],
+          "passed_case_ids": []
+        }
+      ],
+      "claim_scope": "coverage only counts runtime couplings backed by at least one passing sealed paired-run case"
+    },
+    "status": "PASS",
+    "matrix_sha256": "1f15cfec686eacde4b8824e66ad1f7bf7d6c02fd507e11c70b276227eb76dfeb",
+    "baseline_spec_sha256": "ae11fbe499e41160b73365e73c5b56c167d6c5299be60105df4cb5052529708e",
+    "case_count": 2,
+    "pass_count": 2,
+    "fail_count": 0,
+    "inconclusive_count": 0,
+    "cases": [
+      {
+        "case_id": "payload_fault_to_storage",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "payload_fault_to_data_storage",
+            "status": "PASS",
+            "aligned_sample_count": 24,
+            "pre_sample_count": 3,
+            "post_sample_count": 21,
+            "source_delta": -2380952.380952381,
+            "source_delta_median": -2500000.0,
+            "source_delta_max_abs": 2500000.0,
+            "response_delta": -121585628.14285715,
+            "response_delta_median": -120906373.0,
+            "response_delta_max_abs": 245906373.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 25.0,
+            "first_response_time_s": 25.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 0.9523809523809523,
+            "max_consecutive_response_samples": 20,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "comm_link_loss_to_eps_thermal_storage",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "comm_activity_to_eps_storage",
+            "status": "PASS",
+            "aligned_sample_count": 24,
+            "pre_sample_count": 3,
+            "post_sample_count": 21,
+            "source_delta": -21641253.699041687,
+            "source_delta_median": -24093619.866064135,
+            "source_delta_max_abs": 24093619.866064135,
+            "response_delta": 0.002421296296296906,
+            "response_delta_median": 0.0024208333333340937,
+            "response_delta_max_abs": 0.004851388888889696,
+            "observed_direction": "increase",
+            "source_change_time_s": 25.0,
+            "first_response_time_s": 25.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 0.9523809523809523,
+            "max_consecutive_response_samples": 20,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "comm_activity_to_thermal",
+            "status": "PASS",
+            "aligned_sample_count": 24,
+            "pre_sample_count": 3,
+            "post_sample_count": 21,
+            "source_delta": -21641253.699041687,
+            "source_delta_median": -24093619.866064135,
+            "source_delta_max_abs": 24093619.866064135,
+            "response_delta": -0.33535783971722194,
+            "response_delta_median": -0.3539771212747951,
+            "response_delta_max_abs": 0.6980863609745143,
+            "observed_direction": "decrease",
+            "source_change_time_s": 25.0,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 5.0000000000000036,
+            "response_fraction": 0.9047619047619048,
+            "max_consecutive_response_samples": 19,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "comm_link_to_storage_drain",
+            "status": "PASS",
+            "aligned_sample_count": 24,
+            "pre_sample_count": 3,
+            "post_sample_count": 21,
+            "source_delta": -21641253.699041687,
+            "source_delta_median": -24093619.866064135,
+            "source_delta_max_abs": 24093619.866064135,
+            "response_delta": 21600086.14285714,
+            "response_delta_median": 24093627.0,
+            "response_delta_max_abs": 24093627.0,
+            "observed_direction": "increase",
+            "source_change_time_s": 25.0,
+            "first_response_time_s": 25.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 0.9523809523809523,
+            "max_consecutive_response_samples": 20,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      }
+    ]
+  },
+  "final": {
+    "report_sha256": "8f9f35ffddefb9267157a3890a2d4429ca6da5b310b02335fcb352c23ab55701",
+    "manifest_sha256": "1e62fc8f8181fcdd531310138bda751259935f6f999fb89724b02403b3ab4ba0",
+    "verified_member_count": 250,
+    "runtime_coupling_coverage": {
+      "schema_version": "v0573.runtime-coupling-causal-coverage.v1",
+      "status": "PASS",
+      "active_runtime_coupling_count": 19,
+      "causally_validated_runtime_coupling_count": 19,
+      "causal_coverage_ratio": 1.0,
+      "required_runtime_couplings": [
+        "payload_to_comm_storage",
+        "payload_activity_to_eps_thermal",
+        "orbit_sun_attitude_eclipse_to_eps_solar_power",
+        "comm_native_odh_to_storage_drain",
+        "eps_pdu_to_payload_activity",
+        "adcs_pointing_to_payload_comm_gate",
+        "comm_activity_to_eps_thermal",
+        "eps_pdu_to_comm_activity",
+        "eps_loads_to_thermal_heat",
+        "comm_transmitter_to_storage_drain",
+        "adcs_control_effort_to_eps_thermal",
+        "adcs_spacecraft_to_orbit_environment",
+        "eps_pdu_to_thermal_heaters",
+        "gravity_to_spacecraft",
+        "ground_access_rf_link_budget",
+        "orbit_eclipse_to_thermal_shadow",
+        "propulsion_activity_to_eps_thermal",
+        "propulsion_effector_to_spacecraft",
+        "thermal_heaters_to_eps_load"
+      ],
+      "missing_required_runtime_couplings": [],
+      "unknown_required_runtime_couplings": [],
+      "validated_runtime_couplings": [
+        "adcs_control_effort_to_eps_thermal",
+        "adcs_pointing_to_payload_comm_gate",
+        "adcs_spacecraft_to_orbit_environment",
+        "comm_activity_to_eps_thermal",
+        "comm_native_odh_to_storage_drain",
+        "comm_transmitter_to_storage_drain",
+        "eps_loads_to_thermal_heat",
+        "eps_pdu_to_comm_activity",
+        "eps_pdu_to_payload_activity",
+        "eps_pdu_to_thermal_heaters",
+        "gravity_to_spacecraft",
+        "ground_access_rf_link_budget",
+        "orbit_eclipse_to_thermal_shadow",
+        "orbit_sun_attitude_eclipse_to_eps_solar_power",
+        "payload_activity_to_eps_thermal",
+        "payload_to_comm_storage",
+        "propulsion_activity_to_eps_thermal",
+        "propulsion_effector_to_spacecraft",
+        "thermal_heaters_to_eps_load"
+      ],
+      "not_yet_validated_runtime_couplings": [],
+      "records": [
+        {
+          "coupling_id": "adcs_spacecraft_to_orbit_environment",
+          "source_subsystem": "spacecraft_dynamics",
+          "sink_subsystem": "orbit_environment",
+          "runtime_status": "coupled_required_core_link",
+          "active": true,
+          "interface": "spacecraft.scStateOutMsg -> eclipse/magnetic environment modules",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "spacecraft_state_to_eclipse_and_thermal_shadow"
+          ],
+          "passed_case_ids": [
+            "spacecraft_state_to_eclipse_and_thermal_shadow"
+          ]
+        },
+        {
+          "coupling_id": "gravity_to_spacecraft",
+          "source_subsystem": "orbit_environment",
+          "sink_subsystem": "spacecraft_dynamics",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "gravBodyFactory.addBodiesTo(spacecraft)",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "gravity_to_spacecraft_orbit_dynamics"
+          ],
+          "passed_case_ids": [
+            "gravity_to_spacecraft_orbit_dynamics"
+          ]
+        },
+        {
+          "coupling_id": "orbit_sun_attitude_eclipse_to_eps_solar_power",
+          "source_subsystem": "orbit_environment,spacecraft_dynamics,adcs",
+          "sink_subsystem": "eps",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "SunMsg + SCStatesMsg + EclipseMsg -> SimpleSolarPanel -> SimpleBattery",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "solar_generation_to_eps"
+          ],
+          "passed_case_ids": [
+            "solar_generation_to_eps"
+          ]
+        },
+        {
+          "coupling_id": "payload_to_comm_storage",
+          "source_subsystem": "payload",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "instrument.nodeDataOutMsg -> storage.addDataNodeToModel",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "payload_fault_to_storage",
+            "payload_generation_to_storage"
+          ],
+          "passed_case_ids": [
+            "payload_fault_to_storage",
+            "payload_generation_to_storage"
+          ]
+        },
+        {
+          "coupling_id": "comm_transmitter_to_storage_drain",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "transmitter.storageUnitDataOutMsg + transmitter.nodeDataOutMsg -> storage drain",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "legacy_transmitter_to_storage_drain"
+          ],
+          "passed_case_ids": [
+            "legacy_transmitter_to_storage_drain"
+          ]
+        },
+        {
+          "coupling_id": "ground_access_rf_link_budget",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "groundLocation.AccessMsg + SimpleAntenna x2 -> LinkBudget.LinkBudget",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "ground_access_geometry_to_rf_link_budget"
+          ],
+          "passed_case_ids": [
+            "ground_access_geometry_to_rf_link_budget"
+          ]
+        },
+        {
+          "coupling_id": "comm_native_odh_to_storage_drain",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "DataStorageStatusMsg + LinkBudgetMsg -> DownlinkHandling -> storage.addDataNodeToModel",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "comm_link_loss_to_eps_thermal_storage",
+            "native_downlink_to_storage_drain"
+          ],
+          "passed_case_ids": [
+            "comm_link_loss_to_eps_thermal_storage",
+            "native_downlink_to_storage_drain"
+          ]
+        },
+        {
+          "coupling_id": "propulsion_effector_to_spacecraft",
+          "source_subsystem": "propulsion",
+          "sink_subsystem": "spacecraft_dynamics",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "ThrusterDynamicEffector/FuelTank -> spacecraft dynamic effector",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "propulsion_activity_to_power_heat_and_orbit"
+          ],
+          "passed_case_ids": [
+            "propulsion_activity_to_power_heat_and_orbit"
+          ]
+        },
+        {
+          "coupling_id": "eps_pdu_to_payload_activity",
+          "source_subsystem": "eps",
+          "sink_subsystem": "payload",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PDU payloadStatusOutMsg + instrument DataNodeUsageMsg -> PayloadActivityStatusAdapter -> official SimplePowerSink",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "low_soc_to_payload_gate"
+          ],
+          "passed_case_ids": [
+            "low_soc_to_payload_gate"
+          ]
+        },
+        {
+          "coupling_id": "payload_activity_to_eps_thermal",
+          "source_subsystem": "payload",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "SimpleInstrument.nodeDataOutMsg -> PayloadActivityStatusAdapter -> official SimplePowerSink.nodePowerOutMsg -> battery + payload thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "payload_power_to_eps",
+            "payload_power_to_thermal"
+          ],
+          "passed_case_ids": [
+            "payload_power_to_eps",
+            "payload_power_to_thermal"
+          ]
+        },
+        {
+          "coupling_id": "adcs_control_effort_to_eps_thermal",
+          "source_subsystem": "adcs",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "reactionWheelStateEffector.rwOutMsgs[i] -> official ReactionWheelPower -> battery + ADCS thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "adcs_control_effort_to_power_and_heat"
+          ],
+          "passed_case_ids": [
+            "adcs_control_effort_to_power_and_heat"
+          ]
+        },
+        {
+          "coupling_id": "eps_pdu_to_comm_activity",
+          "source_subsystem": "eps",
+          "sink_subsystem": "comm_data",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PDU commStatusOutMsg + native DownlinkHandling + physical SimpleAntenna log -> DownlinkAntennaStatusAdapter -> gated AntennaLogMsg/AntennaPower and TX/idle SimplePowerSink",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "low_soc_to_payload_gate"
+          ],
+          "passed_case_ids": [
+            "low_soc_to_payload_gate"
+          ]
+        },
+        {
+          "coupling_id": "comm_activity_to_eps_thermal",
+          "source_subsystem": "comm_data",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "SimpleAntenna.antennaOutMsg -> DownlinkAntennaStatusAdapter gated AntennaLogMsg -> official AntennaPower; official base/idle SimplePowerSink -> battery + electronics thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "comm_link_loss_to_eps_thermal_storage"
+          ],
+          "passed_case_ids": [
+            "comm_link_loss_to_eps_thermal_storage"
+          ]
+        },
+        {
+          "coupling_id": "propulsion_activity_to_eps_thermal",
+          "source_subsystem": "propulsion",
+          "sink_subsystem": "eps,thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "THROutputMsg.thrustFactor -> ThrusterActivityStatusAdapter -> official SimplePowerSink per thruster -> battery + structure thermal node",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "propulsion_activity_to_power_heat_and_orbit"
+          ],
+          "passed_case_ids": [
+            "propulsion_activity_to_power_heat_and_orbit"
+          ]
+        },
+        {
+          "coupling_id": "eps_loads_to_thermal_heat",
+          "source_subsystem": "eps",
+          "sink_subsystem": "thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PowerNodeUsageMsg -> node-specific ThermalPowerBridge -> ThermalNode.heatInMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "eps_bus_load_to_thermal_heat"
+          ],
+          "passed_case_ids": [
+            "eps_bus_load_to_thermal_heat"
+          ]
+        },
+        {
+          "coupling_id": "orbit_eclipse_to_thermal_shadow",
+          "source_subsystem": "orbit_environment",
+          "sink_subsystem": "thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "EclipseMsg -> ThermalNetwork.SolarHeatInput.eclipseInMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "spacecraft_state_to_eclipse_and_thermal_shadow"
+          ],
+          "passed_case_ids": [
+            "spacecraft_state_to_eclipse_and_thermal_shadow"
+          ]
+        },
+        {
+          "coupling_id": "eps_pdu_to_thermal_heaters",
+          "source_subsystem": "eps",
+          "sink_subsystem": "thermal",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "PDU heaterStatusOutMsg -> ThermalHeater.enableInMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "eps_pdu_to_thermal_heaters"
+          ],
+          "passed_case_ids": [
+            "eps_pdu_to_thermal_heaters"
+          ]
+        },
+        {
+          "coupling_id": "thermal_heaters_to_eps_load",
+          "source_subsystem": "thermal",
+          "sink_subsystem": "eps",
+          "runtime_status": "coupled",
+          "active": true,
+          "interface": "ThermalHeater.electricalPowerOutMsg -> battery.addPowerNodeToModel",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "thermal_heaters_to_eps_load"
+          ],
+          "passed_case_ids": [
+            "thermal_heaters_to_eps_load"
+          ]
+        },
+        {
+          "coupling_id": "adcs_pointing_to_payload_comm_gate",
+          "source_subsystem": "adcs",
+          "sink_subsystem": "payload,comm_data",
+          "runtime_status": "proxy_coupled_verified",
+          "active": true,
+          "interface": "AttGuidMsg + EPS/Thermal status -> WholeSpacecraftMissionGate -> instrument baud and native downlink LinkBudgetMsg",
+          "claim_scope": "runtime_wiring_evidence_not_paired_counterfactual_causality",
+          "causal_validation_status": "PASS",
+          "declared_case_ids": [
+            "adcs_pointing_to_payload_and_downlink"
+          ],
+          "passed_case_ids": [
+            "adcs_pointing_to_payload_and_downlink"
+          ]
+        }
+      ],
+      "claim_scope": "coverage only counts runtime couplings backed by at least one passing sealed paired-run case"
+    },
+    "status": "PASS",
+    "matrix_sha256": "8f979b8b80f0d94a86bf6eae8b4e3c55ac5e3f0b676537e5a528efa9d10469dd",
+    "baseline_spec_sha256": "6bb882b19bf8ee273c187a1425d30ecdfa0af8d86fb8ffa937570f08bfeae0ef",
+    "case_count": 18,
+    "pass_count": 18,
+    "fail_count": 0,
+    "inconclusive_count": 0,
+    "cases": [
+      {
+        "case_id": "payload_generation_to_storage",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "payload_activity_to_comm_storage",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 1500000.0,
+            "source_delta_median": 1500000.0,
+            "source_delta_max_abs": 1500000.0,
+            "response_delta": 97500000.0,
+            "response_delta_median": 97500000.0,
+            "response_delta_max_abs": 180000000.0,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "payload_power_to_eps",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "payload_activity_to_eps",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -32.0,
+            "source_delta_median": -32.0,
+            "source_delta_max_abs": 32.00000000000001,
+            "response_delta": -0.0035999999999994183,
+            "response_delta_median": -0.0035999999999993815,
+            "response_delta_max_abs": 0.0066555555555547485,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "payload_power_to_thermal",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "payload_activity_to_thermal",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -162.0,
+            "source_delta_median": -162.0,
+            "source_delta_max_abs": 162.00000000000003,
+            "response_delta": 0.022542441745988146,
+            "response_delta_median": 0.017185465079535334,
+            "response_delta_max_abs": 0.0619226483016746,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 20.000000000000004,
+            "response_fraction": 0.8333333333333334,
+            "max_consecutive_response_samples": 10,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "payload_fault_to_storage",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "payload_fault_to_data_storage",
+            "status": "PASS",
+            "aligned_sample_count": 24,
+            "pre_sample_count": 3,
+            "post_sample_count": 21,
+            "source_delta": -2380952.380952381,
+            "source_delta_median": -2500000.0,
+            "source_delta_max_abs": 2500000.0,
+            "response_delta": -121585628.14285715,
+            "response_delta_median": -120906373.0,
+            "response_delta_max_abs": 245906373.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 25.0,
+            "first_response_time_s": 25.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 0.9523809523809523,
+            "max_consecutive_response_samples": 20,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "solar_generation_to_eps",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "solar_generation_to_eps_storage",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 84.63481576602959,
+            "source_delta_median": 84.63482112167377,
+            "source_delta_max_abs": 84.63484011360033,
+            "response_delta": 0.009550805314606309,
+            "response_delta_median": 0.009550805919026684,
+            "response_delta_max_abs": 0.01763225386169609,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "native_downlink_to_storage_drain",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "comm_native_odh_to_storage_drain",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 244966.2830251914,
+            "source_delta_median": 0.0,
+            "source_delta_max_abs": 1000000.0000000088,
+            "response_delta": -24268994.666666668,
+            "response_delta_median": -25762521.0,
+            "response_delta_max_abs": 29765247.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "low_soc_to_payload_gate",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "eps_storage_to_payload_gate",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -0.46122083296571503,
+            "source_delta_median": -0.46122083297435745,
+            "source_delta_max_abs": 0.46866874996721386,
+            "response_delta": -2500000.0,
+            "response_delta_median": -2500000.0,
+            "response_delta_max_abs": 2500000.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "eps_storage_to_payload_data_storage",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -0.46122083296571503,
+            "source_delta_median": -0.46122083297435745,
+            "source_delta_max_abs": 0.46866874996721386,
+            "response_delta": -114504779.75,
+            "response_delta_median": -108406373.0,
+            "response_delta_max_abs": 245906373.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "eps_storage_to_comm_gate",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -0.46122083296571503,
+            "source_delta_median": -0.46122083297435745,
+            "source_delta_max_abs": 0.46866874996721386,
+            "response_delta": -1500000.0,
+            "response_delta_median": -1500000.0,
+            "response_delta_max_abs": 1500000.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "adcs_pointing_to_payload_and_downlink",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "adcs_pointing_to_payload_gate",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 85.85929017029264,
+            "source_delta_median": 86.15623884252395,
+            "source_delta_max_abs": 87.18500884005039,
+            "response_delta": -2500000.0,
+            "response_delta_median": -2500000.0,
+            "response_delta_max_abs": 2500000.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "adcs_pointing_to_downlink_gate",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 85.85929017029264,
+            "source_delta_median": 86.15623884252395,
+            "source_delta_max_abs": 87.18500884005039,
+            "response_delta": -48070214.876250595,
+            "response_delta_median": -54093619.86606414,
+            "response_delta_max_abs": 54093619.86606414,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "adcs_control_effort_to_power_and_heat",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "adcs_control_effort_to_eps",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 37.28593045125763,
+            "source_delta_median": 40.0529033346812,
+            "source_delta_max_abs": 59.82913158802846,
+            "response_delta": -0.003153762094941485,
+            "response_delta_median": -0.0028055580909952527,
+            "response_delta_max_abs": 0.007277619101824007,
+            "observed_direction": "decrease",
+            "source_change_time_s": 30.000000000000004,
+            "first_response_time_s": 40.0,
+            "first_response_lag_s": 9.999999999999996,
+            "response_fraction": 0.75,
+            "max_consecutive_response_samples": 9,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "adcs_control_effort_to_thermal",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 37.28593045125763,
+            "source_delta_median": 40.0529033346812,
+            "source_delta_max_abs": 59.82913158802846,
+            "response_delta": 1.0729797044461786,
+            "response_delta_median": 0.9602497344130541,
+            "response_delta_max_abs": 2.4589360927250823,
+            "observed_direction": "increase",
+            "source_change_time_s": 30.000000000000004,
+            "first_response_time_s": 50.0,
+            "first_response_lag_s": 19.999999999999996,
+            "response_fraction": 0.6666666666666666,
+            "max_consecutive_response_samples": 8,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "comm_link_loss_to_eps_thermal_storage",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "comm_activity_to_eps_storage",
+            "status": "PASS",
+            "aligned_sample_count": 24,
+            "pre_sample_count": 3,
+            "post_sample_count": 21,
+            "source_delta": -21641253.699041687,
+            "source_delta_median": -24093619.866064135,
+            "source_delta_max_abs": 24093619.866064135,
+            "response_delta": 0.002421296296296906,
+            "response_delta_median": 0.0024208333333340937,
+            "response_delta_max_abs": 0.004851388888889696,
+            "observed_direction": "increase",
+            "source_change_time_s": 25.0,
+            "first_response_time_s": 25.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 0.9523809523809523,
+            "max_consecutive_response_samples": 20,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "comm_activity_to_thermal",
+            "status": "PASS",
+            "aligned_sample_count": 24,
+            "pre_sample_count": 3,
+            "post_sample_count": 21,
+            "source_delta": -21641253.699041687,
+            "source_delta_median": -24093619.866064135,
+            "source_delta_max_abs": 24093619.866064135,
+            "response_delta": -0.33535783971722194,
+            "response_delta_median": -0.3539771212747951,
+            "response_delta_max_abs": 0.6980863609745143,
+            "observed_direction": "decrease",
+            "source_change_time_s": 25.0,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 5.0000000000000036,
+            "response_fraction": 0.9047619047619048,
+            "max_consecutive_response_samples": 19,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "comm_link_to_storage_drain",
+            "status": "PASS",
+            "aligned_sample_count": 24,
+            "pre_sample_count": 3,
+            "post_sample_count": 21,
+            "source_delta": -21641253.699041687,
+            "source_delta_median": -24093619.866064135,
+            "source_delta_max_abs": 24093619.866064135,
+            "response_delta": 21600086.14285714,
+            "response_delta_median": 24093627.0,
+            "response_delta_max_abs": 24093627.0,
+            "observed_direction": "increase",
+            "source_change_time_s": 25.0,
+            "first_response_time_s": 25.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 0.9523809523809523,
+            "max_consecutive_response_samples": 20,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "eps_bus_load_to_thermal_heat",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "eps_bus_load_to_battery",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -37.0,
+            "source_delta_median": -37.0,
+            "source_delta_max_abs": 37.0,
+            "response_delta": -0.00417534722222158,
+            "response_delta_median": -0.004175347222221515,
+            "response_delta_max_abs": 0.007708333333332429,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 20.0,
+            "first_response_lag_s": 10.0,
+            "response_fraction": 0.9166666666666666,
+            "max_consecutive_response_samples": 11,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "eps_bus_load_to_thermal",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -37.0,
+            "source_delta_median": -37.0,
+            "source_delta_max_abs": 37.0,
+            "response_delta": 0.6711299379917222,
+            "response_delta_median": 0.6749745554486424,
+            "response_delta_max_abs": 1.224461928655046,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "legacy_transmitter_to_storage_drain",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "legacy_transmitter_activity",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -750000.0,
+            "source_delta_median": -750000.0,
+            "source_delta_max_abs": 1500000.0,
+            "response_delta": 5145220.25,
+            "response_delta_median": -300000.0,
+            "response_delta_max_abs": 23793627.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 20.000000000000004,
+            "response_fraction": 0.8333333333333334,
+            "max_consecutive_response_samples": 10,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "spacecraft_state_to_eclipse_and_thermal_shadow",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "spacecraft_state_to_orbit_eclipse",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -13955976.864533613,
+            "source_delta_median": -13965442.072782528,
+            "source_delta_max_abs": 13999186.537600204,
+            "response_delta": -1.0,
+            "response_delta_median": -1.0,
+            "response_delta_max_abs": 1.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "orbit_eclipse_to_thermal_shadow",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -1.0,
+            "source_delta_median": -1.0,
+            "source_delta_max_abs": 1.0,
+            "response_delta": -20.421164808839038,
+            "response_delta_median": -21.1251528208536,
+            "response_delta_max_abs": 34.93546945035001,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 20.0,
+            "first_response_lag_s": 10.0,
+            "response_fraction": 0.9166666666666666,
+            "max_consecutive_response_samples": 11,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "ground_access_geometry_to_rf_link_budget",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "ground_access_to_rf_link_distance",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 883355.8105237518,
+            "source_delta_median": 896039.985789963,
+            "source_delta_max_abs": 997225.0666393231,
+            "response_delta": 883355.8105237518,
+            "response_delta_median": 896039.985789963,
+            "response_delta_max_abs": 997225.0666393231,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "gravity_to_spacecraft_orbit_dynamics",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "gravity_to_spacecraft_orbit_radius",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -1.0,
+            "source_delta_median": -1.0,
+            "source_delta_max_abs": 1.0,
+            "response_delta": 21972.086098323187,
+            "response_delta_median": 17264.45642564725,
+            "response_delta_max_abs": 58326.85796980932,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 20.0,
+            "first_response_lag_s": 10.0,
+            "response_fraction": 0.9166666666666666,
+            "max_consecutive_response_samples": 11,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "propulsion_activity_to_power_heat_and_orbit",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "propulsion_activity_to_eps",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 757.3333333333338,
+            "source_delta_median": 792.0000000000005,
+            "source_delta_max_abs": 792.0000000000005,
+            "response_delta": -0.001314814814568956,
+            "response_delta_median": -0.0013749999996712226,
+            "response_delta_max_abs": 0.001374999999974702,
+            "observed_direction": "decrease",
+            "source_change_time_s": 20.0,
+            "first_response_time_s": 20.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "propulsion_activity_to_thermal",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 757.3333333333338,
+            "source_delta_median": 792.0000000000005,
+            "source_delta_max_abs": 792.0000000000005,
+            "response_delta": 0.062449501597015455,
+            "response_delta_median": 0.06501849247700875,
+            "response_delta_max_abs": 0.06674151120057559,
+            "observed_direction": "increase",
+            "source_change_time_s": 20.0,
+            "first_response_time_s": 20.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          },
+          {
+            "coupling_id": "propulsion_effector_to_spacecraft_orbit",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": 0.019323622235927318,
+            "source_delta_median": 0.02019038101695836,
+            "source_delta_max_abs": 0.02019038101695836,
+            "response_delta": 2.8979518577301255,
+            "response_delta_median": 2.889464374165982,
+            "response_delta_max_abs": 5.772166459821165,
+            "observed_direction": "increase",
+            "source_change_time_s": 20.0,
+            "first_response_time_s": 30.000000000000004,
+            "first_response_lag_s": 10.000000000000004,
+            "response_fraction": 0.8333333333333334,
+            "max_consecutive_response_samples": 10,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "eps_pdu_to_thermal_heaters",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "eps_pdu_to_heater_enable",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -1.0,
+            "source_delta_median": -1.0,
+            "source_delta_max_abs": 1.0,
+            "response_delta": -1.0,
+            "response_delta_median": -1.0,
+            "response_delta_max_abs": 1.0,
+            "observed_direction": "decrease",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 10.0,
+            "first_response_lag_s": 0.0,
+            "response_fraction": 1.0,
+            "max_consecutive_response_samples": 12,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      },
+      {
+        "case_id": "thermal_heaters_to_eps_load",
+        "status": "PASS",
+        "reason_codes": [],
+        "checks": [
+          {
+            "coupling_id": "thermal_heater_feedback_to_eps",
+            "status": "PASS",
+            "aligned_sample_count": 12,
+            "pre_sample_count": 0,
+            "post_sample_count": 12,
+            "source_delta": -12.0,
+            "source_delta_median": -12.0,
+            "source_delta_max_abs": 12.0,
+            "response_delta": 0.001354166666666055,
+            "response_delta_median": 0.0013541666666659902,
+            "response_delta_max_abs": 0.0024999999999991696,
+            "observed_direction": "increase",
+            "source_change_time_s": 10.0,
+            "first_response_time_s": 50.0,
+            "first_response_lag_s": 40.0,
+            "response_fraction": 0.6666666666666666,
+            "max_consecutive_response_samples": 8,
+            "pre_equivalent": true,
+            "source_changed": true,
+            "response_changed": true,
+            "sustained_response_ok": true,
+            "direction_ok": true,
+            "lag_ok": true,
+            "reason_codes": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "commit": "57e87e582c249fbafa2fd22b7aed03b2d1907b4e",
+  "groups": [
+    {
+      "group": "events",
+      "count": 44,
+      "cases": [
+        "test_active_event_ratio_distinguishes_nominal_and_active_defaults",
+        "test_capability_contracts_and_templates_enable_native_events",
+        "test_adcs_events_modify_pre_dynamics_messages[fault-adcs_rw_jamming-parameters0-adcs.control.applied_torque_nm_0-<lambda>]",
+        "test_adcs_events_modify_pre_dynamics_messages[fault-adcs_rw_motor_failure-parameters1-adcs.rw.effective_max_torque_nm_0-<lambda>]",
+        "test_adcs_events_modify_pre_dynamics_messages[fault-gyro_bias_step-parameters2-adcs.sensor.gyro_bias_rad_s_x-<lambda>]",
+        "test_adcs_events_modify_pre_dynamics_messages[degradation-gyro_noise_increase-parameters3-adcs.sensor.gyro_noise_rad_s_x-<lambda>]",
+        "test_adcs_events_modify_pre_dynamics_messages[degradation-rw_friction_degradation-parameters4-adcs.rw.effective_drag_nms_0-<lambda>]",
+        "test_adcs_events_modify_pre_dynamics_messages[constraint-adcs_reaction_wheel_speed_limit-parameters5-adcs.rw.effective_max_speed_rad_s_0-<lambda>]",
+        "test_whole_spacecraft_events_propagate_before_state_integration[fault-payload_instrument_off-parameters0-payload.active-<lambda>-values0]",
+        "test_whole_spacecraft_events_propagate_before_state_integration[fault-comm_data_downlink_link_loss-parameters1-comm.active-<lambda>-values1]",
+        "test_whole_spacecraft_events_propagate_before_state_integration[fault-eps_battery_capacity_loss-parameters2-eps.battery_capacity_j-<lambda>-values2]",
+        "test_whole_spacecraft_events_propagate_before_state_integration[degradation-solar_panel_efficiency_loss-parameters3-eps.solar_array_power_w-<lambda>-values3]",
+        "test_whole_spacecraft_events_propagate_before_state_integration[degradation-thermal_radiator_rejection_loss-parameters4-thermal.payload_temp_k-<lambda>-values4]",
+        "test_whole_spacecraft_events_propagate_before_state_integration[constraint-power_safe_mode_threshold-parameters5-label.power_safe_mode_engaged-<lambda>-values5]",
+        "test_thermal_degradation_changes_recorder_temperature_against_nominal",
+        "test_unmigrated_effect_and_invalid_wheel_are_rejected",
+        "test_unified_effect_contracts_are_declared_and_registered",
+        "test_each_unified_effect_has_formal_runtime_pass[subsystem.adcs_unified_native.v1-fault-event0-values0]",
+        "test_each_unified_effect_has_formal_runtime_pass[subsystem.adcs_unified_native.v1-fault-event1-values1]",
+        "test_each_unified_effect_has_formal_runtime_pass[subsystem.adcs_unified_native.v1-degradation-event2-values2]",
+        "test_each_unified_effect_has_formal_runtime_pass[subsystem.adcs_unified_native.v1-fault-event3-values3]",
+        "test_each_unified_effect_has_formal_runtime_pass[subsystem.adcs_unified_native.v1-degradation-event4-values4]",
+        "test_each_unified_effect_has_formal_runtime_pass[subsystem.adcs_unified_native.v1-degradation-event5-values5]",
+        "test_each_unified_effect_has_formal_runtime_pass[subsystem.adcs_unified_native.v1-constraint-event6-values6]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-fault-event7-values7]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-fault-event8-values8]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-fault-event9-values9]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-degradation-event10-values10]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-degradation-event11-values11]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-constraint-event12-values12]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-fault-event13-values13]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-fault-event14-values14]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-fault-event15-values15]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-degradation-event16-values16]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-degradation-event17-values17]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-constraint-event18-values18]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-fault-event19-values19]",
+        "test_each_unified_effect_has_formal_runtime_pass[whole_spacecraft.unified_native.v1-degradation-event20-values20]",
+        "test_each_unified_effect_has_formal_runtime_pass[subsystem.eps.unified_native.v1-fault-event21-values21]",
+        "test_each_unified_effect_has_formal_runtime_pass[subsystem.eps.unified_native.v1-degradation-event22-values22]",
+        "test_each_unified_effect_has_formal_runtime_pass[subsystem.comm_data.unified_native.v1-fault-event23-values23]",
+        "test_each_unified_effect_has_formal_runtime_pass[subsystem.comm_data.unified_native.v1-degradation-event24-values24]",
+        "test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect",
+        "test_whole_spacecraft_task_spec_rejects_runtime_known_but_undeclared_effect_and_partial_motor_torque_parameter"
+      ]
+    },
+    {
+      "group": "environment",
+      "count": 5,
+      "cases": [
+        "test_actual_four_effects_coexist_with_independent_ablation",
+        "test_all_four_effects_one_real_orbit_crosses_eclipse_with_drag_still_active",
+        "test_four_effects_full_orbit_timestep_refinement",
+        "test_four_effects_pass_canonical_taskspec_exported_script_and_sealed_run_bundle",
+        "test_dt12_four_native_environment_effects_and_rw_deadband_in_same_run"
+      ]
+    },
+    {
+      "group": "wizard-head",
+      "count": 3,
+      "cases": [
+        "test_browser_request_to_native_first_frame[default]",
+        "test_browser_request_to_native_first_frame[legacy]",
+        "test_browser_request_to_native_first_frame[custom]"
+      ]
+    }
+  ],
+  "wizard": [
+    {
+      "case": "default",
+      "submitted": {
+        "initial_body_rate_x_rad_s": 0.01,
+        "initial_body_rate_y_rad_s": -0.004,
+        "initial_body_rate_z_rad_s": 0.002
+      },
+      "accepted": {
+        "initial_body_rate_x_rad_s": 0.01,
+        "initial_body_rate_y_rad_s": -0.004,
+        "initial_body_rate_z_rad_s": 0.002
+      },
+      "first": {
+        "time_s": 0.0,
+        "truth": [
+          0.01,
+          -0.004,
+          0.002
+        ],
+        "runtime_values": {
+          "initial_body_rate_x_rad_s": 0.01,
+          "initial_body_rate_y_rad_s": -0.004,
+          "initial_body_rate_z_rad_s": 0.002
+        }
+      },
+      "commit": "57e87e582c249fbafa2fd22b7aed03b2d1907b4e",
+      "bsk": "2.11.0",
+      "chrome": "157.0.8103.79"
+    },
+    {
+      "case": "legacy",
+      "submitted": {},
+      "accepted": {},
+      "first": {
+        "time_s": 0.0,
+        "truth": [
+          0.01,
+          -0.004,
+          0.002
+        ],
+        "runtime_values": {}
+      },
+      "commit": "57e87e582c249fbafa2fd22b7aed03b2d1907b4e",
+      "bsk": "2.11.0",
+      "chrome": "157.0.8103.79"
+    },
+    {
+      "case": "custom",
+      "submitted": {
+        "initial_body_rate_x_rad_s": -0.003,
+        "initial_body_rate_y_rad_s": 0,
+        "initial_body_rate_z_rad_s": 0.006
+      },
+      "accepted": {
+        "initial_body_rate_x_rad_s": -0.003,
+        "initial_body_rate_y_rad_s": 0.0,
+        "initial_body_rate_z_rad_s": 0.006
+      },
+      "first": {
+        "time_s": 0.0,
+        "truth": [
+          -0.003,
+          0.0,
+          0.006
+        ],
+        "runtime_values": {
+          "initial_body_rate_x_rad_s": -0.003,
+          "initial_body_rate_y_rad_s": 0.0,
+          "initial_body_rate_z_rad_s": 0.006
+        }
+      },
+      "commit": "57e87e582c249fbafa2fd22b7aed03b2d1907b4e",
+      "bsk": "2.11.0",
+      "chrome": "157.0.8103.79"
+    }
+  ]
+}

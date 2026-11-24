@@ -1,0 +1,198 @@
+{
+  "native_probes": [
+    {
+      "initial_soc": 0.1,
+      "sink_priority": 55,
+      "energy_j": [
+        1000.0,
+        990.0,
+        980.0
+      ],
+      "capacity_j": [
+        10000.0,
+        10000.0,
+        10000.0
+      ]
+    },
+    {
+      "initial_soc": 0.1,
+      "sink_priority": 45,
+      "energy_j": [
+        0.0,
+        990.0,
+        980.0
+      ],
+      "capacity_j": [
+        0.0,
+        10000.0,
+        10000.0
+      ]
+    },
+    {
+      "initial_soc": 0.62,
+      "sink_priority": 55,
+      "energy_j": [
+        6200.0,
+        6190.0,
+        6180.0
+      ],
+      "capacity_j": [
+        10000.0,
+        10000.0,
+        10000.0
+      ]
+    },
+    {
+      "initial_soc": 0.62,
+      "sink_priority": 45,
+      "energy_j": [
+        0.0,
+        6190.0,
+        6180.0
+      ],
+      "capacity_j": [
+        0.0,
+        10000.0,
+        10000.0
+      ]
+    }
+  ],
+  "whole": [
+    {
+      "run_id": "open-loop",
+      "initial_soc": 0.62,
+      "gains": [
+        0,
+        0
+      ],
+      "initial_capacity_j": 1e-12,
+      "initial_reported_soc": 0.0,
+      "second_frame_soc": 0.6229690302999589,
+      "pointing_deg": [
+        7.999999999999997,
+        9.17189842217045,
+        10.3784917985009,
+        11.601664919502145,
+        12.830073237844646,
+        14.056343086223777,
+        15.27550818150694,
+        16.484107820462583,
+        17.679645983445088,
+        18.8602534625027,
+        20.024468306278006,
+        21.17108785078048,
+        22.299065808591745,
+        23.407438940695215,
+        24.49527404644297,
+        25.561629583857492
+      ],
+      "validation": "PASS",
+      "issues": [
+        {
+          "severity": "warning",
+          "check_id": "soc_bounds",
+          "path": "trace[0].eps.battery_soc",
+          "message": "battery SOC is near an operational boundary",
+          "value": 0.0,
+          "limit": "warning outside [0.02, 0.98]"
+        },
+        {
+          "severity": "warning",
+          "check_id": "pointing_convergence",
+          "path": "trace[15].adcs.pointing_error_deg",
+          "message": "pointing error did not show convergence over the run",
+          "value": 25.561629583857492,
+          "limit": "initial 7.999999999999997 deg"
+        }
+      ]
+    },
+    {
+      "run_id": "closed-loop",
+      "initial_soc": 0.62,
+      "gains": [
+        3.5,
+        30
+      ],
+      "initial_capacity_j": 1e-12,
+      "initial_reported_soc": 0.0,
+      "second_frame_soc": 0.6229486042157564,
+      "pointing_deg": [
+        7.999999999999997,
+        9.008617759302677,
+        9.574912605233191,
+        9.687357599523416,
+        9.46842208283875,
+        9.084242605778773,
+        8.627783086786529,
+        8.148262105008852,
+        7.671173132650118,
+        7.209244761029793,
+        6.768399253016392,
+        6.3509703036629395,
+        5.95742963250434,
+        5.5873076350960496,
+        5.239681002437935,
+        4.913428876793118
+      ],
+      "validation": "PASS",
+      "issues": [
+        {
+          "severity": "warning",
+          "check_id": "soc_bounds",
+          "path": "trace[0].eps.battery_soc",
+          "message": "battery SOC is near an operational boundary",
+          "value": 0.0,
+          "limit": "warning outside [0.02, 0.98]"
+        }
+      ]
+    },
+    {
+      "run_id": "low-charge",
+      "initial_soc": 0.1,
+      "gains": [
+        0,
+        0
+      ],
+      "initial_capacity_j": 1e-12,
+      "initial_reported_soc": 0.0,
+      "second_frame_soc": 0.10316781502218104,
+      "pointing_deg": [
+        7.999999999999997,
+        9.17189842217045,
+        10.3784917985009,
+        11.601664919502145,
+        12.830073237844646,
+        14.056343086223777,
+        15.27550818150694,
+        16.484107820462583,
+        17.679645983445088,
+        18.8602534625027,
+        20.024468306278006,
+        21.17108785078048,
+        22.299065808591745,
+        23.407438940695215,
+        24.49527404644297,
+        25.561629583857492
+      ],
+      "validation": "PASS",
+      "issues": [
+        {
+          "severity": "warning",
+          "check_id": "soc_bounds",
+          "path": "trace[0].eps.battery_soc",
+          "message": "battery SOC is near an operational boundary",
+          "value": 0.0,
+          "limit": "warning outside [0.02, 0.98]"
+        },
+        {
+          "severity": "warning",
+          "check_id": "pointing_convergence",
+          "path": "trace[15].adcs.pointing_error_deg",
+          "message": "pointing error did not show convergence over the run",
+          "value": 25.561629583857492,
+          "limit": "initial 7.999999999999997 deg"
+        }
+      ]
+    }
+  ]
+}

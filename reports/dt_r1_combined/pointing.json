@@ -1,0 +1,301 @@
+[
+  {
+    "run_id": "free",
+    "gains": [
+      0,
+      0
+    ],
+    "limit_deg": null,
+    "samples": [
+      [
+        0.0,
+        7.999999999999997
+      ],
+      [
+        2.0,
+        9.17189842217045
+      ],
+      [
+        4.0,
+        10.3784917985009
+      ],
+      [
+        6.0,
+        11.601664919502145
+      ],
+      [
+        8.0,
+        12.830073237844646
+      ],
+      [
+        10.0,
+        14.056343086223777
+      ],
+      [
+        12.0,
+        15.27550818150694
+      ],
+      [
+        14.0,
+        16.484107820462583
+      ],
+      [
+        16.0,
+        17.679645983445088
+      ],
+      [
+        18.0,
+        18.8602534625027
+      ],
+      [
+        20.0,
+        20.024468306278006
+      ],
+      [
+        22.0,
+        21.17108785078048
+      ],
+      [
+        24.0,
+        22.299065808591745
+      ],
+      [
+        26.0,
+        23.407438940695215
+      ],
+      [
+        28.0,
+        24.49527404644297
+      ],
+      [
+        30.000000000000004,
+        25.561629583857492
+      ]
+    ],
+    "assertions": {
+      "schema_version": "sat-sim.metric-assertions.v1",
+      "status": "NOT_CONFIGURED",
+      "assertion_count": 0,
+      "pass_count": 0,
+      "fail_count": 0,
+      "not_evaluated_count": 0,
+      "results": []
+    },
+    "mission_status": "PASS",
+    "validation": "PASS",
+    "issues": [
+      {
+        "severity": "warning",
+        "check_id": "pointing_convergence",
+        "path": "trace[15].adcs.pointing_error_deg",
+        "message": "pointing error did not show convergence over the run",
+        "value": 25.561629583857492,
+        "limit": "initial 7.999999999999997 deg"
+      }
+    ],
+    "seal": "673a1ffef64731e6f413b3ab687b4b3bab7c799c33f38e240d2a395f4e29aa28"
+  },
+  {
+    "run_id": "required-open",
+    "gains": [
+      0,
+      0
+    ],
+    "limit_deg": 8,
+    "samples": [
+      [
+        0.0,
+        7.999999999999997
+      ],
+      [
+        2.0,
+        9.17189842217045
+      ],
+      [
+        4.0,
+        10.3784917985009
+      ],
+      [
+        6.0,
+        11.601664919502145
+      ],
+      [
+        8.0,
+        12.830073237844646
+      ],
+      [
+        10.0,
+        14.056343086223777
+      ],
+      [
+        12.0,
+        15.27550818150694
+      ],
+      [
+        14.0,
+        16.484107820462583
+      ],
+      [
+        16.0,
+        17.679645983445088
+      ],
+      [
+        18.0,
+        18.8602534625027
+      ],
+      [
+        20.0,
+        20.024468306278006
+      ],
+      [
+        22.0,
+        21.17108785078048
+      ],
+      [
+        24.0,
+        22.299065808591745
+      ],
+      [
+        26.0,
+        23.407438940695215
+      ],
+      [
+        28.0,
+        24.49527404644297
+      ],
+      [
+        30.000000000000004,
+        25.561629583857492
+      ]
+    ],
+    "assertions": {
+      "schema_version": "sat-sim.metric-assertions.v1",
+      "status": "FAIL",
+      "assertion_count": 1,
+      "pass_count": 0,
+      "fail_count": 1,
+      "not_evaluated_count": 0,
+      "results": [
+        {
+          "assertion_id": "terminal_pointing",
+          "metric": "final_pointing_error_deg",
+          "operator": "<=",
+          "expected": 8,
+          "actual": 25.561629583857492,
+          "status": "FAIL",
+          "message": "actual=25.561629583857492 <= expected=8"
+        }
+      ]
+    },
+    "mission_status": "PASS",
+    "validation": "FAIL",
+    "issues": [
+      {
+        "severity": "warning",
+        "check_id": "pointing_convergence",
+        "path": "trace[15].adcs.pointing_error_deg",
+        "message": "pointing error did not show convergence over the run",
+        "value": 25.561629583857492,
+        "limit": "initial 7.999999999999997 deg"
+      }
+    ],
+    "seal": "3cd10c8b7b4143c42d8e1da30f7311fbadda9cb39e0fdda0e4e9b5e0833ef744"
+  },
+  {
+    "run_id": "required-closed",
+    "gains": [
+      3.5,
+      30
+    ],
+    "limit_deg": 8,
+    "samples": [
+      [
+        0.0,
+        7.999999999999997
+      ],
+      [
+        2.0,
+        9.008617759302677
+      ],
+      [
+        4.0,
+        9.574912605233191
+      ],
+      [
+        6.0,
+        9.687357599523416
+      ],
+      [
+        8.0,
+        9.46842208283875
+      ],
+      [
+        10.0,
+        9.084242605778773
+      ],
+      [
+        12.0,
+        8.627783086786529
+      ],
+      [
+        14.0,
+        8.148262105008852
+      ],
+      [
+        16.0,
+        7.671173132650118
+      ],
+      [
+        18.0,
+        7.209244761029793
+      ],
+      [
+        20.0,
+        6.768399253016392
+      ],
+      [
+        22.0,
+        6.3509703036629395
+      ],
+      [
+        24.0,
+        5.95742963250434
+      ],
+      [
+        26.0,
+        5.5873076350960496
+      ],
+      [
+        28.0,
+        5.239681002437935
+      ],
+      [
+        30.000000000000004,
+        4.913428876793118
+      ]
+    ],
+    "assertions": {
+      "schema_version": "sat-sim.metric-assertions.v1",
+      "status": "PASS",
+      "assertion_count": 1,
+      "pass_count": 1,
+      "fail_count": 0,
+      "not_evaluated_count": 0,
+      "results": [
+        {
+          "assertion_id": "terminal_pointing",
+          "metric": "final_pointing_error_deg",
+          "operator": "<=",
+          "expected": 8,
+          "actual": 4.913428876793118,
+          "status": "PASS",
+          "message": "actual=4.913428876793118 <= expected=8"
+        }
+      ]
+    },
+    "mission_status": "PASS",
+    "validation": "PASS",
+    "issues": [],
+    "seal": "72e72a959ab58785b0e7e32f30a8ee81e1789f92ee72b43d710806bd92aa1cf2"
+  }
+]

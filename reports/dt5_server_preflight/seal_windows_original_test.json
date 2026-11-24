@@ -1,0 +1,30 @@
+{
+  "source": "28c67b67a3fcc1ab612b559edfd3cc686c529eba",
+  "test": "unmodified pytest",
+  "advance_deadline_wall_s": 180,
+  "archive_wait_wall_s": 15,
+  "sim_time_s": 3600.0,
+  "running_to_paused_s": 112.142883,
+  "completed_to_seal_timestamp_s": 8.635166,
+  "streams": {
+    "runtime.trace": 7201,
+    "whole.soak": 3601
+  },
+  "total_frames": 10802,
+  "state_chain_valid": true,
+  "bundle_verify_ok": true,
+  "seal": {
+    "bundle_manifest_sha256": "f1c20549c4820638d91bb2bd2e1f4abec7a4061222f435f7534d29a61ae426b2",
+    "immutability_policy": "sealed interactive evidence is immutable; recovery creates a new epoch",
+    "run_id": "native-continuous-180s-soak",
+    "schema_version": "interactive-run-bundle.v1",
+    "sealed_at": "2026-11-23T15:33:44.736703Z"
+  },
+  "junit": {
+    "tests": "1",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "126.676"
+  }
+}

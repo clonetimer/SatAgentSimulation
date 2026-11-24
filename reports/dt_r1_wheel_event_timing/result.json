@@ -1,0 +1,312 @@
+{
+  "healthy": {
+    "template": "whole_spacecraft_unified_native",
+    "validation": "PASS",
+    "rows": 101
+  },
+  "adcs_healthy": {
+    "template": "adcs_unified_native",
+    "validation": "PASS",
+    "rows": 101
+  },
+  "jam": {
+    "template": "whole_spacecraft_unified_native",
+    "validation": "PASS",
+    "rows": 101,
+    "requested_s": [
+      5.05,
+      14.95
+    ],
+    "transition_samples": [
+      {
+        "time_s": 5.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.2,
+          "healthy": 0.2
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 22.545157520193644,
+          "healthy": 22.545157520193644
+        }
+      },
+      {
+        "time_s": 5.2,
+        "limit_ratio": 0.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.2,
+          "healthy": 0.2
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 23.048213458813628,
+          "healthy": 23.048213458813628
+        }
+      },
+      {
+        "time_s": 14.8,
+        "limit_ratio": 0.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": -0.2,
+          "healthy": -0.01070513270596174
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": -0.09220697021776947,
+          "healthy": 37.23030210491432
+        }
+      },
+      {
+        "time_s": 15.000000000000002,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.0,
+          "healthy": -0.011361532811647868
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": -0.5952571463196197,
+          "healthy": 37.20337309384148
+        }
+      },
+      {
+        "time_s": 20.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.2,
+          "healthy": -0.014546603737032981
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 11.478175832608427,
+          "healthy": 36.324313840136426
+        }
+      }
+    ],
+    "first_difference_s": {
+      "adcs.rw.actual_applied_torque_nm_0": 5.4,
+      "adcs.rw.speed_rad_s_0": 5.6000000000000005
+    }
+  },
+  "loss50": {
+    "template": "adcs_unified_native",
+    "validation": "PASS",
+    "rows": 101,
+    "requested_s": [
+      5.05,
+      14.95
+    ],
+    "transition_samples": [
+      {
+        "time_s": 5.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.2,
+          "healthy": 0.2
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 22.545157520193644,
+          "healthy": 22.545157520193644
+        }
+      },
+      {
+        "time_s": 5.2,
+        "limit_ratio": 0.5,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.2,
+          "healthy": 0.2
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 23.048213458813628,
+          "healthy": 23.048213458813628
+        }
+      },
+      {
+        "time_s": 14.8,
+        "limit_ratio": 0.5,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.06170250179434783,
+          "healthy": -0.01070513270596174
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 35.0961535051858,
+          "healthy": 37.23030210491432
+        }
+      },
+      {
+        "time_s": 15.000000000000002,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.05690108648118403,
+          "healthy": -0.011361532811647868
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 35.25135025492183,
+          "healthy": 37.20337309384148
+        }
+      },
+      {
+        "time_s": 20.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": -0.011400010852351317,
+          "healthy": -0.014546603737032981
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 36.767460523249845,
+          "healthy": 36.324313840136426
+        }
+      }
+    ],
+    "first_difference_s": {
+      "adcs.rw.actual_applied_torque_nm_0": 5.4,
+      "adcs.rw.speed_rad_s_0": 5.6000000000000005
+    }
+  },
+  "loss75": {
+    "template": "adcs_unified_native",
+    "validation": "PASS",
+    "rows": 101,
+    "requested_s": [
+      5.05,
+      14.95
+    ],
+    "transition_samples": [
+      {
+        "time_s": 5.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.2,
+          "healthy": 0.2
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 22.545157520193644,
+          "healthy": 22.545157520193644
+        }
+      },
+      {
+        "time_s": 5.2,
+        "limit_ratio": 0.25,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.2,
+          "healthy": 0.2
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 23.048213458813628,
+          "healthy": 23.048213458813628
+        }
+      },
+      {
+        "time_s": 14.8,
+        "limit_ratio": 0.25,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.05,
+          "healthy": -0.01070513270596174
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 29.462156278604212,
+          "healthy": 37.23030210491432
+        }
+      },
+      {
+        "time_s": 15.000000000000002,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.05,
+          "healthy": -0.011361532811647868
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 29.587919147807707,
+          "healthy": 37.20337309384148
+        }
+      },
+      {
+        "time_s": 20.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.006691998422133083,
+          "healthy": -0.014546603737032981
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 36.98409026906417,
+          "healthy": 36.324313840136426
+        }
+      }
+    ],
+    "first_difference_s": {
+      "adcs.rw.actual_applied_torque_nm_0": 5.4,
+      "adcs.rw.speed_rad_s_0": 5.6000000000000005
+    }
+  },
+  "motor_open": {
+    "template": "whole_spacecraft_unified_native",
+    "validation": "PASS",
+    "rows": 101,
+    "requested_s": [
+      5.05,
+      14.95
+    ],
+    "transition_samples": [
+      {
+        "time_s": 5.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.2,
+          "healthy": 0.2
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 22.545157520193644,
+          "healthy": 22.545157520193644
+        }
+      },
+      {
+        "time_s": 5.2,
+        "limit_ratio": 0.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.2,
+          "healthy": 0.2
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 23.048213458813628,
+          "healthy": 23.048213458813628
+        }
+      },
+      {
+        "time_s": 14.8,
+        "limit_ratio": 0.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": -0.0,
+          "healthy": -0.01070513270596174
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 23.55128350967421,
+          "healthy": 37.23030210491432
+        }
+      },
+      {
+        "time_s": 15.000000000000002,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": -0.0,
+          "healthy": -0.011361532811647868
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 23.55128375963218,
+          "healthy": 37.20337309384148
+        }
+      },
+      {
+        "time_s": 20.0,
+        "limit_ratio": 1.0,
+        "adcs.rw.actual_applied_torque_nm_0": {
+          "event": 0.13215509143910686,
+          "healthy": -0.014546603737032981
+        },
+        "adcs.rw.speed_rad_s_0": {
+          "event": 35.4648188528602,
+          "healthy": 36.324313840136426
+        }
+      }
+    ],
+    "first_difference_s": {
+      "adcs.rw.actual_applied_torque_nm_0": 5.4,
+      "adcs.rw.speed_rad_s_0": 5.6000000000000005
+    }
+  }
+}

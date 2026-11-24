@@ -1,0 +1,46 @@
+{
+  "legacy_j2_only": {
+    "after_configuration": {
+      "body_mu": 398600436000000.0,
+      "body_radius": 6378136.6,
+      "model_mu": 398600441500000.0,
+      "model_radius": 6378136.3,
+      "degree": 2
+    },
+    "file_header": [
+      6378136.3,
+      398600441500000.0
+    ],
+    "after_native_initialization": {
+      "body_mu": 398600436000000.0,
+      "body_radius": 6378136.6,
+      "model_mu": 398600436000000.0,
+      "model_radius": 6378136.6,
+      "degree": 2
+    },
+    "telemetry_rows": 11,
+    "runtime_message_read_errors": 0
+  },
+  "ggm03s_degree4": {
+    "after_configuration": {
+      "body_mu": 398600436000000.0,
+      "body_radius": 6378136.6,
+      "model_mu": 398600441500000.0,
+      "model_radius": 6378136.3,
+      "degree": 4
+    },
+    "file_header": [
+      6378136.3,
+      398600441500000.0
+    ],
+    "after_native_initialization": {
+      "body_mu": 398600436000000.0,
+      "body_radius": 6378136.6,
+      "model_mu": 398600436000000.0,
+      "model_radius": 6378136.6,
+      "degree": 4
+    },
+    "telemetry_rows": 11,
+    "runtime_message_read_errors": 0
+  }
+}

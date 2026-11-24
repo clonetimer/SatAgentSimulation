@@ -1,0 +1,38 @@
+{
+  "source_rows": 1000000,
+  "browser": "157.0.8103.79",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "global_min": -100,
+  "global_min_index": 825000,
+  "overview_rows": 9998,
+  "local_sample_index": 515001,
+  "local_min": -40,
+  "window_original_rows": 3,
+  "page_errors": [],
+  "zoom_requests": [
+    {
+      "max_points": [
+        "10000"
+      ],
+      "fields": [
+        "signal"
+      ]
+    },
+    {
+      "max_points": [
+        "10000"
+      ],
+      "fields": [
+        "signal"
+      ],
+      "start_s": [
+        "515000"
+      ],
+      "end_s": [
+        "515002"
+      ]
+    }
+  ],
+  "restored_min": -100,
+  "fixture_sha256": "60e6fbb5d5c679275ce553a4bf24d4b7a0427309b416f71a5bbc43e6e9387a2e"
+}

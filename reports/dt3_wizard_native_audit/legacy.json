@@ -1,0 +1,17 @@
+{
+  "case": "legacy",
+  "submitted": {},
+  "accepted": {},
+  "first": {
+    "time_s": 0.0,
+    "truth": [
+      0.01,
+      -0.004,
+      0.002
+    ],
+    "runtime_values": {}
+  },
+  "commit": "5f403b5589670659c1e18520959d0ee349617d88",
+  "bsk": "2.11.0+satfix2",
+  "chrome": "157.0.8103.79"
+}

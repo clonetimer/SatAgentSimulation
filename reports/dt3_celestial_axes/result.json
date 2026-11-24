@@ -1,0 +1,160 @@
+{
+  "archive_receipt_sha256": "890f91601f510c7b4f9cf20f54250bfa3c590d448d73c1902be4951fc9e171d2",
+  "frame_report_sha256": "057b8462dc7d4334dc2cc137bd8363b50345252d391945ff6273b9f228659cdd",
+  "erfa": "2.0.1.5",
+  "numpy": "2.5.5",
+  "samples": [
+    {
+      "body": "sun",
+      "elapsed_s": 0,
+      "erfa_geometric_km": [
+        142578526.86786515,
+        -37602423.46616424,
+        -16301013.120494775
+      ],
+      "comparisons": {
+        "gmat_icrf": {
+          "angle_arcsec": 0.0020853308499915323,
+          "separation_km": 2.62477081383628
+        },
+        "basilisk_spice_n": {
+          "angle_arcsec": 0.002085343254004861,
+          "separation_km": 2.624776213111467
+        },
+        "naif_j2000": {
+          "angle_arcsec": 0.0020853432628340175,
+          "separation_km": 2.6247762380850927
+        }
+      }
+    },
+    {
+      "body": "sun",
+      "elapsed_s": 2700,
+      "erfa_geometric_km": [
+        142602030.49517614,
+        -37531247.862546004,
+        -16270163.072623724
+      ],
+      "comparisons": {
+        "gmat_icrf": {
+          "angle_arcsec": 0.0020890334417848593,
+          "separation_km": 2.6258321877587183
+        },
+        "basilisk_spice_n": {
+          "angle_arcsec": 0.002088983629061059,
+          "separation_km": 2.6258103068183254
+        },
+        "naif_j2000": {
+          "angle_arcsec": 0.0020889774144749506,
+          "separation_km": 2.6258075788131774
+        }
+      }
+    },
+    {
+      "body": "sun",
+      "elapsed_s": 5400,
+      "erfa_geometric_km": [
+        142625492.10408238,
+        -37460061.13566931,
+        -16239308.193417436
+      ],
+      "comparisons": {
+        "gmat_icrf": {
+          "angle_arcsec": 0.0020927423852774847,
+          "separation_km": 2.626894263081616
+        },
+        "basilisk_spice_n": {
+          "angle_arcsec": 0.0020926191974823473,
+          "separation_km": 2.6268401287414713
+        },
+        "naif_j2000": {
+          "angle_arcsec": 0.0020926067248665248,
+          "separation_km": 2.6268346434803687
+        }
+      }
+    },
+    {
+      "body": "moon",
+      "elapsed_s": 0,
+      "erfa_geometric_km": [
+        -388159.6288617425,
+        -1846.1805878259356,
+        -15797.509724847494
+      ],
+      "comparisons": {
+        "gmat_icrf": {
+          "angle_arcsec": 0.23412212469758856,
+          "separation_km": 3.3314047665130615
+        },
+        "basilisk_spice_n": {
+          "angle_arcsec": 0.23412207079957245,
+          "separation_km": 3.3314047063860204
+        },
+        "naif_j2000": {
+          "angle_arcsec": 0.23412207079957245,
+          "separation_km": 3.3314047063860204
+        }
+      }
+    },
+    {
+      "body": "moon",
+      "elapsed_s": 2700,
+      "erfa_geometric_km": [
+        -388218.69063534564,
+        -4259.594954084863,
+        -17102.05427537838
+      ],
+      "comparisons": {
+        "gmat_icrf": {
+          "angle_arcsec": 0.23636221119206863,
+          "separation_km": 3.2982691607021497
+        },
+        "basilisk_spice_n": {
+          "angle_arcsec": 0.23636205338216665,
+          "separation_km": 3.2982693070066444
+        },
+        "naif_j2000": {
+          "angle_arcsec": 0.23636203365893127,
+          "separation_km": 3.2982693253024267
+        }
+      }
+    },
+    {
+      "body": "moon",
+      "elapsed_s": 5400,
+      "erfa_geometric_km": [
+        -388258.4960286995,
+        -6672.710831273916,
+        -18405.70046457884
+      ],
+      "comparisons": {
+        "gmat_icrf": {
+          "angle_arcsec": 0.24602226821998685,
+          "separation_km": 3.266389407535858
+        },
+        "basilisk_spice_n": {
+          "angle_arcsec": 0.24602103066322892,
+          "separation_km": 3.266389536368839
+        },
+        "naif_j2000": {
+          "angle_arcsec": 0.2460209053446353,
+          "separation_km": 3.2663895493649564
+        }
+      }
+    }
+  ],
+  "signed_permutation_controls": 47,
+  "closest_nonidentity_by_max_error": {
+    "order": [
+      0,
+      2,
+      1
+    ],
+    "signs": [
+      1,
+      1,
+      1
+    ],
+    "max_error_deg": 11.654717326676224
+  }
+}

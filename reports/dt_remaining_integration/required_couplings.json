@@ -1,0 +1,204 @@
+{
+  "input_sha256": "f1225302a2529db189faffd9f12c626d48056d2b176c4d1a3bb915d20ce1d51a",
+  "telemetry_sha256": "4a67b9fc8b6a128d2a62bbfebebfae6fb8305858b542b810d30f08148f0a969f",
+  "manifest_sha256": "78a69492377d6a1d2c20ef5b673e575d7eec7751dcea51038ea425c073f7cb1c",
+  "frames": 16,
+  "validation": "INCONCLUSIVE",
+  "coupling_evidence": {
+    "status": "INCONCLUSIVE",
+    "requirements": [
+      {
+        "coupling_id": "orbit_sun_attitude_eclipse_to_eps_solar_power",
+        "status": "NOT_EXERCISED",
+        "evidence_source": "telemetry"
+      },
+      {
+        "coupling_id": "eps_pdu_to_payload_activity",
+        "status": "NOT_EXERCISED",
+        "evidence_source": "bridge:payload",
+        "bridge_health": {
+          "status": "PASS",
+          "sample_count": 16,
+          "valid_sample_count": 16,
+          "not_ready_sample_count": 1,
+          "error_count": 0,
+          "errors": [],
+          "power_min_w": 0.0,
+          "power_max_w": 0.0,
+          "power_span_w": 0.0,
+          "activity_min": 0.0,
+          "activity_max": 0.0,
+          "activity_span": 0.0,
+          "positive_activity_sample_count": 0,
+          "positive_power_sample_count": 0,
+          "enabled_transition_observed": false,
+          "stimulus_observed": false,
+          "directional_response_pass": true,
+          "directional_violation_count": 0,
+          "directional_violations": [],
+          "source": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+          "input_source": "simpleInstrument.nodeDataOutMsg + project_eps_pdu.payloadStatusOutMsg"
+        }
+      },
+      {
+        "coupling_id": "eps_pdu_to_comm_activity",
+        "status": "NOT_EXERCISED",
+        "evidence_source": "bridge:comm",
+        "bridge_health": {
+          "status": "PASS",
+          "sample_count": 16,
+          "valid_sample_count": 15,
+          "error_count": 0,
+          "errors": [],
+          "violation_count": 0,
+          "violations": [],
+          "directional_violation_count": 0,
+          "directional_violations": [],
+          "directional_response_pass": true,
+          "enabled_transition_observed": false,
+          "stimulus_observed": false,
+          "pdu_enabled_sample_count": 15,
+          "pdu_disabled_sample_count": 0,
+          "tx_enabled_sample_count": 0,
+          "idle_enabled_sample_count": 15,
+          "power_min_w": 0.0,
+          "power_max_w": 0.0,
+          "antenna_tx_power_min_w": 5.0,
+          "antenna_tx_power_max_w": 5.0,
+          "expected_tx_power_w": 16.0,
+          "base_power_w": 11.0,
+          "antenna_tx_power_w": 5.0,
+          "tx_enable_condition": "pdu_comm_enabled && linkActive && attemptedDataRate > 0 && physical_antenna_state in {TX,RXTX} && P_Tx > 0",
+          "source": "Basilisk.simulation.antennaPower.AntennaPower",
+          "antenna_input": "DownlinkAntennaStatusAdapter.antennaPowerOutMsg",
+          "antenna_source": "SimpleAntenna.antennaOutMsg",
+          "base_power_node": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+          "status_adapter": "DownlinkAntennaStatusAdapter"
+        }
+      },
+      {
+        "coupling_id": "eps_pdu_to_thermal_heaters",
+        "status": "NOT_EXERCISED",
+        "evidence_source": "bridge:heater",
+        "bridge_health": {
+          "status": "PASS",
+          "sample_count": 16,
+          "valid_sample_count": 16,
+          "not_ready_sample_count": 0,
+          "error_count": 0,
+          "errors": [],
+          "power_min_w": 0.0,
+          "power_max_w": 0.0,
+          "power_span_w": 0.0,
+          "activity_min": 0.0,
+          "activity_max": 0.0,
+          "activity_span": 0.0,
+          "positive_activity_sample_count": 0,
+          "positive_power_sample_count": 0,
+          "enabled_transition_observed": false,
+          "pdu_state_transition_observed": false,
+          "stimulus_observed": false,
+          "directional_response_pass": true,
+          "directional_violation_count": 0,
+          "directional_violations": [],
+          "source": "ThermalHeater.electricalPowerOutMsg",
+          "input_source": "project_eps_pdu.heaterStatusOutMsg -> ThermalHeater.enableInMsg",
+          "heater_names": [
+            "battery",
+            "electronics"
+          ]
+        }
+      },
+      {
+        "coupling_id": "payload_activity_to_eps_thermal",
+        "status": "NOT_EXERCISED",
+        "evidence_source": "bridge:payload",
+        "bridge_health": {
+          "status": "PASS",
+          "sample_count": 16,
+          "valid_sample_count": 16,
+          "not_ready_sample_count": 1,
+          "error_count": 0,
+          "errors": [],
+          "power_min_w": 0.0,
+          "power_max_w": 0.0,
+          "power_span_w": 0.0,
+          "activity_min": 0.0,
+          "activity_max": 0.0,
+          "activity_span": 0.0,
+          "positive_activity_sample_count": 0,
+          "positive_power_sample_count": 0,
+          "enabled_transition_observed": false,
+          "stimulus_observed": false,
+          "directional_response_pass": true,
+          "directional_violation_count": 0,
+          "directional_violations": [],
+          "source": "Basilisk.simulation.simplePowerSink.SimplePowerSink",
+          "input_source": "simpleInstrument.nodeDataOutMsg + project_eps_pdu.payloadStatusOutMsg"
+        }
+      },
+      {
+        "coupling_id": "adcs_control_effort_to_eps_thermal",
+        "status": "OBSERVED_SINGLE_RUN",
+        "evidence_source": "bridge:adcs",
+        "bridge_health": {
+          "status": "PASS",
+          "sample_count": 16,
+          "valid_sample_count": 16,
+          "not_ready_sample_count": 0,
+          "error_count": 0,
+          "errors": [],
+          "power_min_w": 12.0,
+          "power_max_w": 28.67512182266675,
+          "power_span_w": 16.67512182266675,
+          "activity_min": 0.0,
+          "activity_max": 12.506341367000063,
+          "activity_span": 12.506341367000063,
+          "positive_activity_sample_count": 13,
+          "positive_power_sample_count": 16,
+          "enabled_transition_observed": false,
+          "stimulus_observed": true,
+          "directional_response_pass": true,
+          "directional_violation_count": 0,
+          "directional_violations": [],
+          "source": "Basilisk.simulation.ReactionWheelPower",
+          "input_source": "reactionWheelStateEffector.rwOutMsgs"
+        }
+      },
+      {
+        "coupling_id": "propulsion_activity_to_eps_thermal",
+        "status": "NOT_EXERCISED",
+        "evidence_source": "bridge:propulsion",
+        "bridge_health": {}
+      },
+      {
+        "coupling_id": "propulsion_effector_to_spacecraft",
+        "status": "NOT_EXERCISED",
+        "evidence_source": "telemetry"
+      },
+      {
+        "coupling_id": "adcs_pointing_to_payload_gate",
+        "status": "OBSERVED_SINGLE_RUN",
+        "evidence_source": "telemetry"
+      },
+      {
+        "coupling_id": "ground_access_to_comm_downlink",
+        "status": "NOT_EXERCISED",
+        "evidence_source": "telemetry"
+      },
+      {
+        "coupling_id": "native_rf_quality_to_comm_downlink",
+        "status": "OBSERVED_SINGLE_RUN",
+        "evidence_source": "telemetry"
+      },
+      {
+        "coupling_id": "thermal_safety_to_payload_comm_gate",
+        "status": "NOT_EXERCISED",
+        "evidence_source": "telemetry"
+      }
+    ],
+    "claim_scope": "single_run_observation_not_paired_causal_proof",
+    "paired_run_required_for_causal_pass": true
+  },
+  "seal_verified": true
+}
