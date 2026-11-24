@@ -478,6 +478,7 @@
     setText('continuousSimTime', valueText(session?.sim_time_s, 2) + ' s');
     setText('continuousLiveRate', valueText(session?.rate || 1, 1) + '×');
     setStatusText('continuousArchive', session?.archive_status, archiveStateLabels, '—');
+    $('continuousArchiveReplay')?.setSession?.(session, api, state.telemetryCatalog);
     setText('continuousChildPid', info?.native_child_pid ?? '进程内运行 / 未启动');
     setText('continuousWriterEpoch', info?.writer_epoch ?? '—');
     const fence = info?.parent_death_fence;
@@ -1030,10 +1031,7 @@
       }
     }
   }
-  async function createSession(event) {
-    event.preventDefault();
-    const form = $('continuousCreateForm');
-    if (!form.reportValidity()) return;
+  function continuousCreationPayload() {
     const initial_configuration = {};
     document.querySelectorAll('#continuousCreateForm [data-native-group][data-native-key]').forEach((field) => {
       if (field.disabled) return;
@@ -1042,7 +1040,7 @@
       const value = field.type === 'checkbox' ? field.checked : (field.type === 'number' ? Number(field.value) : field.value);
       initial_configuration[group][field.dataset.nativeKey] = value;
     });
-    const body = {
+    return {
       session_id: $('continuousSessionId').value.trim(),
       initial_configuration,
       quantum_s: Number($('continuousQuantum').value),
@@ -1050,15 +1048,26 @@
       paced: $('continuousPaced').checked,
       initial_horizon_s: Number($('continuousHorizon').value),
     };
+  }
+  async function createSession(event) {
+    event.preventDefault();
+    if (!$('continuousCreateForm').reportValidity()) return;
     try {
       const policy = await api('/interactive/capabilities');
       renderCreationPolicy(policy);
       const support = policy.creation?.find(row => row.capability_id === 'whole_spacecraft.unified_native.v1' && row.continuous);
       if (!support?.supported) throw new Error(support?.reason_code || 'CAPABILITY_CATALOG_UNAVAILABLE');
+      const body = continuousCreationPayload();
+      const review = $('continuousCreateReview');
+      if (review.open && review.querySelector('pre').textContent !== JSON.stringify(body, null, 2)) {
+        review.querySelector('pre').textContent = JSON.stringify(body, null, 2);
+        throw new Error('参数已更新，请检查后再次创建。');
+      }
       const result = await api('/interactive/continuous/sessions', {
         method: 'POST', body: JSON.stringify(body),
       });
       state.selectedId = result.session_id;
+      review.open = false;
       const createDisclosure = $('continuousCreateDetails');
       if (createDisclosure) createDisclosure.open = false;
       state.telemetryStream = null;
@@ -1381,6 +1390,9 @@
   }
   function initialize() {
     $('continuousCreateForm')?.addEventListener('submit', createSession);
+    $('continuousCreateReview').addEventListener('toggle', (event) => {
+      if (event.target.open) event.target.querySelector('pre').textContent = JSON.stringify(continuousCreationPayload(), null, 2);
+    });
     $('continuousStream')?.addEventListener('change', () => {
       state.telemetryStream = $('continuousStream').value;
       resetTelemetrySelection();

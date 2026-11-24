@@ -453,6 +453,11 @@ body[data-active-view="continuous"] .app-content {
 }
 .wizard-header h1 { font-size: clamp(21px, 2.1vw, 28px); letter-spacing: -.025em; }
 .wizard-header p { max-width: 62ch; font-size: 13px; line-height: 1.65; }
+.wizard-options-heading { grid-column: 1 / -1; margin: 8px 0 0; font-size: 1rem; color: var(--text); }
+.run-preflight { min-width: 0; grid-column: 1 / -1; padding: 8px; }
+.run-preflight summary { cursor: pointer; }
+.run-preflight pre { max-height: 16rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.wizard-option[data-creation-method]:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 .wizard-header-actions { flex-shrink: 0; }
 .wizard-conversation {
   display: flex;

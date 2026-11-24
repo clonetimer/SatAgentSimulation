@@ -92,6 +92,21 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
             primary = nav.locator(':scope > button[data-view]')
             assert primary.count() == 4 and all(item.is_visible() for item in primary.all())
             assert page.locator('#wizardView').is_visible()
+            methods = page.locator('#wizardOptions [data-creation-method]')
+            assert methods.locator('strong').all_text_contents() == [
+                '表单向导', 'JSON 编辑', '图形拖拽', '数字场景', '自然语言',
+            ]
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+            _evidence(page, tmp_path, f'creation-{width}', {'width': width, 'methods': methods.all_inner_texts()})
+            for goal, destination in [
+                ('normal_run', '[data-wizard-level="whole_spacecraft"]'),
+                ('taskspec', '#taskSpecEditor'), ('graph', '#graphConversationGuide'),
+                ('scene', '#satelliteSceneView'), ('natural_language', '#wizardAgentWorkspace'),
+            ]:
+                page.locator(f'[data-creation-method="{goal}"]').focus()
+                page.keyboard.press('Enter')
+                pw.expect(page.locator(destination)).to_be_visible()
+                page.goto('https://workbench.test/', wait_until='networkidle')
             # The independent professional editor remains an actual route.
             nav.get_by_role('button', name=re.compile(r'专业建模$')).click()
             assert page.locator('#creatorView').is_visible()
@@ -100,6 +115,13 @@ def test_navigation_uses_existing_routes_and_preserves_task_form(tmp_path, monke
             assert initial
             nav.get_by_role('button', name=re.compile(r'任务中心$')).click()
             assert page.locator('#wizardTaskWorkspace').is_visible()
+            search = page.get_by_role('searchbox', name='搜索已保存任务')
+            search.fill('never-matches-this-task')
+            pw.expect(page.locator('#wizardTaskList')).to_contain_text('没有匹配的任务')
+            page.get_by_role('button', name='清除筛选').click()
+            pw.expect(search).to_be_focused()
+            pw.expect(search).to_have_value('')
+            pw.expect(page.locator('#wizardTaskList')).to_contain_text('还没有保存的任务')
             nav.get_by_role('button', name=re.compile(r'快速仿真$')).click()
             assert not page.locator('#wizardTaskWorkspace').is_visible()
             pw.expect(page.get_by_role('button', name='运行正常仿真')).to_be_visible()
