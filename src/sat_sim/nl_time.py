@@ -24,7 +24,7 @@ _UNIT = "(?:" + "|".join(re.escape(unit) for unit in sorted(_FACTORS, key=len, r
 _UNIT_END = r"(?![A-Za-z0-9_/^²³]|\s*[/^])"
 _FIELDS = {
     "duration_s": r"simulation\.duration_s|duration_s|总时长|仿真时长|运行时长|持续时间|运行时间|仿真时间|时长|持续|仿真|运行|模拟|duration|run\s+time|simulation|simulate|run",
-    "sample_s": r"simulation\.sample_s|sample_s|输出采样间隔|采样间隔|采样周期|记录周期|输出间隔|sampling\s+interval|sample\s+interval|sampling\s+period|sample\s+period|recording\s+period",
+    "sample_s": r"simulation\.sample_s|sample_s|输出采样间隔|采样间隔|采样周期|记录间隔|记录周期|输出间隔|sampling\s+interval|sample\s+interval|sampling\s+period|sample\s+period|recording\s+period",
     "step_s": r"simulation\.solver\.step_s|simulation\.step_s|solver\.step_s|step_s|积分步长|仿真步长|计算步长|步长|integration\s+step|time\s+step|step\s+size|step",
 }
 

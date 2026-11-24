@@ -32,6 +32,12 @@ def test_exact_registered_assignments_and_outputs_pass_without_mutation():
     assert spec==before
 
 
+def test_recording_interval_has_independent_literal_binding():
+    from sat_sim.nl_time import parse_time_bindings
+    assert parse_time_bindings("仿真 20 秒，步长 0.1 秒，记录间隔 0.5 秒。").requirements == {
+        "duration_s": 20.0, "step_s": 0.1, "sample_s": 0.5}
+
+
 @pytest.mark.parametrize(('key','wrong'),[
     ('environment_profile','simplified'),('epoch_utc','2026-07-01T00:00:00Z'),
     ('thermal_earth_ir_w_m2',241.),('thermal_earth_albedo',.35),

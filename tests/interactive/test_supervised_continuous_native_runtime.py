@@ -180,9 +180,9 @@ def test_native_worker_death_does_not_recreate_graph_or_retry_tc():
         worker.abort()
 
 
-@pytest.mark.skipif(os.name != "posix", reason="POSIX SIGKILL fault injection")
 def test_live_session_child_crash_preserves_active_sqlite_owner_fence(tmp_path):
     import sqlite3
+    import psutil
     pytest.importorskip("Basilisk")
     spec = _spec("r7b-owner-crash")
     ws = SessionWorkspace(tmp_path, spec)
@@ -195,7 +195,9 @@ def test_live_session_child_crash_preserves_active_sqlite_owner_fence(tmp_path):
         # Crash while session paused/READY before any new native step.
         child_pid = runtime.child_pid
         assert child_pid is not None
-        os.kill(child_pid, signal.SIGKILL)
+        child = psutil.Process(child_pid)
+        assert child.ppid() == os.getpid()
+        child.kill()
         session.start()
         deadline = time.monotonic() + 15.
         while session.state not in {SessionState.FAILED, SessionState.ABORTED}:
@@ -226,6 +228,25 @@ def test_live_session_child_crash_preserves_active_sqlite_owner_fence(tmp_path):
         if session.state not in (SessionState.COMPLETED, SessionState.FAILED, SessionState.ABORTED):
             session.abort()
             session.wait(10.)
+
+    replacement_spec = spec.model_copy(update={"session_id": "r7b-fresh-after-crash"})
+    replacement_workspace = SessionWorkspace(tmp_path, replacement_spec)
+    replacement, end = build_persistent_runtime(replacement_spec, supervised=True)
+    fresh = InteractiveSession(replacement_spec, replacement, end_time_s=end, workspace=replacement_workspace)
+    try:
+        fresh.prepare()
+        fresh.start()
+        deadline = time.monotonic() + 15
+        while fresh.snapshot().sim_time_s <= 0:
+            assert time.monotonic() < deadline
+            time.sleep(.05)
+        fresh.stop()
+        assert fresh.wait(10.) and fresh.state is SessionState.COMPLETED
+        assert replacement_workspace.path != ws.path and (ws.path / "command_ids.sqlite").exists()
+    finally:
+        if fresh.state not in (SessionState.COMPLETED, SessionState.FAILED, SessionState.ABORTED):
+            fresh.abort()
+            fresh.wait(10.)
 
 
 def test_native_graph_is_not_created_before_parent_fence_handshake(monkeypatch):
