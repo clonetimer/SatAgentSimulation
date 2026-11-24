@@ -112,6 +112,21 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
             if entry == "graph":
                 from dt_creation_browser import configure_graph_case
                 configure_graph_case(page)
+                graph_review = page.locator("#graphPreflight .run-preflight")
+                def graph_duration(value):
+                    graph_review.locator("summary").click()
+                    previous = json.loads(graph_review.locator("pre").inner_text())
+                    page.locator('#graphNodes [data-node-id="graph-config"] .graph-node-head').click()
+                    field = page.locator("#graphInspector .graph-inspector-field input").first
+                    assert float(field.input_value()) == previous["simulation"]["duration_s"]
+                    field.fill(str(value))
+                    field.press("Tab")
+                    page.locator("#graphValidateBtn").click()
+                    expect(graph_review.locator("pre")).to_contain_text(f'"duration_s": {value}')
+                graph_duration(30)
+                graph_duration(20)
+                graph_review.locator("summary").click()
+                checked_spec = json.loads(graph_review.locator("pre").inner_text())
                 configured_step_s = 0.1
                 submitted_duration_s = 20
                 report["task_spec_validated"] = True
@@ -125,7 +140,7 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
                     source_spec = apply_natural_language_case(page, evidence)
                 else:
                     if entry == "scene":
-                        page.locator("#wizardSceneShortcutBtn").click()
+                        page.locator('[data-creation-method="scene"]').click()
                         page.locator("#sceneCreateTaskBtn").click()
                         page.locator('[data-scene-create="offline"]').click()
                     else:
@@ -176,7 +191,23 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
                 report["configured_sample_s"] = submitted_sample_s
                 report["configured_step_s"] = configured_step_s
                 assert configured_step_s <= float(submitted_sample_s) <= float(submitted_duration_s)
+                # Exercise a different draft, then restore the registered matrix duration for the native run.
+                duration.fill(str(float(submitted_duration_s) + 10))
+                duration.press("Tab")
                 page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
+                review = page.locator("#wizardOptions .run-preflight")
+                validate = page.locator("#wizardOptions").get_by_role("button", name="校验配置")
+                validate.click()
+                review.locator("summary").click()
+                first_spec = json.loads(review.locator("pre").inner_text())
+                page.locator("#wizardBackBtn").click()
+                assert float(duration.input_value()) == first_spec["simulation"]["duration_s"]
+                assert float(sample.input_value()) == first_spec["simulation"]["sample_s"]
+                assert first_spec["simulation"]["duration_s"] == float(submitted_duration_s) + 10
+                duration.fill(str(submitted_duration_s))
+                duration.press("Tab")
+                page.locator("#wizardOptions").get_by_role("button", name="下一步：检查配置").click()
+                expect(page.locator("#wizardOptions").get_by_role("button", name="运行仿真")).to_be_disabled()
                 page.locator("#wizardOptions").get_by_role("button", name="校验配置").click()
                 page.wait_for_function(
                     """() => {
@@ -196,6 +227,12 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
                     "duration_s": submitted_duration_s,
                 }
                 report["task_spec_validated"] = True
+                review.locator("summary").click()
+                checked_spec = json.loads(review.locator("pre").inner_text())
+                assert checked_spec["simulation"]["duration_s"] == float(submitted_duration_s)
+                for key in ("model", "parameters", "events", "outputs"):
+                    assert checked_spec[key] == first_spec[key], key
+                report["configured_duration_s"] = submitted_duration_s
 
                 run_button = page.locator("#wizardOptions").get_by_role("button", name="运行仿真")
 
@@ -205,6 +242,10 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
             ) as submitted_request:
                 run_button.click()
             request_payload = json.loads(submitted_request.value.post_data or "{}")
+            assert checked_spec == request_payload["task_spec"]
+            report["review_equals_submitted_task_spec"] = True
+            report["draft_return_and_edit_verified"] = True
+            (evidence / "preflight.json").write_text(json.dumps(checked_spec, ensure_ascii=False), encoding="utf8")
             report["submitted_execution_mode"] = request_payload.get("execution_mode")
             report["submitted_execute"] = request_payload.get("execute")
             assert request_payload.get("execute") is True
@@ -233,7 +274,8 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
             report["integrity"] = "PASS"
             submitted = request_payload["task_spec"]
             if source_spec:
-                for key in ("simulation", "model", "parameters", "events", "outputs"):
+                assert submitted["simulation"] == source_spec["simulation"]
+                for key in ("model", "parameters", "events", "outputs"):
                     assert submitted[key] == source_spec[key], key
             values = submitted["parameters"]["values"]
             assert submitted["simulation"]["step_s"] == configured_step_s
@@ -245,7 +287,7 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
             trace = runs_root / run_id / "results" / "telemetry.jsonl"
             frames = [json.loads(line) for line in trace.read_bytes().splitlines()]
             assert frames[0]["time_s"] == 0
-            assert frames[-1]["time_s"] == float(submitted_duration_s)
+            assert frames[-1]["time_s"] == pytest.approx(float(submitted_duration_s), rel=0, abs=1e-9)
             for axis, expected in rates.items():
                 assert values[f"initial_body_rate_{axis}_rad_s"] == expected
                 assert frames[0][f"attitude.truth.omega_BN_B_{axis}"] == pytest.approx(expected, rel=0, abs=1e-14)
@@ -253,9 +295,10 @@ def test_real_whole_spacecraft_offline_run_created_in_ui_and_restored_in_scene(t
             report["frame_count"] = len(frames)
             report["last_sim_time_s"] = frames[-1]["time_s"]
 
-            if entry != "graph":
-                page.locator("#wizardAdvancedBtn").click()
-            page.locator('.sidebar-nav button[data-view="scene"]').click()
+            if entry == "graph":
+                page.locator('.sidebar-nav button[data-view="scene"]').click()
+            else:
+                page.locator("#wizardReplayResultBtn").click()
             expect(page.locator("#satelliteSceneView")).to_be_visible()
             page.locator('[data-scene-mode="orbit"]').click()
             page.locator("#satelliteSceneCanvas canvas").wait_for(state="visible", timeout=60000)

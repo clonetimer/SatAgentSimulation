@@ -1757,6 +1757,13 @@
   function renderGraph() {
     const host = el('graphNodes');
     if (!host) return;
+    const preflight = el('graphPreflight');
+    if (preflight) {
+      preflight.replaceChildren();
+      if (state.taskSpec && state.graphCompilationContext === visualCompilationSnapshot('flow')) {
+        appendPreflight(preflight, state.taskSpec);
+      }
+    }
     host.replaceChildren();
     state.graphNodes.forEach((node) => {
       const meta = GRAPH_BLOCK_META[node.type] || { title: node.type, icon: '□', hint: '', inputs: [], outputs: [] };
@@ -6257,6 +6264,12 @@
         const noticeType = passed ? 'success' : (execution.state === 'SUCCEEDED' || execution.state === 'CANCELLED' ? 'warning' : 'error');
         showNotice(message, noticeType);
         updateSingleRunGuide(passed ? 'complete' : 'failed', message);
+        if (state.wizard.step === 'running' && state.wizard.pendingRunId === runId) {
+          state.wizard.pendingRunId = null;
+          state.wizard.step = 'results';
+          wizardMessage('assistant', message);
+          if (state.activeView === 'wizard') renderSimulationWizard();
+        }
         if ((execution.error || ['FAILED', 'TIMED_OUT'].includes(execution.state)) && state.activeVisualRunContext?.runId === runId) {
           await requestVisualDiagnostics(execution.error || message, state.activeVisualRunContext);
         }
@@ -6279,7 +6292,7 @@
     showNotice('取消请求已提交；仿真将在下一个安全检查点停止。', 'warning');
   }
 
-  async function runSimulation() {
+  async function runSimulation(reviewedSpec = null) {
     // Prevent duplicate POST /runs caused by rapid double-clicks or a
     // simultaneous top-toolbar and graph-run submit. Release after the
     // backend returns a run_id: polling a long-running job is not submission.
@@ -6296,7 +6309,9 @@
     let submittedRunId = null;
     try {
       const activeTab = document.querySelector('.tab.active')?.dataset.tab;
-      if (activeTab === 'agent' && (el('agentInput').value.trim() || !state.taskSpec)) {
+      if (reviewedSpec) {
+        if (!deepEqual(reviewedSpec, state.taskSpec)) throw new Error('配置已更新，请重新检查。');
+      } else if (activeTab === 'agent' && (el('agentInput').value.trim() || !state.taskSpec)) {
         // An implicit Agent request has the same editable/cancellable UI as
         // the explicit button. Do not cover it with Run's preparation overlay.
         hideBusy();
@@ -6319,9 +6334,11 @@
           if (!operation.isCurrent()) throw new Error('配置已更新；请重新构建并运行。');
           visualRunContext = { mode: 'assembly', taskSpec: operation.taskSpec(), assemblyGraph: clone(state.assemblyGraph), snapshot: assemblySnapshot() };
         } else {
+          const checkedSpec = state.graphCompilationContext === visualCompilationSnapshot('flow') ? clone(state.taskSpec) : null;
           const operation = visualCompileOperation('flow');
           const valid = await graphCompile({ requireCode: true, requireRun: true, announce: false, operation });
           if (!valid) return;
+          if (checkedSpec && !deepEqual(checkedSpec, operation.taskSpec())) throw new Error('编译结果已更新，请检查最新参数后运行。');
           if (!operation.isCurrent()) throw new Error('配置已更新；请重新构建并运行。');
           if (!graphCodeIsFresh()) await graphGenerateCodeFromTaskSpec(operation);
           if (!operation.isCurrent()) throw new Error('配置已更新；请重新构建并运行。');
@@ -6339,7 +6356,7 @@
       const payload = await api('/runs', {
         method: 'POST',
         body: apiBody({
-          task_spec: state.taskSpec,
+          task_spec: reviewedSpec || visualRunContext?.taskSpec || state.taskSpec,
           source_request_id: currentTaskSourceId(),
           run_id: requestedId,
           execute: true,
@@ -6368,15 +6385,14 @@
       showNotice(`仿真“${displayName}”已提交执行（Run ID：${runId}）。可以继续编辑其他任务，无需进入运行中心。`, 'success');
       await loadRuns();
       hideBusy();
-      if (state.activeView === 'wizard') el('wizardRunResultsHost')?.classList.remove('hidden');
-      await pollRunExecution(runId);
       if (state.activeView === 'wizard') {
-        state.wizard.step = 'results';
+        state.wizard.pendingRunId = runId;
         state.wizard.validated = false;
         state.wizard.validatedForm = null;
-        wizardMessage('assistant', state.executionState?.state === 'SUCCEEDED' ? '仿真已完成。下方可以查看运行概览、曲线、事件和结果制品。' : '仿真任务已结束，请查看下方运行状态和诊断信息。');
+        state.wizard.step = 'running';
         renderSimulationWizard();
       }
+      await pollRunExecution(runId);
     } catch (error) {
       if (visualRunContext) await requestVisualDiagnostics(error.message, visualRunContext, error.payload?.detail?.reason_code || error.payload?.reason_code || null);
       throw error;
@@ -7884,11 +7900,8 @@
     }
   }
 
-  async function createInteractiveSession() {
-    state.interactivePolicy = await api('/interactive/capabilities');
-    renderInteractiveCreationPolicy();
-    const support = interactiveCreationSupport(el('interactiveCapability').value, Boolean(el('interactiveContinuous')?.checked));
-    if (!support?.supported) throw new Error(support?.reason_code || 'INTERACTIVE_CAPABILITY_CATALOG_UNAVAILABLE');
+  let boundedDraftId;
+  function boundedCreationPayload() {
     const capabilityId = el('interactiveCapability').value;
     const descriptor = INTERACTIVE_CAPABILITIES[capabilityId];
     const duration = Number(el('interactiveDuration').value);
@@ -7896,7 +7909,7 @@
     const rate = Number(el('interactiveInitialRate').value);
     // The default 0.5 s cadence must divide into complete native steps.
     const integrationStep = quantum === 0.5 ? 0.1 : Math.min(quantum, 0.2);
-    const sessionId = `live-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`;
+    const sessionId = boundedDraftId ||= `live-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`;
     const spec = {
       session_id: sessionId,
       capability_id: capabilityId,
@@ -7944,7 +7957,22 @@
       continuous: Boolean(el('interactiveContinuous')?.checked),
       max_sim_time_s: duration,
     };
+    return spec;
+  }
+  async function createInteractiveSession() {
+    state.interactivePolicy = await api('/interactive/capabilities');
+    renderInteractiveCreationPolicy();
+    const support = interactiveCreationSupport(el('interactiveCapability').value, Boolean(el('interactiveContinuous')?.checked));
+    if (!support?.supported) throw new Error(support?.reason_code || 'INTERACTIVE_CAPABILITY_CATALOG_UNAVAILABLE');
+    const spec = boundedCreationPayload();
+    const review = el('boundedCreateReview');
+    if (review.open && review.querySelector('pre').textContent !== JSON.stringify(spec, null, 2)) {
+      review.querySelector('pre').textContent = JSON.stringify(spec, null, 2);
+      throw new Error('参数已更新，请检查后再次创建。');
+    }
     const created = await api('/interactive/sessions', { method: 'POST', body: apiBody(spec) });
+    boundedDraftId = null;
+    review.open = false;
     await loadInteractiveSessions();
     await selectInteractiveSession(created.session_id);
     const createDisclosure = el('interactiveCreateDetails');
@@ -7965,6 +7993,7 @@
     const archiveNode = el('interactiveArchiveStatus');
     archiveNode.textContent = archiveLabels[snapshot?.archive_status] || '—';
     archiveNode.title = snapshot?.archive_error || '';
+    el('boundedArchiveReplay')?.setSession?.(snapshot, api);
     el('interactiveSimTime').textContent = `${Number(snapshot?.sim_time_s || 0).toFixed(3)} s`;
     el('interactiveRateValue').textContent = `${snapshot?.rate || 1}x`;
     el('interactiveDrift').textContent = `${Math.round(Number(snapshot?.last_drift_s || 0) * 1000)} ms`;
@@ -7979,10 +8008,10 @@
       el(id).disabled = !snapshot || terminal || controlPending;
     });
     el('interactiveSendCommandBtn').disabled = !snapshot || terminal || controlPending || Boolean(state.interactiveCommandSending);
-    el('interactiveStartBtn').disabled = !snapshot || snapshot.state !== 'READY';
-    el('interactivePauseBtn').disabled = !snapshot || snapshot.state !== 'RUNNING';
-    el('interactiveResumeBtn').disabled = !snapshot || snapshot.state !== 'PAUSED';
-    el('interactiveStepBtn').disabled = !snapshot || snapshot.state !== 'PAUSED';
+    el('interactiveStartBtn').disabled = controlPending || snapshot?.state !== 'READY';
+    el('interactivePauseBtn').disabled = controlPending || snapshot?.state !== 'RUNNING';
+    el('interactiveResumeBtn').disabled = controlPending || snapshot?.state !== 'PAUSED';
+    el('interactiveStepBtn').disabled = controlPending || snapshot?.state !== 'PAUSED';
   }
 
   async function interactiveControl(action, extra = {}) {
@@ -7992,9 +8021,11 @@
     state.interactiveControlPending = true;
     renderInteractiveSnapshot();
     try {
-      state.interactiveSession = await api(`/interactive/sessions/${encodeURIComponent(sessionId)}/control`, {
+      const updated = await api(`/interactive/sessions/${encodeURIComponent(sessionId)}/control`, {
         method: 'POST', body: apiBody({ action, ...extra }),
       });
+      if (state.interactiveSession?.session_id !== sessionId) return;
+      state.interactiveSession = updated;
       interactiveNotice({ start: '已向服务端提交启动请求', pause: '已向服务端提交暂停请求',
         resume: '已向服务端提交继续请求', step: '已提交单步推进请求',
         stop: '停止与归档请求已提交', abort: '中止请求已提交' }[action] || '控制请求已提交');
@@ -9276,11 +9307,13 @@
     if (!host) return;
     host.replaceChildren();
     const summary = el('wizardTaskSummary');
-    if (summary) summary.textContent = '共 ' + state.tasks.length + ' 个已保存任务。任务配置可以复用；每次运行仍会生成独立运行记录。';
+    const filtered = Boolean(el('taskSearch').value.trim() || el('taskStatusFilter').value);
+    el('wizardClearFiltersBtn').classList.toggle('hidden', !filtered);
+    if (summary) summary.textContent = (filtered ? '筛选结果：' : '当前显示：') + state.tasks.length + ' 个任务';
     if (el('wizardSaveCurrentTaskBtn')) el('wizardSaveCurrentTaskBtn').disabled = !state.formData || !state.schema || !state.wizard.objectId;
     if (!state.tasks.length) {
       const empty = document.createElement('div'); empty.className = 'wizard-empty';
-      empty.textContent = '还没有保存的任务。完成一次仿真配置后，可以在这里保存并反复使用。';
+      empty.textContent = filtered ? '没有匹配的任务，可清除筛选查看全部。' : '还没有保存的任务。配置仿真后可在这里保存。';
       host.appendChild(empty); return;
     }
     state.tasks.forEach((task) => {
@@ -9348,6 +9381,27 @@
     });
   }
 
+  function appendPreflight(host, spec) {
+    const details = document.createElement('details');
+    details.className = 'run-preflight';
+    const summary = document.createElement('summary');
+    summary.textContent = '查看已校验的完整提交参数';
+    const pre = document.createElement('pre');
+    pre.textContent = JSON.stringify(spec, null, 2);
+    const timing = document.createElement('p');
+    const sim = spec.simulation;
+    timing.textContent = `${spec.model.capability_id} · ${sim.duration_s} s · 步长 ${sim.step_s} s · 采样 ${sim.sample_s} s`;
+    details.append(summary, timing);
+    const rates = ['x', 'y', 'z'].map(axis => spec.parameters?.values?.['initial_body_rate_' + axis + '_rad_s']);
+    if (rates.every(Number.isFinite)) {
+      const initial = document.createElement('p');
+      initial.textContent = '机体系初始角速度 X / Y / Z（rad/s） ' + rates.join(' / ');
+      details.appendChild(initial);
+    }
+    details.appendChild(pre);
+    host.appendChild(details);
+  }
+
   function renderSimulationWizard() {
     const conversation = el('wizardConversation'); const options = el('wizardOptions');
     if (!conversation || !options) return;
@@ -9385,7 +9439,7 @@
     el('wizardTaskSpecWorkspace')?.classList.toggle('hidden', state.wizard.step !== 'taskspec');
     el('wizardAdditionalTools')?.classList.toggle('hidden', state.wizard.step !== 'welcome');
     if (state.wizard.step === 'tasks') renderWizardTasks();
-    el('wizardRunResultsHost')?.classList.toggle('hidden', state.wizard.step !== 'results');
+    el('wizardRunResultsHost')?.classList.toggle('hidden', !['running', 'results'].includes(state.wizard.step));
     el('wizardRealtimeBackBtn')?.classList.add('hidden');
     if (state.wizard.step === 'configure') renderWizardParameterControls();
     if (state.wizard.step === 'tasks') {
@@ -9394,16 +9448,30 @@
       if (search) search.value = el('taskSearch')?.value || '';
       if (status) status.value = el('taskStatusFilter')?.value || '';
     } else if (state.wizard.step === 'welcome') {
+      const heading = (title) => {
+        const label = document.createElement('h2');
+        label.className = 'wizard-options-heading';
+        label.textContent = title;
+        options.appendChild(label);
+      };
+      heading('选择创建方式');
       [
-        ['normal_run', '运行正常仿真', '选择模型、运行方式和输出指标'],
-        ['component_native', '单机独立仿真', '从已通过官方 Basilisk 独立物理与 Run 验收的九类单机开始'],
-        ['subsystem_native', '分系统独立仿真', 'ADCS 闭环、EPS 电源运行图、通信数据运行图；分别独立执行'],
+        ['normal_run', '表单向导', '逐步配置并运行正常仿真'],
+        ['taskspec', 'JSON 编辑', '导入或编辑 TaskSpec'],
+        ['graph', '图形拖拽', '在画布上连接模块'],
+        ['scene', '数字场景', '从卫星场景创建任务'],
+        ['natural_language', '自然语言', '描述任务，检查生成的配置'],
+      ].forEach(([goal, title, detail]) => option(title, detail, {
+        'data-wizard-goal': goal, 'data-creation-method': goal,
+      }, () => goal === 'scene' ? navigateToView('scene') : wizardStart(goal)));
+      heading('专项仿真与已有任务');
+      [
+        ['component_native', '单机独立仿真', '选择原生设备模型'],
+        ['subsystem_native', '分系统独立仿真', '选择姿控、电源或通信数据模型'],
         ['fault_run', '注入故障并仿真', '选择已注册故障，观察系统响应'],
         ['history', '查看历史任务', '查看和复用已保存的任务配置'],
         ['compare', '对比两次运行', '比较两次已完成运行的结果'],
         ['advanced', '高级建模与配置', '进入完整工作台和图形组装'],
-        ['natural_language', '自然语言生成配置', '用文字描述对象、工况和观测目标，生成后人工确认'],
-        ['taskspec', 'TaskSpec 结构化编辑', '直接导入、编辑、校验机器可读任务定义'],
       ].forEach((item) => option(item[1], item[2], { 'data-wizard-goal': item[0] }, () => wizardStart(item[0])));
     } else if (state.wizard.step === 'natural_language') {
       // Existing parser/provider routing and refinement guards are mounted above.
@@ -9498,6 +9566,9 @@
       ];
       rows.forEach((item) => { const row = document.createElement('div'); row.className = 'wizard-review-row'; const name = document.createElement('span'); name.textContent = item[0]; const value = document.createElement('strong'); value.textContent = item[1]; row.append(name, value); review.appendChild(row); });
       options.appendChild(review);
+      const reviewedSpec = state.wizard.validated && state.wizard.validatedForm === JSON.stringify(state.formData)
+        ? clone(state.taskSpec) : null;
+      if (reviewedSpec) appendPreflight(review, reviewedSpec);
       option('校验配置', '仅校验，不会启动仿真', {}, async () => {
         el('wizardNotice').textContent = '正在校验配置…';
         try {
@@ -9514,7 +9585,7 @@
         } catch (error) { state.wizard.validated = false; el('wizardNotice').textContent = '校验失败：' + error.message; }
       });
       const run = document.createElement('button'); run.type = 'button'; run.className = 'wizard-option';
-      run.disabled = !state.wizard.validated || state.wizard.validatedForm !== JSON.stringify(state.formData);
+      run.disabled = !reviewedSpec;
       const runTitle = document.createElement('strong'); runTitle.textContent = '运行仿真';
       const runDetail = document.createElement('small'); runDetail.textContent = state.wizard.validated ? '提交到现有 Basilisk 执行队列' : '请先通过配置校验';
       run.append(runTitle, runDetail);
@@ -9522,14 +9593,15 @@
         if (!state.wizard.validated || state.wizard.validatedForm !== JSON.stringify(state.formData)) {
           state.wizard.validated = false; state.wizard.validatedForm = null; el('wizardNotice').textContent = '配置已发生变化，请重新校验。'; renderSimulationWizard(); return;
         }
-        try { await runSimulation(); } catch (error) { el('wizardNotice').textContent = '运行失败：' + error.message; }
+        try { await runSimulation(reviewedSpec); } catch (error) { el('wizardNotice').textContent = '运行失败：' + error.message; }
       });
       options.appendChild(run);
     } else if (state.wizard.step === 'results') {
       option('返回配置', '调整参数后需要重新校验', {}, () => wizardSetStep('configure', '你可以调整参数、事件和输出；修改后请重新校验。'));
       option('重新开始', '保留历史运行，开始另一项仿真', {}, wizardReset);
     }
-    el('wizardBackBtn').disabled = state.wizard.step === 'welcome';
+    el('wizardBackBtn').disabled = ['welcome', 'running'].includes(state.wizard.step);
+    el('wizardReplayResultBtn').disabled = state.wizard.step !== 'results' || !hasSealedSceneRun();
   }
 
   const SHARED_CONTEXT_VIEWS = new Set(['creator', 'experiments', 'goals', 'runs', 'diagnostics']);
@@ -9682,6 +9754,13 @@
     }
   }
 
+  function hasSealedSceneRun() {
+    const run = state.activeRun;
+    return run?.sealed === true && run.integrity?.ok === true
+      && String(run.run_record?.status || '').toUpperCase() === 'SUCCEEDED'
+      && run.task_spec?.model?.capability_id === 'whole_spacecraft.unified_native.v1';
+  }
+
   function switchView(name) {
     const previousView = state.activeView;
     const guided = ['wizard', 'interactive', 'continuous'].includes(name);
@@ -9690,11 +9769,7 @@
     }
     if (name === 'scene') {
       const terminal = ['COMPLETED', 'FAILED', 'ABORTED', 'INTERRUPTED'].includes(state.interactiveSession?.state);
-      const runSpec = state.activeRun?.task_spec || {};
-      const verifiedWholeSpacecraftRun = state.activeRun?.sealed === true
-        && state.activeRun?.integrity?.ok === true
-        && String(state.activeRun?.run_record?.status || '').toUpperCase() === 'SUCCEEDED'
-        && runSpec.model?.capability_id === 'whole_spacecraft.unified_native.v1';
+      const verifiedWholeSpacecraftRun = hasSealedSceneRun();
       const enteringRunResults = previousView === 'runs'
         || (previousView === 'wizard' && state.wizard.step === 'results');
       state.sceneRealtimeSource = verifiedWholeSpacecraftRun && enteringRunResults ? 'run'
@@ -9719,7 +9794,7 @@
     const realtimeViewIds = { interactive: 'interactiveView', continuous: 'continuousView' };
     Object.entries(realtimeViewIds).forEach(([key, id]) => el(id)?.classList.toggle('hidden', key !== name));
     el('wizardRealtimeWorkspace')?.classList.toggle('hidden', !['interactive', 'continuous'].includes(name));
-    el('wizardRunResultsHost')?.classList.toggle('hidden', name !== 'wizard' || state.wizard.step !== 'results');
+    el('wizardRunResultsHost')?.classList.toggle('hidden', name !== 'wizard' || !['running', 'results'].includes(state.wizard.step));
     el('wizardView')?.setAttribute('data-runtime-mode', name === 'interactive' ? 'interactive' : name === 'continuous' ? 'continuous' : '');
     el('wizardRealtimeBackBtn')?.classList.toggle('hidden', !['interactive', 'continuous'].includes(name));
     const activeNavigation = guided && name === 'wizard' ? 'wizard' : name;
@@ -10224,13 +10299,16 @@
     return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN', { hour12: false });
   }
 
+  let taskListRequest = 0;
   async function loadTasks() {
+    const request = ++taskListRequest;
     const query = el('taskSearch')?.value.trim() || '';
     const status = el('taskStatusFilter')?.value || '';
     const params = new URLSearchParams({ limit: '200' });
     if (query) params.set('q', query);
     if (status) params.set('status', status);
     const payload = await api(`/task-center/tasks?${params.toString()}`);
+    if (request !== taskListRequest) return;
     state.tasks = payload.tasks || [];
     renderTaskCenter(payload);
     if (state.activeView === 'wizard' && state.wizard.step === 'tasks') renderWizardTasks();
@@ -12020,6 +12098,7 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
       });
     });
     el('wizardBackBtn').addEventListener('click', wizardBack);
+    el('wizardReplayResultBtn').addEventListener('click', () => navigateToView('scene'));
     el('wizardRealtimeBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('interactiveWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
     el('continuousWizardBackBtn').addEventListener('click', wizardBackFromRealtime);
@@ -12177,6 +12256,9 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     el('continuousImportOfflineConfigBtn').addEventListener('click',
       () => importOfflineNativeToRealtime('continuous'));
     el('createInteractiveSessionBtn').addEventListener('click', () => createInteractiveSession().catch(error => interactiveNotice(error.message, 'error')));
+    el('boundedCreateReview').addEventListener('toggle', (event) => {
+      if (event.target.open) event.target.querySelector('pre').textContent = JSON.stringify(boundedCreationPayload(), null, 2);
+    });
     el('interactiveStartBtn').addEventListener('click', () => interactiveControl('start').catch(error => interactiveNotice(error.message, 'error')));
     el('interactivePauseBtn').addEventListener('click', () => interactiveControl('pause').catch(error => interactiveNotice(error.message, 'error')));
     el('interactiveResumeBtn').addEventListener('click', () => interactiveControl('resume').catch(error => interactiveNotice(error.message, 'error')));
@@ -12258,6 +12340,11 @@ ${option.dataset.description || '能力注册表定义的可扫描参数。'}${l
     $all('.nav-button[data-wizard-shortcut]').forEach((button) => button.addEventListener('click', () => navigateToWizardShortcut(button.dataset.wizardShortcut)));
     el('wizardTaskSearch').addEventListener('input', () => { el('taskSearch').value = el('wizardTaskSearch').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });
     el('wizardTaskStatus').addEventListener('change', () => { el('taskStatusFilter').value = el('wizardTaskStatus').value; loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }); });
+    el('wizardClearFiltersBtn').addEventListener('click', () => {
+      for (const id of ['taskSearch', 'taskStatusFilter', 'wizardTaskSearch', 'wizardTaskStatus']) el(id).value = '';
+      el('wizardTaskSearch').focus();
+      loadTasks().catch(error => { el('wizardTaskSummary').textContent = error.message; });
+    });
     el('wizardRefreshTasksBtn').addEventListener('click', () => loadTasks().catch((error) => { el('wizardTaskSummary').textContent = error.message; }));
     el('wizardSaveCurrentTaskBtn').addEventListener('click', async () => {
       try { showBusy('保存仿真任务', '写入任务中心'); const task = await saveCurrentTask('new'); el('wizardNotice').textContent = '已保存任务：' + (task?.name || task?.task_id || '新任务'); await loadTasks(); }

@@ -26,8 +26,7 @@ def apply_json_case(page):
 
 def configure_graph_case(page):
     page.locator(".capability-card.active").wait_for(state="attached")
-    page.locator("#wizardAdvancedBtn").click()
-    page.locator("#creatorGraphTabButton").click()
+    page.locator('[data-creation-method="graph"]').click()
     node = page.locator('#graphNodes [data-node-id="graph-config"] .graph-node-head')
     node.scroll_into_view_if_needed()
     box = node.bounding_box()

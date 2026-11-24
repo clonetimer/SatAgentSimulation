@@ -23,7 +23,7 @@
   </script>
   <link rel="stylesheet" href="/assets/styles.css?v=p9n4-result-history-1">
   <link rel="stylesheet" href="/assets/continuous.css?v=0.7.8">
-  <link rel="stylesheet" href="/assets/compact-workbench.css?v=p3-realtime-width-20261111-2">
+  <link rel="stylesheet" href="/assets/compact-workbench.css?v=dt-preflight-replay">
   <link rel="stylesheet" href="/assets/satellite-scene.css?v=p9m4-d-review-5">
 </head>
 <body data-active-view="wizard">
@@ -319,7 +319,7 @@
     <main id="wizardView" class="wizard-view app-view">
       <section class="wizard-shell" aria-label="快速仿真">
         <header class="wizard-header">
-          <div><div class="eyebrow">SATELLITE SIMULATION · GUIDED WORKFLOW</div><h1>快速仿真</h1><p>选择仿真目标，逐步完成参数配置并查看结果。</p></div>
+          <h1>快速仿真</h1>
           <div class="wizard-header-actions"><button id="wizardRealtimeBackBtn" class="button button-ghost hidden" type="button">返回仿真步骤</button><button id="wizardSceneShortcutBtn" class="button button-secondary" type="button">卫星数字场景</button><button id="wizardAdvancedBtn" class="button button-secondary" type="button">专业建模</button></div>
         </header>
         <ol id="wizardProgress" class="wizard-progress" aria-label="仿真步骤进度"></ol>
@@ -400,8 +400,9 @@
         </section>
         <section id="wizardTaskWorkspace" class="wizard-task-workspace hidden" aria-label="对话式任务管理">
           <div class="wizard-task-toolbar">
-            <label class="search-box"><span aria-hidden="true">⌕</span><input id="wizardTaskSearch" type="search" placeholder="搜索任务名称或仿真对象…"></label>
+            <label class="search-box"><span aria-hidden="true">⌕</span><input id="wizardTaskSearch" type="search" aria-label="搜索已保存任务" placeholder="搜索任务名称或仿真对象…"></label>
             <select id="wizardTaskStatus" aria-label="任务状态筛选"><option value="">全部任务状态</option><option value="READY">就绪</option><option value="QUEUED">排队</option><option value="RUNNING">运行中</option><option value="COMPLETED">已完成</option><option value="FAILED">失败</option><option value="CANCELLED">已取消</option></select>
+            <button id="wizardClearFiltersBtn" class="button button-ghost hidden" type="button">清除筛选</button>
             <button id="wizardRefreshTasksBtn" class="button button-secondary" type="button">刷新</button>
             <button id="wizardSaveCurrentTaskBtn" class="button button-primary" type="button">保存当前配置</button>
           </div>
@@ -412,6 +413,7 @@
           <div class="wizard-result-navigation">
             <span>本次运行已保存，可继续检查历史记录与完整运行证据。</span>
             <button id="wizardOpenRunCenterBtn" class="button button-secondary" type="button">打开运行中心</button>
+            <button id="wizardReplayResultBtn" class="button button-secondary" type="button" disabled>回放本次运行</button>
           </div>
         </section>
         <section id="wizardRealtimeWorkspace" class="wizard-realtime-workspace hidden" aria-label="实时仿真工作区"></section>
@@ -650,6 +652,7 @@
             </section>
             <div id="graphFlowComposer">
             <div id="graphStatus" class="graph-status" role="status">连接线表示模块间的数据流；连接有效性会在模型检查时验证。</div>
+            <div id="graphPreflight"></div>
             <div class="graph-layout">
               <aside class="graph-palette" aria-label="模块库">
                 <div class="graph-panel-title"><strong>模块库</strong><span>拖到画布</span></div>
@@ -1111,6 +1114,7 @@
               <label>初始倍速<select id="interactiveInitialRate"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>5</option><option>10</option></select></label>
               <label class="toggle-label"><input id="interactivePaced" type="checkbox" checked><span>墙钟节拍</span></label>
             </div>
+            <details id="boundedCreateReview" class="run-preflight"><summary>检查会话提交参数</summary><pre></pre></details>
             <button id="createInteractiveSessionBtn" class="button button-primary" type="button">创建会话</button>
             </details>
           </section>
@@ -1133,6 +1137,7 @@
             <label class="interactive-rate-control">倍速<select id="interactiveRate"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>5</option><option>10</option></select></label>
             <button id="interactiveStopBtn" class="button button-danger realtime-control-button danger-icon" type="button" title="停止并归档" aria-label="停止并归档">停止并归档</button>
           </div>
+          <sat-archive-replay id="boundedArchiveReplay" hidden></sat-archive-replay>
           <section class="interactive-section telemetry-section">
             <div class="section-heading compact">
               <h2>遥测</h2>
@@ -1460,6 +1465,7 @@
                 </div>
               </details>
               <p id="continuousInitialConfigStatus" class="continuous-muted">仅当前新会话可设置；创建后无法修改已有模型实例。</p>
+              <details id="continuousCreateReview" class="run-preflight"><summary>检查会话提交参数</summary><pre></pre></details>
               <button class="button button-primary" type="submit">创建会话</button>
             </form>
             </details>
@@ -1491,6 +1497,7 @@
               <span id="continuousParentFence">父进程死亡保护：检查中</span>
               <span id="continuousErrorDetail"></span>
             </div>
+            <sat-archive-replay id="continuousArchiveReplay" hidden></sat-archive-replay>
             <div id="continuousSessionActionSlot">
             <div id="continuousSessionToolbar" class="continuous-actions" role="toolbar" aria-label="持续仿真会话控制">
               <button id="continuousStartBtn" class="button button-primary realtime-control-button" type="button" data-continuous-action="start">启动</button>
@@ -1850,9 +1857,10 @@
   <script>window.SAT_SIM_STATIC_VERSION = "0.7.8";</script>
   <script src="/assets/object-config-panel.js?v=p9d-1" defer></script>
   <script src="/assets/object-run-results.js?v=p9e-1" defer></script>
-  <script src="/assets/app.js?v=p9n4-result-history-1" defer></script>
+  <script src="/assets/archive-replay.js" defer></script>
+  <script src="/assets/app.js?v=dt-preflight-replay" defer></script>
   <script src="/assets/evaluation-workspace.js?v=p9b1" defer></script>
-  <script src="/assets/continuous.js?v=p9m4-engineering-mapping-1" defer></script>
-  <script src="/assets/compact-workbench.js?v=compact1" defer></script>
+  <script src="/assets/continuous.js?v=dt-preflight-replay" defer></script>
+  <script src="/assets/compact-workbench.js?v=dt-help" defer></script>
 </body>
 </html>

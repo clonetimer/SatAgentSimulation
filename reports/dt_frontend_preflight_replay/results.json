@@ -1,0 +1,453 @@
+{
+  "base": "b60ea7c",
+  "candidate": "local working tree",
+  "matrix": [
+    {
+      "entry": "form",
+      "mode": "offline",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/finite/custom/offline-ui-native-report.json",
+        "sha256": "260a3db5727d98c9c1362ea5557d1f6d8162b7d9edcbf7649015545d4be00895"
+      },
+      "id": "whole_spacecraft_unified_native_v1_mwu7nij5",
+      "review_matches_post": true,
+      "draft_return": true,
+      "frames": 41,
+      "last_sim_time_s": 20.0,
+      "replay_source": "run:whole_spacecraft_unified_native_v1_mwu7nij5",
+      "integrity": "PASS",
+      "preflight": {
+        "path": ".tmp/dt-ux-accept/finite/custom/preflight.json",
+        "sha256": "abc61aca2231e4c17528de7a6015a3485386e686322227892345719fe25d3d49"
+      }
+    },
+    {
+      "entry": "form",
+      "mode": "bounded",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/live/form-bounded/report.json",
+        "sha256": "491100052fd5236c12752e8321fdc44f297aaa43010337a83329596bc134eeea"
+      },
+      "id": "live-mwu7l2p0-280d3369",
+      "review_matches_post": true,
+      "completion": {
+        "session_id": "live-mwu7l2p0-280d3369",
+        "state": "COMPLETED",
+        "sim_time_s": 20.0,
+        "archive_status": "SEALED"
+      },
+      "replay": {
+        "stream": "whole.orbit",
+        "frames": 41,
+        "last_sequence": 40,
+        "last_time_s": 20.0
+      },
+      "telemetry_sha256": "a10a6f95d276f5cc772e5ea85c45c57d44c51e186f9fed7604bdd63e3c0509dd",
+      "pause": {
+        "state": "PAUSED",
+        "time_s": 0.5
+      },
+      "step": {
+        "state": "PAUSED",
+        "time_s": 1.0
+      },
+      "resume": {
+        "state": "RUNNING",
+        "time_s": 1.0
+      }
+    },
+    {
+      "entry": "form",
+      "mode": "continuous",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/live/form-continuous/report.json",
+        "sha256": "8e033c89670e5583b70f206db8298e6a5d9679140fe303d3b1b3f566f43f32e3"
+      },
+      "id": "p9f-native-browser-continuous",
+      "review_matches_post": true,
+      "completion": {
+        "session_id": "p9f-native-browser-continuous",
+        "state": "COMPLETED",
+        "sim_time_s": 4.5,
+        "archive_status": "SEALED"
+      },
+      "replay": {
+        "stream": "whole.orbit",
+        "frames": 10,
+        "last_sequence": 9,
+        "last_time_s": 4.5
+      },
+      "telemetry_sha256": "1505420413bdfe0c798f60e530c3c03571d29cd8f189e0fffd26a21094368d1e",
+      "reconnected_session_id": "p9f-native-browser-continuous"
+    },
+    {
+      "entry": "json",
+      "mode": "offline",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/finite/json/offline-ui-native-report.json",
+        "sha256": "7d6d4e86ffe8ad5ca619b343c26ef5de66e98b1f9a06ffac53983ae3a81afadf"
+      },
+      "id": "dt_creation_matrix_mwu7o9b4",
+      "review_matches_post": true,
+      "draft_return": true,
+      "frames": 41,
+      "last_sim_time_s": 20.0,
+      "replay_source": "run:dt_creation_matrix_mwu7o9b4",
+      "integrity": "PASS",
+      "preflight": {
+        "path": ".tmp/dt-ux-accept/finite/json/preflight.json",
+        "sha256": "4bd491a065ad334dd6149689e2811b5d628e90ad74f2a81179a859253a3ceb18"
+      }
+    },
+    {
+      "entry": "json",
+      "mode": "bounded",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/live/json-bounded/report.json",
+        "sha256": "8f2f093efb9d8b63958268466a40fa1cc8c7476163d23ce470e9ad74a82602c8"
+      },
+      "id": "live-mwu7mhtq-b73f5066",
+      "review_matches_post": true,
+      "completion": {
+        "session_id": "live-mwu7mhtq-b73f5066",
+        "state": "COMPLETED",
+        "sim_time_s": 20.0,
+        "archive_status": "SEALED"
+      },
+      "replay": {
+        "stream": "whole.orbit",
+        "frames": 41,
+        "last_sequence": 40,
+        "last_time_s": 20.0
+      },
+      "telemetry_sha256": "caf4a5b6d57b3db49730fc957fb1e34508f471b3a1fd621b5c3891f0dab1643b",
+      "pause": {
+        "state": "PAUSED",
+        "time_s": 0.5
+      },
+      "step": {
+        "state": "PAUSED",
+        "time_s": 1.0
+      },
+      "resume": {
+        "state": "RUNNING",
+        "time_s": 1.0
+      }
+    },
+    {
+      "entry": "json",
+      "mode": "continuous",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/live/json-continuous/report.json",
+        "sha256": "c0e8a3268b20f4a4d2de0bfd16dc75c78550dfdcdc2f14c4c76e8b58bddd50de"
+      },
+      "id": "p9f-native-browser-continuous",
+      "review_matches_post": true,
+      "completion": {
+        "session_id": "p9f-native-browser-continuous",
+        "state": "COMPLETED",
+        "sim_time_s": 8.5,
+        "archive_status": "SEALED"
+      },
+      "replay": {
+        "stream": "whole.orbit",
+        "frames": 18,
+        "last_sequence": 17,
+        "last_time_s": 8.5
+      },
+      "telemetry_sha256": "9332a2453efa7378176a07d58e00666bac37a7473eb66d376148cadcbb24d944",
+      "reconnected_session_id": "p9f-native-browser-continuous"
+    },
+    {
+      "entry": "graph",
+      "mode": "offline",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/finite/graph/offline-ui-native-report.json",
+        "sha256": "9b0b17e92ef3e7a99838f0eda98fd4e81e5f266a0c23dcb79d1ffa85c9f2e1a3"
+      },
+      "id": "whole_spacecraft_unified_native_v1_mwu7pkdm",
+      "review_matches_post": true,
+      "draft_return": true,
+      "frames": 41,
+      "last_sim_time_s": 20.0,
+      "replay_source": "run:whole_spacecraft_unified_native_v1_mwu7pkdm",
+      "integrity": "PASS",
+      "preflight": {
+        "path": ".tmp/dt-ux-accept/finite/graph/preflight.json",
+        "sha256": "abc61aca2231e4c17528de7a6015a3485386e686322227892345719fe25d3d49"
+      }
+    },
+    {
+      "entry": "graph",
+      "mode": "bounded",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/live/graph-bounded/report.json",
+        "sha256": "ca1506ecd61bab0f4acf35c88c37e6a7553709b07bb57b28c6047bfa0018dbfb"
+      },
+      "id": "live-mwu7o2is-222da0af",
+      "review_matches_post": true,
+      "completion": {
+        "session_id": "live-mwu7o2is-222da0af",
+        "state": "COMPLETED",
+        "sim_time_s": 20.0,
+        "archive_status": "SEALED"
+      },
+      "replay": {
+        "stream": "whole.orbit",
+        "frames": 41,
+        "last_sequence": 40,
+        "last_time_s": 20.0
+      },
+      "telemetry_sha256": "dd71740af06a2b093f2ed3a0189ac241409ffc34a3d0aec3910971e007e72e2d",
+      "pause": {
+        "state": "PAUSED",
+        "time_s": 0.5
+      },
+      "step": {
+        "state": "PAUSED",
+        "time_s": 1.0
+      },
+      "resume": {
+        "state": "RUNNING",
+        "time_s": 1.0
+      }
+    },
+    {
+      "entry": "graph",
+      "mode": "continuous",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/live/graph-continuous/report.json",
+        "sha256": "4239ce4b3703e5b58fc7c21f56e677e70d76cb8aa7a5e2a5498c5cb7cac491e2"
+      },
+      "id": "p9f-native-browser-continuous",
+      "review_matches_post": true,
+      "completion": {
+        "session_id": "p9f-native-browser-continuous",
+        "state": "COMPLETED",
+        "sim_time_s": 5.5,
+        "archive_status": "SEALED"
+      },
+      "replay": {
+        "stream": "whole.orbit",
+        "frames": 12,
+        "last_sequence": 11,
+        "last_time_s": 5.5
+      },
+      "telemetry_sha256": "3ef8b2691b2ef89569cf1a73dbb0dc8172c27e5c221fef76ad190fa811fb6d76",
+      "reconnected_session_id": "p9f-native-browser-continuous"
+    },
+    {
+      "entry": "scene",
+      "mode": "offline",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/finite/scene/offline-ui-native-report.json",
+        "sha256": "b885a6312d8253ebbaa38df559a29e6f5bdc6640170b27dd767d322ea9870e63"
+      },
+      "id": "whole_spacecraft_unified_native_v1_mwu7p0aq",
+      "review_matches_post": true,
+      "draft_return": true,
+      "frames": 41,
+      "last_sim_time_s": 20.0,
+      "replay_source": "run:whole_spacecraft_unified_native_v1_mwu7p0aq",
+      "integrity": "PASS",
+      "preflight": {
+        "path": ".tmp/dt-ux-accept/finite/scene/preflight.json",
+        "sha256": "abc61aca2231e4c17528de7a6015a3485386e686322227892345719fe25d3d49"
+      }
+    },
+    {
+      "entry": "scene",
+      "mode": "bounded",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/live/scene_custom-bounded/report.json",
+        "sha256": "fe98927f770a208d79863af10b3b1f6169771e4aac7f504bc2ec53586ba92f88"
+      },
+      "id": "live-mwu7pbaq-773ad789",
+      "review_matches_post": true,
+      "completion": {
+        "session_id": "live-mwu7pbaq-773ad789",
+        "state": "COMPLETED",
+        "sim_time_s": 20.0,
+        "archive_status": "SEALED"
+      },
+      "replay": {
+        "stream": "whole.orbit",
+        "frames": 41,
+        "last_sequence": 40,
+        "last_time_s": 20.0
+      },
+      "telemetry_sha256": "a912df69f1c71f56c0a117cfa3913da517ab7ae86af8cbc63cbf49b903f13886",
+      "pause": {
+        "state": "PAUSED",
+        "time_s": 0.5
+      },
+      "step": {
+        "state": "PAUSED",
+        "time_s": 1.0
+      },
+      "resume": {
+        "state": "RUNNING",
+        "time_s": 1.5
+      }
+    },
+    {
+      "entry": "scene",
+      "mode": "continuous",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/live/scene_custom-continuous/report.json",
+        "sha256": "f32add5edf1002f047625bc1d3af031f0f23f86fd7ab8e26bc1e802b2184b5c7"
+      },
+      "id": "p9f-native-browser-continuous",
+      "review_matches_post": true,
+      "completion": {
+        "session_id": "p9f-native-browser-continuous",
+        "state": "COMPLETED",
+        "sim_time_s": 4.0,
+        "archive_status": "SEALED"
+      },
+      "replay": {
+        "stream": "whole.orbit",
+        "frames": 9,
+        "last_sequence": 8,
+        "last_time_s": 4.0
+      },
+      "telemetry_sha256": "8df4b7917b3237c6120aa167d0be6b8e81f61e38d7bcb5e28bf9e1859def5cba",
+      "reconnected_session_id": "p9f-native-browser-continuous"
+    },
+    {
+      "entry": "natural_language",
+      "mode": "offline",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-serial/finite/natural_language/offline-ui-native-report.json",
+        "sha256": "40e6abdfd8821f0bf85f6e9af3dc83384785bb18544052c7ed8f29a79bc8326d"
+      },
+      "id": "generated_task_mwu7u9bb",
+      "review_matches_post": true,
+      "draft_return": true,
+      "frames": 41,
+      "last_sim_time_s": 20.0,
+      "replay_source": "run:generated_task_mwu7u9bb",
+      "integrity": "PASS",
+      "preflight": {
+        "path": ".tmp/dt-ux-serial/finite/natural_language/preflight.json",
+        "sha256": "ae75f4a22f6e368f3a9556db285b0b9ea30c6d78fcdad2bfc048b7393badfbd1"
+      },
+      "model": "dt-qwen25-coder15-v5",
+      "generation": {
+        "path": ".tmp/dt-ux-serial/finite/natural_language/generation.json",
+        "sha256": "d6910ea1e2c64e0165b26c09e96ebbf72b03a6b2dc1a670f48cca0d3f8720ad5"
+      }
+    },
+    {
+      "entry": "natural_language",
+      "mode": "bounded",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/live/natural_language-bounded/report.json",
+        "sha256": "26c83ed8a029b651df6aa87be2fbd004b6d9445a73541a169efaf8462faf1cdb"
+      },
+      "id": "live-mwu7rai1-722c3892",
+      "review_matches_post": true,
+      "completion": {
+        "session_id": "live-mwu7rai1-722c3892",
+        "state": "COMPLETED",
+        "sim_time_s": 20.0,
+        "archive_status": "SEALED"
+      },
+      "replay": {
+        "stream": "whole.orbit",
+        "frames": 41,
+        "last_sequence": 40,
+        "last_time_s": 20.0
+      },
+      "telemetry_sha256": "4906e3648c86361783b05c4cc5283e8d1d4e44a1046fd1371489a1ce47e6401f",
+      "pause": {
+        "state": "PAUSED",
+        "time_s": 0.5
+      },
+      "step": {
+        "state": "PAUSED",
+        "time_s": 1.0
+      },
+      "resume": {
+        "state": "RUNNING",
+        "time_s": 1.0
+      },
+      "model": "dt-qwen25-coder15-v5",
+      "generation": {
+        "path": ".tmp/dt-ux-accept/live/natural_language-bounded/generation.json",
+        "sha256": "9d70f6bb0f10c7b645da9c34c21a5860e049f8b3b10eaca1e728688c7ad181e9"
+      }
+    },
+    {
+      "entry": "natural_language",
+      "mode": "continuous",
+      "status": "PASS",
+      "report": {
+        "path": ".tmp/dt-ux-accept/live/natural_language-continuous/report.json",
+        "sha256": "cae360f4bea91caccdff5cb24d0e448be3a4f516330ad7b49c04d22ffe6f296d"
+      },
+      "id": "p9f-native-browser-continuous",
+      "review_matches_post": true,
+      "completion": {
+        "session_id": "p9f-native-browser-continuous",
+        "state": "COMPLETED",
+        "sim_time_s": 4.0,
+        "archive_status": "SEALED"
+      },
+      "replay": {
+        "stream": "whole.orbit",
+        "frames": 9,
+        "last_sequence": 8,
+        "last_time_s": 4.0
+      },
+      "telemetry_sha256": "238dad8a7aaac5198d3977fc8ea2453fa4c63b37084f8095b3fecee3cb16408a",
+      "reconnected_session_id": "p9f-native-browser-continuous",
+      "model": "dt-qwen25-coder15-v5",
+      "generation": {
+        "path": ".tmp/dt-ux-accept/live/natural_language-continuous/generation.json",
+        "sha256": "0a7fa62d6314232957b0f85e2abf3213db839d0280ffaa8cc7b16df9318435e9"
+      }
+    }
+  ],
+  "tests": {
+    ".tmp/dt-ux-accept/live.xml": {
+      "tests": 10,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    ".tmp/dt-ux-accept/offline.xml": {
+      "tests": 8,
+      "errors": 0,
+      "failures": 1,
+      "skipped": 0
+    },
+    ".tmp/dt-ux-serial/model-offline.xml": {
+      "tests": 1,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    ".tmp/dt-ux-final/regressions.xml": {
+      "tests": 82,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    }
+  },
+  "initial_model_failure": "HTTP 429 during overlapping local model requests; retained in original offline XML. Isolated retry recorded separately."
+}

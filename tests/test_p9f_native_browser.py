@@ -350,6 +350,22 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
                 timeout=30000,
             )
             creation_requests: list[dict] = []
+            review = page.locator("#boundedCreateReview" if mode == "bounded" else "#continuousCreateReview")
+            time_field = page.locator("#interactiveDuration" if mode == "bounded" else "#continuousHorizon")
+            time_key = "max_sim_time_s" if mode == "bounded" else "initial_horizon_s"
+            final_time = time_field.input_value()
+            time_field.fill(str(float(final_time) + 10))
+            review.locator("summary").click()
+            from playwright.sync_api import expect
+            expect(review.locator("pre")).to_contain_text(f'"{time_key}": {float(final_time) + 10:g}')
+            before = json.loads(review.locator("pre").inner_text())
+            review.locator("summary").click()
+            assert float(time_field.input_value()) == before[time_key]
+            time_field.fill(final_time)
+            review.locator("summary").click()
+            expect(review.locator("pre")).to_contain_text(f'"{time_key}": {float(final_time):g}')
+            checked_payload = json.loads(review.locator("pre").inner_text())
+            assert checked_payload[time_key] == float(final_time)
 
             def record_creation(request):
                 if request.method == "POST" and request.url.split("?", 1)[0].endswith(create_path):
@@ -369,6 +385,8 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
             session_id = created["session_id"]
             report["session_id"] = session_id
             assert creation_requests, "UI_SESSION_CREATE_REQUEST_NOT_CAPTURED"
+            assert checked_payload == creation_requests[-1]
+            report["review_equals_submitted_payload"] = True
             if custom_case:
                 payload = creation_requests[-1]
                 report["creation_payload"] = payload
@@ -453,7 +471,8 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
                     detail_path = f"/interactive/sessions/{quote(session_id)}"
                     for action in ("Pause", "Step", "Resume"):
                         with page.expect_response(lambda r: r.request.method == "POST" and
-                                                  r.url.endswith(detail_path + "/control")) as response:
+                                                  r.url.endswith(detail_path + "/control") and
+                                                  r.request.post_data_json.get("action") == action.lower()) as response:
                             page.locator(f"#interactive{action}Btn").click()
                         assert response.value.ok
                         snap = _json_request(base, detail_path)
@@ -757,6 +776,30 @@ def test_native_user_created_session_drives_actual_globe_renderer(mode, entry, t
                 assert len(native_times) > 1 and native_times[0] == 0
                 assert native_times[-1] == snap["sim_time_s"]
                 report["native_first_last_s"] = [native_times[0], native_times[-1]]
+                if mode == "bounded":
+                    page.goto(base)
+                    page.locator("#wizardAdvancedBtn").click()
+                    for selector in ("#workbenchMoreNavigation", ".sidebar-nav-group:has(#interactiveNavButton)"):
+                        group = page.locator(selector)
+                        if group.get_attribute("open") is None:
+                            group.locator(":scope > summary").click()
+                    page.locator("#interactiveNavButton").click()
+                    page.locator("#interactiveSessionList button").filter(has_text=session_id).click()
+                replay = page.locator("#boundedArchiveReplay" if mode == "bounded" else "#continuousArchiveReplay")
+                replay.locator("summary").click(timeout=30000)
+                with page.expect_response(lambda r: "/telemetry-history/" in r.url) as history:
+                    replay.get_by_role("button").click()
+                record = history.value.json()
+                assert record["session_id"] == session_id and record["exact_original_samples"]
+                slider = replay.locator("input[type=range]")
+                slider.focus()
+                slider.press("End")
+                last = record["frames"][-1]
+                from playwright.sync_api import expect
+                expect(replay.locator("pre")).to_contain_text("#" + str(last["sequence"]) + " ·")
+                assert len(record["frames"]) >= 2
+                report["verified_replay"] = {"stream": record["stream"], "frames": record["frame_count"],
+                                             "last_sequence": last["sequence"], "last_time_s": last["sim_time_s"]}
             report["status"] = "PASS"
             page.screenshot(path=str(evidence / "native-scene.png"), full_page=True)
             browser.close()
